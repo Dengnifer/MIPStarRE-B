@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "stages": [
+    {
+      "id": "STAGE-01",
+      "name": "Local workflow skeleton",
+      "status": "completed",
+      "issue_ids": ["QPBT-001"],
+      "started_at": "2026-08-30T09:31:33+08:00",
+      "ended_at": "2026-08-30T17:25:00Z",
+      "elapsed_seconds": 57207,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Root and collaboration backends do not expose aggregate tokens; available external-session usage is recorded per session"
+      },
+      "subagents_issued": 34,
+      "max_concurrency": 4,
+      "outputs": ["protocols/", "workflow/state/", "scripts/hot_main_cache.py", "scripts/local_agent.py", "scripts/workflow.py", "research/", "workflow/reviews/stage-01-bootstrap-final.md"],
+      "incident_ids": ["INC-001", "INC-002", "INC-003", "INC-004", "INC-005", "INC-006", "INC-007", "INC-008", "INC-009", "INC-010", "INC-011", "INC-012", "INC-013", "INC-014", "INC-015", "INC-016", "INC-017", "INC-018", "INC-019", "INC-020"]
+    },
+    {
+      "id": "STAGE-02",
+      "name": "Reference source split",
+      "status": "planned",
+      "issue_ids": ["QPBT-010", "QPBT-002"],
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Stage not started"
+      },
+      "subagents_issued": 1,
+      "max_concurrency": 1,
+      "outputs": ["workflow/reviews/stage-02-split-design-recon.md"],
+      "incident_ids": []
+    },
+    {
+      "id": "STAGE-03",
+      "name": "Lean blueprint",
+      "status": "planned",
+      "issue_ids": ["QPBT-009", "QPBT-003"],
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Stage not started"
+      },
+      "subagents_issued": 2,
+      "max_concurrency": 2,
+      "outputs": ["workflow/reviews/stage-03-blueprint-lean-recon.md"],
+      "incident_ids": []
+    },
+    {
+      "id": "STAGE-04A",
+      "name": "Minimal Lean skeleton",
+      "status": "planned",
+      "issue_ids": ["QPBT-004", "QPBT-005"],
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Stage not started"
+      },
+      "subagents_issued": 0,
+      "max_concurrency": 0,
+      "outputs": [],
+      "incident_ids": []
+    },
+    {
+      "id": "STAGE-04B",
+      "name": "Complete declaration skeleton",
+      "status": "planned",
+      "issue_ids": ["QPBT-006"],
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Stage not started"
+      },
+      "subagents_issued": 0,
+      "max_concurrency": 0,
+      "outputs": [],
+      "incident_ids": []
+    },
+    {
+      "id": "STAGE-04C",
+      "name": "Proof implementation",
+      "status": "planned",
+      "issue_ids": ["QPBT-007"],
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Stage not started"
+      },
+      "subagents_issued": 0,
+      "max_concurrency": 0,
+      "outputs": [],
+      "incident_ids": []
+    },
+    {
+      "id": "STAGE-05",
+      "name": "Final audit and technical report",
+      "status": "planned",
+      "issue_ids": ["QPBT-008"],
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Stage not started"
+      },
+      "subagents_issued": 0,
+      "max_concurrency": 0,
+      "outputs": [],
+      "incident_ids": []
+    }
+  ]
+}

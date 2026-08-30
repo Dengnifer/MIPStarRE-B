@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "next_sequence": 12,
+  "issues": [
+    {
+      "id": "QPBT-000",
+      "title": "Tracking: formalize the quantum Pauli basis test",
+      "kind": "tracking",
+      "status": "in_progress",
+      "parent_id": null,
+      "dependency_ids": [],
+      "labels": ["tracking", "formalization", "2001.04383v3", "qpbt"],
+      "acceptance_gates": [
+        "All child issues are done",
+        "The source-faithful main theorem is proved without unintended axioms",
+        "The final Lean and blueprint gates pass"
+      ],
+      "owner_session_id": "i001-coordinator-a01-bootstrap",
+      "source_refs": [
+        "references/2001.04383v3/sections/07-03-pauli-basis-test.tex",
+        "references/2001.04383v3/sections/a-analysis-pauli-basis-test.tex"
+      ],
+      "created_at": "2026-08-30T09:31:33+08:00",
+      "updated_at": "2026-08-30T09:46:59+08:00"
+    },
+    {
+      "id": "QPBT-001",
+      "title": "Establish the local-first formalization workflow",
+      "kind": "workflow",
+      "status": "done",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [],
+      "labels": ["workflow", "research-metrics", "local-operations"],
+      "acceptance_gates": [
+        "Meta-protocol and role protocols are versioned",
+        "Issue, PR, session, stage, and protocol state validate",
+        "Hot-main cache prevents duplicate compilation",
+        "Fresh local reviewer and session archive paths are executable",
+        "Workflow tests pass",
+        "The first Git commit is created"
+      ],
+      "owner_session_id": "i001-coordinator-a01-bootstrap",
+      "source_refs": [
+        "provenance/reference-workflows.md"
+      ],
+      "created_at": "2026-08-30T09:31:33+08:00",
+      "updated_at": "2026-08-30T17:25:00Z",
+      "pre_freeze_acceptance_evidence": {
+        "aggregate_tests": "83/83 passed",
+        "focused_bootstrap_tests": "9/9 passed",
+        "local_reviewer_session_id": "i001-reviewer-a15-bootstrap-whitespace",
+        "local_review_verdict": "approve",
+        "disposable_staged_diff_check": "passed",
+        "fresh_external_review_required": true
+      },
+      "closure_reopened_reason": "The first staged index check exposed blank EOF lines that the untracked bootstrap check did not see",
+      "completion_evidence": {
+        "aggregate_tests": "83/83 passed",
+        "reviewer_session_id": "i001-reviewer-a16-bootstrap-freeze",
+        "reviewed_snapshot_digest": "3385b622053eb674f6082c4bd83619a39f3f9e487cf99f5210e59cef36024d64",
+        "review_verdict": "approve",
+        "seal_required_before_commit": true
+      }
+    },
+    {
+      "id": "QPBT-002",
+      "title": "Pin and split the QPBT reference sources",
+      "kind": "research",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": ["QPBT-001", "QPBT-010"],
+      "labels": ["source", "2001.04383v3", "provenance"],
+      "acceptance_gates": [
+        "The arXiv version and source archive checksum are pinned",
+        "One deterministic TeX file exists per chapter or section",
+        "A manifest maps original lines and labels to split files",
+        "Re-running the splitter is byte-for-byte reproducible",
+        "Source rights and provenance are documented"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "https://arxiv.org/abs/2001.04383v3",
+        "references/2001.04383v3/QPBT_SOURCE_MAP.md"
+      ],
+      "created_at": "2026-08-30T09:31:33+08:00",
+      "updated_at": "2026-08-30T09:46:59+08:00"
+    },
+    {
+      "id": "QPBT-003",
+      "title": "Prepare the source-faithful QPBT Lean blueprint",
+      "kind": "blueprint",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": ["QPBT-002", "QPBT-009"],
+      "labels": ["blueprint", "statement-integrity", "dependency-graph"],
+      "acceptance_gates": [
+        "Every in-scope definition and theorem has a paper anchor",
+        "The transitive definition and proof dependency graphs are explicit",
+        "The main theorem is reachable from dependency leaves",
+        "An independent blueprint review passes",
+        "The second Git commit is created"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "references/2001.04383v3/sections/"
+      ],
+      "created_at": "2026-08-30T09:31:33+08:00",
+      "updated_at": "2026-08-30T09:46:59+08:00"
+    },
+    {
+      "id": "QPBT-004",
+      "title": "Establish the Lean project and reusable quantum foundations",
+      "kind": "formalization",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": ["QPBT-003"],
+      "labels": ["lean", "foundation", "mathlib-scout"],
+      "acceptance_gates": [
+        "Lean and Mathlib pins are recorded",
+        "Reusable imported foundations have provenance",
+        "The empty project build and local cache gate pass"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "blueprint/src/chapter/"
+      ],
+      "created_at": "2026-08-30T09:31:33+08:00",
+      "updated_at": "2026-08-30T09:46:59+08:00"
+    },
+    {
+      "id": "QPBT-005",
+      "title": "Implement the minimal QPBT theorem skeleton",
+      "kind": "formalization",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": ["QPBT-004"],
+      "labels": ["lean", "minimal-skeleton", "main-theorem"],
+      "acceptance_gates": [
+        "The QPBT Lean file tree is structured by ownership",
+        "The main theorem statement is source-faithful",
+        "Every definition used transitively in its type exists",
+        "Only declared skeleton proof holes remain",
+        "The project builds"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "blueprint/src/chapter/"
+      ],
+      "created_at": "2026-08-30T09:31:33+08:00",
+      "updated_at": "2026-08-30T09:46:59+08:00"
+    },
+    {
+      "id": "QPBT-006",
+      "title": "Implement the complete QPBT declaration skeleton",
+      "kind": "formalization",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": ["QPBT-005"],
+      "labels": ["lean", "complete-skeleton", "blueprint-sync"],
+      "acceptance_gates": [
+        "Every blueprint definition and theorem has a Lean declaration",
+        "Every statement has a source label and integrity audit",
+        "No axiom or constant encodes proof debt",
+        "The declaration checker and full build pass"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "blueprint/src/chapter/"
+      ],
+      "created_at": "2026-08-30T09:31:33+08:00",
+      "updated_at": "2026-08-30T09:46:59+08:00"
+    },
+    {
+      "id": "QPBT-007",
+      "title": "Tracking: prove the QPBT dependency graph",
+      "kind": "tracking",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": ["QPBT-006"],
+      "labels": ["tracking", "lean", "proof", "sorry-elimination"],
+      "acceptance_gates": [
+        "Blueprint-derived proof issues are attached as children",
+        "All child proof issues are done",
+        "No intended QPBT sorry remains"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "blueprint/src/chapter/"
+      ],
+      "created_at": "2026-08-30T09:31:33+08:00",
+      "updated_at": "2026-08-30T09:46:59+08:00"
+    },
+    {
+      "id": "QPBT-008",
+      "title": "Audit and report the completed QPBT formalization",
+      "kind": "audit",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": ["QPBT-007"],
+      "labels": ["audit", "paper-report", "proof-integrity"],
+      "acceptance_gates": [
+        "A fresh completion audit approves the source-to-Lean chain",
+        "Clean and hot-cache builds pass",
+        "Axiom and proof-debt audits pass",
+        "Stage, session, incident, and protocol-evolution metrics are complete"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/report.md"
+      ],
+      "created_at": "2026-08-30T09:31:33+08:00",
+      "updated_at": "2026-08-30T09:46:59+08:00"
+    },
+    {
+      "id": "QPBT-009",
+      "title": "Resolve QPBT source discrepancies in the blueprint",
+      "kind": "blueprint",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": ["QPBT-002"],
+      "labels": ["blueprint", "paper-gap", "statement-integrity"],
+      "acceptance_gates": [
+        "Every discrepancy in QPBT_SOURCE_MAP.md has an explicit disposition",
+        "Mathematical corrections are separated from typographical normalizations",
+        "Norm versus squared-norm robustness is bridged by a named proved statement",
+        "External dependency versions and trust boundaries are pinned",
+        "An independent reviewer approves all source-facing decisions"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "references/2001.04383v3/QPBT_SOURCE_MAP.md"
+      ],
+      "created_at": "2026-08-30T10:00:00+08:00",
+      "updated_at": "2026-08-30T10:00:00+08:00"
+    },
+    {
+      "id": "QPBT-010",
+      "title": "Make reference acquisition resilient to Git transport hangs",
+      "kind": "workflow",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": ["QPBT-001"],
+      "labels": ["workflow", "source", "reproducibility"],
+      "acceptance_gates": [
+        "Reference fetch uses bounded timeouts and verifies exact checksums",
+        "Git smart transport has a GitHub REST/codeload fallback",
+        "A test covers the fallback decision without network access",
+        "Three source acquisitions complete without an unbounded hang"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-002"
+      ],
+      "created_at": "2026-08-30T10:00:00+08:00",
+      "updated_at": "2026-08-30T10:00:00+08:00"
+    },
+    {
+      "id": "QPBT-011",
+      "title": "Make focused Python validation commands canonical",
+      "kind": "workflow",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": ["QPBT-001"],
+      "labels": ["workflow", "tests", "protocol-debt", "third-occurrence"],
+      "acceptance_gates": [
+        "One documented focused-test command works in a fresh checkout",
+        "Session validation commands are executed with their exact registered argv before completion",
+        "A regression test rejects package-style invocation when tests is not a package",
+        "A fresh local reviewer approves the narrow protocol change"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-007",
+        "research/metrics/incidents.jsonl#INC-017"
+      ],
+      "created_at": "2026-08-30T15:45:00Z",
+      "updated_at": "2026-08-30T15:45:00Z"
+    }
+  ]
+}

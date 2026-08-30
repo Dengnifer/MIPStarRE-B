@@ -1,0 +1,16 @@
+.lake/
+.workflow-runtime/
+# Author-owned arXiv source is fetched and split locally. Commit manifests,
+# checksums, and project-authored source maps, not the paper text, unless a
+# compatible redistribution permission is recorded.
+references/2001.04383v3/source/
+references/2001.04383v3/sections/
+blueprint/.lake/
+blueprint/print/
+blueprint/web/
+__pycache__/
+*.olean
+*.ilean
+*.trace
+*.pyc
+*.log
