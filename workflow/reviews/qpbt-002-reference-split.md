@@ -314,3 +314,25 @@ and candidate diff/whitespace checks passed with no intermediate failure. The
 session used zero subagents; token usage is unavailable because the runtime does
 not expose it. This fixer disposition is not an approval and requires fresh
 independent review.
+
+## Clean-base replay provenance
+
+`i002-reviewer-a15-single-link-candidate` independently approved the exact
+seven-path candidate from UTC 2026-08-30 21:38:49 to 21:42:44. The approved
+candidate digest was
+`5d08b189dc075e551870ddd9fc236b54a986cabaafc0378918447e2a65bce40a`
+over lexically sorted `path NUL decimal-bytes NUL file-sha256 LF` records. It was
+committed without content changes on the speculative base as
+`e291ab635015f4d7afc0174ce6fad6b631b0102c`.
+
+`i002-integrator-a09-clean-base-replay` created branch
+`issue/qpbt-002-clean-base-a09` and worktree
+`.workflow-runtime/worktrees/qpbt-002-clean-base-a09` directly from the approved
+transport repair `e93d949d06af2a7f4407d198a37aad315deac6aa`, then cherry-picked the
+approved candidate without conflict as
+`dc7f52d78184974bb322839e5ef64fd9fff52cf7`. This provenance paragraph is an
+uncommitted post-replay review-packet update. Clean-base validation passed the
+49-test transport suite, 47-test source suite, 179-test aggregate and workflow
+suites, compileall, contract and archive inspection, and isolated exact
+materialization and verification. This paragraph does not alter the reviewed
+seven-path replay commit and is not an integration approval.
