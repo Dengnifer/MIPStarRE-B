@@ -451,6 +451,84 @@ class ReferenceSourceTests(unittest.TestCase):
             self.assertEqual([], list(runtime.glob("*.transaction")))
             self.assertEqual([], list(runtime.glob("*.cleanup")))
 
+    def test_restart_recovery_rejects_replaced_reference_directory_instance(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            reference = root / "references" / "2001.04383v3"
+            selected_reference = root / "selected-reference"
+            runtime = root / ".workflow-runtime" / "reference-source"
+            reference.mkdir(parents=True)
+            runtime.mkdir(parents=True)
+            for name in ("source-pin.json", "split-manifest.json"):
+                (reference / name).write_bytes((REFERENCE_ROOT / name).read_bytes())
+
+            lock_name = hashlib.sha256(
+                str(reference.resolve()).encode("utf-8")
+            ).hexdigest() + ".lock"
+            transaction = runtime / f"{lock_name}.transaction"
+            (transaction / "backup" / "source").mkdir(parents=True)
+            (transaction / "backup" / "sections").mkdir()
+            (transaction / "backup" / "source" / "saved").write_bytes(b"old source")
+            (transaction / "backup" / "sections" / "saved").write_bytes(b"old sections")
+            (transaction / "transaction.json").write_bytes(
+                source._transaction_document(
+                    str(reference.resolve()),
+                    source._entry_identity(reference.stat()),
+                    {"source": True, "sections": True},
+                )
+            )
+
+            reference.rename(selected_reference)
+            reference.mkdir()
+            for name in ("source-pin.json", "split-manifest.json"):
+                (reference / name).write_bytes((REFERENCE_ROOT / name).read_bytes())
+            (reference / "source").mkdir()
+            (reference / "sections").mkdir()
+            (reference / "source" / "sentinel").write_bytes(b"replacement source")
+            (reference / "sections" / "sentinel").write_bytes(b"replacement sections")
+
+            replacement_before = {
+                str(path.relative_to(reference)): path.read_bytes()
+                for path in reference.rglob("*")
+                if path.is_file()
+            }
+            transaction_before = {
+                str(path.relative_to(transaction)): path.read_bytes()
+                for path in transaction.rglob("*")
+                if path.is_file()
+            }
+            with self.assertRaisesRegex(
+                source.SourceError,
+                "reference directory identity differs; preserved",
+            ):
+                source.materialize(
+                    reference,
+                    runtime,
+                    archive_path=root / "must-not-be-read.tar",
+                    replace_existing=True,
+                )
+
+            self.assertEqual(
+                replacement_before,
+                {
+                    str(path.relative_to(reference)): path.read_bytes()
+                    for path in reference.rglob("*")
+                    if path.is_file()
+                },
+            )
+            self.assertEqual(
+                transaction_before,
+                {
+                    str(path.relative_to(transaction)): path.read_bytes()
+                    for path in transaction.rglob("*")
+                    if path.is_file()
+                },
+            )
+            self.assertTrue(transaction.is_dir())
+            self.assertEqual([], list(runtime.glob("*.cleanup")))
+            self.assertFalse((selected_reference / "source").exists())
+            self.assertFalse((selected_reference / "sections").exists())
+
     @unittest.skipUnless(PINNED_ARCHIVE.is_file(), "pinned archive fixture is unavailable")
     def test_failed_rollback_retains_both_backups_and_startup_recovers_them(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1116,6 +1194,7 @@ class ReferenceSourceTests(unittest.TestCase):
             (transaction / "transaction.json").write_bytes(
                 source._transaction_document(
                     str(reference.resolve()),
+                    source._entry_identity(reference.stat()),
                     {"source": False, "sections": False},
                 )
             )
@@ -1151,6 +1230,7 @@ class ReferenceSourceTests(unittest.TestCase):
             (transaction / "transaction.json").write_bytes(
                 source._transaction_document(
                     str(reference.resolve()),
+                    source._entry_identity(reference.stat()),
                     {"source": False, "sections": False},
                 )
             )

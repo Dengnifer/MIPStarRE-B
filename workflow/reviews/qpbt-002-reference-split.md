@@ -361,3 +361,33 @@ workflow suites passed 180/180. Compileall, both workflow validators, contract
 validation, archive inspection, and isolated exact 39-file / 646-label
 materialization and verification also passed. This fixer disposition is not an
 approval and requires fresh independent review.
+
+The immutable A18 review found that restart recovery still authenticated only
+the textual `reference_root`, allowing a replacement directory at the same path
+to receive rollback mutations or authorize transaction cleanup. The recovery
+marker now also persists the selected reference directory's stable device and
+inode identity. Startup validates that closed-schema identity against the held
+no-follow reference descriptor before materialized-output verification,
+rollback, or successful-transaction cleanup. A mismatch fails closed and
+retains the live `.transaction` byte-for-byte. The deterministic artifact policy
+is that a pre-existing `.cleanup` tombstone is always completed first using only
+the bound runtime descriptor, while a live transaction whose reference identity
+does not match is never renamed or deleted; neither policy touches any reference
+directory content.
+
+`i002-fixer-a13-reference-recovery-identity` ran from UTC 2026-08-30 22:32:18
+to 22:38:03 (345 seconds). Its deterministic no-network restart regression
+constructs a coherent saved-tree transaction, replaces the selected reference
+directory at the same textual path, and proves that recovery retains every
+transaction payload byte, leaves every replacement-root byte unchanged, creates
+no cleanup tombstone, and refuses the unreadable archive path before acquisition.
+The final source and transport suites passed 49/49 each. The aggregate suite and
+`scripts/check_workflow.py` passed 181/181 each; `scripts/workflow.py validate`,
+compileall, and the candidate whitespace check passed. Isolated contract and
+archive validation plus exact materialization and verification passed with the
+pinned 233,859-byte archive, 34 slices, 39 materialized files, and 646 labels.
+The session used zero subagents and zero network or external-endpoint calls; it
+did not run Lake or Lean. Token usage is `null` because this runtime does not
+expose per-session token accounting. Model attestation: Codex based on GPT-5,
+with no more specific backend model identifier exposed. This fixer disposition
+is not an approval and requires fresh independent review.

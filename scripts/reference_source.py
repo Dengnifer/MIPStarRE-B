@@ -1497,11 +1497,16 @@ def _rollback_transaction(
 
 def _transaction_document(
     reference_authority: str,
+    reference_identity: tuple[int, int],
     original_presence: Mapping[str, bool],
 ) -> bytes:
     return _json_bytes({
         "schema_version": SCHEMA_VERSION,
         "reference_root": reference_authority,
+        "reference_identity": {
+            "device": reference_identity[0],
+            "inode": reference_identity[1],
+        },
         "original_presence": {
             "source": bool(original_presence["source"]),
             "sections": bool(original_presence["sections"]),
@@ -1541,18 +1546,39 @@ def _recover_transaction(
             raise SourceError(f"materialization transaction marker is invalid: {transaction}")
         _exact_keys(
             marker,
-            {"schema_version", "reference_root", "original_presence"},
+            {
+                "schema_version",
+                "reference_root",
+                "reference_identity",
+                "original_presence",
+            },
             "transaction marker",
         )
+        reference_identity = marker["reference_identity"]
         presence = marker["original_presence"]
         if (
             marker["schema_version"] != SCHEMA_VERSION
             or marker["reference_root"] != reference_authority
+            or not isinstance(reference_identity, dict)
+            or set(reference_identity) != {"device", "inode"}
+            or any(
+                isinstance(value, bool) or not isinstance(value, int) or value < 0
+                for value in reference_identity.values()
+            )
             or not isinstance(presence, dict)
             or set(presence) != {"source", "sections"}
             or any(not isinstance(value, bool) for value in presence.values())
         ):
             raise SourceError(f"materialization transaction authority is invalid: {transaction}")
+        expected_reference_identity = (
+            reference_identity["device"],
+            reference_identity["inode"],
+        )
+        if _entry_identity(os.fstat(reference_fd)) != expected_reference_identity:
+            raise SourceError(
+                "materialization transaction reference directory identity differs; "
+                f"preserved {transaction}"
+            )
         try:
             _verify_materialized_at(
                 reference_fd,
@@ -1677,7 +1703,11 @@ def materialize(
             _write_new_file_at(
                 transaction_fd,
                 "transaction.json",
-                _transaction_document(reference_authority, original_presence),
+                _transaction_document(
+                    reference_authority,
+                    _entry_identity(os.fstat(reference_fd)),
+                    original_presence,
+                ),
             )
             staging_fd, _ = _create_bound_directory_at(
                 transaction_fd,
