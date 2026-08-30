@@ -336,3 +336,28 @@ uncommitted post-replay review-packet update. Clean-base validation passed the
 suites, compileall, contract and archive inspection, and isolated exact
 materialization and verification. This paragraph does not alter the reviewed
 seven-path replay commit and is not an integration approval.
+
+`i002-fixer-a11-reference-root-descriptor-rollback` ran from UTC 2026-08-30
+22:00:04 to 22:09:35 and resolves A16's reference-root pathname escape. Contract
+loading, existing and final materialization verification, inventory binding,
+stale recovery, rollback setup, backup restoration, transaction cleanup, and
+all reference-directory fsyncs now reuse the no-follow reference descriptor
+selected before the lock-protected operation. Rollback requires independently
+bound runtime and reference descriptors; no recovery or rollback call site can
+reopen `reference_root`. Descriptor-native verification recursively binds every
+directory, bounded-reads every regular file, rechecks the captured contracts,
+and requires the verified source and sections inodes to remain at their bound
+names before success.
+
+A deterministic regression replaces `reference_root` with another real
+directory immediately before injected final-verification failure. Rollback
+restores the original source and sections only in the descriptor-selected tree,
+removes the selected transaction, and preserves all replacement-root sentinels
+byte-exact. The first 48-test focused run had one failure because the new bounded
+reader's generic oversized-file diagnostic no longer matched the established
+exact-size error contract; restoring explicit exact-size semantics resolved it.
+The final source suite passed 48/48, transport passed 49/49, and aggregate and
+workflow suites passed 180/180. Compileall, both workflow validators, contract
+validation, archive inspection, and isolated exact 39-file / 646-label
+materialization and verification also passed. This fixer disposition is not an
+approval and requires fresh independent review.

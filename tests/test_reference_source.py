@@ -68,14 +68,16 @@ class ReferenceSourceTests(unittest.TestCase):
         original_presence: dict[str, bool],
     ) -> tuple[list[str], bool]:
         runtime_fd = source._open_directory_at(transaction.parent)
+        reference_fd = source._open_directory_at(reference)
         try:
             return source._rollback_transaction(
                 transaction,
-                reference,
                 original_presence,
                 _runtime_fd=runtime_fd,
+                _reference_fd=reference_fd,
             )
         finally:
+            source.os.close(reference_fd)
             source.os.close(runtime_fd)
 
     def assert_first_stage_write_uses_selected_runtime(self, *, replacement_is_symlink: bool) -> None:
@@ -378,6 +380,76 @@ class ReferenceSourceTests(unittest.TestCase):
             self.assertEqual(b"old source", (reference / "source" / "old").read_bytes())
             self.assertEqual(b"old sections", (reference / "sections" / "old").read_bytes())
             self.assertEqual([], list(reference.glob(".reference-source-*-*")))
+
+    @unittest.skipUnless(PINNED_ARCHIVE.is_file(), "pinned archive fixture is unavailable")
+    def test_final_verification_reference_root_replacement_rolls_back_selected_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            reference = root / "references" / "2001.04383v3"
+            selected_reference = root / "selected-reference"
+            runtime = root / ".workflow-runtime" / "reference-source"
+            reference.mkdir(parents=True)
+            for name in ("source-pin.json", "split-manifest.json"):
+                (reference / name).write_bytes((REFERENCE_ROOT / name).read_bytes())
+            source.materialize(reference, runtime, archive_path=PINNED_ARCHIVE)
+            primary = reference / "source" / "compression_arXiv_v3.tex"
+            corrupted = b"descriptor-bound original\r\n"
+            primary.write_bytes(corrupted)
+            replacement_files = {
+                "sentinel": b"replacement root",
+                "source/sentinel": b"replacement source",
+                "sections/sentinel": b"replacement sections",
+            }
+            real_verify = source._verify_materialized_at
+            verification_calls = 0
+            replaced = False
+
+            def fail_final_verification(*arguments: object, **keywords: object) -> dict[str, object]:
+                nonlocal verification_calls, replaced
+                verification_calls += 1
+                if verification_calls == 2:
+                    reference.rename(selected_reference)
+                    reference.mkdir()
+                    for relative, payload in replacement_files.items():
+                        destination = reference / relative
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        destination.write_bytes(payload)
+                    replaced = True
+                    raise source.SourceError("injected final verification failure")
+                return real_verify(*arguments, **keywords)
+
+            with (
+                mock.patch.object(
+                    source,
+                    "_verify_materialized_at",
+                    side_effect=fail_final_verification,
+                ),
+                self.assertRaisesRegex(
+                    source.SourceError,
+                    "injected final verification failure",
+                ),
+            ):
+                source.materialize(
+                    reference,
+                    runtime,
+                    archive_path=PINNED_ARCHIVE,
+                    replace_existing=True,
+                )
+
+            self.assertTrue(replaced)
+            self.assertEqual(2, verification_calls)
+            self.assertEqual(corrupted, (selected_reference / primary.relative_to(reference)).read_bytes())
+            self.assertTrue((selected_reference / "sections" / "READY").is_file())
+            self.assertEqual(
+                replacement_files,
+                {
+                    str(path.relative_to(reference)): path.read_bytes()
+                    for path in reference.rglob("*")
+                    if path.is_file()
+                },
+            )
+            self.assertEqual([], list(runtime.glob("*.transaction")))
+            self.assertEqual([], list(runtime.glob("*.cleanup")))
 
     @unittest.skipUnless(PINNED_ARCHIVE.is_file(), "pinned archive fixture is unavailable")
     def test_failed_rollback_retains_both_backups_and_startup_recovers_them(self) -> None:
@@ -1041,7 +1113,12 @@ class ReferenceSourceTests(unittest.TestCase):
             lock_name = hashlib.sha256(str(reference.resolve()).encode("utf-8")).hexdigest() + ".lock"
             transaction = runtime / f"{lock_name}.transaction"
             transaction.mkdir()
-            (transaction / "transaction.json").write_bytes(source._transaction_document(reference, {"source": False, "sections": False}))
+            (transaction / "transaction.json").write_bytes(
+                source._transaction_document(
+                    str(reference.resolve()),
+                    {"source": False, "sections": False},
+                )
+            )
             real_remove_contents = source._remove_tree_contents_at
             interrupted = False
 
@@ -1072,7 +1149,10 @@ class ReferenceSourceTests(unittest.TestCase):
             transaction = runtime / f"{lock_name}.transaction"
             (transaction / "backup").mkdir(parents=True)
             (transaction / "transaction.json").write_bytes(
-                source._transaction_document(reference, {"source": False, "sections": False})
+                source._transaction_document(
+                    str(reference.resolve()),
+                    {"source": False, "sections": False},
+                )
             )
 
             def interrupt_cleanup(descriptor: int) -> None:

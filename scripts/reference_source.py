@@ -24,6 +24,7 @@ import reference_transport
 SCHEMA_VERSION = 1
 ARCHIVE_MAX_BYTES = 233859
 TAR_MAX_BYTES = 2 * 1024 * 1024
+CONTRACT_MAX_BYTES = 64 * 1024
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 LABEL_PATTERN_TEXT = r"\\label\{([^{}\r\n]+)\}"
@@ -49,14 +50,25 @@ def _object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _decode_json_contract(payload: bytes, context: str) -> dict[str, Any]:
+    try:
+        value = json.loads(
+            payload.decode("utf-8"),
+            object_pairs_hook=_object_without_duplicates,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise SourceError(f"cannot decode JSON contract {context}: {error}") from error
+    if not isinstance(value, dict):
+        raise SourceError(f"JSON contract must be an object: {context}")
+    return value
+
+
 def load_json(path: Path) -> dict[str, Any]:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_object_without_duplicates)
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        payload = path.read_bytes()
+    except OSError as error:
         raise SourceError(f"cannot read JSON contract {path}: {error}") from error
-    if not isinstance(value, dict):
-        raise SourceError(f"JSON contract must be an object: {path}")
-    return value
+    return _decode_json_contract(payload, str(path))
 
 
 def _exact_keys(value: Mapping[str, Any], expected: set[str], context: str) -> None:
@@ -460,7 +472,13 @@ def _read_regular_bounded(path: Path, max_bytes: int, *, exact_bytes: int | None
         os.close(descriptor)
 
 
-def _read_regular_bounded_at(directory_fd: int, name: str, max_bytes: int) -> bytes:
+def _read_regular_bounded_at(
+    directory_fd: int,
+    name: str,
+    max_bytes: int,
+    *,
+    exact_bytes: int | None = None,
+) -> bytes:
     flags = os.O_RDONLY
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
@@ -468,12 +486,12 @@ def _read_regular_bounded_at(directory_fd: int, name: str, max_bytes: int) -> by
         flags |= os.O_NONBLOCK
     try:
         observed = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
-        if (
-            stat.S_ISLNK(observed.st_mode)
-            or not stat.S_ISREG(observed.st_mode)
-            or observed.st_size > max_bytes
-        ):
+        if stat.S_ISLNK(observed.st_mode) or not stat.S_ISREG(observed.st_mode):
             raise SourceError(f"unsafe or oversized transaction file: {name}")
+        if observed.st_size > max_bytes or (
+            exact_bytes is not None and observed.st_size != exact_bytes
+        ):
+            raise SourceError(f"regular file size differs from its bound: {name}")
         descriptor = os.open(name, flags, dir_fd=directory_fd)
     except OSError as error:
         raise SourceError(f"cannot safely open transaction file: {name}") from error
@@ -485,6 +503,8 @@ def _read_regular_bounded_at(directory_fd: int, name: str, max_bytes: int) -> by
             or _entry_identity(metadata) != _entry_identity(observed)
         ):
             raise SourceError(f"unsafe or oversized transaction file: {name}")
+        if exact_bytes is not None and metadata.st_size != exact_bytes:
+            raise SourceError(f"regular file size differs from its bound: {name}")
         chunks: list[bytes] = []
         byte_count = 0
         while True:
@@ -503,6 +523,8 @@ def _read_regular_bounded_at(directory_fd: int, name: str, max_bytes: int) -> by
             != (metadata.st_dev, metadata.st_ino, metadata.st_size)
             or _entry_identity(final_observed) != _entry_identity(metadata)
             or byte_count != metadata.st_size
+            or exact_bytes is not None
+            and byte_count != exact_bytes
         ):
             raise SourceError(f"transaction file changed while it was read: {name}")
         return b"".join(chunks)
@@ -521,12 +543,15 @@ def _expected_materialized(
     return expected
 
 
-def _inventory_bytes(reference_root: Path, expected: Mapping[str, bytes]) -> bytes:
-    pin_path, manifest_path = _contract_paths(reference_root)
+def _inventory_bytes(
+    source_pin: bytes,
+    split_manifest: bytes,
+    expected: Mapping[str, bytes],
+) -> bytes:
     inventory = {
         "schema_version": SCHEMA_VERSION,
-        "source_pin_sha256": sha256_bytes(pin_path.read_bytes()),
-        "split_manifest_sha256": sha256_bytes(manifest_path.read_bytes()),
+        "source_pin_sha256": sha256_bytes(source_pin),
+        "split_manifest_sha256": sha256_bytes(split_manifest),
         "files": [
             {"path": path, "bytes": len(payload), "sha256": sha256_bytes(payload)}
             for path, payload in sorted(expected.items())
@@ -535,62 +560,188 @@ def _inventory_bytes(reference_root: Path, expected: Mapping[str, bytes]) -> byt
     return _json_bytes(inventory)
 
 
-def _regular_files(root: Path) -> set[str]:
+def _regular_files_at(root_fd: int, prefix: str = "") -> set[str]:
     result: set[str] = set()
-    for directory, directory_names, file_names in os.walk(root, followlinks=False):
-        directory_path = Path(directory)
-        for name in directory_names:
-            child = directory_path / name
-            metadata = child.stat(follow_symlinks=False)
-            if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
-                raise SourceError(f"materialized tree contains an unsafe directory: {child}")
-        for name in file_names:
-            child = directory_path / name
-            metadata = child.stat(follow_symlinks=False)
-            if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
-                raise SourceError(f"materialized tree contains an unsafe file: {child}")
-            result.add(child.relative_to(root).as_posix())
+    for name in sorted(os.listdir(root_fd)):
+        metadata = os.stat(name, dir_fd=root_fd, follow_symlinks=False)
+        relative = f"{prefix}/{name}" if prefix else name
+        if stat.S_ISDIR(metadata.st_mode) and not stat.S_ISLNK(metadata.st_mode):
+            child_fd = _open_bound_directory(
+                root_fd,
+                name,
+                metadata,
+                "materialized directory",
+            )
+            try:
+                result.update(_regular_files_at(child_fd, relative))
+            finally:
+                os.close(child_fd)
+        elif stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+            raise SourceError(f"materialized tree contains an unsafe entry: {relative}")
+        else:
+            result.add(relative)
     return result
 
 
-def verify_materialized(reference_root: Path) -> dict[str, Any]:
-    pin, manifest = validate_contracts(reference_root)
-    source_directory = reference_root / "source"
-    sections_directory = reference_root / "sections"
-    _assert_real_directory(source_directory)
-    _assert_real_directory(sections_directory)
+def _read_regular_relative_at(directory_fd: int, relative: str, max_bytes: int) -> bytes:
+    parts = relative.split("/")
+    if not parts or any(part in ("", ".", "..") or "\\" in part for part in parts):
+        raise SourceError(f"unsafe materialized file path: {relative}")
+    parent_fd = os.dup(directory_fd)
+    try:
+        for component in parts[:-1]:
+            metadata = _directory_entry(parent_fd, component, "materialized directory")
+            if metadata is None:
+                raise SourceError(f"materialized directory is missing: {component}")
+            child_fd = _open_bound_directory(
+                parent_fd,
+                component,
+                metadata,
+                "materialized directory",
+            )
+            os.close(parent_fd)
+            parent_fd = child_fd
+        return _read_regular_bounded_at(
+            parent_fd,
+            parts[-1],
+            max_bytes,
+            exact_bytes=max_bytes,
+        )
+    finally:
+        os.close(parent_fd)
+
+
+def _verify_materialized_at(
+    reference_fd: int,
+    pin: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+    source_pin: bytes,
+    split_manifest: bytes,
+) -> dict[str, Any]:
+    if (
+        _read_regular_bounded_at(
+            reference_fd,
+            "source-pin.json",
+            CONTRACT_MAX_BYTES,
+        )
+        != source_pin
+        or _read_regular_bounded_at(
+            reference_fd,
+            "split-manifest.json",
+            CONTRACT_MAX_BYTES,
+        )
+        != split_manifest
+    ):
+        raise SourceError("materialized contracts changed after reference binding")
+    source_metadata = _directory_entry(reference_fd, "source", "materialized source")
+    sections_metadata = _directory_entry(reference_fd, "sections", "materialized sections")
+    if source_metadata is None or sections_metadata is None:
+        raise SourceError("materialized source or sections directory is missing")
+    source_fd = _open_bound_directory(
+        reference_fd,
+        "source",
+        source_metadata,
+        "materialized source",
+    )
+    try:
+        sections_fd = _open_bound_directory(
+            reference_fd,
+            "sections",
+            sections_metadata,
+            "materialized sections",
+        )
+    except BaseException:
+        os.close(source_fd)
+        raise
     members: dict[str, bytes] = {}
-    for member in pin["members"]:
-        path = source_directory / member["name"]
-        payload = _read_regular_bounded(path, member["bytes"], exact_bytes=member["bytes"])
-        if len(payload) != member["bytes"] or sha256_bytes(payload) != member["sha256"]:
-            raise SourceError(f"materialized source member differs from pin: {path}")
-        validate_crlf(payload, member["crlf_lines"], member["name"])
-        members[member["name"]] = payload
-    outputs, records = validate_and_split(members[manifest["source_member"]], manifest)
-    expected = _expected_materialized(members, outputs, records)
-    inventory = _inventory_bytes(reference_root, expected)
-    ready = (sha256_bytes(inventory) + "\n").encode("ascii")
-    expected_with_metadata = dict(expected)
-    expected_with_metadata["sections/inventory.json"] = inventory
-    expected_with_metadata["sections/READY"] = ready
-    actual_paths = {
-        f"source/{path}" for path in _regular_files(source_directory)
-    } | {
-        f"sections/{path}" for path in _regular_files(sections_directory)
-    }
-    if actual_paths != set(expected_with_metadata):
-        raise SourceError("materialized file inventory contains missing or extra paths")
-    for relative, payload in expected_with_metadata.items():
-        if _read_regular_bounded(reference_root / relative, len(payload), exact_bytes=len(payload)) != payload:
-            raise SourceError(f"materialized file differs from deterministic inventory: {relative}")
-    return {
-        "status": "verified",
-        "files": len(expected_with_metadata),
-        "labels": len(records),
-        "ready_sha256": sha256_bytes(ready),
-        "inventory_sha256": sha256_bytes(inventory),
-    }
+    try:
+        for member in pin["members"]:
+            payload = _read_regular_bounded_at(
+                source_fd,
+                member["name"],
+                member["bytes"],
+                exact_bytes=member["bytes"],
+            )
+            if len(payload) != member["bytes"] or sha256_bytes(payload) != member["sha256"]:
+                raise SourceError(
+                    f"materialized source member differs from pin: {member['name']}"
+                )
+            validate_crlf(payload, member["crlf_lines"], member["name"])
+            members[member["name"]] = payload
+        outputs, records = validate_and_split(
+            members[manifest["source_member"]],
+            manifest,
+        )
+        expected = _expected_materialized(members, outputs, records)
+        inventory = _inventory_bytes(source_pin, split_manifest, expected)
+        ready = (sha256_bytes(inventory) + "\n").encode("ascii")
+        expected_with_metadata = dict(expected)
+        expected_with_metadata["sections/inventory.json"] = inventory
+        expected_with_metadata["sections/READY"] = ready
+        actual_paths = {
+            f"source/{path}" for path in _regular_files_at(source_fd)
+        } | {
+            f"sections/{path}" for path in _regular_files_at(sections_fd)
+        }
+        if actual_paths != set(expected_with_metadata):
+            raise SourceError("materialized file inventory contains missing or extra paths")
+        for relative, payload in expected_with_metadata.items():
+            root_name, child_relative = relative.split("/", 1)
+            root_fd = source_fd if root_name == "source" else sections_fd
+            observed = _read_regular_relative_at(root_fd, child_relative, len(payload))
+            if len(observed) != len(payload) or observed != payload:
+                raise SourceError(
+                    f"materialized file differs from deterministic inventory: {relative}"
+                )
+        if (
+            _read_regular_bounded_at(
+                reference_fd,
+                "source-pin.json",
+                CONTRACT_MAX_BYTES,
+            )
+            != source_pin
+            or _read_regular_bounded_at(
+                reference_fd,
+                "split-manifest.json",
+                CONTRACT_MAX_BYTES,
+            )
+            != split_manifest
+        ):
+            raise SourceError("materialized contracts changed during verification")
+        _require_bound_entry(
+            reference_fd,
+            "source",
+            source_metadata,
+            "verified materialized source",
+        )
+        _require_bound_entry(
+            reference_fd,
+            "sections",
+            sections_metadata,
+            "verified materialized sections",
+        )
+        return {
+            "status": "verified",
+            "files": len(expected_with_metadata),
+            "labels": len(records),
+            "ready_sha256": sha256_bytes(ready),
+            "inventory_sha256": sha256_bytes(inventory),
+        }
+    finally:
+        os.close(sections_fd)
+        os.close(source_fd)
+
+
+def verify_materialized(reference_root: Path) -> dict[str, Any]:
+    with _bound_directory(reference_root) as reference_fd:
+        pin, manifest, source_pin, split_manifest = _validate_contracts_at(reference_fd)
+        return _verify_materialized_at(
+            reference_fd,
+            pin,
+            manifest,
+            source_pin,
+            split_manifest,
+        )
 
 
 def _locked_at(runtime_fd: int, lock_name: str):
@@ -868,13 +1019,20 @@ def _bound_directory(path: Path) -> Iterable[int]:
         os.close(descriptor)
 
 
-def _directory_entry(directory_fd: int, name: str, context: str) -> os.stat_result | None:
+def _entry_at(directory_fd: int, name: str, context: str) -> os.stat_result | None:
     try:
         metadata = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
     except FileNotFoundError:
         return None
     except OSError as error:
         raise SourceError(f"cannot inspect {context}: {name}") from error
+    return metadata
+
+
+def _directory_entry(directory_fd: int, name: str, context: str) -> os.stat_result | None:
+    metadata = _entry_at(directory_fd, name, context)
+    if metadata is None:
+        return None
     if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
         raise SourceError(f"unsafe {context}: {name}")
     return metadata
@@ -1072,19 +1230,6 @@ def _commit_transaction_cleanup_at(
     _finish_cleanup_tombstone_at(runtime_fd, cleanup_name, transaction_metadata)
 
 
-def _require_bound_path(path: Path, descriptor: int, context: str) -> None:
-    try:
-        metadata = path.stat(follow_symlinks=False)
-    except OSError as error:
-        raise SourceError(f"cannot inspect bound {context}: {path}") from error
-    if (
-        stat.S_ISLNK(metadata.st_mode)
-        or not stat.S_ISDIR(metadata.st_mode)
-        or _entry_identity(metadata) != _entry_identity(os.fstat(descriptor))
-    ):
-        raise SourceError(f"raced bound {context}: {path}")
-
-
 def _restore_current_after_race(
     reference_fd: int,
     transaction_fd: int,
@@ -1143,10 +1288,10 @@ def _entry_exists(directory_fd: int, name: str) -> bool:
 
 def _rollback_transaction(
     transaction: Path,
-    reference_root: Path,
     original_presence: Mapping[str, bool],
     *,
     _runtime_fd: int | None = None,
+    _reference_fd: int | None = None,
     _transaction_fd: int | None = None,
 ) -> tuple[list[str], bool]:
     names = ("sections", "source")
@@ -1155,8 +1300,12 @@ def _rollback_transaction(
     try:
         if _runtime_fd is None:
             return ["backup boundary: bound runtime descriptor is required"], True
+        if _reference_fd is None:
+            return ["backup boundary: bound reference descriptor is required"], True
         runtime_fd = os.dup(_runtime_fd)
         descriptors.append(runtime_fd)
+        reference_fd = os.dup(_reference_fd)
+        descriptors.append(reference_fd)
         if _transaction_fd is None:
             transaction_fd = _open_directory_at(transaction.name, dir_fd=runtime_fd)
         else:
@@ -1170,8 +1319,6 @@ def _rollback_transaction(
         descriptors.append(transaction_fd)
         backup_fd = _open_directory_at("backup", dir_fd=transaction_fd)
         descriptors.append(backup_fd)
-        reference_fd = _open_directory_at(reference_root)
-        descriptors.append(reference_fd)
         saved_metadata: dict[str, os.stat_result | None] = {}
         saved_parent: dict[str, int] = {}
         destination_metadata = {
@@ -1348,10 +1495,13 @@ def _rollback_transaction(
             os.close(descriptor)
 
 
-def _transaction_document(reference_root: Path, original_presence: Mapping[str, bool]) -> bytes:
+def _transaction_document(
+    reference_authority: str,
+    original_presence: Mapping[str, bool],
+) -> bytes:
     return _json_bytes({
         "schema_version": SCHEMA_VERSION,
-        "reference_root": str(reference_root.resolve()),
+        "reference_root": reference_authority,
         "original_presence": {
             "source": bool(original_presence["source"]),
             "sections": bool(original_presence["sections"]),
@@ -1359,7 +1509,16 @@ def _transaction_document(reference_root: Path, original_presence: Mapping[str, 
     })
 
 
-def _recover_transaction(transaction: Path, reference_root: Path, runtime_fd: int) -> None:
+def _recover_transaction(
+    transaction: Path,
+    reference_authority: str,
+    runtime_fd: int,
+    reference_fd: int,
+    pin: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+    source_pin: bytes,
+    split_manifest: bytes,
+) -> None:
     metadata = _directory_entry(runtime_fd, transaction.name, "materialization transaction")
     if metadata is None:
         return
@@ -1388,20 +1547,26 @@ def _recover_transaction(transaction: Path, reference_root: Path, runtime_fd: in
         presence = marker["original_presence"]
         if (
             marker["schema_version"] != SCHEMA_VERSION
-            or marker["reference_root"] != str(reference_root.resolve())
+            or marker["reference_root"] != reference_authority
             or not isinstance(presence, dict)
             or set(presence) != {"source", "sections"}
             or any(not isinstance(value, bool) for value in presence.values())
         ):
             raise SourceError(f"materialization transaction authority is invalid: {transaction}")
         try:
-            verify_materialized(reference_root)
+            _verify_materialized_at(
+                reference_fd,
+                pin,
+                manifest,
+                source_pin,
+                split_manifest,
+            )
         except SourceError:
             rollback_errors, transaction_retained = _rollback_transaction(
                 transaction,
-                reference_root,
                 presence,
                 _runtime_fd=runtime_fd,
+                _reference_fd=reference_fd,
                 _transaction_fd=transaction_fd,
             )
             if rollback_errors:
@@ -1430,10 +1595,11 @@ def materialize(
 ) -> dict[str, Any]:
     started = time.monotonic()
     _assert_real_directory(reference_root)
+    reference_authority = str(reference_root.resolve())
     expected_runtime_root = reference_root.parents[1] / ".workflow-runtime" / "reference-source"
     if Path(os.path.abspath(runtime_root)) != Path(os.path.abspath(expected_runtime_root)):
         raise SourceError("runtime root must be the repository's ignored reference-source directory")
-    lock_name = hashlib.sha256(str(reference_root.resolve()).encode("utf-8")).hexdigest() + ".lock"
+    lock_name = hashlib.sha256(reference_authority.encode("utf-8")).hexdigest() + ".lock"
     _assert_real_directory(runtime_root, create=True)
     with (
         _bound_directory(runtime_root) as runtime_fd,
@@ -1442,27 +1608,45 @@ def materialize(
     ):
         if os.fstat(reference_fd).st_dev != os.fstat(runtime_fd).st_dev:
             raise SourceError("runtime and reference roots must share one filesystem")
-        pin, manifest = validate_contracts(reference_root)
+        pin, manifest, source_pin, split_manifest = _validate_contracts_at(reference_fd)
         transaction_name = f"{lock_name}.transaction"
         cleanup_name = f"{transaction_name}.cleanup"
         transaction = runtime_root / transaction_name
         _finish_cleanup_tombstone_at(runtime_fd, cleanup_name)
-        _recover_transaction(transaction, reference_root, runtime_fd)
-        source_directory = reference_root / "source"
-        sections_directory = reference_root / "sections"
-        existing_source = source_directory.exists() or source_directory.is_symlink()
-        existing_sections = sections_directory.exists() or sections_directory.is_symlink()
+        _recover_transaction(
+            transaction,
+            reference_authority,
+            runtime_fd,
+            reference_fd,
+            pin,
+            manifest,
+            source_pin,
+            split_manifest,
+        )
+        source_metadata = _entry_at(reference_fd, "source", "existing source")
+        sections_metadata = _entry_at(reference_fd, "sections", "existing sections")
+        existing_source = source_metadata is not None
+        existing_sections = sections_metadata is not None
         if existing_source or existing_sections:
             try:
-                evidence = verify_materialized(reference_root)
+                evidence = _verify_materialized_at(
+                    reference_fd,
+                    pin,
+                    manifest,
+                    source_pin,
+                    split_manifest,
+                )
             except SourceError as error:
                 if not replace_existing:
                     raise SourceError("existing materialized output is invalid and was preserved") from error
-                for existing_path in (source_directory, sections_directory):
-                    if existing_path.exists() or existing_path.is_symlink():
-                        metadata = existing_path.stat(follow_symlinks=False)
-                        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
-                            raise SourceError("unsafe existing materialized output was preserved") from error
+                for metadata in (source_metadata, sections_metadata):
+                    if metadata is not None and (
+                        stat.S_ISLNK(metadata.st_mode)
+                        or not stat.S_ISDIR(metadata.st_mode)
+                    ):
+                        raise SourceError(
+                            "unsafe existing materialized output was preserved"
+                        ) from error
             else:
                 evidence.update({"status": "cached", "elapsed_seconds": round(time.monotonic() - started, 6)})
                 return evidence
@@ -1476,7 +1660,7 @@ def materialize(
         members = extract_pinned_members(archive, pin)
         outputs, records = validate_and_split(members[manifest["source_member"]], manifest)
         expected = _expected_materialized(members, outputs, records)
-        inventory = _inventory_bytes(reference_root, expected)
+        inventory = _inventory_bytes(source_pin, split_manifest, expected)
         ready = (sha256_bytes(inventory) + "\n").encode("ascii")
         original_presence = {"source": existing_source, "sections": existing_sections}
         transaction_created = False
@@ -1493,7 +1677,7 @@ def materialize(
             _write_new_file_at(
                 transaction_fd,
                 "transaction.json",
-                _transaction_document(reference_root, original_presence),
+                _transaction_document(reference_authority, original_presence),
             )
             staging_fd, _ = _create_bound_directory_at(
                 transaction_fd,
@@ -1567,7 +1751,6 @@ def materialize(
                 _write_new_file_at(staging_fd, relative, payload)
             _write_new_file_at(staging_fd, "sections/inventory.json", inventory)
             _fsync_tree_at(staging_fd)
-            _require_bound_path(reference_root, reference_fd, "reference root")
             if existing_source:
                 os.replace(
                     "source",
@@ -1621,8 +1804,13 @@ def materialize(
             finally:
                 os.close(sections_fd)
             os.fsync(reference_fd)
-            _require_bound_path(reference_root, reference_fd, "reference root")
-            verified = verify_materialized(reference_root)
+            verified = _verify_materialized_at(
+                reference_fd,
+                pin,
+                manifest,
+                source_pin,
+                split_manifest,
+            )
         except BaseException as error:
             os.close(backup_fd)
             backup_fd = None
@@ -1631,9 +1819,9 @@ def materialize(
             try:
                 rollback_errors, transaction_retained = _rollback_transaction(
                     transaction,
-                    reference_root,
                     original_presence,
                     _runtime_fd=runtime_fd,
+                    _reference_fd=reference_fd,
                     _transaction_fd=transaction_fd,
                 )
             finally:
@@ -1673,20 +1861,41 @@ def materialize(
         return verified
 
 
-def _contract_paths(reference_root: Path) -> tuple[Path, Path]:
-    return reference_root / "source-pin.json", reference_root / "split-manifest.json"
-
-
-def validate_contracts(reference_root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
-    pin_path, manifest_path = _contract_paths(reference_root)
-    pin = load_json(pin_path)
-    manifest = load_json(manifest_path)
+def _validate_contract_payloads(
+    source_pin: bytes,
+    split_manifest: bytes,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    pin = _decode_json_contract(source_pin, "source-pin.json")
+    manifest = _decode_json_contract(split_manifest, "split-manifest.json")
     members = validate_source_pin(pin)
     validate_manifest(manifest)
     primary = members[manifest["source_member"]]
     if (manifest["source_bytes"], manifest["source_sha256"], manifest["source_crlf_lines"]) != (primary["bytes"], primary["sha256"], primary["crlf_lines"]):
         raise SourceError("source pin and split manifest disagree")
     return pin, manifest
+
+
+def _validate_contracts_at(
+    reference_fd: int,
+) -> tuple[dict[str, Any], dict[str, Any], bytes, bytes]:
+    source_pin = _read_regular_bounded_at(
+        reference_fd,
+        "source-pin.json",
+        CONTRACT_MAX_BYTES,
+    )
+    split_manifest = _read_regular_bounded_at(
+        reference_fd,
+        "split-manifest.json",
+        CONTRACT_MAX_BYTES,
+    )
+    pin, manifest = _validate_contract_payloads(source_pin, split_manifest)
+    return pin, manifest, source_pin, split_manifest
+
+
+def validate_contracts(reference_root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+    with _bound_directory(reference_root) as reference_fd:
+        pin, manifest, _, _ = _validate_contracts_at(reference_fd)
+        return pin, manifest
 
 
 def main(argv: Iterable[str] | None = None) -> int:
