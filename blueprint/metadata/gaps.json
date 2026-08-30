@@ -130,6 +130,26 @@
       "disposition": "Prove a named Cauchy-Schwarz/projectivity bound and handle alpha = 0 separately.",
       "public_effect": "Fills proof debt without changing A.21.",
       "issue": "QPBT-009"
+    },
+    {
+      "id": "G14",
+      "class": "index-typos",
+      "source": "pauli.tex:123-148,191-196 [2071-2096,2139-2144]",
+      "affected_nodes": ["F10-PAULI-BINARY", "B01-BINARY"],
+      "paper_problem": "Lemma 5.5 quantifies arbitrary tensor length L, but one factor index is ranged through q instead of k, and its final Fourier projector is written with the summed b_j instead of the fixed outcome a_j.",
+      "disposition": "Retain arbitrary natural L, range j through the k basis coordinates, and index the resulting single-qubit projector by a_j.",
+      "public_effect": "Repairs two indices in the qudit-to-qubit conversion without changing its hypotheses or conclusion.",
+      "issue": "QPBT-009"
+    },
+    {
+      "id": "G15",
+      "class": "index-typo",
+      "source": "appendix-strategies.tex:198-203 [13393-13398]",
+      "affected_nodes": ["A04-WIN-OBS"],
+      "paper_problem": "The intermediate reversed observable product swaps the r_X/r_Z superscripts and u_X/u_Z arguments, contradicting the lemma statement and the immediately following conclusion.",
+      "disposition": "Use Z^(r_Z)(u_Z) X^(r_X)(u_X) in the reversed product throughout the anticommutation argument.",
+      "public_effect": "Repairs an internal index typo; the stated observable consequence is unchanged.",
+      "issue": "QPBT-009"
     }
   ]
 }

@@ -5,7 +5,7 @@
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Field}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.FieldData},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.fieldDataOfOddExponent},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.fieldTrace}}
 \BlueprintField{Transitive definitions}{none}
 \BlueprintField{Prerequisites}{none}
-\BlueprintField{Consumers}{F02-CODE, F05-PAULI, F06-CL, G01-PARAMETERS}
+\BlueprintField{Consumers}{F02-CODE, F05-PAULI, F06-CL, G01-PARAMETERS, K03A-FIELD-ARITHMETIC}
 \BlueprintField{Encoding}{Instantiate Mathlib's GaloisField 2 k directly and derive its Field, Fintype, DecidableEq, CharP, cardinality, finite-dimensional algebra, trace, and self-dual-basis data; vectors are Fin n -> GaloisField 2 k. Do not route this boundary through an abstract carrier wrapper.}
 \BlueprintField{Boundary hypotheses}{Universe levels are explicit for reusable carrier APIs. The field instances are derived from k and q=2\textasciicircum{}k with Odd k; no caller supplies duplicate field, cardinality, characteristic, or algebra instances.}
 \BlueprintField{Status}{not-started; exact; gaps none}
@@ -17,7 +17,7 @@
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Polynomial}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.IndividualDegreePolynomial},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.lowDegreeEncode},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.indicatorVector}}
 \BlueprintField{Transitive definitions}{F01-FIELD}
 \BlueprintField{Prerequisites}{F01-FIELD}
-\BlueprintField{Consumers}{A01-INDICATOR, E04-TENSOR-CODE, F09-LDT-GAME, G02-GAME}
+\BlueprintField{Consumers}{A01-INDICATOR, E04-TENSOR-CODE, F09-LDT-GAME, G02-GAME, K03B-LOW-DEGREE-COMPLEXITY}
 \BlueprintField{Encoding}{Polynomials use Fin m variables and a per-variable degree bound; codewords and indicators use finite function types.}
 \BlueprintField{Boundary hypotheses}{Natural m,d and the field data of F01; injectivity and linearity are proof obligations, not structure fields.}
 \BlueprintField{Status}{not-started; exact; gaps none}
@@ -109,18 +109,18 @@
 
 \begin{BlueprintNode}{F10-PAULI-BINARY}{Qudit-to-qubit Pauli conversion}
 \BlueprintField{Source}{references/2001.04383v3/sections/dependencies/pauli.tex:122-214 [original 2070-2162], label lem:pauli-binary}
-\BlueprintField{Statement}{For a characteristic-two field with the selected basis, give local isometries identifying one q-dimensional EPR pair and its generalized X/Z measurements with log q qubits and tensor Pauli measurements.}
+\BlueprintField{Statement}{For every natural tensor length L and a characteristic-two field with the selected basis, give local isometries identifying L q-dimensional EPR pairs and their generalized X/Z measurements with L*log q qubits and tensor Pauli measurements.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Pauli}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliQuditToQubit}}
 \BlueprintField{Transitive definitions}{F01-FIELD, F03-MEASUREMENT, F05-PAULI}
 \BlueprintField{Prerequisites}{F05-PAULI}
 \BlueprintField{Consumers}{B01-BINARY}
-\BlueprintField{Encoding}{Use an explicit finite basis equivalence and tensor reindexing isometries.}
+\BlueprintField{Encoding}{Use an explicit finite basis equivalence and tensor reindexing isometries; the paper's factor index j ranges through k, not q, and the final Fourier projector is indexed by a\_j, not the summed b\_j.}
 \BlueprintField{Boundary hypotheses}{Characteristic two and the fixed self-dual basis.}
-\BlueprintField{Status}{not-started; exact; gaps none}
-\BlueprintField{Paper assumptions}{q is a power of two with the selected field-to-bits bijection.}
-\BlueprintField{Lean assumptions}{F01 characteristic-two basis data.}
-\BlueprintField{Paper conclusion}{Qudit EPR and Pauli operators map to qubit tensors under local isometries.}
-\BlueprintField{Lean conclusion}{The same state and operator intertwining identities.}
+\BlueprintField{Status}{paper-gap; repaired-internal; gaps G14}
+\BlueprintField{Paper assumptions}{q is a power of two, L is an arbitrary tensor length, and the selected field-to-bits bijection is fixed.}
+\BlueprintField{Lean assumptions}{A natural L and F01 characteristic-two basis data.}
+\BlueprintField{Paper conclusion}{L qudit EPR pairs and Pauli operators map to L*k qubits under local isometries.}
+\BlueprintField{Lean conclusion}{The same state and operator intertwining identities with corrected j<=k and a\_j projector indices.}
 \BlueprintField{Integrity verdict}{exact}
 \end{BlueprintNode}
 

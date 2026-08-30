@@ -8,14 +8,27 @@
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY"
   },
-  "required_soundness_spine": [
-    "F01-FIELD", "F02-CODE", "F03-MEASUREMENT", "F04-DISTANCE", "F05-PAULI",
-    "F06-CL", "F07-TYPED", "F08-MAGIC-GAME", "F09-LDT-GAME",
-    "G01-PARAMETERS", "G02-GAME", "N01-NAIMARK", "A01-INDICATOR", "A03-WIN",
-    "A05-EXPANDED", "A07-JOINT", "R01-FIBER", "A08-XZ-LINES",
-    "L01-LDT-SOUNDNESS", "R02-AXIS-LDT", "R03-RESTRICTED", "A12-GLOBAL",
-    "A13-EXACT-PAULI", "A15-UNITARY", "R05-ROBUSTNESS", "S01-SOUNDNESS"
-  ],
+  "required_target_spines": {
+    "completeness": ["F08-MAGIC-GAME", "G02-GAME", "G03-COMPLETENESS"],
+    "soundness": [
+      "F01-FIELD", "F02-CODE", "F03-MEASUREMENT", "F04-DISTANCE", "F05-PAULI",
+      "F06-CL", "F07-TYPED", "F08-MAGIC-GAME", "F09-LDT-GAME",
+      "G01-PARAMETERS", "G02-GAME", "N01-NAIMARK", "A01-INDICATOR", "A03-WIN",
+      "A05-EXPANDED", "A07-JOINT", "R01-FIBER", "A08-XZ-LINES",
+      "L01-LDT-SOUNDNESS", "R02-AXIS-LDT", "R03-RESTRICTED", "A12-GLOBAL",
+      "A13-EXACT-PAULI", "A15-UNITARY", "R05-ROBUSTNESS", "S01-SOUNDNESS"
+    ],
+    "binary": ["F10-PAULI-BINARY", "S01-SOUNDNESS", "B01-BINARY"],
+    "canonical_complexity": [
+      "G02-GAME", "K01-CANONICAL", "K03-INTRO-COMPLEXITY", "K03A-FIELD-ARITHMETIC",
+      "K03B-LOW-DEGREE-COMPLEXITY", "K04-GAME-COMPLEXITY"
+    ]
+  },
+  "skeleton_plan": {
+    "stage": "minimal",
+    "sorry_count": 1,
+    "sorry_declarations": ["MIPStarRE.QPBT.pauliSoundness"]
+  },
   "nodes": [
     {
       "id": "F01-FIELD",
@@ -185,17 +198,17 @@
       "title": "Qudit-to-qubit Pauli conversion",
       "kind": "lemma",
       "public": false,
-      "status": "not-started",
-      "fidelity": "exact",
+      "status": "paper-gap",
+      "fidelity": "repaired-internal",
       "source": {"path": "references/2001.04383v3/sections/dependencies/pauli.tex", "label": "lem:pauli-binary", "generated_lines": [122, 214], "original_lines": [2070, 2162]},
-      "statement": "For a characteristic-two field with the selected basis, give local isometries identifying one q-dimensional EPR pair and its generalized X/Z measurements with log q qubits and tensor Pauli measurements.",
+      "statement": "For every natural tensor length L and a characteristic-two field with the selected basis, give local isometries identifying L q-dimensional EPR pairs and their generalized X/Z measurements with L*log q qubits and tensor Pauli measurements.",
       "lean": {"module": "MIPStarRE.QPBT.Basic.Pauli", "names": ["MIPStarRE.QPBT.pauliQuditToQubit"]},
       "transitive_definitions": ["F01-FIELD", "F03-MEASUREMENT", "F05-PAULI"],
       "prerequisites": ["F05-PAULI"],
-      "encoding": "Use an explicit finite basis equivalence and tensor reindexing isometries.",
+      "encoding": "Use an explicit finite basis equivalence and tensor reindexing isometries; the paper's factor index j ranges through k, not q, and the final Fourier projector is indexed by a_j, not the summed b_j.",
       "boundary_hypotheses": "Characteristic two and the fixed self-dual basis.",
-      "gap_ids": [],
-      "integrity": {"paper_assumptions": "q is a power of two with the selected field-to-bits bijection.", "lean_assumptions": "F01 characteristic-two basis data.", "paper_conclusion": "Qudit EPR and Pauli operators map to qubit tensors under local isometries.", "lean_conclusion": "The same state and operator intertwining identities.", "verdict": "exact"}
+      "gap_ids": ["G14"],
+      "integrity": {"paper_assumptions": "q is a power of two, L is an arbitrary tensor length, and the selected field-to-bits bijection is fixed.", "lean_assumptions": "A natural L and F01 characteristic-two basis data.", "paper_conclusion": "L qudit EPR pairs and Pauli operators map to L*k qubits under local isometries.", "lean_conclusion": "The same state and operator intertwining identities with corrected j<=k and a_j projector indices.", "verdict": "exact"}
     },
     {
       "id": "E01-ORTHO",
@@ -368,16 +381,16 @@
       "kind": "lemma",
       "public": false,
       "status": "paper-gap",
-      "fidelity": "faithful-boundary",
+      "fidelity": "repaired-internal",
       "source": {"path": "references/2001.04383v3/sections/qpbt/appendix-strategies.tex", "label": "len:qld-win-implications-obs", "generated_lines": [111, 207], "original_lines": [13306, 13402]},
       "statement": "Translate the A.7 measurement estimates into the point observable consistency, commutation, and anticommutation estimates used by expansion.",
       "lean": {"module": "MIPStarRE.QPBT.Analysis.StrategyConsequences", "names": ["MIPStarRE.QPBT.winImplicationsObservables"]},
       "transitive_definitions": ["F01-FIELD", "F02-CODE", "F03-MEASUREMENT", "F04-DISTANCE", "F05-PAULI", "F06-CL", "F07-TYPED", "F08-MAGIC-GAME", "G01-PARAMETERS", "G02-GAME"],
       "prerequisites": ["A03-WIN"],
-      "encoding": "Use normalized Lean naming while retaining the literal malformed label in the source field.",
+      "encoding": "Use normalized Lean naming while retaining the literal malformed label in the source field; repair the swapped r_X/r_Z indices in the intermediate reversed product to match the lemma statement and conclusion.",
       "boundary_hypotheses": "Exactly the conclusions of A03 and bounded Fourier phases.",
-      "gap_ids": ["G06"],
-      "integrity": {"paper_assumptions": "The observables derived from a high-success projective strategy.", "lean_assumptions": "The A03 result and the observable definitions.", "paper_conclusion": "The listed consistency, commutation, and anticommutation estimates.", "lean_conclusion": "The same inequalities under normalized declaration naming.", "verdict": "exact"}
+      "gap_ids": ["G06", "G15"],
+      "integrity": {"paper_assumptions": "The observables derived from a high-success projective strategy.", "lean_assumptions": "The A03 result and the observable definitions.", "paper_conclusion": "The listed consistency, commutation, and anticommutation estimates.", "lean_conclusion": "The same inequalities under normalized declaration naming and corrected r_X/r_Z indexing.", "verdict": "exact"}
     },
     {
       "id": "A05-EXPANDED",
@@ -774,8 +787,8 @@
       "prerequisites": ["S01-SOUNDNESS", "F10-PAULI-BINARY"],
       "encoding": "Use the self-dual F2 basis equivalence and explicit tensor reindexing; canonical robustness order is epsilon,m,d,q.",
       "boundary_hypotheses": "S01 plus the characteristic-two/self-dual basis already supplied by admissibility.",
-      "gap_ids": ["G04"],
-      "integrity": {"paper_assumptions": "The assumptions of Theorem 7.14 for a power-of-two field.", "lean_assumptions": "S01 and the explicit characteristic-two basis equivalence.", "paper_conclusion": "Extraction and Pauli closeness expressed on M*log q qubits.", "lean_conclusion": "The same qubit state and tensor-Pauli conclusions with normalized robustness arguments.", "verdict": "faithful boundary"}
+      "gap_ids": ["G04", "G14"],
+      "integrity": {"paper_assumptions": "The assumptions of Theorem 7.14 for a power-of-two field.", "lean_assumptions": "S01 and the explicit characteristic-two basis equivalence.", "paper_conclusion": "Extraction and Pauli closeness expressed on M*log q qubits.", "lean_conclusion": "The same qubit state and tensor-Pauli conclusions with normalized robustness arguments and the repaired F10 tensor indices.", "verdict": "faithful boundary"}
     },
     {
       "id": "K01-CANONICAL",
@@ -822,32 +835,68 @@
       "status": "not-started",
       "fidelity": "faithful-boundary",
       "source": {"path": "references/2001.04383v3/sections/qpbt/qpbt-parameters.tex", "label": "lem:introparams-complexity", "generated_lines": [73, 84], "original_lines": [5712, 5723]},
-      "statement": "The canonical parameters and finite-field representation data are computable within the paper's stated polylogarithmic resource bounds.",
+      "statement": "Given the binary representation of an integer R>=4, the canonical integer tuple (q,m,d) is computable in time polylog(R).",
       "lean": {"module": "MIPStarRE.QPBT.CanonicalParameters", "names": ["MIPStarRE.QPBT.canonicalParameters_complexity"]},
       "transitive_definitions": ["F01-FIELD", "F02-CODE", "F03-MEASUREMENT", "F04-DISTANCE", "F05-PAULI", "F06-CL", "F07-TYPED", "F08-MAGIC-GAME", "F09-LDT-GAME", "G01-PARAMETERS", "G02-GAME", "K01-CANONICAL", "R03-RESTRICTED"],
       "prerequisites": ["K01-CANONICAL"],
       "encoding": "Separate executable algorithms from asymptotic predicates; choose one explicit machine/cost model before proof completion.",
       "boundary_hypotheses": "The paper's standard binary encoding and random-access/Turing cost convention must be fixed in the Lean boundary.",
       "gap_ids": [],
-      "integrity": {"paper_assumptions": "R>=4 and canonical parameters.", "lean_assumptions": "K01 and an explicitly documented computation model.", "paper_conclusion": "The parameter representation is computable in the displayed complexity.", "lean_conclusion": "A cost-bounded algorithm in the selected faithful model.", "verdict": "faithful boundary"}
+      "integrity": {"paper_assumptions": "An integer R>=4 supplied in binary.", "lean_assumptions": "K01, natural R with 4<=R, a binary input encoding, and an explicitly documented computation model.", "paper_conclusion": "The integer tuple (q,m,d) is computable in polylog(R) time.", "lean_conclusion": "The same tuple-computation bound in the selected faithful model; no finite-field representation claim is attributed to this lemma.", "verdict": "faithful boundary"}
+    },
+    {
+      "id": "K03A-FIELD-ARITHMETIC",
+      "chapter": "12",
+      "title": "Efficient characteristic-two field arithmetic",
+      "kind": "lemma",
+      "public": false,
+      "status": "not-started",
+      "fidelity": "faithful-boundary",
+      "source": {"path": "references/2001.04383v3/sections/dependencies/finite-fields.tex", "label": "lem:efficient_arithmetic", "generated_lines": [350, 374], "original_lines": [1666, 1690]},
+      "statement": "For odd k and the algorithmically selected self-dual normal basis of F_(2^k), represented addition, multiplication, multiplication tables, inversion, trace, and complementary-subspace projections have the paper's polynomial-time bounds.",
+      "lean": {"module": "MIPStarRE.QPBT.CanonicalParameters", "names": ["MIPStarRE.QPBT.fieldArithmetic_complexity"]},
+      "transitive_definitions": ["F01-FIELD"],
+      "prerequisites": ["F01-FIELD"],
+      "encoding": "Represent the listed algorithms and their bounds in the same explicit machine/cost model used for K03-K04.",
+      "boundary_hypotheses": "Odd natural k, the F01 self-dual basis selected by the cited algorithm, binary representations, and a faithful cost model.",
+      "gap_ids": [],
+      "integrity": {"paper_assumptions": "Odd k and the self-dual normal basis returned by the efficient-basis algorithm.", "lean_assumptions": "F01 basis data tied to that algorithm and the explicit cost model.", "paper_conclusion": "The five listed field operations take poly(k) time and the listed projections take poly(k,n) time.", "lean_conclusion": "The same represented-operation and projection cost bounds.", "verdict": "faithful boundary"}
+    },
+    {
+      "id": "K03B-LOW-DEGREE-COMPLEXITY",
+      "chapter": "12",
+      "title": "Low-degree encoding evaluation complexity",
+      "kind": "lemma",
+      "public": false,
+      "status": "not-started",
+      "fidelity": "faithful-boundary",
+      "source": {"path": "references/2001.04383v3/sections/dependencies/low-degree-code.tex", "label": "lem:ld-encoding-complexity", "generated_lines": [68, 84], "original_lines": [1796, 1812]},
+      "statement": "For admissible q and M=2^m, evaluating the low-degree encoding g_a(x) from binary representations of a in F_q^M and x in F_q^m takes time poly(M,log q).",
+      "lean": {"module": "MIPStarRE.QPBT.CanonicalParameters", "names": ["MIPStarRE.QPBT.lowDegreeEncode_complexity"]},
+      "transitive_definitions": ["F01-FIELD", "F02-CODE"],
+      "prerequisites": ["F02-CODE", "K03A-FIELD-ARITHMETIC"],
+      "encoding": "Expose an executable evaluator for F02 and count its field operations in the K03A cost model.",
+      "boundary_hypotheses": "Admissible q, M=2^m, binary input representations, and the fixed faithful cost model.",
+      "gap_ids": [],
+      "integrity": {"paper_assumptions": "Admissible q, M=2^m, and binary representations of a and x.", "lean_assumptions": "F02 encoding data, K03A field-operation bounds, and the same input/cost conventions.", "paper_conclusion": "Evaluation of g_a(x) takes poly(M,log q) time.", "lean_conclusion": "The same evaluator cost bound.", "verdict": "faithful boundary"}
     },
     {
       "id": "K04-GAME-COMPLEXITY",
       "chapter": "12",
-      "title": "QPBT sampler and decider complexity",
+      "title": "QPBT decider and CL complexity",
       "kind": "lemma",
       "public": true,
       "status": "not-started",
       "fidelity": "faithful-boundary",
       "source": {"path": "references/2001.04383v3/sections/qpbt/qpbt-parameters.tex", "label": "lem:qld-complexity", "generated_lines": [85, 127], "original_lines": [5724, 5766]},
-      "statement": "For canonical parameters, the QPBT sampler, question/answer lengths, and decision procedure obey the stated polylogarithmic/polynomial complexity bounds.",
+      "statement": "For canonical parameters from R>=4, the QPBT decider runs in poly(R) time, CL marginals and factor spaces are computable in polylog(R) time, and the decider's Turing-machine description is computable from binary R in polylog(R) time.",
       "lean": {"module": "MIPStarRE.QPBT.CanonicalParameters", "names": ["MIPStarRE.QPBT.pauliBasisGame_complexity"]},
       "transitive_definitions": ["F01-FIELD", "F02-CODE", "F03-MEASUREMENT", "F04-DISTANCE", "F05-PAULI", "F06-CL", "F07-TYPED", "F08-MAGIC-GAME", "F09-LDT-GAME", "G01-PARAMETERS", "G02-GAME", "K01-CANONICAL", "R03-RESTRICTED"],
-      "prerequisites": ["G02-GAME", "K03-INTRO-COMPLEXITY"],
-      "encoding": "Count dependent question/answer encodings and executable sampler/decider costs in the same model as K03.",
+      "prerequisites": ["G02-GAME", "K03-INTRO-COMPLEXITY", "K03A-FIELD-ARITHMETIC", "K03B-LOW-DEGREE-COMPLEXITY"],
+      "encoding": "Formalize exactly the three displayed complexity items and their executable decider/CL algorithms in the common K03 cost model; do not add sampler or generic question/answer-length claims to this anchor.",
       "boundary_hypotheses": "Canonical R>=4 and the fixed faithful cost model.",
       "gap_ids": [],
-      "integrity": {"paper_assumptions": "Canonical parameters as a function of R.", "lean_assumptions": "K01-K03 and the explicit cost model.", "paper_conclusion": "The displayed sampler, decider, question, and answer complexity bounds.", "lean_conclusion": "The corresponding cost and encoded-length inequalities.", "verdict": "faithful boundary"}
+      "integrity": {"paper_assumptions": "Integer R>=4 and its canonical parameter tuple.", "lean_assumptions": "K01, K03, K03A, K03B, the QPBT decider/CL definitions, binary R, and the explicit cost model.", "paper_conclusion": "The decider is poly(R), CL marginals and factor spaces are polylog(R), and the decider description is constructible in polylog(R).", "lean_conclusion": "Exactly the corresponding three cost bounds in the selected faithful model.", "verdict": "faithful boundary"}
     }
   ]
 }

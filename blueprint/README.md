@@ -20,8 +20,10 @@ make -C blueprint pdf
 
 For every node, `transitive_definitions` is the sorted set of definition-kind
 nodes in its strict prerequisite closure. The checker derives this closure and
-rejects missing, extra, or theorem-valued entries. It also rejects unresolved
-external theorem pins on the soundness dependency path. `EXT-TENSOR` records
+rejects missing, extra, or theorem-valued entries. Every declared target has a
+source-controlled required spine, and the checker rejects missing targets,
+detached dependencies, and unresolved external theorem pins on any target's
+dependency path. `EXT-TENSOR` records
 the official arXiv metadata contract for `2111.08131v3` (published version,
 last revised 2022-12-06); this pins the source boundary but does not claim its
 theorem has been proved in Lean.
@@ -41,12 +43,14 @@ arbitrary POVMs, bundled normalization, sigma codecs into uniform outcome
 alphabets, Euclidean/`WithLp`/operator adapters, transparent bipartite
 isometries, separate `SquaredRealizes` and public `Realizes` certificates, and
 `Real.rpow`. Carrier universes and required finite/decidable instances are
-explicit. The skeleton
-plan remains exactly one `sorry`, at `MIPStarRE.QPBT.pauliSoundness`; no
-conditional helper moves that public proof debt into an assumption.
+explicit. The minimal-skeleton stage plan has exactly one `sorry`, at
+`MIPStarRE.QPBT.pauliSoundness`; the complete-skeleton stage may expose the
+additional tracked proof debt needed for all blueprint declarations. No
+conditional helper moves public proof debt into an assumption.
 
 The PDF is written to `blueprint/build/main.pdf`. Build products and the
 Graphviz SVG are ignored. The PDF target verifies that all planned Lean
-identifiers remain extractable and that no extracted word crosses a physical
-page boundary or overlaps another extracted word. The tracked DOT and JSON are
-deterministic review artifacts.
+identifiers remain extractable, that at least one physical page exists, and
+that every extracted word has positive area, stays within its page, and does
+not overlap another extracted word. The tracked DOT and JSON are deterministic
+review artifacts.

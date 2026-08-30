@@ -47,7 +47,35 @@ REQUIRED_NODE_KEYS = {
     "source", "statement", "lean", "transitive_definitions", "prerequisites",
     "encoding", "boundary_hypotheses", "gap_ids", "integrity",
 }
-MAIN_TARGET = "soundness"
+EXPECTED_TARGETS = {
+    "completeness": "G03-COMPLETENESS",
+    "soundness": "S01-SOUNDNESS",
+    "binary": "B01-BINARY",
+    "canonical_complexity": "K04-GAME-COMPLEXITY",
+}
+TARGET_KEYS = set(EXPECTED_TARGETS)
+EXPECTED_TARGET_SPINES = {
+    "completeness": ["F08-MAGIC-GAME", "G02-GAME", "G03-COMPLETENESS"],
+    "soundness": [
+        "F01-FIELD", "F02-CODE", "F03-MEASUREMENT", "F04-DISTANCE", "F05-PAULI",
+        "F06-CL", "F07-TYPED", "F08-MAGIC-GAME", "F09-LDT-GAME",
+        "G01-PARAMETERS", "G02-GAME", "N01-NAIMARK", "A01-INDICATOR", "A03-WIN",
+        "A05-EXPANDED", "A07-JOINT", "R01-FIBER", "A08-XZ-LINES",
+        "L01-LDT-SOUNDNESS", "R02-AXIS-LDT", "R03-RESTRICTED", "A12-GLOBAL",
+        "A13-EXACT-PAULI", "A15-UNITARY", "R05-ROBUSTNESS", "S01-SOUNDNESS",
+    ],
+    "binary": ["F10-PAULI-BINARY", "S01-SOUNDNESS", "B01-BINARY"],
+    "canonical_complexity": [
+        "G02-GAME", "K01-CANONICAL", "K03-INTRO-COMPLEXITY",
+        "K03A-FIELD-ARITHMETIC", "K03B-LOW-DEGREE-COMPLEXITY",
+        "K04-GAME-COMPLEXITY",
+    ],
+}
+MINIMAL_SKELETON_PLAN = {
+    "stage": "minimal",
+    "sorry_count": 1,
+    "sorry_declarations": ["MIPStarRE.QPBT.pauliSoundness"],
+}
 
 
 def load_json(path: Path) -> Any:
@@ -248,15 +276,34 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
         for deps in pending.values():
             deps.difference_update(ready)
     targets = nodes_doc.get("targets", {})
-    soundness = targets.get(MAIN_TARGET)
-    if soundness not in node_ids:
-        errors.append("targets.soundness must name an existing node")
-    else:
-        ancestors = dependency_ancestors(soundness, prerequisites) | {soundness}
-        required_spine = set(nodes_doc.get("required_soundness_spine", []))
-        missing_spine = required_spine - ancestors
+    if not isinstance(targets, dict) or set(targets) != TARGET_KEYS:
+        errors.append(f"targets must use the exact keys {sorted(TARGET_KEYS)}")
+        targets = targets if isinstance(targets, dict) else {}
+    if targets != EXPECTED_TARGETS:
+        errors.append("targets must preserve the canonical target contract")
+    target_spines = nodes_doc.get("required_target_spines", {})
+    if not isinstance(target_spines, dict) or set(target_spines) != TARGET_KEYS:
+        errors.append(f"required_target_spines must use the exact keys {sorted(TARGET_KEYS)}")
+        target_spines = target_spines if isinstance(target_spines, dict) else {}
+    if target_spines != EXPECTED_TARGET_SPINES:
+        errors.append("required_target_spines must preserve the canonical reachability contract")
+    for target_name in sorted(TARGET_KEYS):
+        target = targets.get(target_name)
+        if target not in node_ids:
+            errors.append(f"targets.{target_name} must name an existing node")
+            continue
+        required_spine = target_spines.get(target_name)
+        if not (isinstance(required_spine, list) and
+                all(isinstance(node_id, str) and node_id in node_ids
+                    for node_id in required_spine)):
+            errors.append(f"required_target_spines.{target_name} must list existing nodes")
+            continue
+        ancestors = dependency_ancestors(target, prerequisites) | {target}
+        missing_spine = set(required_spine) - ancestors
         if missing_spine:
-            errors.append(f"soundness target misses required spine {sorted(missing_spine)}")
+            errors.append(
+                f"{target_name} target misses required spine {sorted(missing_spine)}"
+            )
         for node_id in sorted(ancestors):
             node = nodes_by_id[node_id]
             if node.get("kind") != "external-theorem":
@@ -264,9 +311,11 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
             external = externals_by_id.get(node.get("external_id"), {})
             if external.get("status") not in RESOLVED_EXTERNAL_STATUSES:
                 errors.append(
-                    f"{node_id}: soundness-critical external source "
+                    f"{node_id}: {target_name}-critical external source "
                     f"{node.get('external_id')} is unresolved"
                 )
+    if nodes_doc.get("skeleton_plan") != MINIMAL_SKELETON_PLAN:
+        errors.append("skeleton_plan must encode the exact minimal-skeleton proof debt")
     return errors
 
 

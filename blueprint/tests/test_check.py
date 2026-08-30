@@ -35,11 +35,81 @@ class BlueprintCheckTests(unittest.TestCase):
             nodes or self.nodes, gaps or self.gaps, externals or self.externals
         )
 
-    def test_canonical_metadata_is_valid_and_soundness_reachable(self) -> None:
+    def test_canonical_metadata_is_valid_and_every_target_reachable(self) -> None:
         self.assertEqual([], self.errors())
         graph = check.graph_document(self.nodes)
         self.assertEqual(len(self.nodes["nodes"]), len(graph["topological_order"]))
-        self.assertIn(self.nodes["targets"]["soundness"], graph["topological_order"])
+        for target in self.nodes["targets"].values():
+            self.assertIn(target, graph["topological_order"])
+
+    def test_every_target_name_and_contract_is_validated(self) -> None:
+        for target_name in sorted(check.TARGET_KEYS):
+            with self.subTest(target=target_name):
+                bad = copy.deepcopy(self.nodes)
+                bad["targets"][target_name] = "NOT-A-NODE"
+                self.assertTrue(any(
+                    f"targets.{target_name} must name an existing node" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        missing_key = copy.deepcopy(self.nodes)
+        del missing_key["targets"]["binary"]
+        self.assertTrue(any("targets must use the exact keys" in error
+                            for error in self.errors(nodes=missing_key)))
+
+        missing_contract = copy.deepcopy(self.nodes)
+        del missing_contract["required_target_spines"]["completeness"]
+        self.assertTrue(any("required_target_spines must use the exact keys" in error
+                            for error in self.errors(nodes=missing_contract)))
+
+        weakened_contract = copy.deepcopy(self.nodes)
+        weakened_contract["required_target_spines"]["canonical_complexity"].remove(
+            "K03B-LOW-DEGREE-COMPLEXITY"
+        )
+        self.assertTrue(any("canonical reachability contract" in error
+                            for error in self.errors(nodes=weakened_contract)))
+
+    def test_binary_and_complexity_targets_cannot_be_detached(self) -> None:
+        cases = (
+            ("B01-BINARY", "F10-PAULI-BINARY", "binary"),
+            ("K04-GAME-COMPLEXITY", None, "canonical_complexity"),
+        )
+        for node_id, removed_dependency, target_name in cases:
+            with self.subTest(node=node_id):
+                bad = copy.deepcopy(self.nodes)
+                node = next(node for node in bad["nodes"] if node["id"] == node_id)
+                node["prerequisites"] = (
+                    [] if removed_dependency is None else
+                    [dep for dep in node["prerequisites"] if dep != removed_dependency]
+                )
+                by_id = {item["id"]: item for item in bad["nodes"]}
+                prerequisites = {item["id"]: set(item["prerequisites"])
+                                 for item in bad["nodes"]}
+                node["transitive_definitions"] = check.definition_ancestor_ids(
+                    node_id, by_id, prerequisites
+                )
+                self.assertTrue(any(
+                    f"{target_name} target misses required spine" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+    def test_minimal_skeleton_proof_debt_is_exact(self) -> None:
+        expected = {
+            "stage": "minimal",
+            "sorry_count": 1,
+            "sorry_declarations": ["MIPStarRE.QPBT.pauliSoundness"],
+        }
+        self.assertEqual(expected, self.nodes["skeleton_plan"])
+        for mutation in (
+            {**expected, "stage": "complete"},
+            {**expected, "sorry_count": 2},
+            {**expected, "sorry_declarations": ["MIPStarRE.QPBT.helper"]},
+        ):
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(self.nodes)
+                bad["skeleton_plan"] = mutation
+                self.assertTrue(any("exact minimal-skeleton proof debt" in error
+                                    for error in self.errors(nodes=bad)))
 
     def test_duplicate_ids_and_lean_names_are_rejected(self) -> None:
         bad = copy.deepcopy(self.nodes)
@@ -201,6 +271,31 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertIn("F08-MAGIC-GAME", completeness_ancestors)
         self.assertNotIn("E02-MAGIC-SQUARE", completeness_ancestors)
 
+    def test_paper_index_repairs_and_complexity_anchors_are_explicit(self) -> None:
+        by_id = {node["id"]: node for node in self.nodes["nodes"]}
+
+        binary_conversion = by_id["F10-PAULI-BINARY"]
+        self.assertIn("every natural tensor length L", binary_conversion["statement"])
+        self.assertIn("j ranges through k, not q", binary_conversion["encoding"])
+        self.assertIn("a_j", binary_conversion["encoding"])
+        self.assertIn("G14", binary_conversion["gap_ids"])
+        self.assertIn("G14", by_id["B01-BINARY"]["gap_ids"])
+
+        observables = by_id["A04-WIN-OBS"]
+        self.assertIn("r_X/r_Z", observables["encoding"])
+        self.assertIn("G15", observables["gap_ids"])
+
+        canonical = by_id["K03-INTRO-COMPLEXITY"]
+        self.assertIn("integer tuple (q,m,d)", canonical["statement"])
+        self.assertNotIn("finite-field representation", canonical["statement"])
+
+        complexity = by_id["K04-GAME-COMPLEXITY"]
+        for dependency in ("K03A-FIELD-ARITHMETIC", "K03B-LOW-DEGREE-COMPLEXITY"):
+            self.assertIn(dependency, complexity["prerequisites"])
+        self.assertIn("exactly the three displayed complexity items", complexity["encoding"])
+        self.assertNotIn("sampler", complexity["statement"].lower())
+        self.assertNotIn("question/answer", complexity["statement"].lower())
+
     def test_lean_api_compatibility_contract_is_explicit(self) -> None:
         by_id = {node["id"]: node for node in self.nodes["nodes"]}
 
@@ -310,6 +405,21 @@ class BlueprintCheckTests(unittest.TestCase):
 
 
 class BlueprintPdfCheckTests(unittest.TestCase):
+    def test_bbox_rejects_zero_pages(self) -> None:
+        pages, errors = check_pdf.validate_bbox("<html><body><doc/></body></html>")
+        self.assertEqual(0, pages)
+        self.assertEqual(["document contains no pages"], errors)
+
+    def test_bbox_rejects_zero_area_word_boxes(self) -> None:
+        xml = """<html><body><doc><page width="100" height="200">
+          <word xMin="10" yMin="20" xMax="10" yMax="30">zero-width</word>
+          <word xMin="20" yMin="40" xMax="30" yMax="40">zero-height</word>
+        </page></doc></body></html>"""
+        pages, errors = check_pdf.validate_bbox(xml)
+        self.assertEqual(1, pages)
+        self.assertEqual(2, len(errors))
+        self.assertTrue(all("zero-area word box" in error for error in errors))
+
     def test_bbox_rejects_text_past_every_physical_page_edge(self) -> None:
         xml = """<?xml version="1.0"?>
         <html xmlns="http://www.w3.org/1999/xhtml"><body><doc>

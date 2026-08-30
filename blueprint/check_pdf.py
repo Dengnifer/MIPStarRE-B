@@ -21,6 +21,8 @@ def validate_bbox(xml_text: str) -> tuple[int, list[str]]:
     root = ET.fromstring(xml_text)
     pages = root.findall(".//{*}page")
     errors: list[str] = []
+    if not pages:
+        errors.append("document contains no pages")
     for page_number, page in enumerate(pages, start=1):
         try:
             width = Decimal(page.attrib["width"])
@@ -48,6 +50,9 @@ def validate_bbox(xml_text: str) -> tuple[int, list[str]]:
                 continue
             if x_min > x_max or y_min > y_max:
                 errors.append(f"page {page_number}: inverted word box: {text}")
+                continue
+            if x_min == x_max or y_min == y_max:
+                errors.append(f"page {page_number}: zero-area word box: {text}")
                 continue
             word_boxes.append((x_min, x_max, y_min, y_max, text))
             edge_violations = (

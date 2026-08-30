@@ -165,15 +165,16 @@
       "consumers": [
         "A05-EXPANDED"
       ],
-      "encoding": "Use normalized Lean naming while retaining the literal malformed label in the source field.",
-      "fidelity": "faithful-boundary",
+      "encoding": "Use normalized Lean naming while retaining the literal malformed label in the source field; repair the swapped r_X/r_Z indices in the intermediate reversed product to match the lemma statement and conclusion.",
+      "fidelity": "repaired-internal",
       "gap_ids": [
-        "G06"
+        "G06",
+        "G15"
       ],
       "id": "A04-WIN-OBS",
       "integrity": {
         "lean_assumptions": "The A03 result and the observable definitions.",
-        "lean_conclusion": "The same inequalities under normalized declaration naming.",
+        "lean_conclusion": "The same inequalities under normalized declaration naming and corrected r_X/r_Z indexing.",
         "paper_assumptions": "The observables derived from a high-success projective strategy.",
         "paper_conclusion": "The listed consistency, commutation, and anticommutation estimates.",
         "verdict": "exact"
@@ -874,12 +875,13 @@
       "encoding": "Use the self-dual F2 basis equivalence and explicit tensor reindexing; canonical robustness order is epsilon,m,d,q.",
       "fidelity": "faithful-boundary",
       "gap_ids": [
-        "G04"
+        "G04",
+        "G14"
       ],
       "id": "B01-BINARY",
       "integrity": {
         "lean_assumptions": "S01 and the explicit characteristic-two basis equivalence.",
-        "lean_conclusion": "The same qubit state and tensor-Pauli conclusions with normalized robustness arguments.",
+        "lean_conclusion": "The same qubit state and tensor-Pauli conclusions with normalized robustness arguments and the repaired F10 tensor indices.",
         "paper_assumptions": "The assumptions of Theorem 7.14 for a power-of-two field.",
         "paper_conclusion": "Extraction and Pauli closeness expressed on M*log q qubits.",
         "verdict": "faithful boundary"
@@ -1115,7 +1117,8 @@
         "F02-CODE",
         "F05-PAULI",
         "F06-CL",
-        "G01-PARAMETERS"
+        "G01-PARAMETERS",
+        "K03A-FIELD-ARITHMETIC"
       ],
       "encoding": "Instantiate Mathlib's GaloisField 2 k directly and derive its Field, Fintype, DecidableEq, CharP, cardinality, finite-dimensional algebra, trace, and self-dual-basis data; vectors are Fin n -> GaloisField 2 k. Do not route this boundary through an abstract carrier wrapper.",
       "fidelity": "exact",
@@ -1157,7 +1160,8 @@
         "A01-INDICATOR",
         "E04-TENSOR-CODE",
         "F09-LDT-GAME",
-        "G02-GAME"
+        "G02-GAME",
+        "K03B-LOW-DEGREE-COMPLEXITY"
       ],
       "encoding": "Polynomials use Fin m variables and a per-variable degree bound; codewords and indicators use finite function types.",
       "fidelity": "exact",
@@ -1532,15 +1536,17 @@
       "consumers": [
         "B01-BINARY"
       ],
-      "encoding": "Use an explicit finite basis equivalence and tensor reindexing isometries.",
-      "fidelity": "exact",
-      "gap_ids": [],
+      "encoding": "Use an explicit finite basis equivalence and tensor reindexing isometries; the paper's factor index j ranges through k, not q, and the final Fourier projector is indexed by a_j, not the summed b_j.",
+      "fidelity": "repaired-internal",
+      "gap_ids": [
+        "G14"
+      ],
       "id": "F10-PAULI-BINARY",
       "integrity": {
-        "lean_assumptions": "F01 characteristic-two basis data.",
-        "lean_conclusion": "The same state and operator intertwining identities.",
-        "paper_assumptions": "q is a power of two with the selected field-to-bits bijection.",
-        "paper_conclusion": "Qudit EPR and Pauli operators map to qubit tensors under local isometries.",
+        "lean_assumptions": "A natural L and F01 characteristic-two basis data.",
+        "lean_conclusion": "The same state and operator intertwining identities with corrected j<=k and a_j projector indices.",
+        "paper_assumptions": "q is a power of two, L is an arbitrary tensor length, and the selected field-to-bits bijection is fixed.",
+        "paper_conclusion": "L qudit EPR pairs and Pauli operators map to L*k qubits under local isometries.",
         "verdict": "exact"
       },
       "kind": "lemma",
@@ -1566,8 +1572,8 @@
         ],
         "path": "references/2001.04383v3/sections/dependencies/pauli.tex"
       },
-      "statement": "For a characteristic-two field with the selected basis, give local isometries identifying one q-dimensional EPR pair and its generalized X/Z measurements with log q qubits and tensor Pauli measurements.",
-      "status": "not-started",
+      "statement": "For every natural tensor length L and a characteristic-two field with the selected basis, give local isometries identifying L q-dimensional EPR pairs and their generalized X/Z measurements with L*log q qubits and tensor Pauli measurements.",
+      "status": "paper-gap",
       "title": "Qudit-to-qubit Pauli conversion",
       "transitive_definitions": [
         "F01-FIELD",
@@ -1868,10 +1874,10 @@
       "gap_ids": [],
       "id": "K03-INTRO-COMPLEXITY",
       "integrity": {
-        "lean_assumptions": "K01 and an explicitly documented computation model.",
-        "lean_conclusion": "A cost-bounded algorithm in the selected faithful model.",
-        "paper_assumptions": "R>=4 and canonical parameters.",
-        "paper_conclusion": "The parameter representation is computable in the displayed complexity.",
+        "lean_assumptions": "K01, natural R with 4<=R, a binary input encoding, and an explicitly documented computation model.",
+        "lean_conclusion": "The same tuple-computation bound in the selected faithful model; no finite-field representation claim is attributed to this lemma.",
+        "paper_assumptions": "An integer R>=4 supplied in binary.",
+        "paper_conclusion": "The integer tuple (q,m,d) is computable in polylog(R) time.",
         "verdict": "faithful boundary"
       },
       "kind": "lemma",
@@ -1897,7 +1903,7 @@
         ],
         "path": "references/2001.04383v3/sections/qpbt/qpbt-parameters.tex"
       },
-      "statement": "The canonical parameters and finite-field representation data are computable within the paper's stated polylogarithmic resource bounds.",
+      "statement": "Given the binary representation of an integer R>=4, the canonical integer tuple (q,m,d) is computable in time polylog(R).",
       "status": "not-started",
       "title": "Canonical parameter computation complexity",
       "transitive_definitions": [
@@ -1917,18 +1923,115 @@
       ]
     },
     {
+      "boundary_hypotheses": "Odd natural k, the F01 self-dual basis selected by the cited algorithm, binary representations, and a faithful cost model.",
+      "chapter": "12",
+      "consumers": [
+        "K03B-LOW-DEGREE-COMPLEXITY",
+        "K04-GAME-COMPLEXITY"
+      ],
+      "encoding": "Represent the listed algorithms and their bounds in the same explicit machine/cost model used for K03-K04.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [],
+      "id": "K03A-FIELD-ARITHMETIC",
+      "integrity": {
+        "lean_assumptions": "F01 basis data tied to that algorithm and the explicit cost model.",
+        "lean_conclusion": "The same represented-operation and projection cost bounds.",
+        "paper_assumptions": "Odd k and the self-dual normal basis returned by the efficient-basis algorithm.",
+        "paper_conclusion": "The five listed field operations take poly(k) time and the listed projections take poly(k,n) time.",
+        "verdict": "faithful boundary"
+      },
+      "kind": "lemma",
+      "lean": {
+        "module": "MIPStarRE.QPBT.CanonicalParameters",
+        "names": [
+          "MIPStarRE.QPBT.fieldArithmetic_complexity"
+        ]
+      },
+      "prerequisites": [
+        "F01-FIELD"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          350,
+          374
+        ],
+        "label": "lem:efficient_arithmetic",
+        "original_lines": [
+          1666,
+          1690
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/finite-fields.tex"
+      },
+      "statement": "For odd k and the algorithmically selected self-dual normal basis of F_(2^k), represented addition, multiplication, multiplication tables, inversion, trace, and complementary-subspace projections have the paper's polynomial-time bounds.",
+      "status": "not-started",
+      "title": "Efficient characteristic-two field arithmetic",
+      "transitive_definitions": [
+        "F01-FIELD"
+      ]
+    },
+    {
+      "boundary_hypotheses": "Admissible q, M=2^m, binary input representations, and the fixed faithful cost model.",
+      "chapter": "12",
+      "consumers": [
+        "K04-GAME-COMPLEXITY"
+      ],
+      "encoding": "Expose an executable evaluator for F02 and count its field operations in the K03A cost model.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [],
+      "id": "K03B-LOW-DEGREE-COMPLEXITY",
+      "integrity": {
+        "lean_assumptions": "F02 encoding data, K03A field-operation bounds, and the same input/cost conventions.",
+        "lean_conclusion": "The same evaluator cost bound.",
+        "paper_assumptions": "Admissible q, M=2^m, and binary representations of a and x.",
+        "paper_conclusion": "Evaluation of g_a(x) takes poly(M,log q) time.",
+        "verdict": "faithful boundary"
+      },
+      "kind": "lemma",
+      "lean": {
+        "module": "MIPStarRE.QPBT.CanonicalParameters",
+        "names": [
+          "MIPStarRE.QPBT.lowDegreeEncode_complexity"
+        ]
+      },
+      "prerequisites": [
+        "F02-CODE",
+        "K03A-FIELD-ARITHMETIC"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          68,
+          84
+        ],
+        "label": "lem:ld-encoding-complexity",
+        "original_lines": [
+          1796,
+          1812
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/low-degree-code.tex"
+      },
+      "statement": "For admissible q and M=2^m, evaluating the low-degree encoding g_a(x) from binary representations of a in F_q^M and x in F_q^m takes time poly(M,log q).",
+      "status": "not-started",
+      "title": "Low-degree encoding evaluation complexity",
+      "transitive_definitions": [
+        "F01-FIELD",
+        "F02-CODE"
+      ]
+    },
+    {
       "boundary_hypotheses": "Canonical R>=4 and the fixed faithful cost model.",
       "chapter": "12",
       "consumers": [],
-      "encoding": "Count dependent question/answer encodings and executable sampler/decider costs in the same model as K03.",
+      "encoding": "Formalize exactly the three displayed complexity items and their executable decider/CL algorithms in the common K03 cost model; do not add sampler or generic question/answer-length claims to this anchor.",
       "fidelity": "faithful-boundary",
       "gap_ids": [],
       "id": "K04-GAME-COMPLEXITY",
       "integrity": {
-        "lean_assumptions": "K01-K03 and the explicit cost model.",
-        "lean_conclusion": "The corresponding cost and encoded-length inequalities.",
-        "paper_assumptions": "Canonical parameters as a function of R.",
-        "paper_conclusion": "The displayed sampler, decider, question, and answer complexity bounds.",
+        "lean_assumptions": "K01, K03, K03A, K03B, the QPBT decider/CL definitions, binary R, and the explicit cost model.",
+        "lean_conclusion": "Exactly the corresponding three cost bounds in the selected faithful model.",
+        "paper_assumptions": "Integer R>=4 and its canonical parameter tuple.",
+        "paper_conclusion": "The decider is poly(R), CL marginals and factor spaces are polylog(R), and the decider description is constructible in polylog(R).",
         "verdict": "faithful boundary"
       },
       "kind": "lemma",
@@ -1940,7 +2043,9 @@
       },
       "prerequisites": [
         "G02-GAME",
-        "K03-INTRO-COMPLEXITY"
+        "K03-INTRO-COMPLEXITY",
+        "K03A-FIELD-ARITHMETIC",
+        "K03B-LOW-DEGREE-COMPLEXITY"
       ],
       "public": true,
       "source": {
@@ -1955,9 +2060,9 @@
         ],
         "path": "references/2001.04383v3/sections/qpbt/qpbt-parameters.tex"
       },
-      "statement": "For canonical parameters, the QPBT sampler, question/answer lengths, and decision procedure obey the stated polylogarithmic/polynomial complexity bounds.",
+      "statement": "For canonical parameters from R>=4, the QPBT decider runs in poly(R) time, CL marginals and factor spaces are computable in polylog(R) time, and the decider's Turing-machine description is computable from binary R in polylog(R) time.",
       "status": "not-started",
-      "title": "QPBT sampler and decider complexity",
+      "title": "QPBT decider and CL complexity",
       "transitive_definitions": [
         "F01-FIELD",
         "F02-CODE",
@@ -2477,7 +2582,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "d3b7b5f02dde5e4b89000f2a26c4187cb2763545ad7785a179190c0333347903",
+  "source_sha256": "05567449495f297d5f6c39687f01ada6f6dab420c54da2fc7181f6afc097c735",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
@@ -2504,6 +2609,8 @@
     "G01-PARAMETERS",
     "G02-GAME",
     "G03-COMPLETENESS",
+    "K03A-FIELD-ARITHMETIC",
+    "K03B-LOW-DEGREE-COMPLEXITY",
     "L01-LDT-SOUNDNESS",
     "N01-NAIMARK",
     "A03-WIN",
