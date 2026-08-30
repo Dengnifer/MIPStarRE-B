@@ -11,8 +11,9 @@ no claim that a planned Lean declaration exists.
 
 ```sh
 python3 blueprint/check.py --check
+# Integration gate: run from the immutable combined Stage-2/3 tree.
 python3 blueprint/check.py --check \
-  --source-root .workflow-runtime/worktrees/qpbt-002/references/2001.04383v3
+  --source-root references/2001.04383v3
 python3 -m unittest discover -s blueprint/tests -p 'test_*.py'
 make -C blueprint pdf
 ```
@@ -26,9 +27,13 @@ last revised 2022-12-06); this pins the source boundary but does not claim its
 theorem has been proved in Lean.
 
 The source-root gate verifies each generated-file anchor and its corresponding
-original `compression_arXiv_v3.tex` line using the split manifest. `--write`
-regenerates `generated/graph.json`, `generated/graph.dot`, and the TeX entry
-fragments. `--check` fails if any generated output is stale.
+original `compression_arXiv_v3.tex` line using the split manifest. The
+standalone Stage-3 branch intentionally lacks that source payload, so it cannot
+pass the exact gate; integration must rerun it against the immutable combined
+Stage-2/3 tree. A missing source root fails closed and is not evidence that the
+anchors were checked. `--write` regenerates `generated/graph.json`,
+`generated/graph.dot`, and the TeX entry fragments. `--check` fails if any
+generated output is stale.
 
 The Lean-facing metadata is also an API compatibility contract. It fixes the
 concrete `GaloisField 2 k` model and exact odd-exponent admissibility, qualified
@@ -43,4 +48,5 @@ conditional helper moves that public proof debt into an assumption.
 The PDF is written to `blueprint/build/main.pdf`. Build products and the
 Graphviz SVG are ignored. The PDF target verifies that all planned Lean
 identifiers remain extractable and that no extracted word crosses a physical
-page boundary. The tracked DOT and JSON are deterministic review artifacts.
+page boundary or overlaps another extracted word. The tracked DOT and JSON are
+deterministic review artifacts.

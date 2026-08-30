@@ -5,15 +5,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 COMMAND_TIMEOUT_SECONDS = 30
-BOUNDARY_TOLERANCE_POINTS = 0.01
+BOUNDARY_TOLERANCE_POINTS = Decimal("0.01")
+OVERLAP_TOLERANCE_POINTS = Decimal("0.1")
 
 
 def validate_bbox(xml_text: str) -> tuple[int, list[str]]:
@@ -22,35 +23,37 @@ def validate_bbox(xml_text: str) -> tuple[int, list[str]]:
     errors: list[str] = []
     for page_number, page in enumerate(pages, start=1):
         try:
-            width = float(page.attrib["width"])
-            height = float(page.attrib["height"])
-        except (KeyError, ValueError):
+            width = Decimal(page.attrib["width"])
+            height = Decimal(page.attrib["height"])
+        except (KeyError, InvalidOperation):
             errors.append(f"page {page_number}: malformed page geometry")
             continue
-        if not all(math.isfinite(value) and value > 0 for value in (width, height)):
+        if not all(value.is_finite() and value > 0 for value in (width, height)):
             errors.append(f"page {page_number}: invalid page dimensions")
             continue
+        word_boxes: list[tuple[Decimal, Decimal, Decimal, Decimal, str]] = []
         for word in page.findall(".//{*}word"):
             text = "".join(word.itertext())
             try:
-                x_min = float(word.attrib["xMin"])
-                x_max = float(word.attrib["xMax"])
-                y_min = float(word.attrib["yMin"])
-                y_max = float(word.attrib["yMax"])
-            except (KeyError, ValueError):
+                x_min = Decimal(word.attrib["xMin"])
+                x_max = Decimal(word.attrib["xMax"])
+                y_min = Decimal(word.attrib["yMin"])
+                y_max = Decimal(word.attrib["yMax"])
+            except (KeyError, InvalidOperation):
                 errors.append(f"page {page_number}: malformed word box: {text}")
                 continue
             coordinates = (x_min, x_max, y_min, y_max)
-            if not all(math.isfinite(value) for value in coordinates):
+            if not all(value.is_finite() for value in coordinates):
                 errors.append(f"page {page_number}: non-finite word box: {text}")
                 continue
             if x_min > x_max or y_min > y_max:
                 errors.append(f"page {page_number}: inverted word box: {text}")
                 continue
+            word_boxes.append((x_min, x_max, y_min, y_max, text))
             edge_violations = (
-                ("left", x_min < -BOUNDARY_TOLERANCE_POINTS, x_min, 0.0),
+                ("left", x_min < -BOUNDARY_TOLERANCE_POINTS, x_min, Decimal(0)),
                 ("right", x_max > width + BOUNDARY_TOLERANCE_POINTS, x_max, width),
-                ("bottom", y_min < -BOUNDARY_TOLERANCE_POINTS, y_min, 0.0),
+                ("bottom", y_min < -BOUNDARY_TOLERANCE_POINTS, y_min, Decimal(0)),
                 ("top", y_max > height + BOUNDARY_TOLERANCE_POINTS, y_max, height),
             )
             for edge, violated, coordinate, boundary in edge_violations:
@@ -59,6 +62,24 @@ def validate_bbox(xml_text: str) -> tuple[int, list[str]]:
                 errors.append(
                     f"page {page_number}: text crosses {edge} page boundary "
                     f"({coordinate:.3f} outside 0..{boundary:.3f}): {text}"
+                )
+        by_left_edge = sorted(word_boxes)
+        for index, first in enumerate(by_left_edge):
+            first_x_min, first_x_max, first_y_min, first_y_max, first_text = first
+            for second in by_left_edge[index + 1:]:
+                second_x_min, second_x_max, second_y_min, second_y_max, second_text = second
+                x_overlap = min(first_x_max, second_x_max) - max(first_x_min, second_x_min)
+                if x_overlap <= OVERLAP_TOLERANCE_POINTS:
+                    if second_x_min >= first_x_max - OVERLAP_TOLERANCE_POINTS:
+                        break
+                    continue
+                y_overlap = min(first_y_max, second_y_max) - max(first_y_min, second_y_min)
+                if y_overlap <= OVERLAP_TOLERANCE_POINTS:
+                    continue
+                errors.append(
+                    f"page {page_number}: text boxes overlap "
+                    f"({x_overlap:.3f} x {y_overlap:.3f} points): "
+                    f"{first_text!r} and {second_text!r}"
                 )
     return len(pages), errors
 

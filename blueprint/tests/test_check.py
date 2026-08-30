@@ -303,6 +303,10 @@ class BlueprintCheckTests(unittest.TestCase):
             node["source"]["original_lines"] = [101, 101]
             node["source"]["label"] = "def:absent"
             self.assertTrue(any("label" in error for error in check.validate_sources(doc, root)))
+            self.assertTrue(any(
+                "source root lacks split manifest" in error
+                for error in check.validate_sources(doc, root / "standalone-stage-3")
+            ))
 
 
 class BlueprintPdfCheckTests(unittest.TestCase):
@@ -311,10 +315,10 @@ class BlueprintPdfCheckTests(unittest.TestCase):
         <html xmlns="http://www.w3.org/1999/xhtml"><body><doc>
           <page width="100" height="200">
             <flow><block><line>
-              <word xMin="-1" yMin="1" xMax="10" yMax="2">left</word>
-              <word xMin="90" yMin="1" xMax="101" yMax="2">right</word>
-              <word xMin="1" yMin="-1" xMax="10" yMax="2">bottom</word>
-              <word xMin="1" yMin="199" xMax="10" yMax="201">top</word>
+              <word xMin="-1" yMin="20" xMax="10" yMax="21">left</word>
+              <word xMin="90" yMin="40" xMax="101" yMax="41">right</word>
+              <word xMin="20" yMin="-1" xMax="30" yMax="2">bottom</word>
+              <word xMin="40" yMin="199" xMax="50" yMax="201">top</word>
             </line></block></flow>
           </page>
         </doc></body></html>"""
@@ -339,9 +343,22 @@ class BlueprintPdfCheckTests(unittest.TestCase):
         self.assertTrue(any("malformed word box" in error for error in errors))
         self.assertTrue(any("invalid page dimensions" in error for error in errors))
 
-    def test_bbox_accepts_boundary_and_identifier_across_line_break(self) -> None:
+    def test_bbox_rejects_overlap_and_accepts_adjacent_text(self) -> None:
+        collision_xml = """<html><body><doc><page width="100" height="200">
+          <word xMin="10" yMin="20" xMax="30" yMax="30">source-anchor</word>
+          <word xMin="25" yMin="20" xMax="40" yMax="30">disposition</word>
+        </page></doc></body></html>"""
+        pages, errors = check_pdf.validate_bbox(collision_xml)
+        self.assertEqual(1, pages)
+        self.assertEqual(1, len(errors))
+        self.assertIn("text boxes overlap (5.000 x 10.000 points)", errors[0])
+        self.assertIn("'source-anchor' and 'disposition'", errors[0])
+
         xml = """<html xmlns="http://www.w3.org/1999/xhtml"><body><doc>
-          <page width="100" height="200"><word xMin="1" yMin="1" xMax="100" yMax="2">ok</word></page>
+          <page width="100" height="200">
+            <word xMin="1" yMin="1" xMax="50" yMax="2">first</word>
+            <word xMin="50" yMin="1" xMax="100" yMax="2">second</word>
+          </page>
         </doc></body></html>"""
         pages, errors = check_pdf.validate_bbox(xml)
         self.assertEqual(1, pages)
@@ -350,6 +367,25 @@ class BlueprintPdfCheckTests(unittest.TestCase):
             "magicSquareStrategyOf\nAnticommuting",
             ["magicSquareStrategyOfAnticommuting"],
         ))
+
+    def test_bbox_overlap_threshold_is_strict_and_decimal_exact(self) -> None:
+        cases = (
+            ("x", "9.9001", "0", "accepts just below", 0),
+            ("x", "9.9", "0", "accepts exact threshold", 0),
+            ("x", "9.8999", "0", "rejects just above", 1),
+            ("y", "9", "9.9001", "accepts just below", 0),
+            ("y", "9", "9.9", "accepts exact threshold", 0),
+            ("y", "9", "9.8999", "rejects just above", 1),
+        )
+        for axis, x_min, y_min, description, expected_errors in cases:
+            with self.subTest(axis=axis, position=description):
+                xml = f"""<html><body><doc><page width="100" height="200">
+                  <word xMin="0" yMin="0" xMax="10" yMax="10">first</word>
+                  <word xMin="{x_min}" yMin="{y_min}" xMax="20" yMax="20">second</word>
+                </page></doc></body></html>"""
+                pages, errors = check_pdf.validate_bbox(xml)
+                self.assertEqual(1, pages)
+                self.assertEqual(expected_errors, len(errors))
 
 
 if __name__ == "__main__":
