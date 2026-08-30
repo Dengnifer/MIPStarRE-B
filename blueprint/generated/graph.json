@@ -946,8 +946,7 @@
       },
       "prerequisites": [
         "F03-MEASUREMENT",
-        "F04-DISTANCE",
-        "F08-MAGIC-GAME"
+        "F04-DISTANCE"
       ],
       "public": false,
       "source": {
@@ -966,20 +965,15 @@
       "status": "not-started",
       "title": "External orthonormalization boundary",
       "transitive_definitions": [
-        "F01-FIELD",
         "F03-MEASUREMENT",
-        "F04-DISTANCE",
-        "F06-CL",
-        "F07-TYPED",
-        "F08-MAGIC-GAME"
+        "F04-DISTANCE"
       ]
     },
     {
       "boundary_hypotheses": "Explicit success deficit in [0,1] and normalized finite-dimensional strategy.",
       "chapter": "03",
       "consumers": [
-        "A03-WIN",
-        "G03-COMPLETENESS"
+        "A03-WIN"
       ],
       "encoding": "Finite question/answer types and binary observables, specialized from arXiv:1709.09267v2.",
       "external_id": "EXT-MS",
@@ -1436,7 +1430,6 @@
       "boundary_hypotheses": "Perfect construction assumes an exact anticommuting observable pair; rigidity is separated in E02.",
       "chapter": "02",
       "consumers": [
-        "E01-ORTHO",
         "G02-GAME"
       ],
       "encoding": "Finite row/column and variable types with binary outcomes; the operator solution is explicit.",
@@ -1713,8 +1706,7 @@
         ]
       },
       "prerequisites": [
-        "G02-GAME",
-        "E02-MAGIC-SQUARE"
+        "G02-GAME"
       ],
       "public": true,
       "source": {
@@ -1736,7 +1728,6 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
-        "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
         "F07-TYPED",
@@ -2482,7 +2473,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "9803197d299e3553a50f593754ab4a7c65c374018a08ad0728d7a9bca6eecf0d",
+  "source_sha256": "6c47a4fef6838e97ff2185b949c310151e4cbe65314a1ed31a7944e9b5577d68",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
@@ -2496,13 +2487,13 @@
     "F03-MEASUREMENT",
     "F04-DISTANCE",
     "A02-PRELIMINARIES",
+    "E01-ORTHO",
     "E02-MAGIC-SQUARE",
     "E03-LINEARITY",
     "F05-PAULI",
     "F06-CL",
     "F07-TYPED",
     "F08-MAGIC-GAME",
-    "E01-ORTHO",
     "F09-LDT-GAME",
     "E04-TENSOR-CODE",
     "F10-PAULI-BINARY",

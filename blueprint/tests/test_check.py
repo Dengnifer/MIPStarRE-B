@@ -185,6 +185,22 @@ class BlueprintCheckTests(unittest.TestCase):
         expected = check.definition_ancestor_ids("S01-SOUNDNESS", by_id, prerequisites)
         self.assertEqual(expected, soundness["transitive_definitions"])
 
+    def test_source_faithful_magic_square_edges(self) -> None:
+        by_id = {node["id"]: node for node in self.nodes["nodes"]}
+        prerequisites = {node_id: set(node["prerequisites"])
+                         for node_id, node in by_id.items()}
+
+        self.assertEqual(
+            {"F03-MEASUREMENT", "F04-DISTANCE"},
+            prerequisites["E01-ORTHO"],
+        )
+        self.assertEqual({"G02-GAME"}, prerequisites["G03-COMPLETENESS"])
+        completeness_ancestors = check.dependency_ancestors(
+            "G03-COMPLETENESS", prerequisites
+        )
+        self.assertIn("F08-MAGIC-GAME", completeness_ancestors)
+        self.assertNotIn("E02-MAGIC-SQUARE", completeness_ancestors)
+
     def test_lean_plan_uses_breakable_identifier_macro(self) -> None:
         node = next(node for node in self.nodes["nodes"] if node["id"] == "F08-MAGIC-GAME")
         rendered = check.render_entry(node, [])
