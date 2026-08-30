@@ -6,8 +6,8 @@
 \BlueprintField{Transitive definitions}{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-DISTANCE, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}
 \BlueprintField{Prerequisites}{F04-DISTANCE, G02-GAME}
 \BlueprintField{Consumers}{A03-WIN, S01-SOUNDNESS}
-\BlueprintField{Encoding}{One auxiliary finite carrier per side contains blocks for every dependent question/outcome family; correlation preservation is pointwise.}
-\BlueprintField{Boundary hypotheses}{Finite questions/outcomes and normalized state only. Projectivity is a conclusion, never a public strategy assumption.}
+\BlueprintField{Encoding}{Use the G02 sigma codecs to view every dependent family as a MIPStarRE.Quantum.Measurement over one uniform finite alphabet, then construct one auxiliary finite carrier per side and prove pointwise correlation preservation.}
+\BlueprintField{Boundary hypotheses}{Reuse the explicit uQuestion/uAnswer universes and their [Fintype]/[DecidableEq] instances, plus the bundled normalized state only. Projectivity is a conclusion, never a public strategy assumption.}
 \BlueprintField{Status}{paper-gap; repaired-internal; gaps G07}
 \end{BlueprintNode}
 

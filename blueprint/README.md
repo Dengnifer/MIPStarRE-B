@@ -30,6 +30,16 @@ original `compression_arXiv_v3.tex` line using the split manifest. `--write`
 regenerates `generated/graph.json`, `generated/graph.dot`, and the TeX entry
 fragments. `--check` fails if any generated output is stale.
 
+The Lean-facing metadata is also an API compatibility contract. It fixes the
+concrete `GaloisField 2 k` model and exact odd-exponent admissibility, qualified
+arbitrary POVMs, bundled normalization, sigma codecs into uniform outcome
+alphabets, Euclidean/`WithLp`/operator adapters, transparent bipartite
+isometries, separate `SquaredRealizes` and public `Realizes` certificates, and
+`Real.rpow`. Carrier universes and required finite/decidable instances are
+explicit. The skeleton
+plan remains exactly one `sorry`, at `MIPStarRE.QPBT.pauliSoundness`; no
+conditional helper moves that public proof debt into an assumption.
+
 The PDF is written to `blueprint/build/main.pdf`. Build products and the
 Graphviz SVG are ignored. The PDF target verifies that all planned Lean
 identifiers remain extractable and that no extracted word crosses a physical

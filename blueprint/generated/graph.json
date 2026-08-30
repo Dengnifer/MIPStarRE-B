@@ -807,12 +807,12 @@
       ]
     },
     {
-      "boundary_hypotheses": "The A03 strategy consequences and exact Pauli construction; delta_S has its established nonnegative range.",
+      "boundary_hypotheses": "The A03 strategy consequences and exact Pauli construction; explicit carrier universes and finite instances; 0<=delta. No aggregate max or unsquared family predicate replaces the five stated bounds.",
       "chapter": "11",
       "consumers": [
         "R05-ROBUSTNESS"
       ],
-      "encoding": "Keep the paper's squared norm exactly at this internal boundary; local unitaries act on explicit product carriers.",
+      "encoding": "SquaredRealizes strategy ideal isometry delta is a transparent conjunction: one squared mapped-state norm bound <= delta, then separate Alice-X, Alice-Z, Bob-X, and Bob-Z finite averages of squared Euclidean norms, each <= delta. Realizes has the same four squared-family fields but an unsquared mapped-state norm bound for the public theorem. Conjugation uses BipartiteIsometry.conjugate and explicit WithLp/operator adapters.",
       "fidelity": "exact",
       "gap_ids": [],
       "id": "A15-UNITARY",
@@ -827,6 +827,8 @@
       "lean": {
         "module": "MIPStarRE.QPBT.Analysis.Extraction",
         "names": [
+          "MIPStarRE.QPBT.Realizes",
+          "MIPStarRE.QPBT.SquaredRealizes",
           "MIPStarRE.QPBT.qldUnitarySquared"
         ]
       },
@@ -847,7 +849,7 @@
         ],
         "path": "references/2001.04383v3/sections/qpbt/appendix-separate-xz-conclude.tex"
       },
-      "statement": "Construct local unitaries extracting the ideal EPR tensor state with a squared-vector-norm bound and conjugating total Pauli measurements close to ideal projectors.",
+      "statement": "Construct local unitaries extracting the ideal EPR tensor state and prove a SquaredRealizes certificate with one squared-state-norm bound and four squared-family Pauli bounds, each at most delta.",
       "status": "not-started",
       "title": "Squared-norm unitary extraction",
       "transitive_definitions": [
@@ -1107,7 +1109,7 @@
       ]
     },
     {
-      "boundary_hypotheses": "q is a positive prime power with the paper's efficient/admissible representation data; characteristic two is required only at Pauli/QPBT consumers.",
+      "boundary_hypotheses": "Universe levels are explicit for reusable carrier APIs. The field instances are derived from k and q=2^k with Odd k; no caller supplies duplicate field, cardinality, characteristic, or algebra instances.",
       "chapter": "02",
       "consumers": [
         "F02-CODE",
@@ -1115,7 +1117,7 @@
         "F06-CL",
         "G01-PARAMETERS"
       ],
-      "encoding": "Use Mathlib finite fields through the project FieldModel; vectors are Fin n -> F and trace lands in the prime field.",
+      "encoding": "Instantiate Mathlib's GaloisField 2 k directly and derive its Field, Fintype, DecidableEq, CharP, cardinality, finite-dimensional algebra, trace, and self-dual-basis data; vectors are Fin n -> GaloisField 2 k. Do not route this boundary through an abstract carrier wrapper.",
       "fidelity": "exact",
       "gap_ids": [],
       "id": "F01-FIELD",
@@ -1125,7 +1127,7 @@
         "module": "MIPStarRE.QPBT.Basic.Field",
         "names": [
           "MIPStarRE.QPBT.FieldData",
-          "MIPStarRE.QPBT.AdmissibleFieldSize",
+          "MIPStarRE.QPBT.fieldDataOfOddExponent",
           "MIPStarRE.QPBT.fieldTrace"
         ]
       },
@@ -1143,7 +1145,7 @@
         ],
         "path": "references/2001.04383v3/sections/dependencies/finite-fields.tex"
       },
-      "statement": "Provide the finite field of size q, prime-field trace, self-dual basis data, and the paper's admissible-size predicate.",
+      "statement": "For an odd natural k, construct the characteristic-two field GaloisField 2 k of cardinality q=2^k, its prime-field trace, and the self-dual basis and algebra used by QPBT.",
       "status": "not-started",
       "title": "Finite fields, trace, and admissible sizes",
       "transitive_definitions": []
@@ -1195,7 +1197,7 @@
       ]
     },
     {
-      "boundary_hypotheses": "All outcome and carrier types are finite with decidable equality; no hidden infinite-dimensional completion.",
+      "boundary_hypotheses": "Declare universe uOutcome uCoord and require [Fintype Outcome] [DecidableEq Outcome] [Fintype Coord] [DecidableEq Coord]; the Hilbert scalar is Complex and no infinite-dimensional completion is hidden.",
       "chapter": "02",
       "consumers": [
         "E01-ORTHO",
@@ -1205,7 +1207,7 @@
         "F08-MAGIC-GAME",
         "F09-LDT-GAME"
       ],
-      "encoding": "Reuse MIPStarRE.Quantum.Measurement and finite matrices; heterogeneous question outcomes use dependent sums.",
+      "encoding": "Use MIPStarRE.Quantum.Measurement for arbitrary POVMs and define projectivity as a separate predicate. Keep this namespace qualified and do not open or inherit the incompatible LDT measurement hierarchy.",
       "fidelity": "faithful-boundary",
       "gap_ids": [],
       "id": "F03-MEASUREMENT",
@@ -1233,13 +1235,13 @@
         ],
         "path": "references/2001.04383v3/sections/dependencies/measurements.tex"
       },
-      "statement": "Represent finite POVMs, projective measurements, observables, brackets, and outcome postprocessing on finite coordinate Hilbert spaces.",
+      "statement": "Represent arbitrary finite POVMs, projective measurements, observables, brackets, and outcome postprocessing on finite coordinate Hilbert spaces.",
       "status": "not-started",
       "title": "Finite measurements and postprocessing",
       "transitive_definitions": []
     },
     {
-      "boundary_hypotheses": "Finite carriers and normalized state; error bounds include explicit nonnegativity whenever real powers occur.",
+      "boundary_hypotheses": "Declare universe uAlice uBob uAuxAlice uAuxBob and require the corresponding [Fintype] and [DecidableEq] instances; the state is bundled with norm one, and every Real.rpow use receives proved nonnegativity. No coercion between WithLp, matrices, and operators is left implicit.",
       "chapter": "02",
       "consumers": [
         "A02-PRELIMINARIES",
@@ -1249,7 +1251,7 @@
         "E04-TENSOR-CODE",
         "N01-NAIMARK"
       ],
-      "encoding": "Use finite coordinate carriers, normalized pure vectors, explicit left/right tensor placement, and real nonnegative errors.",
+      "encoding": "Use EuclideanSpace Complex carriers and a PureStrategy field whose norm-one proof bundles probability normalization. Supply explicit adapters between EuclideanSpace/WithLp 2 coordinates, matrices, Module.End, and operator actions. BipartiteIsometry is a transparent pair of local linear isometries; conjugate is explicitly V * A * V.adjoint on each side.",
       "fidelity": "faithful-boundary",
       "gap_ids": [],
       "id": "F04-DISTANCE",
@@ -1259,6 +1261,8 @@
         "module": "MIPStarRE.QPBT.Basic.Approximation",
         "names": [
           "MIPStarRE.QPBT.PureStrategy",
+          "MIPStarRE.QPBT.BipartiteIsometry",
+          "MIPStarRE.QPBT.BipartiteIsometry.conjugate",
           "MIPStarRE.QPBT.stateDependentDistance",
           "MIPStarRE.QPBT.familyApprox"
         ]
@@ -1279,7 +1283,7 @@
         ],
         "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
       },
-      "statement": "Define finite bipartite pure strategies, consistency, state-dependent operator/family distance, and its triangle/data-processing laws.",
+      "statement": "Define normalized finite bipartite pure strategies, transparent local isometries and conjugation, consistency, state-dependent operator/family distance, and its triangle/data-processing laws.",
       "status": "not-started",
       "title": "Strategies and state-dependent distance",
       "transitive_definitions": [
@@ -1572,20 +1576,20 @@
       ]
     },
     {
-      "boundary_hypotheses": "No positivity beyond what admissible field size and divisibility entail is silently inserted.",
+      "boundary_hypotheses": "The witness k, Odd k, exact equality q=2^k, and Nat divisibility Dvd.dvd m q are explicit. Positivity and characteristic-two field data are derived rather than added as caller assumptions.",
       "chapter": "03",
       "consumers": [
         "G02-GAME"
       ],
-      "encoding": "Use a structure for q,m,d and a separate Prop predicate; divisibility is Nat divisibility.",
+      "encoding": "Define a project-owned Parameters structure for q,m,d and Parameters.Admissible params := Exists fun k : Nat => Odd k /\\ params.q = 2^k /\\ Dvd.dvd params.m params.q. This is not an alias of LDT.Parameters.",
       "fidelity": "exact",
       "gap_ids": [],
       "id": "G01-PARAMETERS",
       "integrity": {
-        "lean_assumptions": "A Parameters value.",
-        "lean_conclusion": "Parameters.Admissible is exactly that conjunction.",
+        "lean_assumptions": "A project-owned Parameters value.",
+        "lean_conclusion": "Parameters.Admissible is exactly the existential odd-exponent equality and Nat divisibility conjunction.",
         "paper_assumptions": "A tuple (q,m,d).",
-        "paper_conclusion": "Admissible means q is an admissible field size and m divides q.",
+        "paper_conclusion": "Admissible means q=2^k for an odd k and m divides q.",
         "verdict": "exact"
       },
       "kind": "definition",
@@ -1612,7 +1616,7 @@
         ],
         "path": "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex"
       },
-      "statement": "A tuple (q,m,d) is admissible exactly when q is an admissible field size and m divides q.",
+      "statement": "A tuple (q,m,d) is admissible exactly when q=2^k for an odd natural k and m divides q.",
       "status": "not-started",
       "title": "Admissible QPBT parameters",
       "transitive_definitions": [
@@ -1620,14 +1624,14 @@
       ]
     },
     {
-      "boundary_hypotheses": "Admissible parameters and finite samplers. The definition contains no success or projectivity assumption.",
+      "boundary_hypotheses": "Declare universe uType uQuestion uAnswer and require [Fintype] and [DecidableEq] for the type index and every sigma fiber, plus admissible parameters and finite samplers. The definition contains no success or projectivity assumption.",
       "chapter": "03",
       "consumers": [
         "G03-COMPLETENESS",
         "K04-GAME-COMPLEXITY",
         "N01-NAIMARK"
       ],
-      "encoding": "Question and answer carriers are dependent sums over the paper's type graph; every decider edge is a constructor, preventing omitted cases.",
+      "encoding": "Question and answer carriers are sigma types over the paper's type graph. Explicit finite codecs embed each dependent answer fiber into one uniform finite POVM alphabet and decode it back; every decider edge is a constructor, preventing omitted cases. The question distribution is a PMF, so normalization is bundled.",
       "fidelity": "exact",
       "gap_ids": [],
       "id": "G02-GAME",
@@ -2027,13 +2031,13 @@
       ]
     },
     {
-      "boundary_hypotheses": "Finite questions/outcomes and normalized state only. Projectivity is a conclusion, never a public strategy assumption.",
+      "boundary_hypotheses": "Reuse the explicit uQuestion/uAnswer universes and their [Fintype]/[DecidableEq] instances, plus the bundled normalized state only. Projectivity is a conclusion, never a public strategy assumption.",
       "chapter": "04",
       "consumers": [
         "A03-WIN",
         "S01-SOUNDNESS"
       ],
-      "encoding": "One auxiliary finite carrier per side contains blocks for every dependent question/outcome family; correlation preservation is pointwise.",
+      "encoding": "Use the G02 sigma codecs to view every dependent family as a MIPStarRE.Quantum.Measurement over one uniform finite alphabet, then construct one auxiliary finite carrier per side and prove pointwise correlation preservation.",
       "fidelity": "repaired-internal",
       "gap_ids": [
         "G07"
@@ -2297,7 +2301,7 @@
       "consumers": [
         "S01-SOUNDNESS"
       ],
-      "encoding": "Use real sqrt monotonicity, positive contractions, and an explicit split between small and large error regimes.",
+      "encoding": "normExtraction_ofSquared converts the squared state premise in SquaredRealizes to the unsquared state field of Realizes; the four squared-family fields are transported at the reparameterized error. Use Real.sqrt monotonicity, positive contractions, Real.rpow for every nonintegral exponent, and an explicit split between small and large error regimes. The robustness expression uses Real.rpow epsilon b and negative-exponent Real.rpow terms after coercing q and 2^(m*d) to Real.",
       "fidelity": "repaired-internal",
       "gap_ids": [
         "G05"
@@ -2328,7 +2332,7 @@
         ],
         "path": "references/2001.04383v3/sections/qpbt/appendix-separate-xz-conclude.tex"
       },
-      "statement": "Convert A.24's squared extraction bound and intermediate square-root losses into the public norm bound while preserving the universal polynomial robustness form by rechosen constants and exponent.",
+      "statement": "Consume A.24's SquaredRealizes certificate through normExtraction_ofSquared, producing the public unsquared Realizes bounds while preserving the universal polynomial robustness form by rechosen constants and exponent.",
       "status": "paper-gap",
       "title": "Squared-distance to norm robustness",
       "transitive_definitions": [
@@ -2354,7 +2358,7 @@
         "K01-CANONICAL",
         "S02-APPENDIX-SOUNDNESS"
       ],
-      "encoding": "Use finite coordinate isometries and explicit Alice/Bob suffixes; robustness arguments are ordered epsilon,m,d,q.",
+      "encoding": "Return the transparent BipartiteIsometry and Realizes certificate, use explicit Alice/Bob suffixes, and order robustness arguments epsilon,m,d,q. Encode all real exponents with Real.rpow rather than Nat/Int power notation.",
       "fidelity": "faithful-boundary",
       "gap_ids": [
         "G04",
@@ -2473,7 +2477,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "6c47a4fef6838e97ff2185b949c310151e4cbe65314a1ed31a7944e9b5577d68",
+  "source_sha256": "d3b7b5f02dde5e4b89000f2a26c4187cb2763545ad7785a179190c0333347903",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",

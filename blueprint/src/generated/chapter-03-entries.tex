@@ -13,18 +13,18 @@
 
 \begin{BlueprintNode}{G01-PARAMETERS}{Admissible QPBT parameters}
 \BlueprintField{Source}{references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex:60-63 [original 5106-5109], label def:admissible}
-\BlueprintField{Statement}{A tuple (q,m,d) is admissible exactly when q is an admissible field size and m divides q.}
+\BlueprintField{Statement}{A tuple (q,m,d) is admissible exactly when q=2\textasciicircum{}k for an odd natural k and m divides q.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Parameters}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.Parameters},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.Parameters.Admissible}}
 \BlueprintField{Transitive definitions}{F01-FIELD}
 \BlueprintField{Prerequisites}{F01-FIELD}
 \BlueprintField{Consumers}{G02-GAME}
-\BlueprintField{Encoding}{Use a structure for q,m,d and a separate Prop predicate; divisibility is Nat divisibility.}
-\BlueprintField{Boundary hypotheses}{No positivity beyond what admissible field size and divisibility entail is silently inserted.}
+\BlueprintField{Encoding}{Define a project-owned Parameters structure for q,m,d and Parameters.Admissible params := Exists fun k : Nat => Odd k /\textbackslash{} params.q = 2\textasciicircum{}k /\textbackslash{} Dvd.dvd params.m params.q. This is not an alias of LDT.Parameters.}
+\BlueprintField{Boundary hypotheses}{The witness k, Odd k, exact equality q=2\textasciicircum{}k, and Nat divisibility Dvd.dvd m q are explicit. Positivity and characteristic-two field data are derived rather than added as caller assumptions.}
 \BlueprintField{Status}{not-started; exact; gaps none}
 \BlueprintField{Paper assumptions}{A tuple (q,m,d).}
-\BlueprintField{Lean assumptions}{A Parameters value.}
-\BlueprintField{Paper conclusion}{Admissible means q is an admissible field size and m divides q.}
-\BlueprintField{Lean conclusion}{Parameters.Admissible is exactly that conjunction.}
+\BlueprintField{Lean assumptions}{A project-owned Parameters value.}
+\BlueprintField{Paper conclusion}{Admissible means q=2\textasciicircum{}k for an odd k and m divides q.}
+\BlueprintField{Lean conclusion}{Parameters.Admissible is exactly the existential odd-exponent equality and Nat divisibility conjunction.}
 \BlueprintField{Integrity verdict}{exact}
 \end{BlueprintNode}
 
@@ -35,8 +35,8 @@
 \BlueprintField{Transitive definitions}{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS}
 \BlueprintField{Prerequisites}{F02-CODE, F05-PAULI, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS}
 \BlueprintField{Consumers}{G03-COMPLETENESS, K04-GAME-COMPLEXITY, N01-NAIMARK}
-\BlueprintField{Encoding}{Question and answer carriers are dependent sums over the paper's type graph; every decider edge is a constructor, preventing omitted cases.}
-\BlueprintField{Boundary hypotheses}{Admissible parameters and finite samplers. The definition contains no success or projectivity assumption.}
+\BlueprintField{Encoding}{Question and answer carriers are sigma types over the paper's type graph. Explicit finite codecs embed each dependent answer fiber into one uniform finite POVM alphabet and decode it back; every decider edge is a constructor, preventing omitted cases. The question distribution is a PMF, so normalization is bundled.}
+\BlueprintField{Boundary hypotheses}{Declare universe uType uQuestion uAnswer and require [Fintype] and [DecidableEq] for the type index and every sigma fiber, plus admissible parameters and finite samplers. The definition contains no success or projectivity assumption.}
 \BlueprintField{Status}{not-started; exact; gaps none}
 \BlueprintField{Paper assumptions}{An admissible parameter tuple used to instantiate the sampler and decider.}
 \BlueprintField{Lean assumptions}{Parameters and their field model; admissibility is required by consumers, not built into the raw game data.}
