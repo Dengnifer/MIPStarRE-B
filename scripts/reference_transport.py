@@ -16,6 +16,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from typing import Any, Callable, Mapping, Sequence
 from urllib.error import HTTPError
@@ -29,6 +30,8 @@ DEFAULT_MAX_BYTES = 64 * 1024 * 1024
 REST_MAX_BYTES = 1024 * 1024
 PROCESS_TERMINATION_GRACE_SECONDS = 1.0
 OUTPUT_EVIDENCE_LIMIT = 4096
+SUBPROCESS_OUTPUT_LIMIT = 64 * 1024
+PROCESS_POLL_SECONDS = 0.01
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
@@ -96,13 +99,24 @@ class CommandOutcome:
     termination_signal: str | None = None
     termination_escalated: bool = False
     termination_cleanup_complete: bool = True
+    output_limit_exceeded: bool = False
+    stdout_byte_count: int | None = None
+    stdout_digest: str | None = None
+    stderr_byte_count: int | None = None
+    stderr_digest: str | None = None
 
     def evidence(self, method: str) -> dict[str, Any]:
         stdout_bytes = self.stdout.encode("utf-8", errors="replace")
         stderr_bytes = self.stderr.encode("utf-8", errors="replace")
         return {
             "method": method,
-            "status": "timed_out" if self.timed_out else ("ok" if self.returncode == 0 else "failed"),
+            "status": (
+                "output_limited"
+                if self.output_limit_exceeded
+                else "timed_out"
+                if self.timed_out
+                else ("ok" if self.returncode == 0 else "failed")
+            ),
             "argv": list(self.argv),
             "returncode": self.returncode,
             "elapsed_seconds": round(self.elapsed_seconds, 6),
@@ -110,10 +124,16 @@ class CommandOutcome:
             "termination_signal": self.termination_signal,
             "termination_escalated": self.termination_escalated,
             "termination_cleanup_complete": self.termination_cleanup_complete,
-            "stdout_bytes": len(stdout_bytes),
-            "stdout_sha256": hashlib.sha256(stdout_bytes).hexdigest(),
-            "stderr_bytes": len(stderr_bytes),
-            "stderr_sha256": hashlib.sha256(stderr_bytes).hexdigest(),
+            "output_limit_exceeded": self.output_limit_exceeded,
+            "output_limit_bytes": SUBPROCESS_OUTPUT_LIMIT,
+            "stdout_bytes": (
+                self.stdout_byte_count if self.stdout_byte_count is not None else len(stdout_bytes)
+            ),
+            "stdout_sha256": self.stdout_digest or hashlib.sha256(stdout_bytes).hexdigest(),
+            "stderr_bytes": (
+                self.stderr_byte_count if self.stderr_byte_count is not None else len(stderr_bytes)
+            ),
+            "stderr_sha256": self.stderr_digest or hashlib.sha256(stderr_bytes).hexdigest(),
         }
 
 
@@ -203,14 +223,35 @@ def _validate_revision(revision: str) -> None:
         raise ValueError("revision contains unsupported characters")
 
 
-def _merge_bytes(partial: bytes | None, final: bytes | None) -> bytes:
-    left = partial or b""
-    right = final or b""
-    if not right or left.startswith(right):
-        return left
-    if not left or right.startswith(left):
-        return right
-    return left + right
+class _BoundedCapture:
+    def __init__(self, limit: int, exceeded: threading.Event):
+        self.limit = limit
+        self.exceeded = exceeded
+        self.total = 0
+        self.digest = hashlib.sha256()
+        self.retained = bytearray()
+
+    def add(self, chunk: bytes) -> None:
+        self.total += len(chunk)
+        self.digest.update(chunk)
+        remaining = self.limit - len(self.retained)
+        if remaining > 0:
+            self.retained.extend(chunk[:remaining])
+        if self.total > self.limit:
+            self.exceeded.set()
+
+
+def _drain_stream(stream: Any, capture: _BoundedCapture, done: threading.Event) -> None:
+    try:
+        while True:
+            chunk = stream.read(8192)
+            if not chunk:
+                return
+            capture.add(chunk)
+    except (OSError, TypeError, ValueError):
+        return
+    finally:
+        done.set()
 
 
 def _signal_process_group(process: subprocess.Popen[bytes], signal_number: int) -> None:
@@ -227,38 +268,31 @@ def _signal_process_group(process: subprocess.Popen[bytes], signal_number: int) 
 
 def _terminate_process_group(
     process: subprocess.Popen[bytes],
-    partial_stdout: bytes | None,
-    partial_stderr: bytes | None,
-) -> tuple[bytes, bytes, bool, bool]:
+    stream_done: Sequence[threading.Event],
+) -> tuple[bool, bool]:
+    def await_cleanup() -> bool:
+        deadline = time.monotonic() + PROCESS_TERMINATION_GRACE_SECONDS
+        while time.monotonic() < deadline:
+            if process.poll() is not None and all(done.is_set() for done in stream_done):
+                return True
+            time.sleep(PROCESS_POLL_SECONDS)
+        return process.poll() is not None and all(done.is_set() for done in stream_done)
+
     _signal_process_group(process, signal.SIGTERM)
     escalated = False
-    cleanup_complete = True
-    try:
-        stdout, stderr = process.communicate(timeout=PROCESS_TERMINATION_GRACE_SECONDS)
-    except subprocess.TimeoutExpired as error:
-        partial_stdout = _merge_bytes(partial_stdout, error.stdout)
-        partial_stderr = _merge_bytes(partial_stderr, error.stderr)
+    cleanup_complete = await_cleanup()
+    if not cleanup_complete:
         escalated = True
         _signal_process_group(process, signal.SIGKILL)
-        try:
-            stdout, stderr = process.communicate(timeout=PROCESS_TERMINATION_GRACE_SECONDS)
-        except subprocess.TimeoutExpired as error_after_kill:
-            partial_stdout = _merge_bytes(partial_stdout, error_after_kill.stdout)
-            partial_stderr = _merge_bytes(partial_stderr, error_after_kill.stderr)
-            stdout, stderr = b"", b""
-            cleanup_complete = False
-            for stream in (process.stdin, process.stdout, process.stderr):
-                if stream is not None:
-                    try:
-                        stream.close()
-                    except (OSError, ValueError):
-                        pass
-    return (
-        _merge_bytes(partial_stdout, stdout),
-        _merge_bytes(partial_stderr, stderr),
-        escalated,
-        cleanup_complete,
-    )
+        cleanup_complete = await_cleanup()
+    if not cleanup_complete:
+        for stream in (process.stdin, process.stdout, process.stderr):
+            if stream is not None:
+                try:
+                    stream.close()
+                except (OSError, ValueError):
+                    pass
+    return escalated, cleanup_complete
 
 
 def run_bounded_argv(
@@ -295,33 +329,57 @@ def run_bounded_argv(
             time.monotonic() - started,
             termination_cleanup_complete=True,
         )
+    exceeded = threading.Event()
+    stdout_capture = _BoundedCapture(SUBPROCESS_OUTPUT_LIMIT, exceeded)
+    stderr_capture = _BoundedCapture(SUBPROCESS_OUTPUT_LIMIT, exceeded)
+    stdout_done = threading.Event()
+    stderr_done = threading.Event()
+    assert process.stdout is not None and process.stderr is not None
+    threads = (
+        threading.Thread(
+            target=_drain_stream,
+            args=(process.stdout, stdout_capture, stdout_done),
+            name="reference-stdout-reader",
+            daemon=True,
+        ),
+        threading.Thread(
+            target=_drain_stream,
+            args=(process.stderr, stderr_capture, stderr_done),
+            name="reference-stderr-reader",
+            daemon=True,
+        ),
+    )
+    for thread in threads:
+        thread.start()
+    timed_out = False
+    output_limited = False
+    escalated = False
+    cleanup_complete = True
+    termination_attempted = False
     try:
-        stdout_bytes, stderr_bytes = process.communicate(timeout=timeout)
-        return CommandOutcome(
-            command,
-            process.returncode,
-            stdout_bytes.decode("utf-8", errors="replace"),
-            stderr_bytes.decode("utf-8", errors="replace"),
-            time.monotonic() - started,
-        )
-    except subprocess.TimeoutExpired as error:
-        stdout_bytes, stderr_bytes, escalated, cleanup_complete = _terminate_process_group(
-            process, error.stdout, error.stderr
-        )
-        return CommandOutcome(
-            command,
-            process.returncode,
-            stdout_bytes.decode("utf-8", errors="replace"),
-            stderr_bytes.decode("utf-8", errors="replace"),
-            time.monotonic() - started,
-            timed_out=True,
-            termination_signal="SIGTERM",
-            termination_escalated=escalated,
-            termination_cleanup_complete=cleanup_complete,
-        )
+        deadline = started + timeout
+        while True:
+            if exceeded.is_set():
+                output_limited = True
+                if process.poll() is None or not (stdout_done.is_set() and stderr_done.is_set()):
+                    termination_attempted = True
+                    escalated, cleanup_complete = _terminate_process_group(
+                        process, (stdout_done, stderr_done)
+                    )
+                break
+            if process.poll() is not None and stdout_done.is_set() and stderr_done.is_set():
+                break
+            if time.monotonic() >= deadline:
+                timed_out = True
+                termination_attempted = True
+                escalated, cleanup_complete = _terminate_process_group(
+                    process, (stdout_done, stderr_done)
+                )
+                break
+            time.sleep(PROCESS_POLL_SECONDS)
     except KeyboardInterrupt:
         try:
-            _terminate_process_group(process, None, None)
+            _terminate_process_group(process, (stdout_done, stderr_done))
         except KeyboardInterrupt:
             _signal_process_group(process, signal.SIGKILL)
             try:
@@ -329,6 +387,33 @@ def run_bounded_argv(
             except subprocess.TimeoutExpired:
                 pass
         raise
+    finally:
+        for thread in threads:
+            thread.join(PROCESS_TERMINATION_GRACE_SECONDS)
+        for stream in (process.stdout, process.stderr):
+            if stream is not None:
+                try:
+                    stream.close()
+                except (OSError, ValueError):
+                    pass
+    stdout_bytes = bytes(stdout_capture.retained)
+    stderr_bytes = bytes(stderr_capture.retained)
+    return CommandOutcome(
+        command,
+        process.returncode,
+        stdout_bytes.decode("utf-8", errors="replace"),
+        stderr_bytes.decode("utf-8", errors="replace"),
+        time.monotonic() - started,
+        timed_out=timed_out,
+        termination_signal="SIGTERM" if termination_attempted else None,
+        termination_escalated=escalated,
+        termination_cleanup_complete=cleanup_complete,
+        output_limit_exceeded=output_limited,
+        stdout_byte_count=stdout_capture.total,
+        stdout_digest=stdout_capture.digest.hexdigest(),
+        stderr_byte_count=stderr_capture.total,
+        stderr_digest=stderr_capture.digest.hexdigest(),
+    )
 
 
 class _AllowlistedRedirectHandler(HTTPRedirectHandler):
@@ -390,9 +475,14 @@ def _http_download_worker(
             flags |= os.O_CREAT | os.O_EXCL
         descriptor = os.open(output, flags, 0o600)
         opened = os.fstat(descriptor)
-        if expected_identity is not None and (opened.st_dev, opened.st_ino) != expected_identity:
+        if (
+            not stat.S_ISREG(opened.st_mode)
+            or opened.st_nlink != 1
+            or expected_identity is not None
+            and (opened.st_dev, opened.st_ino) != expected_identity
+        ):
             os.close(descriptor)
-            raise OSError("temporary file identity changed before download")
+            raise OSError("temporary file identity or link count changed before download")
         os.ftruncate(descriptor, 0)
         with os.fdopen(descriptor, "wb") as stream:
             while True:
@@ -405,6 +495,14 @@ def _http_download_worker(
                 stream.write(chunk)
             stream.flush()
             os.fsync(stream.fileno())
+            completed = os.fstat(stream.fileno())
+            if (
+                not stat.S_ISREG(completed.st_mode)
+                or completed.st_nlink != 1
+                or expected_identity is not None
+                and (completed.st_dev, completed.st_ino) != expected_identity
+            ):
+                raise OSError("temporary file identity or link count changed during download")
     return {
         "method": "https",
         "status": "ok",
@@ -447,10 +545,17 @@ def _download_via_worker(
         argv.extend(("--expected-inode", str(expected_identity[1])))
     outcome = run_bounded_argv(argv, timeout)
     evidence = outcome.evidence("https")
-    if outcome.timed_out or outcome.returncode != 0:
-        error_class = "ProcessTimeout" if outcome.timed_out else "WorkerFailure"
-        error_message = "bounded HTTPS worker timed out" if outcome.timed_out else "HTTPS worker failed"
-        if not outcome.timed_out:
+    if outcome.output_limit_exceeded or outcome.timed_out or outcome.returncode != 0:
+        if outcome.output_limit_exceeded:
+            error_class = "OutputLimitExceeded"
+            error_message = "HTTPS worker diagnostics exceeded the subprocess output bound"
+        elif outcome.timed_out:
+            error_class = "ProcessTimeout"
+            error_message = "bounded HTTPS worker timed out"
+        else:
+            error_class = "WorkerFailure"
+            error_message = "HTTPS worker failed"
+        if not outcome.output_limit_exceeded and not outcome.timed_out:
             try:
                 failure_document = json.loads(outcome.stdout)
             except json.JSONDecodeError:
@@ -480,16 +585,28 @@ def _download_via_worker(
     return evidence
 
 
-def _sha256_file(path: Path, max_bytes: int) -> tuple[str, int]:
+def _sha256_descriptor(descriptor: int, max_bytes: int) -> tuple[str, int]:
     digest = hashlib.sha256()
     byte_count = 0
-    with path.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            byte_count += len(chunk)
-            if byte_count > max_bytes:
-                raise OSError("downloaded file exceeds max_bytes")
-            digest.update(chunk)
+    offset = 0
+    while chunk := os.pread(descriptor, 1024 * 1024, offset):
+        byte_count += len(chunk)
+        if byte_count > max_bytes:
+            raise OSError("downloaded file exceeds max_bytes")
+        digest.update(chunk)
+        offset += len(chunk)
     return digest.hexdigest(), byte_count
+
+
+def _sha256_file(path: Path, max_bytes: int) -> tuple[str, int]:
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(path, flags)
+    try:
+        return _sha256_descriptor(descriptor, max_bytes)
+    finally:
+        os.close(descriptor)
 
 
 def _base_evidence(
@@ -544,9 +661,26 @@ def _validate_destination_path(destination: Path) -> None:
             raise ValueError("destination parent must contain only real directories")
 
 
-def _fsync_file(path: Path) -> None:
-    with path.open("rb") as stream:
-        os.fsync(stream.fileno())
+def _fsync_descriptor(descriptor: int) -> None:
+    os.fsync(descriptor)
+
+
+def _require_bound_temporary(
+    descriptor: int,
+    temporary: Path,
+    expected_identity: tuple[int, int],
+) -> None:
+    opened = os.fstat(descriptor)
+    named = temporary.stat(follow_symlinks=False)
+    if (
+        not stat.S_ISREG(opened.st_mode)
+        or not stat.S_ISREG(named.st_mode)
+        or opened.st_nlink != 1
+        or named.st_nlink != 1
+        or (opened.st_dev, opened.st_ino) != expected_identity
+        or (named.st_dev, named.st_ino) != expected_identity
+    ):
+        raise OSError("temporary file identity or single-link invariant changed")
 
 
 def _fsync_directory(path: Path) -> None:
@@ -608,6 +742,10 @@ def _download_verify_publish(
     temporary_identity = (temporary_metadata.st_dev, temporary_metadata.st_ino)
     try:
         try:
+            _require_bound_temporary(descriptor, temporary, temporary_identity)
+        except OSError as error:
+            raise _fail(evidence, str(error), "UnsafeTemporary") from error
+        try:
             if downloader is _download_via_worker:
                 attempt = _download_via_worker(
                     url,
@@ -625,29 +763,43 @@ def _download_verify_publish(
             raise _fail(evidence, str(error), "DownloadFailure") from error
         except (OSError, ValueError) as error:
             raise _fail(evidence, str(error), "DownloadFailure") from error
-        mode = temporary.stat(follow_symlinks=False).st_mode
-        after_download = temporary.stat(follow_symlinks=False)
-        if (
-            not stat.S_ISREG(mode)
-            or temporary.is_symlink()
-            or (after_download.st_dev, after_download.st_ino) != temporary_identity
-        ):
-            raise _fail(evidence, "download did not produce a regular temporary file", "UnsafeTemporary")
         try:
-            actual_sha256, byte_count = _sha256_file(temporary, pin.max_bytes)
+            _require_bound_temporary(descriptor, temporary, temporary_identity)
+            actual_sha256, byte_count = _sha256_descriptor(descriptor, pin.max_bytes)
+            _require_bound_temporary(descriptor, temporary, temporary_identity)
         except OSError as error:
-            raise _fail(evidence, str(error), "ByteLimitExceeded") from error
+            error_class = (
+                "ByteLimitExceeded" if "exceeds max_bytes" in str(error) else "UnsafeTemporary"
+            )
+            raise _fail(evidence, str(error), error_class) from error
         evidence.update({"actual_sha256": actual_sha256, "bytes": byte_count})
         if actual_sha256 != pin.sha256:
             raise _fail(evidence, "download checksum does not match pin", "ChecksumMismatch")
         try:
-            _fsync_file(temporary)
+            _require_bound_temporary(descriptor, temporary, temporary_identity)
+        except OSError as error:
+            raise _fail(evidence, str(error), "UnsafeTemporary") from error
+        try:
+            _fsync_descriptor(descriptor)
         except OSError as error:
             raise _fail(evidence, str(error), "FileSyncFailure") from error
+        try:
+            _require_bound_temporary(descriptor, temporary, temporary_identity)
+        except OSError as error:
+            raise _fail(evidence, str(error), "UnsafeTemporary") from error
         try:
             os.replace(temporary, destination)
         except OSError as error:
             raise _fail(evidence, str(error), "AtomicReplaceFailure") from error
+        try:
+            _require_bound_temporary(descriptor, destination, temporary_identity)
+        except OSError as error:
+            try:
+                destination.unlink(missing_ok=True)
+                _fsync_directory(destination.parent)
+            except OSError as cleanup_error:
+                evidence["publication_cleanup_error"] = type(cleanup_error).__name__
+            raise _fail(evidence, str(error), "UnsafeTemporary") from error
         evidence.update({"status": "published", "published": True})
         try:
             _fsync_directory(destination.parent)
@@ -756,6 +908,12 @@ def _resolve_github_commit(
     git_evidence = git_outcome.evidence("git_ls_remote")
     git_evidence["environment_policy"] = "isolated_noninteractive_git"
     evidence["attempts"].append(git_evidence)
+    if git_outcome.output_limit_exceeded:
+        raise _fail(
+            evidence,
+            "git diagnostics exceeded the subprocess output bound",
+            "OutputLimitExceeded",
+        )
     if git_outcome.timed_out and not git_outcome.termination_cleanup_complete:
         raise _fail(
             evidence,
@@ -775,7 +933,7 @@ def _resolve_github_commit(
 
     rest_url = (
         f"https://api.github.com/repos/{quote(owner, safe='')}/{quote(name, safe='')}/commits/"
-        f"{pin.expected_commit}"
+        f"{quote(pin.revision, safe='')}"
     )
     try:
         document, rest_evidence = json_fetcher(rest_url, rest_timeout_seconds)

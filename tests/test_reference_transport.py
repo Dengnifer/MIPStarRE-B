@@ -317,7 +317,7 @@ class ReferenceTransportTests(unittest.TestCase):
         os.link(target, output)
         with mock.patch(
             "reference_transport.build_opener", return_value=FakeOpener(FakeResponse(b"attack"))
-        ), self.assertRaisesRegex(OSError, "identity changed"):
+        ), self.assertRaisesRegex(OSError, "identity or link count changed"):
             transport._http_download_worker(
                 self.direct.url,
                 output,
@@ -327,6 +327,116 @@ class ReferenceTransportTests(unittest.TestCase):
                 (metadata.st_dev, metadata.st_ino),
             )
         self.assertEqual(b"sentinel", target.read_bytes())
+
+    def test_http_worker_rejects_a_new_link_to_the_original_inode_before_write(self) -> None:
+        descriptor, name = tempfile.mkstemp(dir=self.root)
+        metadata = os.fstat(descriptor)
+        os.close(descriptor)
+        output = Path(name)
+        alias = self.root / "external-alias"
+
+        class LinkingOpener(FakeOpener):
+            def open(self, *_arguments: object, **_keywords: object) -> FakeResponse:
+                os.link(output, alias)
+                return self.response
+
+        with mock.patch(
+            "reference_transport.build_opener",
+            return_value=LinkingOpener(FakeResponse(b"attack")),
+        ), self.assertRaisesRegex(OSError, "link count changed before download"):
+            transport._http_download_worker(
+                self.direct.url,
+                output,
+                10,
+                1,
+                self.direct.allowed_hosts,
+                (metadata.st_dev, metadata.st_ino),
+            )
+        self.assertEqual(b"", output.read_bytes())
+        self.assertEqual(b"", alias.read_bytes())
+
+    def test_parent_rejects_a_new_link_to_the_original_inode_after_download(self) -> None:
+        alias = self.root / "post-download-alias"
+
+        def linking_downloader(
+            _url: str,
+            output: Path,
+            _timeout: float,
+            _max_bytes: int,
+            _hosts: tuple[str, ...],
+        ) -> dict[str, object]:
+            output.write_bytes(self.payload)
+            os.link(output, alias)
+            return {"method": "local", "status": "ok"}
+
+        destination = self.root / "hardlink-publication"
+        with self.assertRaises(transport.ReferenceTransportError) as raised:
+            transport.acquire(self.direct, destination, _downloader=linking_downloader)
+        self.assertEqual("UnsafeTemporary", raised.exception.evidence["error"]["class"])
+        self.assertFalse(destination.exists())
+        self.assertEqual(self.payload, alias.read_bytes())
+
+    def test_parent_rechecks_single_link_invariant_after_fsync(self) -> None:
+        alias = self.root / "fsync-race-alias"
+        real_fsync = transport._fsync_descriptor
+
+        def fsync_then_link(descriptor: int) -> None:
+            real_fsync(descriptor)
+            partial = next(self.root.glob(".fsync-race.*.partial"))
+            os.link(partial, alias)
+
+        destination = self.root / "fsync-race"
+        with mock.patch(
+            "reference_transport._fsync_descriptor", side_effect=fsync_then_link
+        ), self.assertRaises(transport.ReferenceTransportError) as raised:
+            transport.acquire(
+                self.direct, destination, _downloader=FakeDownloader(self.payload)
+            )
+        self.assertEqual("UnsafeTemporary", raised.exception.evidence["error"]["class"])
+        self.assertFalse(destination.exists())
+        self.assertEqual(self.payload, alias.read_bytes())
+
+    def test_post_replace_link_race_removes_destination_and_fails_closed(self) -> None:
+        alias = self.root / "replace-link-alias"
+        destination = self.root / "replace-link-race"
+        real_replace = os.replace
+
+        def replace_then_link(source: Path, target: Path) -> None:
+            real_replace(source, target)
+            os.link(target, alias)
+
+        with mock.patch(
+            "reference_transport.os.replace", side_effect=replace_then_link
+        ), self.assertRaises(transport.ReferenceTransportError) as raised:
+            transport.acquire(
+                self.direct, destination, _downloader=FakeDownloader(self.payload)
+            )
+        self.assertEqual("UnsafeTemporary", raised.exception.evidence["error"]["class"])
+        self.assertFalse(destination.exists())
+        self.assertEqual(self.payload, alias.read_bytes())
+
+    def test_replace_time_symlink_substitution_is_removed_without_touching_target(self) -> None:
+        sentinel = self.root / "replace-sentinel"
+        sentinel.write_bytes(b"sentinel")
+        held_inode = self.root / "held-original-inode"
+        destination = self.root / "replace-symlink-race"
+        real_replace = os.replace
+
+        def substitute_before_replace(source: Path, target: Path) -> None:
+            real_replace(source, held_inode)
+            source.symlink_to(sentinel)
+            real_replace(source, target)
+
+        with mock.patch(
+            "reference_transport.os.replace", side_effect=substitute_before_replace
+        ), self.assertRaises(transport.ReferenceTransportError) as raised:
+            transport.acquire(
+                self.direct, destination, _downloader=FakeDownloader(self.payload)
+            )
+        self.assertEqual("UnsafeTemporary", raised.exception.evidence["error"]["class"])
+        self.assertFalse(destination.exists())
+        self.assertEqual(b"sentinel", sentinel.read_bytes())
+        self.assertEqual(self.payload, held_inode.read_bytes())
 
     def test_pin_validation_rejects_bad_digests_bounds_and_timeouts(self) -> None:
         for checksum in ("A" * 64, "0" * 63, "not-a-digest"):
@@ -426,10 +536,57 @@ class ReferenceTransportTests(unittest.TestCase):
         self.assertEqual(["git_ls_remote", "github_rest", "https"], [x["method"] for x in result["attempts"]])
         rest_url = rest.call_args.args[0]
         self.assertEqual(
-            f"https://api.github.com/repos/LionSR/MIPStarRE/commits/{self.github.expected_commit}",
+            "https://api.github.com/repos/LionSR/MIPStarRE/commits/main",
             rest_url,
         )
         self.assertTrue(result["attempts"][0]["termination_cleanup_complete"])
+
+    def test_rest_fallback_resolves_the_declared_revision_not_the_expected_commit(self) -> None:
+        pin = transport.GitHubArchivePin(
+            "workflow-source",
+            "LionSR/MIPStarRE",
+            "release/candidate",
+            self.github.expected_commit,
+            digest(self.payload),
+            1024,
+        )
+        rest = mock.Mock(
+            return_value=({"sha": pin.expected_commit}, {"method": "https", "status": "ok"})
+        )
+        transport.acquire(
+            pin,
+            self.root / "archive.tar.gz",
+            _runner=lambda _argv, _timeout: outcome(2),
+            _json_fetcher=rest,
+            _downloader=FakeDownloader(self.payload),
+        )
+        self.assertEqual(
+            "https://api.github.com/repos/LionSR/MIPStarRE/commits/release%2Fcandidate",
+            rest.call_args.args[0],
+        )
+
+    def test_rest_fallback_cannot_accept_a_stale_or_nonexistent_revision(self) -> None:
+        for rest_result in (
+            ({"sha": "6" * 40}, {"status": "ok"}),
+            transport.ReferenceTransportError("missing ref", {"status": "failed"}),
+        ):
+            with self.subTest(rest_result=type(rest_result).__name__):
+                rest = mock.Mock()
+                if isinstance(rest_result, Exception):
+                    rest.side_effect = rest_result
+                else:
+                    rest.return_value = rest_result
+                downloader = mock.Mock()
+                with self.assertRaises(transport.ReferenceTransportError):
+                    transport.acquire(
+                        self.github,
+                        self.root / f"missing-{len(rest.mock_calls)}",
+                        _runner=lambda _argv, _timeout: outcome(2),
+                        _json_fetcher=rest,
+                        _downloader=downloader,
+                    )
+                self.assertTrue(rest.call_args.args[0].endswith("/commits/main"))
+                downloader.assert_not_called()
 
     def test_git_and_http_timeouts_are_independently_bounded(self) -> None:
         runner = mock.Mock(return_value=outcome(2))
@@ -584,6 +741,84 @@ class ReferenceTransportTests(unittest.TestCase):
         self.assertEqual(len(sentinel), evidence["stdout_bytes"])
         self.assertEqual(digest(sentinel.encode()), evidence["stderr_sha256"])
 
+    def test_bounded_runner_limits_stdout_and_stderr_without_losing_raw_digests(self) -> None:
+        for stream_name in ("stdout", "stderr"):
+            with self.subTest(stream_name=stream_name):
+                payload = b"x" * (transport.SUBPROCESS_OUTPUT_LIMIT + 257)
+                descriptor = 1 if stream_name == "stdout" else 2
+                code = textwrap.dedent(
+                    f"""
+                    import os
+                    payload = {payload!r}
+                    while payload:
+                        payload = payload[os.write({descriptor}, payload):]
+                    """
+                )
+                result = transport.run_bounded_argv([sys.executable, "-c", code], 5)
+                evidence = result.evidence("test")
+                self.assertTrue(result.output_limit_exceeded)
+                self.assertEqual("output_limited", evidence["status"])
+                self.assertEqual(len(payload), evidence[f"{stream_name}_bytes"])
+                self.assertEqual(digest(payload), evidence[f"{stream_name}_sha256"])
+                self.assertEqual(
+                    transport.SUBPROCESS_OUTPUT_LIMIT,
+                    len(getattr(result, stream_name).encode()),
+                )
+                self.assertTrue(result.termination_cleanup_complete)
+
+    def test_subprocess_digest_counts_raw_bytes_before_utf8_replacement(self) -> None:
+        payload = b"\xff\xfe\x80raw"
+        code = f"import os; os.write(1, {payload!r})"
+        result = transport.run_bounded_argv([sys.executable, "-c", code], 5)
+        evidence = result.evidence("test")
+        self.assertEqual(len(payload), evidence["stdout_bytes"])
+        self.assertEqual(digest(payload), evidence["stdout_sha256"])
+        self.assertIn("\ufffd", result.stdout)
+
+    def test_git_output_limit_is_a_hard_failure_without_rest_fallback(self) -> None:
+        limited = transport.CommandOutcome(
+            ("git", "ls-remote"),
+            0,
+            "5" * 40,
+            "",
+            0.1,
+            output_limit_exceeded=True,
+            stdout_byte_count=transport.SUBPROCESS_OUTPUT_LIMIT + 1,
+            stdout_digest=digest(b"x" * (transport.SUBPROCESS_OUTPUT_LIMIT + 1)),
+        )
+        rest = mock.Mock()
+        with self.assertRaises(transport.ReferenceTransportError) as raised:
+            transport.acquire(
+                self.github,
+                self.root / "limited-git",
+                _runner=lambda _argv, _timeout: limited,
+                _json_fetcher=rest,
+            )
+        self.assertEqual("OutputLimitExceeded", raised.exception.evidence["error"]["class"])
+        rest.assert_not_called()
+
+    @mock.patch("reference_transport.run_bounded_argv")
+    def test_worker_output_limit_is_a_structured_failure(self, bounded: mock.Mock) -> None:
+        bounded.return_value = transport.CommandOutcome(
+            ("worker",),
+            0,
+            "{}",
+            "",
+            0.1,
+            output_limit_exceeded=True,
+            stdout_byte_count=transport.SUBPROCESS_OUTPUT_LIMIT + 1,
+            stdout_digest="0" * 64,
+        )
+        with self.assertRaises(transport.ReferenceTransportError) as raised:
+            transport._download_via_worker(
+                self.direct.url,
+                self.root / "worker-output-limit",
+                1,
+                4,
+                self.direct.allowed_hosts,
+            )
+        self.assertEqual("OutputLimitExceeded", raised.exception.evidence["error"]["class"])
+
     @mock.patch("reference_transport.run_bounded_argv")
     def test_worker_failure_parses_safe_fields_without_raw_diagnostics(
         self, bounded: mock.Mock
@@ -674,7 +909,9 @@ class ReferenceTransportTests(unittest.TestCase):
         send_signal: mock.Mock,
     ) -> None:
         process = popen.return_value
-        process.communicate.side_effect = KeyboardInterrupt
+        process.stdout = io.BytesIO()
+        process.stderr = io.BytesIO()
+        process.poll.side_effect = KeyboardInterrupt
         process.wait.return_value = 0
         with self.assertRaises(KeyboardInterrupt):
             transport.run_bounded_argv(["git", "--version"], 1)
@@ -730,7 +967,7 @@ class ReferenceTransportTests(unittest.TestCase):
 
     def test_publication_failures_report_the_exact_phase(self) -> None:
         cases = (
-            ("_fsync_file", "FileSyncFailure", False),
+            ("_fsync_descriptor", "FileSyncFailure", False),
             ("os.replace", "AtomicReplaceFailure", False),
             ("_fsync_directory", "DirectorySyncFailure", True),
         )
@@ -758,7 +995,9 @@ class ReferenceTransportTests(unittest.TestCase):
     @mock.patch("reference_transport.subprocess.Popen")
     def test_bounded_runner_uses_argv_without_shell(self, popen: mock.Mock) -> None:
         process = popen.return_value
-        process.communicate.return_value = (b"", b"")
+        process.stdout = io.BytesIO()
+        process.stderr = io.BytesIO()
+        process.poll.return_value = 0
         process.returncode = 0
         transport.run_bounded_argv(["git", "--version"], 1)
         self.assertEqual(("git", "--version"), popen.call_args.args[0])

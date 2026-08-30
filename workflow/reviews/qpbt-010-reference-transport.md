@@ -110,7 +110,7 @@ successful records above.
 
 ## Offline Safety Coverage
 
-The focused suite has 38 offline tests. It covers Git success, timeout and
+The focused suite now has 49 offline tests. It covers Git success, timeout and
 nonzero fallback decisions; exact REST and codeload URLs; commit drift and
 malformed response failures; incomplete process cleanup fail-closed behavior;
 real descendant SIGTERM and SIGKILL cleanup; repeated-interrupt cleanup;
@@ -118,21 +118,55 @@ isolated Git config and credential behavior; credential-bearing and malformed
 URL rejection; redirect allowlists; declared and streamed byte overflow;
 checksum mismatch; corrupt cache preservation; destination-parent symlinks;
 temporary-file symlink and hard-link substitution; diagnostic and header
-redaction; and file-sync, replace, and directory-sync publication phases.
+redaction; and file-sync, replace, and directory-sync publication phases. The
+post-A02 additions bind REST fallback to the URL-quoted declared revision,
+reject missing or drifted refs, reject links added to the original temporary
+inode before write and before publication, recheck that invariant after fsync,
+verify the descriptor-bound inode again after replacement, remove a substituted
+publication, and bound both stdout and stderr capture while preserving exact
+raw-byte counts and SHA-256 digests.
 
 ## Validation
 
 - `python3 -m unittest discover -s tests -p 'test_reference_transport.py'`:
-  38 tests passed in 11.987 seconds.
-- `python3 -m compileall -q scripts tests`: exit 0 after the final diff.
-- `git diff --check`: exit 0 after the final diff.
-- Root independently reproduced the focused 38/38 result in 11.998 seconds,
-  ran the aggregate 121/121 suite in 17.429 seconds, and reported full
-  compileall and workflow validation success.
+  49 tests passed in 2.748 seconds after three earlier consecutive 46-test
+  passes exercised the output-bound fix before the final race tests landed.
+- `python3 -m unittest discover -s tests`: 132 tests passed in 9.086 seconds.
+- `PYTHONPYCACHEPREFIX=/tmp/i010-fixer-a01-compile python3 -m compileall -q
+  scripts tests`: exit 0 after the post-A02 diff.
+- `python3 scripts/workflow.py validate`: exit 0 with 12 issues, zero pull
+  requests, 38 issued sessions, and seven stages.
+- `git diff --check`: exit 0 after the post-A02 diff.
+- No live network acquisition was rerun for the supplemental fixes. The pinned
+  acquisition evidence above remains the immutable pre-review evidence; the
+  fixes affect fallback binding, local file safety, and bounded diagnostics.
 
 ## Finding Dispositions And Residual Risk
 
-All A03 required findings were fixed and regression-tested. Deferred optional
+All A03 required findings were fixed and regression-tested. Supplemental local
+review `i010-reviewer-a02-local-transport` requested changes against immutable
+commit `cf43b33b5cd77cb005b90b02b6d369cfbd86d316`; this fixer did not review or
+approve its own dispositions:
+
+1. REST fallback previously queried `expected_commit`, proving only that the
+   commit existed while dropping the declared revision binding. It now queries
+   the URL-quoted `revision` and requires the returned full SHA to equal
+   `expected_commit`; stale, missing, and drifted-ref cases cannot download.
+2. Temporary-file checks previously bound only device and inode. The worker and
+   retained parent descriptor now require a regular single-link inode before
+   write, after write, around checksum and fsync, and immediately before atomic
+   replacement. Hashing and fsync use the retained descriptor rather than
+   reopening the path. The descriptor binding is checked again after replacement;
+   a replace-time link or symlink substitution is removed and fails closed.
+   Original-inode link and post-fsync race tests do not publish a destination.
+3. `communicate()` previously retained arbitrary subprocess output in memory.
+   Dedicated bounded readers now retain at most 64 KiB per stream, record exact
+   raw-byte totals and SHA-256 digests, and terminate the process group on
+   excess. Excessive Git output is a hard failure without REST fallback, and
+   excessive worker output is a structured failure. Timeout, descendant, and
+   repeated-interrupt regressions remain covered.
+
+Deferred optional
 hardening is limited to concurrent acquisition locking, retry/resume support,
 full dirfd protection against a hostile concurrent rename of an already
 validated parent directory, strict Content-Length equality, and factoring the
