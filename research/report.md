@@ -16,6 +16,12 @@ findings, proof-debt delta, incidents, and active protocol revision. Canonical
 machine-readable state is under `workflow/state/`; raw run data is ignored and
 retained only locally.
 
+At the `2026-08-31T20:44:23Z` post-closure checkpoint, the persistent-goal
+service exposed cumulative goal-level usage of `20,222,106` tokens and
+`51,330` seconds. It did not allocate those totals to stages or sessions, so
+the per-stage and per-session token fields remain `null` with their existing
+availability reasons rather than receiving estimates.
+
 ## Stage summary
 
 | Stage | Status | Start | End | Sessions issued | Token data | Key output |
