@@ -1,5 +1,45 @@
 # Protocol Changelog
 
+## 0.1.7 candidate (QPBT-021) - 2026-08-31
+
+QPBT-021 makes the pinned Mathlib source a first-class hot-cache input. The
+canonical recipe accepts exactly one authenticated local Git worktree or the
+audited shallow-repository archive at commit
+`81a5d257c8e410db227a6665ed08f64fea08e997` and tree
+`5ea66b811b8461daae82f14d356fed2a287d7c40`. Source paths remain outside the
+cache key; the elected singleton validates the source, emits a deterministic
+sorted `LAKE_PKG_URL_MAP`, rechecks the source before publication, and never
+publishes an archive extraction. Missing, dirty, mismatched, malformed, or
+conflicting inputs fail closed without `READY`. Git validation strips inherited
+Git configuration, disables system/global configuration and executable command
+hooks, and accepts only inert structural keys in the repository's local config.
+It also rejects symlinked or special Git metadata, external common directories,
+and index visibility flags that could hide worktree changes.
+
+The pinned archive is 51,938,317 bytes with SHA-256
+`c29325b477966a6f8eb784723f19da26800c71458f7c24cc668713725eba78d7`; its
+decompressed tar is 147,712,000 bytes with SHA-256
+`ad9a60b01736070112fbc1008ea98c67e68fa045c5b69e66873e0b9444ddd3ba`. Focused
+hot-cache tests pass 37/37, including a real archive extraction, malformed
+archive and symlink-chain rejection, alternate source paths with one cache key,
+an executable `core.fsmonitor` trap, exact Lake command/environment
+construction, and an explicit Reservoir `cache get` failure. Reservoir artifact
+retrieval remains a separate network/cache policy: a local Mathlib source does
+not claim a fully offline warm.
+
+## 0.1.6 candidate (QPBT-022) - 2026-08-31
+
+The hot-main cache now derives its omitted runtime root from the primary
+non-bare Git worktree. Linked issue worktrees consequently contend on one
+filesystem lock and cannot duplicate a build for the same cache key. An
+explicit `--runtime-dir` retains its prior absolute/relative path semantics;
+the default skips prunable/unresolvable worktree records and fails closed with
+an explicit override when the repository root or primary cannot be resolved. A
+two-process linked-worktree regression exercises the election and records one
+build with one waiter, while CLI regressions cover missing roots and resolution
+failures. Canonical revision state and independent review remain with QPBT-022
+integration.
+
 ## 0.1.5 - 2026-08-31
 
 QPBT-019 adds a locked, capacity-aware dispatch boundary for local session
@@ -174,3 +214,25 @@ the endpoint-health gate for the next frozen review.
 Revision 0.1.0 is re-evaluated after three completed issue workflows and must be
 superseded if it permits duplicate main builds, overlapping writable ownership,
 or review state that cannot be tied to an immutable SHA or bootstrap manifest.
+## 2026-08-31
+
+- Added issued-session launch leases with locked authority checks, exactly-once
+  terminal envelope imports, and explicit idempotent interruption recovery.
+- Remediated the initial candidate after pre-review: governed exec and review
+  now bind complete authority, all post-claim failures terminate the lease,
+  imports and recovery are byte-idempotent under the real WorkflowStore, and
+  archive retries cannot silently invoke Codex again.
+- Hardened the lease boundary after independent review: claims now verify the
+  live clean Git `HEAD` and tree against the issued base, lifecycle rollback
+  covers interrupts, terminal paths are normalized and bound to the issued
+  result envelope, and recovery emits archiveable evidence with exact-once
+  reuse.
+- Hardened runtime publication after LPR-009: Git claim/status probes isolate
+  inherited configuration and disable repository hooks/fsmonitor; governed
+  terminal imports transactionally publish or roll back their result artifact;
+  archive aliases use no-follow runtime confinement, strict envelope reuse,
+  atomic directory publication, interruption cleanup, and same-alias locking.
+- Closed the remaining launch/archive race window after immutable review:
+  governed exec/review repeat canonical worktree identity checks immediately
+  before child spawn, and archive retries verify stdout/stderr byte counts and
+  SHA-256 digests against the recorded log files before reusing an envelope.
