@@ -1,5 +1,32 @@
 # Protocol Changelog
 
+## 0.1.7 candidate (QPBT-021) - 2026-08-31
+
+QPBT-021 makes the pinned Mathlib source a first-class hot-cache input. The
+canonical recipe accepts exactly one authenticated local Git worktree or the
+audited shallow-repository archive at commit
+`81a5d257c8e410db227a6665ed08f64fea08e997` and tree
+`5ea66b811b8461daae82f14d356fed2a287d7c40`. Source paths remain outside the
+cache key; the elected singleton validates the source, emits a deterministic
+sorted `LAKE_PKG_URL_MAP`, rechecks the source before publication, and never
+publishes an archive extraction. Missing, dirty, mismatched, malformed, or
+conflicting inputs fail closed without `READY`. Git validation strips inherited
+Git configuration, disables system/global configuration and executable command
+hooks, and accepts only inert structural keys in the repository's local config.
+It also rejects symlinked or special Git metadata, external common directories,
+and index visibility flags that could hide worktree changes.
+
+The pinned archive is 51,938,317 bytes with SHA-256
+`c29325b477966a6f8eb784723f19da26800c71458f7c24cc668713725eba78d7`; its
+decompressed tar is 147,712,000 bytes with SHA-256
+`ad9a60b01736070112fbc1008ea98c67e68fa045c5b69e66873e0b9444ddd3ba`. Focused
+hot-cache tests pass 42/42, including a real archive extraction, malformed
+archive and symlink-chain rejection, alternate source paths with one cache key,
+an executable `core.fsmonitor` trap, exact Lake command/environment
+construction, and an explicit Reservoir `cache get` failure. Reservoir artifact
+retrieval remains a separate network/cache policy: a local Mathlib source does
+not claim a fully offline warm.
+
 ## 0.1.6 candidate (QPBT-022) - 2026-08-31
 
 The hot-main cache now derives its omitted runtime root from the primary

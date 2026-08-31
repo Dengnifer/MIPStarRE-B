@@ -91,3 +91,36 @@ active orchestrator is blocked at admission, including for a still-planned
 issue. Terminal attempts remain provenance for a later retry. Dispatch override
 objects must use one shape (single record, keyed map, or ID-bearing list); a
 single record mixed with keyed entries is rejected.
+
+## Local Mathlib hot cache
+
+The canonical warm uses the authenticated Mathlib revision
+`81a5d257c8e410db227a6665ed08f64fea08e997` (tree
+`5ea66b811b8461daae82f14d356fed2a287d7c40`). Provide one local source or the
+audited shallow-repository archive; paths must be absolute and free of symlink
+components:
+
+```bash
+export MATHLIB_SOURCE=/srv/sources/mathlib
+# or: export MATHLIB_ARCHIVE=/srv/archives/mathlib-81a5d257-shallow-repo.tar.gz
+python3 scripts/hot_main_cache.py warm
+```
+
+The source must be clean and authenticate to the pinned commit/tree. The
+validator rejects external or special `.git` metadata, executable local Git
+configuration, inherited Git configuration, and index flags that hide changes.
+Repository Git commands run with isolated system/global config and inert
+command-scope overrides. The archive is accepted only at compressed SHA-256
+`c29325b477966a6f8eb784723f19da26800c71458f7c24cc668713725eba78d7` and
+`51,938,317` bytes. The builder derives a canonical sorted
+`LAKE_PKG_URL_MAP` for Mathlib inside the elected staging transaction; source
+paths do not enter the cache key or manifest identity. It derives the URL and
+revision from the detached root Lake manifest and rejects a pin outside the
+authenticated contract. A warm rechecks this input on cache hits as well as
+misses.
+
+`lake ... exe cache get` can still contact Reservoir for compiled artifacts.
+The local source map directs Lake's Mathlib package lookup to the validated
+local `file://` URL, but it does not by itself make the warm offline; provision
+the permitted artifact cache or endpoint and retain the failure when Reservoir
+returns a nonzero status.

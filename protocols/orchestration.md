@@ -156,3 +156,58 @@ Statuses are `draft`, `ready`, `changes_requested`, `approved`, `merged`, and
 
 PR titles use `type(scope): description`. The record body contains Motivation,
 Description, Testing, and `Addresses QPBT-NNN` or `Closes QPBT-NNN`.
+
+## Local Mathlib hot-cache input
+
+The canonical hot-main recipe is pinned to Mathlib commit
+`81a5d257c8e410db227a6665ed08f64fea08e997` (tree
+`5ea66b811b8461daae82f14d356fed2a287d7c40`). A warm must receive exactly one
+of these absolute paths:
+
+```bash
+MATHLIB_SOURCE=/absolute/path/to/mathlib
+MATHLIB_ARCHIVE=/absolute/path/to/mathlib-81a5d257-shallow-repo.tar.gz
+```
+
+`MATHLIB_SOURCE` must name a standalone, clean, non-bare Git worktree. The
+cache checks `HEAD`, the root tree, local `git fsck --full`, the shallow
+boundary when present, absence of alternates and submodules, and regular
+one-link object packs. Its `.git` tree must contain no symlink, special entry,
+external common directory, replacement reference, or index visibility flag.
+Before any Git command against the supplied Mathlib repository, the cache
+parses local config without includes and permits only a narrow set of inert core,
+origin, branch, and user
+identity settings. Repository Git commands also discard inherited `GIT_*` values,
+disable system/global config and pagers, and override executable fsmonitor,
+hook, credential-helper, and external-protocol settings. `MATHLIB_ARCHIVE` is
+authenticated before extraction by the exact compressed size/digest
+(`51,938,317` bytes,
+`c29325b477966a6f8eb784723f19da26800c71458f7c24cc668713725eba78d7`) and
+decompressed tar size/digest (`147,712,000` bytes,
+`ad9a60b01736070112fbc1008ea98c67e68fa045c5b69e66873e0b9444ddd3ba`). Its
+Git pack is `27,574,578` bytes with SHA-256
+`4659f2a0cabfec474474f5e83ea3d495e711b735418742dd3d642328adcada02`.
+
+The elected builder reads the detached project's root `lake-manifest.json` to
+derive Mathlib's URL and revision, then checks both against this authenticated
+contract (the known tree binds the revision to the exact source identity).
+The manifest is never rewritten to point at the local path.
+
+The elected builder performs this authentication in its staging directory,
+then serializes `LAKE_PKG_URL_MAP` as a sorted JSON object with the `mathlib`
+entry set to the validated `file://` URL. Existing entries for other packages
+are preserved; a conflicting `mathlib` entry fails closed. The project
+manifest's HTTPS URL and revision are never rewritten, and the source path and
+archive location are excluded from the cache identity. The source is checked
+again immediately before publication, including its object-pack evidence, and
+an archive extraction is removed before `.lake` is atomically published. A warm
+validates the local input even
+when it would otherwise be a cache hit, so a missing, dirty, or mismatched
+source cannot be hidden by `READY`.
+
+This URL map only controls where Lake obtains the Mathlib Git package. The
+canonical dependency command, `lake --packages=.lake/package-overrides.json
+exe cache get`, may still request compiled artifacts from Reservoir. A local
+Mathlib source therefore does not promise an offline warm: use a permitted
+Reservoir/cache endpoint or a separately provisioned artifact cache, and treat
+that command's nonzero result as a build failure with no `READY` publication.

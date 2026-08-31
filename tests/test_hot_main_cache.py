@@ -2,15 +2,18 @@ from __future__ import annotations
 
 from contextlib import redirect_stderr
 import fcntl
+import gzip
 import hashlib
 import io
 import json
 import multiprocessing
+import os
 from pathlib import Path
 import shutil
 import stat
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 import unittest
@@ -50,6 +53,25 @@ PACKAGE_MATERIALIZING_TEST_RECIPE = cache_module.BuildRecipe.for_testing(
         "scripts/materialize_lake_packages.py",
     ),
     recipe_id="test-fake-package-materializing-build",
+)
+
+
+PRODUCTION_PROBE_RECIPE = cache_module.BuildRecipe(
+    recipe_id="test-production-mathlib-probe",
+    version=1,
+    dependency_command=("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "exe", "cache", "get"),
+    build_command=("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "build"),
+    test_only=False,
+)
+
+PRODUCTION_SETUP_PROBE_RECIPE = cache_module.BuildRecipe(
+    recipe_id="test-production-mathlib-setup-probe",
+    version=1,
+    package_materialize_command=("python3", "probe-package-materialize"),
+    package_verify_command=("python3", "probe-package-verify"),
+    dependency_command=("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "exe", "cache", "get"),
+    build_command=("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "build"),
+    test_only=False,
 )
 
 
@@ -105,6 +127,83 @@ def initialize_repository(root: Path) -> str:
     run_git(root, "add", ".")
     run_git(root, "commit", "-m", "initial")
     return run_git(root, "rev-parse", "HEAD")
+
+
+def initialize_mathlib_source(root: Path) -> tuple[str, str]:
+    """Create a standalone local Git source suitable for source-auth tests."""
+
+    root.mkdir(parents=True)
+    run_git(root, "init", "-b", "main")
+    run_git(root, "config", "user.name", "Mathlib Fixture")
+    run_git(root, "config", "user.email", "mathlib@example.invalid")
+    (root / "Mathlib").mkdir()
+    (root / "Mathlib" / "Fixture.lean").write_text(
+        "namespace Mathlib\ndef fixture := 1\nend Mathlib\n", encoding="utf-8"
+    )
+    (root / "lakefile.lean").write_text("package mathlib\n", encoding="utf-8")
+    (root / "README.md").write_text("local fixture\n", encoding="utf-8")
+    run_git(root, "add", ".")
+    run_git(root, "commit", "-m", "mathlib fixture")
+    return run_git(root, "rev-parse", "HEAD"), run_git(root, "rev-parse", "HEAD^{tree}")
+
+
+def write_mathlib_pin(project: Path, commit: str) -> None:
+    manifest = {
+        "version": 1,
+        "packages": [
+            {
+                "url": cache_module.MATHLIB_REPOSITORY_URL,
+                "type": "git",
+                "rev": commit,
+                "name": "mathlib",
+            }
+        ],
+    }
+    (project / "lake-manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+
+def pack_mathlib_archive(source: Path, archive: Path) -> dict[str, object]:
+    """Emit a deterministic test archive and return its digest facts."""
+
+    tar_buffer = io.BytesIO()
+    with tarfile.open(fileobj=tar_buffer, mode="w", format=tarfile.PAX_FORMAT) as tar:
+        tar.add(source, arcname="mathlib", recursive=True)
+    tar_bytes = tar_buffer.getvalue()
+    payload = gzip.compress(tar_bytes, mtime=0)
+    archive.write_bytes(payload)
+    return {
+        "archive_sha256": hashlib.sha256(payload).hexdigest(),
+        "archive_bytes": len(payload),
+        "tar_sha256": hashlib.sha256(tar_bytes).hexdigest(),
+        "tar_bytes": len(tar_bytes),
+    }
+
+
+def pack_mathlib_tar_members(
+    archive: Path,
+    members: list[tuple[tarfile.TarInfo, bytes | None]],
+) -> dict[str, object]:
+    """Emit a deterministic test archive from exact tar records."""
+
+    tar_buffer = io.BytesIO()
+    with tarfile.open(fileobj=tar_buffer, mode="w", format=tarfile.PAX_FORMAT) as tar:
+        for member, payload in members:
+            if payload is not None:
+                member.size = len(payload)
+                tar.addfile(member, io.BytesIO(payload))
+            else:
+                tar.addfile(member)
+    tar_bytes = tar_buffer.getvalue()
+    payload = gzip.compress(tar_bytes, mtime=0)
+    archive.write_bytes(payload)
+    return {
+        "archive_sha256": hashlib.sha256(payload).hexdigest(),
+        "archive_bytes": len(payload),
+        "tar_sha256": hashlib.sha256(tar_bytes).hexdigest(),
+        "tar_bytes": len(tar_bytes),
+    }
 
 
 def fake_success(project: Path, command: list[str] | tuple[str, ...], log_path: Path) -> int:
@@ -237,6 +336,14 @@ class HotMainCacheTests(unittest.TestCase):
         target = self.base / name
         run_git(self.repo, "worktree", "add", "--detach", str(target), self.commit)
         return target
+
+    def mathlib_fixture(self) -> tuple[Path, str, str]:
+        source = self.base / "mathlib-source"
+        commit, tree = initialize_mathlib_source(source)
+        write_mathlib_pin(self.repo, commit)
+        run_git(self.repo, "add", "lake-manifest.json")
+        run_git(self.repo, "commit", "-m", "pin mathlib fixture")
+        return source, commit, tree
 
     def test_identity_comes_from_exact_main_not_dirty_worktree(self) -> None:
         first = self.manager().identity
@@ -406,6 +513,596 @@ class HotMainCacheTests(unittest.TestCase):
                     dependency_command=invalid,
                     build_command=valid,
                 )
+
+    def test_mathlib_source_auth_and_url_map_are_path_independent(self) -> None:
+        source, commit, tree = self.mathlib_fixture()
+        alternate = self.base / "mathlib-source-alternate"
+        shutil.copytree(source, alternate, symlinks=True)
+        ambient_marker = self.base / "ambient-git-config-executed"
+        ambient_command = f"/usr/bin/touch {ambient_marker}"
+        with mock.patch.multiple(
+            cache_module, MATHLIB_COMMIT=commit, MATHLIB_TREE=tree
+        ), mock.patch.object(
+            cache_module, "CANONICAL_BUILD_RECIPE", PRODUCTION_PROBE_RECIPE
+        ):
+            manager = cache_module.HotMainCache(self.repo, self.repo, self.runtime)
+            staging = self.base / "source-staging"
+            staging.mkdir()
+            with mock.patch.dict(
+                os.environ,
+                {
+                    cache_module.MATHLIB_SOURCE_ENV: str(source),
+                    cache_module.MATHLIB_ARCHIVE_ENV: "",
+                    "LAKE_PKG_URL_MAP": '{"zeta":"file:///z","alpha":"file:///a"}',
+                    "GIT_CONFIG_COUNT": "1",
+                    "GIT_CONFIG_KEY_0": "core.fsmonitor",
+                    "GIT_CONFIG_VALUE_0": ambient_command,
+                    "GIT_CONFIG_PARAMETERS": f"'core.fsmonitor={ambient_command}'",
+                    "GIT_PAGER": ambient_command,
+                },
+                clear=False,
+            ):
+                binding = manager._prepare_mathlib_source(staging, self.repo)
+                environment = manager._command_environment_for_mathlib(binding)
+                self.assertEqual(
+                    '{"alpha":"file:///a","mathlib":"%s","zeta":"file:///z"}'
+                    % source.as_uri(),
+                    environment["LAKE_PKG_URL_MAP"],
+                )
+                self.assertEqual("0", environment["GIT_TERMINAL_PROMPT"])
+                self.assertEqual(os.devnull, environment["GIT_CONFIG_GLOBAL"])
+                self.assertEqual(
+                    str(len(cache_module.TRUSTED_GIT_CONFIG_OVERRIDES)),
+                    environment["GIT_CONFIG_COUNT"],
+                )
+                self.assertNotIn("GIT_CONFIG_PARAMETERS", environment)
+                self.assertEqual("", environment["GIT_PAGER"])
+                self.assertFalse(ambient_marker.exists())
+                self.assertEqual(commit, binding.evidence["commit"])
+                self.assertEqual(tree, binding.evidence["tree"])
+                self.assertEqual("source", binding.evidence["mode"])
+                self.assertIsNone(binding.evidence["archive_sha256"])
+                self.assertIsNone(binding.evidence["archive_bytes"])
+                first_key = manager.identity.cache_key
+                with mock.patch.dict(
+                    os.environ,
+                    {
+                        cache_module.MATHLIB_SOURCE_ENV: str(alternate),
+                        "LAKE_PKG_URL_MAP": "",
+                    },
+                    clear=False,
+                ):
+                    alternate_binding = manager._prepare_mathlib_source(staging, self.repo)
+                self.assertEqual(first_key, manager.identity.cache_key)
+                self.assertEqual(binding.evidence["commit"], alternate_binding.evidence["commit"])
+                self.assertEqual(binding.evidence["tree"], alternate_binding.evidence["tree"])
+                with mock.patch.dict(
+                    os.environ,
+                    {"LAKE_PKG_URL_MAP": '{"mathlib":"file:///different"}'},
+                    clear=False,
+                ):
+                    with self.assertRaisesRegex(cache_module.CacheError, "different URL"):
+                        manager._command_environment_for_mathlib(binding)
+
+    def test_project_mathlib_pin_is_derived_from_real_lake_manifest(self) -> None:
+        project = self.base / "real-manifest-project"
+        project.mkdir()
+        real_manifest = Path(__file__).resolve().parents[1] / "lake-manifest.json"
+        shutil.copy2(real_manifest, project / "lake-manifest.json")
+        pin = cache_module.HotMainCache._validate_project_mathlib_pin(project)
+        self.assertEqual(
+            {
+                "repository_url": "https://github.com/leanprover-community/mathlib4",
+                "commit": "81a5d257c8e410db227a6665ed08f64fea08e997",
+                "tree": "5ea66b811b8461daae82f14d356fed2a287d7c40",
+            },
+            pin,
+        )
+
+    def test_mathlib_source_preflight_rejects_missing_dirty_and_mismatched_inputs(self) -> None:
+        source, commit, tree = self.mathlib_fixture()
+        with mock.patch.multiple(
+            cache_module, MATHLIB_COMMIT=commit, MATHLIB_TREE=tree
+        ), mock.patch.object(
+            cache_module, "CANONICAL_BUILD_RECIPE", PRODUCTION_PROBE_RECIPE
+        ):
+            manager = cache_module.HotMainCache(self.repo, self.repo, self.runtime)
+            with mock.patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(cache_module.CacheError, "set exactly one"):
+                    manager.warm()
+            self.assertFalse(manager.is_ready())
+            self.assertEqual([], list(self.runtime.rglob("READY")))
+
+            dirty = source / "DIRTY"
+            dirty.write_text("unexpected\n", encoding="ascii")
+            with mock.patch.dict(
+                os.environ,
+                {cache_module.MATHLIB_SOURCE_ENV: str(source)},
+                clear=False,
+            ):
+                with self.assertRaisesRegex(cache_module.CacheError, "changes"):
+                    manager.warm()
+            dirty.unlink()
+
+            with mock.patch.object(cache_module, "MATHLIB_COMMIT", "0" * 40):
+                with mock.patch.dict(
+                    os.environ,
+                    {cache_module.MATHLIB_SOURCE_ENV: str(source)},
+                    clear=False,
+                ):
+                    with self.assertRaisesRegex(
+                        cache_module.CacheError, "pin differs|commit differs"
+                    ):
+                        manager.warm()
+            self.assertEqual([], list(self.runtime.rglob("READY")))
+
+    def test_mathlib_source_rejects_symlinked_git_internals_before_object_reads(self) -> None:
+        source, commit, tree = self.mathlib_fixture()
+        with mock.patch.multiple(
+            cache_module, MATHLIB_COMMIT=commit, MATHLIB_TREE=tree
+        ):
+            for name in ("objects", "refs", "HEAD", "config", "index"):
+                with self.subTest(name=name):
+                    original = source / ".git" / name
+                    backup = source / ".git" / f"{name}.real"
+                    original.rename(backup)
+                    try:
+                        if backup.is_dir():
+                            original.symlink_to(backup, target_is_directory=True)
+                        else:
+                            original.symlink_to(backup)
+                        with self.assertRaisesRegex(
+                            cache_module.CacheError, "Git metadata|standalone|not a git repository"
+                        ):
+                            cache_module.validate_mathlib_source(source)
+                    finally:
+                        original.unlink(missing_ok=True)
+                        backup.rename(original)
+
+    def test_mathlib_source_rejects_executable_config_without_running_it(self) -> None:
+        marker = self.base / "local-git-config-executed"
+        command = f"/usr/bin/touch {marker}"
+        vectors = (
+            ("core.fsmonitor", command),
+            ("core.hooksPath", str(self.base / "hostile-hooks")),
+            ("filter.attack.clean", command),
+            ("diff.attack.textconv", command),
+            ("include.path", str(self.base / "hostile-include")),
+        )
+        for index, (key, value) in enumerate(vectors):
+            with self.subTest(key=key):
+                source = self.base / f"mathlib-config-{index}"
+                commit, tree = initialize_mathlib_source(source)
+                run_git(source, "config", key, value)
+                with mock.patch.multiple(
+                    cache_module, MATHLIB_COMMIT=commit, MATHLIB_TREE=tree
+                ), self.assertRaisesRegex(
+                    cache_module.CacheError, "configuration key is not allowed"
+                ):
+                    cache_module.validate_mathlib_source(source)
+                self.assertFalse(marker.exists())
+
+        source = self.base / "mathlib-ambient-config"
+        commit, tree = initialize_mathlib_source(source)
+        global_config = self.base / "hostile-global-gitconfig"
+        global_config.write_text(
+            f"[core]\n\tfsmonitor = {command}\n", encoding="utf-8"
+        )
+        with mock.patch.multiple(
+            cache_module, MATHLIB_COMMIT=commit, MATHLIB_TREE=tree
+        ), mock.patch.dict(
+            os.environ,
+            {
+                "GIT_CONFIG_GLOBAL": str(global_config),
+                "GIT_CONFIG_SYSTEM": str(global_config),
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": "core.fsmonitor",
+                "GIT_CONFIG_VALUE_0": command,
+                "GIT_CONFIG_PARAMETERS": f"'core.fsmonitor={command}'",
+                "GIT_DIR": str(source / ".git"),
+                "GIT_WORK_TREE": str(source),
+            },
+            clear=False,
+        ):
+            facts = cache_module.validate_mathlib_source(source)
+            trusted = cache_module._trusted_git_environment()
+        self.assertEqual(commit, facts["commit"])
+        self.assertEqual(os.devnull, trusted["GIT_CONFIG_GLOBAL"])
+        self.assertNotIn("GIT_CONFIG_PARAMETERS", trusted)
+        self.assertFalse(marker.exists())
+
+    def test_mathlib_source_rejects_nested_special_and_common_git_metadata(self) -> None:
+        source, commit, tree = self.mathlib_fixture()
+        git_dir = source / ".git"
+        nested = git_dir / "objects" / "info" / "external-link"
+        nested.parent.mkdir(parents=True, exist_ok=True)
+        nested.symlink_to(source / "README.md")
+        with mock.patch.multiple(
+            cache_module, MATHLIB_COMMIT=commit, MATHLIB_TREE=tree
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "contains a symlink"):
+                cache_module.validate_mathlib_source(source)
+            nested.unlink()
+
+            fifo = git_dir / "objects" / "info" / "special-fifo"
+            os.mkfifo(fifo)
+            try:
+                with self.assertRaisesRegex(cache_module.CacheError, "special entry"):
+                    cache_module.validate_mathlib_source(source)
+            finally:
+                fifo.unlink()
+
+            commondir = git_dir / "commondir"
+            commondir.write_text("../external\n", encoding="ascii")
+            try:
+                with self.assertRaisesRegex(cache_module.CacheError, "common directory"):
+                    cache_module.validate_mathlib_source(source)
+            finally:
+                commondir.unlink()
+
+    def test_mathlib_source_rejects_hidden_index_visibility_flags(self) -> None:
+        source, commit, tree = self.mathlib_fixture()
+        vectors = (
+            ("--assume-unchanged", "--no-assume-unchanged"),
+            ("--skip-worktree", "--no-skip-worktree"),
+        )
+        with mock.patch.multiple(
+            cache_module, MATHLIB_COMMIT=commit, MATHLIB_TREE=tree
+        ):
+            for enable, disable in vectors:
+                with self.subTest(flag=enable):
+                    run_git(source, "update-index", enable, "README.md")
+                    try:
+                        with self.assertRaisesRegex(
+                            cache_module.CacheError, "visibility flags"
+                        ):
+                            cache_module.validate_mathlib_source(source)
+                    finally:
+                        run_git(source, "update-index", disable, "README.md")
+
+    def test_mathlib_source_recheck_rejects_mid_build_repack(self) -> None:
+        source, commit, tree = self.mathlib_fixture()
+        with mock.patch.multiple(
+            cache_module, MATHLIB_COMMIT=commit, MATHLIB_TREE=tree
+        ):
+            facts = cache_module.validate_mathlib_source(source)
+            self.assertIsNone(facts["pack_sha256"])
+            binding = cache_module.MathlibSourceBinding(
+                path=source,
+                lake_url=source.as_uri(),
+                evidence={"commit": commit, "tree": tree, **facts},
+            )
+            run_git(source, "gc", "--quiet")
+            with self.assertRaisesRegex(cache_module.CacheError, "object pack changed"):
+                cache_module.HotMainCache._verify_mathlib_source(binding)
+
+    def test_mathlib_archive_materialization_authenticates_root_and_cleans_failures(self) -> None:
+        source, commit, tree = self.mathlib_fixture()
+        shallow = self.base / "mathlib-shallow"
+        subprocess.run(
+            ["git", "clone", "--quiet", "--no-tags", "--depth=1", f"file://{source}", str(shallow)],
+            check=True,
+            shell=False,
+        )
+        archive = self.base / "mathlib-fixture.tar.gz"
+        facts = pack_mathlib_archive(shallow, archive)
+        constants = {
+            "MATHLIB_COMMIT": commit,
+            "MATHLIB_TREE": tree,
+            "MATHLIB_ARCHIVE_SHA256": facts["archive_sha256"],
+            "MATHLIB_ARCHIVE_BYTES": facts["archive_bytes"],
+            "MATHLIB_ARCHIVE_TAR_SHA256": facts["tar_sha256"],
+            "MATHLIB_ARCHIVE_TAR_BYTES": facts["tar_bytes"],
+        }
+        with mock.patch.multiple(cache_module, **constants):
+            destination = self.base / "extracted-mathlib"
+            observed = cache_module.materialize_mathlib_archive(archive, destination)
+            self.assertEqual(commit, observed["commit"])
+            self.assertEqual(tree, observed["tree"])
+            self.assertEqual("archive", observed["mode"])
+            self.assertEqual(facts["archive_sha256"], observed["archive_sha256"])
+            self.assertEqual(commit + "\n", (destination / ".git" / "shallow").read_text())
+            cache_module.make_owner_writable(destination)
+            shutil.rmtree(destination)
+
+            damaged = self.base / "damaged-mathlib.tar.gz"
+            payload = bytearray(archive.read_bytes())
+            payload[-1] ^= 1
+            damaged.write_bytes(payload)
+            with self.assertRaisesRegex(cache_module.CacheError, "checksum|size"):
+                cache_module.materialize_mathlib_archive(
+                    damaged, self.base / "damaged-extracted"
+                )
+            self.assertFalse((self.base / "damaged-extracted").exists())
+
+    def test_mathlib_archive_rejects_malformed_records_and_link_chains(self) -> None:
+        def record(
+            name: str,
+            kind: bytes,
+            *,
+            linkname: str = "",
+        ) -> tarfile.TarInfo:
+            member = tarfile.TarInfo(name)
+            member.type = kind
+            member.mode = 0o755 if kind == tarfile.DIRTYPE else 0o644
+            member.linkname = linkname
+            return member
+
+        cases = (
+            (
+                "malformed-path",
+                [
+                    (record("mathlib", tarfile.DIRTYPE), None),
+                    (record("mathlib/../escape", tarfile.REGTYPE), b"escape\n"),
+                ],
+                "unsafe Mathlib archive member path",
+            ),
+            (
+                "duplicate",
+                [
+                    (record("mathlib", tarfile.DIRTYPE), None),
+                    (record("mathlib", tarfile.DIRTYPE), None),
+                ],
+                "duplicate Mathlib archive member",
+            ),
+            (
+                "hardlink",
+                [
+                    (record("mathlib", tarfile.DIRTYPE), None),
+                    (
+                        record(
+                            "mathlib/hardlink",
+                            tarfile.LNKTYPE,
+                            linkname="mathlib/target",
+                        ),
+                        None,
+                    ),
+                ],
+                "hardlink or special file",
+            ),
+            (
+                "fifo",
+                [
+                    (record("mathlib", tarfile.DIRTYPE), None),
+                    (record("mathlib/fifo", tarfile.FIFOTYPE), None),
+                ],
+                "hardlink or special file",
+            ),
+            (
+                "transitive-symlink-escape",
+                [
+                    (record("mathlib", tarfile.DIRTYPE), None),
+                    (record("mathlib/D", tarfile.SYMTYPE, linkname="."), None),
+                    (record("mathlib/S", tarfile.SYMTYPE, linkname="D/.."), None),
+                ],
+                "symlink chain escapes",
+            ),
+            (
+                "symlink-cycle",
+                [
+                    (record("mathlib", tarfile.DIRTYPE), None),
+                    (record("mathlib/A", tarfile.SYMTYPE, linkname="B"), None),
+                    (record("mathlib/B", tarfile.SYMTYPE, linkname="A"), None),
+                ],
+                "symlink graph contains a cycle",
+            ),
+        )
+        for name, members, error in cases:
+            with self.subTest(case=name):
+                archive = self.base / f"{name}.tar.gz"
+                facts = pack_mathlib_tar_members(archive, members)
+                destination = self.base / f"{name}-extracted"
+                with mock.patch.multiple(
+                    cache_module,
+                    MATHLIB_ARCHIVE_SHA256=facts["archive_sha256"],
+                    MATHLIB_ARCHIVE_BYTES=facts["archive_bytes"],
+                    MATHLIB_ARCHIVE_TAR_SHA256=facts["tar_sha256"],
+                    MATHLIB_ARCHIVE_TAR_BYTES=facts["tar_bytes"],
+                ), self.assertRaisesRegex(cache_module.CacheError, error):
+                    cache_module.materialize_mathlib_archive(archive, destination)
+                self.assertFalse(destination.exists())
+
+    def test_pinned_mathlib_archive_regression(self) -> None:
+        archive = Path("/tmp/mathlib-81a5d257-shallow-repo.tar.gz")
+        if not archive.is_file():
+            self.skipTest(f"pinned audit archive is unavailable: {archive}")
+        destination = self.base / "pinned-mathlib"
+        started = time.monotonic()
+        facts = cache_module.materialize_mathlib_archive(archive, destination)
+        self.assertEqual(cache_module.MATHLIB_COMMIT, facts["commit"])
+        self.assertEqual(cache_module.MATHLIB_TREE, facts["tree"])
+        self.assertEqual(
+            "4659f2a0cabfec474474f5e83ea3d495e711b735418742dd3d642328adcada02",
+            facts["pack_sha256"],
+        )
+        self.assertEqual(27_574_578, facts["pack_bytes"])
+        self.assertLess(time.monotonic() - started, 60)
+        cache_module.make_owner_writable(destination)
+        shutil.rmtree(destination)
+
+    def test_warm_constructs_local_lake_map_and_preserves_key(self) -> None:
+        source, commit, tree = self.mathlib_fixture()
+        alternate = self.base / "mathlib-source-alternate"
+        shutil.copytree(source, alternate, symlinks=True)
+        with mock.patch.multiple(
+            cache_module, MATHLIB_COMMIT=commit, MATHLIB_TREE=tree
+        ), mock.patch.object(
+            cache_module, "CANONICAL_BUILD_RECIPE", PRODUCTION_SETUP_PROBE_RECIPE
+        ):
+            manager = cache_module.HotMainCache(self.repo, self.repo, self.runtime)
+            original_run = manager._run_logged
+            lake_environments: list[dict[str, str]] = []
+            setup_environments: list[dict[str, str] | None] = []
+
+            def fake_run(
+                root: Path,
+                command: list[str] | tuple[str, ...],
+                log_path: Path,
+                *,
+                environment: dict[str, str] | None = None,
+            ) -> int:
+                if command[0] == "git":
+                    return original_run(root, command, log_path, environment=environment)
+                if command[0] == "python3":
+                    setup_environments.append(environment)
+                    return 0
+                if command[0] == "lake":
+                    self.assertIsNotNone(environment)
+                    lake_environments.append(dict(environment or {}))
+                    if command[-1] == "build":
+                        build = root / ".lake" / "build"
+                        build.mkdir(parents=True, exist_ok=True)
+                        (build / "QPBT.olean").write_text("probe\n", encoding="ascii")
+                    return 0
+                raise AssertionError(f"unexpected command: {command}")
+
+            with mock.patch.dict(
+                os.environ,
+                {
+                    cache_module.MATHLIB_SOURCE_ENV: str(source),
+                    "LAKE_PKG_URL_MAP": "",
+                },
+                clear=False,
+            ), mock.patch.object(manager, "_run_logged", side_effect=fake_run):
+                os.environ.pop(cache_module.MATHLIB_ARCHIVE_ENV, None)
+                built = manager.warm()
+                self.assertEqual("built", built["result"])
+                self.assertTrue(manager.is_ready(deep=True))
+                manifest = json.loads(manager.manifest_path.read_text(encoding="utf-8"))
+                self.assertEqual("source", manifest["mathlib_source"]["mode"])
+                self.assertNotIn(str(source), json.dumps(manifest["mathlib_source"]))
+                self.assertEqual(2, len(lake_environments))
+                self.assertEqual([None, None, None], setup_environments)
+                for environment in lake_environments:
+                    self.assertEqual(
+                        '{"mathlib":"%s"}' % source.as_uri(),
+                        environment["LAKE_PKG_URL_MAP"],
+                    )
+
+                alternate_manager = cache_module.HotMainCache(
+                    self.repo, self.repo, self.runtime
+                )
+                with mock.patch.dict(
+                    os.environ,
+                    {cache_module.MATHLIB_SOURCE_ENV: str(alternate)},
+                    clear=False,
+                ):
+                    hit = alternate_manager.warm()
+                self.assertEqual("hit", hit["result"])
+                self.assertEqual(manager.identity.cache_key, alternate_manager.identity.cache_key)
+
+    def test_warm_archive_input_is_staged_and_not_published(self) -> None:
+        source, commit, tree = self.mathlib_fixture()
+        shallow = self.base / "mathlib-shallow-warm"
+        subprocess.run(
+            ["git", "clone", "--quiet", "--no-tags", "--depth=1", f"file://{source}", str(shallow)],
+            check=True,
+            shell=False,
+        )
+        archive = self.base / "mathlib-warm.tar.gz"
+        facts = pack_mathlib_archive(shallow, archive)
+        constants = {
+            "MATHLIB_COMMIT": commit,
+            "MATHLIB_TREE": tree,
+            "MATHLIB_ARCHIVE_SHA256": facts["archive_sha256"],
+            "MATHLIB_ARCHIVE_BYTES": facts["archive_bytes"],
+            "MATHLIB_ARCHIVE_TAR_SHA256": facts["tar_sha256"],
+            "MATHLIB_ARCHIVE_TAR_BYTES": facts["tar_bytes"],
+        }
+        with mock.patch.multiple(cache_module, **constants), mock.patch.object(
+            cache_module, "CANONICAL_BUILD_RECIPE", PRODUCTION_PROBE_RECIPE
+        ):
+            manager = cache_module.HotMainCache(
+                self.repo, self.repo, self.base / "archive-warm-runtime"
+            )
+            original_run = manager._run_logged
+            lake_urls: list[str] = []
+
+            def fake_run(
+                root: Path,
+                command: list[str] | tuple[str, ...],
+                log_path: Path,
+                *,
+                environment: dict[str, str] | None = None,
+            ) -> int:
+                if command[0] == "git":
+                    return original_run(root, command, log_path, environment=environment)
+                if command[0] == "lake":
+                    lake_urls.append((environment or {})["LAKE_PKG_URL_MAP"])
+                    if command[-1] == "build":
+                        build = root / ".lake" / "build"
+                        build.mkdir(parents=True, exist_ok=True)
+                        (build / "QPBT.olean").write_text("archive\n", encoding="ascii")
+                    return 0
+                raise AssertionError(f"unexpected command: {command}")
+
+            with mock.patch.dict(
+                os.environ,
+                {
+                    cache_module.MATHLIB_ARCHIVE_ENV: str(archive),
+                    "LAKE_PKG_URL_MAP": "",
+                },
+                clear=False,
+            ), mock.patch.object(manager, "_run_logged", side_effect=fake_run):
+                os.environ.pop(cache_module.MATHLIB_SOURCE_ENV, None)
+                built = manager.warm()
+            self.assertEqual("built", built["result"])
+            self.assertTrue(manager.is_ready(deep=True))
+            manifest = json.loads(manager.manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual("archive", manifest["mathlib_source"]["mode"])
+            self.assertEqual(facts["archive_sha256"], manifest["mathlib_source"]["archive_sha256"])
+            self.assertFalse((manager.snapshot_dir / "mathlib-source").exists())
+            self.assertEqual(2, len(lake_urls))
+            self.assertTrue(all('"mathlib":"file://' in value for value in lake_urls))
+
+    def test_warm_surfaces_reservoir_cache_failure_without_ready(self) -> None:
+        source, commit, tree = self.mathlib_fixture()
+        failure_runtime = self.base / "reservoir-runtime"
+        with mock.patch.multiple(
+            cache_module, MATHLIB_COMMIT=commit, MATHLIB_TREE=tree
+        ), mock.patch.object(
+            cache_module, "CANONICAL_BUILD_RECIPE", PRODUCTION_PROBE_RECIPE
+        ):
+            manager = cache_module.HotMainCache(self.repo, self.repo, failure_runtime)
+            original_run = manager._run_logged
+
+            def fail_reservoir(
+                root: Path,
+                command: list[str] | tuple[str, ...],
+                log_path: Path,
+                *,
+                environment: dict[str, str] | None = None,
+            ) -> int:
+                if command[0] == "git":
+                    return original_run(root, command, log_path, environment=environment)
+                if command[-3:] == ("exe", "cache", "get"):
+                    self.assertEqual(
+                        '{"mathlib":"%s"}' % source.as_uri(),
+                        (environment or {})["LAKE_PKG_URL_MAP"],
+                    )
+                    return 17
+                raise AssertionError(f"unexpected command: {command}")
+
+            with mock.patch.dict(
+                os.environ,
+                {
+                    cache_module.MATHLIB_SOURCE_ENV: str(source),
+                    "LAKE_PKG_URL_MAP": "",
+                },
+                clear=False,
+            ), mock.patch.object(manager, "_run_logged", side_effect=fail_reservoir):
+                os.environ.pop(cache_module.MATHLIB_ARCHIVE_ENV, None)
+                with self.assertRaisesRegex(
+                    cache_module.CacheError, "dependency cache command failed"
+                ):
+                    manager.warm()
+            self.assertFalse(manager.is_ready())
+            self.assertEqual([], list(failure_runtime.rglob("READY")))
+            failures = list((failure_runtime / "cache" / "failures").iterdir())
+            self.assertEqual(1, len(failures))
+            failure = json.loads((failures[0] / "failure.json").read_text(encoding="utf-8"))
+            self.assertEqual("source", failure["mathlib_source"]["mode"])
+            self.assertIn("dependency cache command failed", failure["error"])
 
     def test_warm_rejects_post_build_materialized_source_drift(self) -> None:
         manager = self.manager(

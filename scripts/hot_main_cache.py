@@ -15,18 +15,22 @@ import datetime as dt
 import errno
 import fcntl
 import hashlib
+import io
 import importlib.util
 import json
 import os
 from pathlib import Path
+from pathlib import PurePosixPath
 import shutil
 import socket
 import stat
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 from typing import Any, Callable, Mapping, Sequence
+import zlib
 
 
 SCHEMA_VERSION = 3
@@ -49,6 +53,62 @@ class CacheError(Exception):
 
 
 LAKE_OVERRIDE_ARGUMENT = "--packages=.lake/package-overrides.json"
+
+# The root manifest and provenance pin identify this exact Mathlib revision.  A
+# local source path is deliberately runtime input, not cache-key input: the
+# Git commit/tree below are the stable identity that every accepted mirror must
+# expose.  The archive digest covers the normalized shallow repository emitted
+# by the acquisition audit; source repositories may be repacked without
+# changing their Git identity.
+MATHLIB_SOURCE_ENV = "MATHLIB_SOURCE"
+MATHLIB_ARCHIVE_ENV = "MATHLIB_ARCHIVE"
+MATHLIB_PACKAGE_NAME = "mathlib"
+MATHLIB_REPOSITORY_URL = "https://github.com/leanprover-community/mathlib4"
+MATHLIB_COMMIT = "81a5d257c8e410db227a6665ed08f64fea08e997"
+MATHLIB_TREE = "5ea66b811b8461daae82f14d356fed2a287d7c40"
+MATHLIB_ARCHIVE_SHA256 = "c29325b477966a6f8eb784723f19da26800c71458f7c24cc668713725eba78d7"
+MATHLIB_ARCHIVE_BYTES = 51_938_317
+MATHLIB_ARCHIVE_TAR_SHA256 = "ad9a60b01736070112fbc1008ea98c67e68fa045c5b69e66873e0b9444ddd3ba"
+MATHLIB_ARCHIVE_TAR_BYTES = 147_712_000
+MATHLIB_SOURCE_EVIDENCE_SCHEMA_VERSION = 1
+MATHLIB_ARCHIVE_MAX_BYTES = 64 * 1024 * 1024
+MATHLIB_TAR_MAX_BYTES = 256 * 1024 * 1024
+MATHLIB_TAR_MAX_MEMBERS = 20_000
+# The pinned shallow mirror has one 27,574,578-byte Git pack member.  Keep a
+# bounded margin for that exact artifact while retaining the aggregate tar
+# limit below.
+MATHLIB_TAR_MAX_MEMBER_BYTES = 32 * 1024 * 1024
+
+
+@dataclass(frozen=True)
+class MathlibSourceBinding:
+    """An authenticated local Mathlib repository and its Lake URL."""
+
+    path: Path
+    lake_url: str
+    evidence: dict[str, Any]
+    owned_path: Path | None = None
+
+
+MATHLIB_EVIDENCE_KEYS = {
+    "schema_version",
+    "repository_url",
+    "commit",
+    "tree",
+    "mode",
+    "archive_sha256",
+    "archive_bytes",
+    "pack_sha256",
+    "pack_bytes",
+}
+
+TRUSTED_GIT_CONFIG_OVERRIDES = (
+    ("core.fsmonitor", "false"),
+    ("core.hooksPath", os.devnull),
+    ("core.pager", ""),
+    ("credential.helper", ""),
+    ("protocol.ext.allow", "never"),
+)
 
 
 def _validate_lake_command(command: Sequence[str]) -> None:
@@ -287,10 +347,49 @@ def validate_source_evidence(value: Any, expected_contract: Mapping[str, Any]) -
     )
 
 
+def _trusted_git_environment(
+    inherited: Mapping[str, str] | None = None,
+) -> dict[str, str]:
+    """Return an environment isolated from executable Git configuration."""
+
+    environment = dict(os.environ if inherited is None else inherited)
+    for variable in tuple(environment):
+        if variable.startswith("GIT_") or variable in {
+            "SSH_ASKPASS",
+            "SSH_ASKPASS_REQUIRE",
+            "PAGER",
+            "LESS",
+            "LESSOPEN",
+            "LESSCLOSE",
+        }:
+            environment.pop(variable, None)
+    environment.update(
+        {
+            "GIT_ATTR_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "GIT_NO_LAZY_FETCH": "1",
+            "GIT_NO_REPLACE_OBJECTS": "1",
+            "GIT_OPTIONAL_LOCKS": "0",
+            "GIT_PAGER": "",
+            "GIT_TERMINAL_PROMPT": "0",
+            "GIT_CONFIG_COUNT": str(len(TRUSTED_GIT_CONFIG_OVERRIDES)),
+        }
+    )
+    for index, (key, value) in enumerate(TRUSTED_GIT_CONFIG_OVERRIDES):
+        environment[f"GIT_CONFIG_KEY_{index}"] = key
+        environment[f"GIT_CONFIG_VALUE_{index}"] = value
+    return environment
+
+
 def _git_command_bytes(repo_root: Path, arguments: Sequence[str]) -> bytes:
     command = ["git", "-C", str(repo_root), *arguments]
+    environment = _trusted_git_environment()
     try:
-        result = subprocess.run(command, capture_output=True, check=False, shell=False)
+        result = subprocess.run(
+            command, capture_output=True, check=False, shell=False, env=environment
+        )
     except OSError as error:
         raise CacheError(f"could not run git: {error}") from error
     if result.returncode != 0:
@@ -611,6 +710,669 @@ def reject_symlink_components(path: Path) -> Path:
     return absolute
 
 
+def _absolute_local_path(value: str, label: str, *, must_exist: bool = True) -> Path:
+    """Resolve an environment path without permitting aliases or traversal."""
+
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise CacheError(f"{label} must be a non-empty absolute path")
+    candidate = Path(value)
+    if not candidate.is_absolute() or ".." in candidate.parts:
+        raise CacheError(f"{label} must be an absolute path without '..'")
+    absolute = reject_symlink_components(candidate)
+    try:
+        metadata = absolute.stat(follow_symlinks=False)
+    except FileNotFoundError:
+        if must_exist:
+            raise CacheError(f"{label} is unavailable: {absolute}")
+    except OSError as error:
+        raise CacheError(f"{label} is unavailable: {absolute}") from error
+    else:
+        if stat.S_ISLNK(metadata.st_mode):
+            raise CacheError(f"{label} must not be a symlink: {absolute}")
+    return absolute
+
+
+def _read_bounded_regular_file(path: Path, maximum: int, label: str) -> bytes:
+    """Read one regular file while checking its identity before and after I/O."""
+
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise CacheError(f"could not open {label}: {error}") from error
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise CacheError(f"{label} must be one regular file")
+        if before.st_size > maximum:
+            raise CacheError(f"{label} exceeds the {maximum}-byte bound")
+        chunks: list[bytes] = []
+        total = 0
+        while total <= before.st_size:
+            chunk = os.read(descriptor, min(1024 * 1024, before.st_size + 1 - total))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+        after = os.fstat(descriptor)
+        identity = lambda item: (
+            item.st_dev, item.st_ino, item.st_size, item.st_mtime_ns, item.st_nlink
+        )
+        if identity(before) != identity(after) or total != before.st_size:
+            raise CacheError(f"{label} changed while read")
+        return b"".join(chunks)
+    finally:
+        os.close(descriptor)
+
+
+def _json_object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise CacheError(f"JSON object repeats key {key!r}")
+        result[key] = value
+    return result
+
+
+def _parse_isolated_git_config(payload: bytes) -> dict[str, str]:
+    """Parse one config payload without following includes or ambient config."""
+
+    command = [
+        "git",
+        "config",
+        "--no-includes",
+        "--file",
+        "-",
+        "--null",
+        "--list",
+    ]
+    try:
+        result = subprocess.run(
+            command,
+            input=payload,
+            capture_output=True,
+            check=False,
+            shell=False,
+            env=_trusted_git_environment(),
+        )
+    except OSError as error:
+        raise CacheError(f"could not parse Mathlib Git configuration: {error}") from error
+    if result.returncode != 0:
+        message = result.stderr.decode("utf-8", errors="replace").strip()
+        raise CacheError(f"Mathlib Git configuration is invalid: {message or 'parse failed'}")
+    parsed: dict[str, str] = {}
+    for raw_record in result.stdout.split(b"\0"):
+        if not raw_record:
+            continue
+        raw_key, separator, raw_value = raw_record.partition(b"\n")
+        if not separator:
+            raise CacheError("Mathlib Git configuration produced a malformed record")
+        try:
+            key = raw_key.decode("utf-8").lower()
+            value = raw_value.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise CacheError("Mathlib Git configuration is not UTF-8") from error
+        if key in parsed:
+            raise CacheError(f"Mathlib Git configuration repeats key {key!r}")
+        parsed[key] = value
+    return parsed
+
+
+def _safe_git_config_text(value: str, label: str, *, maximum: int = 4096) -> None:
+    if (
+        not value
+        or len(value.encode("utf-8")) > maximum
+        or any(ord(character) < 32 or ord(character) == 127 for character in value)
+    ):
+        raise CacheError(f"Mathlib Git configuration has an unsafe {label}")
+
+
+def _safe_git_branch_name(value: str) -> bool:
+    forbidden = set(" ~^:?*[\\")
+    return (
+        0 < len(value) <= 255
+        and value not in {".", ".."}
+        and not value.startswith(("/", "."))
+        and not value.endswith(("/", ".", ".lock"))
+        and ".." not in value
+        and "@{" not in value
+        and "//" not in value
+        and not any(character in forbidden or ord(character) < 32 for character in value)
+    )
+
+
+def _validate_mathlib_git_config(git_dir: Path) -> None:
+    """Allow only inert structural settings in the supplied repository."""
+
+    payload = _read_bounded_regular_file(
+        git_dir / "config", 1024 * 1024, "Mathlib Git configuration"
+    )
+    config = _parse_isolated_git_config(payload)
+    required = {
+        "core.repositoryformatversion": "0",
+        "core.bare": "false",
+        "core.logallrefupdates": "true",
+    }
+    for key, expected in required.items():
+        if config.get(key) != expected:
+            raise CacheError(f"Mathlib Git configuration requires {key}={expected}")
+    if config.get("core.filemode") not in {"true", "false"}:
+        raise CacheError("Mathlib Git configuration requires a Boolean core.filemode")
+
+    for key, value in config.items():
+        if key in {*required, "core.filemode"}:
+            continue
+        if key in {"user.name", "user.email"}:
+            _safe_git_config_text(value, key)
+            continue
+        if key == "remote.origin.url":
+            _safe_git_config_text(value, key)
+            normalized = value.rstrip("/")
+            if not (
+                normalized in {MATHLIB_REPOSITORY_URL, f"{MATHLIB_REPOSITORY_URL}.git"}
+                or value.startswith("file:///")
+            ):
+                raise CacheError("Mathlib Git remote URL is outside the local/pinned contract")
+            continue
+        if key == "remote.origin.tagopt" and value == "--no-tags":
+            continue
+        if key == "remote.origin.fetch":
+            wildcard = "+refs/heads/*:refs/remotes/origin/*"
+            if value == wildcard:
+                continue
+            prefix = "+refs/heads/"
+            separator = ":refs/remotes/origin/"
+            if value.startswith(prefix) and separator in value:
+                source_branch, target_branch = value[len(prefix):].split(separator, 1)
+                if source_branch == target_branch and _safe_git_branch_name(source_branch):
+                    continue
+            raise CacheError("Mathlib Git fetch refspec is outside the pinned contract")
+        if key.startswith("branch.") and key.endswith((".remote", ".merge")):
+            suffix = ".remote" if key.endswith(".remote") else ".merge"
+            branch = key[len("branch."):-len(suffix)]
+            if _safe_git_branch_name(branch) and (
+                (suffix == ".remote" and value == "origin")
+                or (suffix == ".merge" and value == f"refs/heads/{branch}")
+            ):
+                continue
+        raise CacheError(f"Mathlib Git configuration key is not allowed: {key}")
+
+
+def _git_directory(source: Path) -> Path:
+    marker = source / ".git"
+    try:
+        marker_stat = marker.stat(follow_symlinks=False)
+    except OSError as error:
+        raise CacheError("Mathlib source must contain standalone Git metadata") from error
+    if stat.S_ISLNK(marker_stat.st_mode) or not stat.S_ISDIR(marker_stat.st_mode):
+        raise CacheError("Mathlib source must contain a real standalone .git directory")
+    # Inspect the local metadata tree before asking Git to resolve anything.
+    # In particular, a symlinked objects/ directory could otherwise redirect a
+    # seemingly local repository to an external object store.
+    _validate_git_metadata_layout(marker)
+    _validate_mathlib_git_config(marker)
+    raw = _git_command_bytes(source, ["rev-parse", "--git-dir"]).decode("utf-8", errors="strict").strip()
+    if not raw:
+        raise CacheError("Mathlib source returned an empty Git directory")
+    git_dir = Path(raw)
+    if not git_dir.is_absolute():
+        git_dir = source / git_dir
+    git_dir = _absolute_local_path(str(git_dir), "Mathlib source Git directory")
+    if git_dir.resolve(strict=True) != marker.resolve(strict=True):
+        raise CacheError("Mathlib source Git directory must be its local .git directory")
+    metadata = git_dir.stat(follow_symlinks=False)
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
+        raise CacheError("Mathlib source Git directory is not a real directory")
+    _validate_git_metadata_layout(git_dir)
+    return git_dir
+
+
+def _validate_git_metadata_layout(git_dir: Path) -> None:
+    """Reject symlinked or special Git metadata before Git reads objects."""
+
+    required_directories = (git_dir / "objects", git_dir / "refs")
+    required_files = (git_dir / "HEAD", git_dir / "config", git_dir / "index")
+    for path in required_directories:
+        try:
+            metadata = path.stat(follow_symlinks=False)
+        except OSError as error:
+            raise CacheError(f"Mathlib Git metadata is unavailable: {path}") from error
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
+            raise CacheError(f"Mathlib Git metadata directory is not real: {path}")
+    for path in required_files:
+        try:
+            metadata = path.stat(follow_symlinks=False)
+        except OSError as error:
+            raise CacheError(f"Mathlib Git metadata is unavailable: {path}") from error
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+            raise CacheError(f"Mathlib Git metadata file is not regular: {path}")
+    commondir = git_dir / "commondir"
+    try:
+        commondir_stat = commondir.stat(follow_symlinks=False)
+    except FileNotFoundError:
+        commondir_stat = None
+    except OSError as error:
+        raise CacheError(f"could not inspect Mathlib Git common-directory marker: {commondir}") from error
+    if commondir_stat is not None:
+        raise CacheError("Mathlib source must not use an external Git common directory")
+
+    entries = 0
+
+    def onerror(error: OSError) -> None:
+        raise CacheError(f"could not inspect Mathlib Git metadata: {error}") from error
+
+    for directory, directory_names, file_names in os.walk(
+        git_dir, topdown=True, followlinks=False, onerror=onerror
+    ):
+        entries += len(directory_names) + len(file_names)
+        if entries > 100_000:
+            raise CacheError("Mathlib Git metadata exceeds its entry bound")
+        for name in (*directory_names, *file_names):
+            path = Path(directory) / name
+            try:
+                metadata = path.stat(follow_symlinks=False)
+            except OSError as error:
+                raise CacheError(f"could not inspect Mathlib Git metadata: {path}") from error
+            if stat.S_ISLNK(metadata.st_mode):
+                raise CacheError(f"Mathlib Git metadata contains a symlink: {path}")
+            if not stat.S_ISDIR(metadata.st_mode) and not stat.S_ISREG(metadata.st_mode):
+                raise CacheError(f"Mathlib Git metadata contains a special entry: {path}")
+
+
+def _git_pack_facts(git_dir: Path) -> tuple[str | None, int | None]:
+    pack_dir = git_dir / "objects" / "pack"
+    try:
+        metadata = pack_dir.stat(follow_symlinks=False)
+    except OSError as error:
+        raise CacheError("Mathlib source Git object directory is unavailable") from error
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
+        raise CacheError("Mathlib source Git pack directory is not real")
+    packs = sorted(pack_dir.glob("*.pack"))
+    if not packs:
+        return None, None
+    # A mirror can be repacked without changing its commit/tree identity.  We
+    # report the digest when there is one canonical pack but do not make it a
+    # cache key input.
+    for pack in packs:
+        pack_metadata = pack.stat(follow_symlinks=False)
+        if stat.S_ISLNK(pack_metadata.st_mode) or not stat.S_ISREG(pack_metadata.st_mode):
+            raise CacheError("Mathlib source pack contains a non-regular entry")
+        if pack_metadata.st_nlink != 1:
+            raise CacheError("Mathlib source pack must not be hard-linked")
+    if len(packs) != 1:
+        return None, None
+    pack = packs[0]
+    return sha256_file(pack), pack.stat(follow_symlinks=False).st_size
+
+
+def validate_mathlib_source(
+    source: Path,
+    *,
+    expected_commit: str | None = None,
+    expected_tree: str | None = None,
+) -> dict[str, Any]:
+    """Authenticate a local Mathlib Git repository to the pinned commit/tree."""
+
+    expected_commit = MATHLIB_COMMIT if expected_commit is None else expected_commit
+    expected_tree = MATHLIB_TREE if expected_tree is None else expected_tree
+    if not _is_lower_hex(expected_commit, 40) or not _is_lower_hex(expected_tree, 40):
+        raise CacheError("Mathlib authenticated pin must contain lowercase full Git IDs")
+    source = _absolute_local_path(str(source), "Mathlib source")
+    metadata = source.stat(follow_symlinks=False)
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
+        raise CacheError("Mathlib source must be a real Git worktree directory")
+    # Resolve and reject external object stores before any object-reading Git
+    # command (including status or revision resolution) is allowed to run.
+    git_dir = _git_directory(source)
+    _validate_git_metadata_layout(git_dir)
+    alternates = git_dir / "objects" / "info" / "alternates"
+    try:
+        alternates_stat = alternates.stat(follow_symlinks=False)
+    except FileNotFoundError:
+        alternates_stat = None
+    except OSError as error:
+        raise CacheError("could not inspect Mathlib object alternates") from error
+    if alternates_stat is not None:
+        raise CacheError("Mathlib source must not use Git object alternates")
+    replace_refs = git_dir / "refs" / "replace"
+    try:
+        replace_stat = replace_refs.stat(follow_symlinks=False)
+    except FileNotFoundError:
+        replace_stat = None
+    except OSError as error:
+        raise CacheError("could not inspect Mathlib replacement refs") from error
+    if replace_stat is not None:
+        raise CacheError("Mathlib source must not contain replacement refs")
+    packed_refs = git_dir / "packed-refs"
+    if packed_refs.exists() and b" refs/replace/" in _read_bounded_regular_file(
+        packed_refs, 16 * 1024 * 1024, "Mathlib packed refs"
+    ):
+        raise CacheError("Mathlib source must not contain packed replacement refs")
+    shallow = git_dir / "shallow"
+    try:
+        shallow_stat = shallow.stat(follow_symlinks=False)
+    except FileNotFoundError:
+        shallow_stat = None
+    except OSError as error:
+        raise CacheError("could not inspect Mathlib shallow boundary") from error
+    if shallow_stat is not None:
+        if stat.S_ISLNK(shallow_stat.st_mode):
+            raise CacheError("Mathlib shallow boundary must be a regular file")
+        shallow_bytes = _read_bounded_regular_file(shallow, 1024 * 1024, "Mathlib shallow boundary")
+        try:
+            boundaries = {line.decode("ascii") for line in shallow_bytes.splitlines() if line}
+        except UnicodeDecodeError as error:
+            raise CacheError("Mathlib shallow boundary is not ASCII") from error
+        if boundaries != {expected_commit}:
+            raise CacheError("Mathlib shallow boundary is not the pinned commit")
+    inside = _git_command_bytes(source, ["rev-parse", "--is-inside-work-tree"]).decode().strip()
+    bare = _git_command_bytes(source, ["rev-parse", "--is-bare-repository"]).decode().strip()
+    if inside != "true" or bare != "false":
+        raise CacheError("Mathlib source must be a non-bare Git worktree")
+    top = Path(_git_command_bytes(source, ["rev-parse", "--show-toplevel"]).decode().strip())
+    if not top.is_absolute() or top.resolve(strict=True) != source.resolve(strict=True):
+        raise CacheError("Mathlib source Git top-level differs from the supplied path")
+    commit = _git_command_bytes(source, ["rev-parse", "HEAD^{commit}"]).decode().strip().lower()
+    tree = _git_command_bytes(source, ["rev-parse", "HEAD^{tree}"]).decode().strip().lower()
+    if commit != expected_commit:
+        raise CacheError(
+            f"Mathlib source commit differs: expected {expected_commit}, got {commit}"
+        )
+    if tree != expected_tree:
+        raise CacheError(f"Mathlib source tree differs: expected {expected_tree}, got {tree}")
+    changes = _git_command_bytes(
+        source,
+        ["status", "--porcelain=v1", "--untracked-files=all", "--ignore-submodules=none"],
+    ).decode("utf-8", errors="replace").strip()
+    if changes:
+        raise CacheError("Mathlib source has tracked or untracked changes")
+    index = _git_command_bytes(source, ["ls-files", "--stage", "-z"])
+    if any(record.startswith(b"160000 ") for record in index.split(b"\0") if record):
+        raise CacheError("Mathlib source must not contain Git submodules")
+    index_flags = _git_command_bytes(source, ["ls-files", "-v", "-z"])
+    if any(not record.startswith(b"H ") for record in index_flags.split(b"\0") if record):
+        raise CacheError("Mathlib source index contains noncanonical visibility flags")
+    # fsck is deliberately local and does not contact the configured remote;
+    # check alternates first so it cannot traverse an external object store.
+    _git_command_bytes(source, ["fsck", "--full", "--no-progress"])
+    pack_sha256, pack_bytes = _git_pack_facts(git_dir)
+    _validate_git_metadata_layout(git_dir)
+    _validate_mathlib_git_config(git_dir)
+    return {
+        "commit": commit,
+        "tree": tree,
+        "pack_sha256": pack_sha256,
+        "pack_bytes": pack_bytes,
+    }
+
+
+def _safe_archive_relative(name: str) -> str:
+    if not name or "\\" in name or "\0" in name or name.startswith("/"):
+        raise CacheError(f"unsafe Mathlib archive member path: {name!r}")
+    normalized = name[:-1] if name.endswith("/") else name
+    parts = normalized.split("/")
+    if any(part in {"", ".", ".."} for part in parts):
+        raise CacheError(f"unsafe Mathlib archive member path: {name!r}")
+    if normalized == "mathlib":
+        return ""
+    prefix = "mathlib/"
+    if not normalized.startswith(prefix):
+        raise CacheError("Mathlib archive contains a member outside its exact mathlib/ prefix")
+    return normalized[len(prefix):]
+
+
+def _safe_archive_link(relative: str, target: str) -> None:
+    if not target or "\\" in target or "\0" in target or target.startswith("/"):
+        raise CacheError(f"unsafe Mathlib archive symlink target: {target!r}")
+    pieces = list(PurePosixPath(relative).parent.parts)
+    for part in PurePosixPath(target).parts:
+        if part in {"", "."}:
+            continue
+        if part == "..":
+            if not pieces:
+                raise CacheError("Mathlib archive symlink escapes its root")
+            pieces.pop()
+        else:
+            pieces.append(part)
+
+
+def _validate_archive_link_graph(records: Mapping[str, tarfile.TarInfo]) -> None:
+    """Resolve archive symlink chains component-wise and reject escapes/cycles."""
+
+    links = {
+        relative: member.linkname
+        for relative, member in records.items()
+        if member.issym()
+    }
+    for relative, target in links.items():
+        parent = PurePosixPath(relative).parent
+        resolved = [] if parent == PurePosixPath(".") else list(parent.parts)
+        pending = list(PurePosixPath(target).parts)
+        expanded: set[str] = set()
+        steps = 0
+        while pending:
+            steps += 1
+            if steps > len(records) + MATHLIB_TAR_MAX_MEMBERS:
+                raise CacheError("Mathlib archive symlink graph exceeds its step bound")
+            part = pending.pop(0)
+            if part in {"", "."}:
+                continue
+            if part == "..":
+                if not resolved:
+                    raise CacheError("Mathlib archive symlink chain escapes its root")
+                resolved.pop()
+                continue
+            candidate = "/".join((*resolved, part))
+            nested_target = links.get(candidate)
+            if nested_target is None:
+                resolved.append(part)
+                continue
+            if candidate in expanded:
+                raise CacheError("Mathlib archive symlink graph contains a cycle")
+            expanded.add(candidate)
+            pending = list(PurePosixPath(nested_target).parts) + pending
+
+
+def _decompress_mathlib_archive(payload: bytes) -> bytes:
+    decompressor = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    try:
+        raw = decompressor.decompress(payload, MATHLIB_TAR_MAX_BYTES + 1)
+        if decompressor.unconsumed_tail:
+            raise CacheError("Mathlib archive tar output exceeds its hard bound")
+        remaining = MATHLIB_TAR_MAX_BYTES + 1 - len(raw)
+        if remaining < 0:
+            raise CacheError("Mathlib archive tar output exceeds its hard bound")
+        raw += decompressor.flush(remaining)
+    except zlib.error as error:
+        raise CacheError(f"Mathlib archive is not a valid gzip stream: {error}") from error
+    if not decompressor.eof or decompressor.unused_data or len(raw) > MATHLIB_TAR_MAX_BYTES:
+        raise CacheError("Mathlib archive gzip stream is truncated or has trailing data")
+    if len(raw) != MATHLIB_ARCHIVE_TAR_BYTES:
+        raise CacheError(
+            f"Mathlib archive tar size differs: expected {MATHLIB_ARCHIVE_TAR_BYTES}, got {len(raw)}"
+        )
+    if hashlib.sha256(raw).hexdigest() != MATHLIB_ARCHIVE_TAR_SHA256:
+        raise CacheError("Mathlib archive tar checksum differs from the pinned digest")
+    return raw
+
+
+def materialize_mathlib_archive(
+    archive: Path,
+    destination: Path,
+    *,
+    expected_commit: str | None = None,
+    expected_tree: str | None = None,
+) -> dict[str, Any]:
+    """Verify and safely unpack the pinned shallow-repository archive."""
+
+    archive = _absolute_local_path(str(archive), "Mathlib archive")
+    destination = _absolute_local_path(
+        str(destination), "Mathlib archive destination", must_exist=False
+    )
+    if destination.exists() or destination.is_symlink():
+        raise CacheError(f"Mathlib archive destination already exists: {destination}")
+    payload = _read_bounded_regular_file(archive, MATHLIB_ARCHIVE_MAX_BYTES, "Mathlib archive")
+    if len(payload) != MATHLIB_ARCHIVE_BYTES:
+        raise CacheError(
+            f"Mathlib archive size differs: expected {MATHLIB_ARCHIVE_BYTES}, got {len(payload)}"
+        )
+    if hashlib.sha256(payload).hexdigest() != MATHLIB_ARCHIVE_SHA256:
+        raise CacheError("Mathlib archive checksum differs from the pinned digest")
+    raw_tar = _decompress_mathlib_archive(payload)
+    try:
+        with tarfile.open(fileobj=io.BytesIO(raw_tar), mode="r:") as tar:
+            members = tar.getmembers()
+            if len(members) > MATHLIB_TAR_MAX_MEMBERS:
+                raise CacheError("Mathlib archive member count exceeds its hard bound")
+            records: dict[str, tarfile.TarInfo] = {}
+            regular_bytes = 0
+            for member in members:
+                relative = _safe_archive_relative(member.name)
+                if relative in records:
+                    raise CacheError(f"duplicate Mathlib archive member: {relative!r}")
+                if member.isdir():
+                    if member.size != 0:
+                        raise CacheError("Mathlib archive directory has a nonzero size")
+                elif member.isfile():
+                    if member.size < 0:
+                        raise CacheError("Mathlib archive member has a negative size")
+                    if member.size > MATHLIB_TAR_MAX_MEMBER_BYTES:
+                        raise CacheError("Mathlib archive member exceeds its hard bound")
+                    regular_bytes += member.size
+                    if regular_bytes > MATHLIB_TAR_MAX_BYTES:
+                        raise CacheError("Mathlib archive regular bytes exceed its hard bound")
+                elif member.issym():
+                    _safe_archive_link(relative, member.linkname)
+                else:
+                    raise CacheError("Mathlib archive contains a hardlink or special file")
+                records[relative] = member
+            _validate_archive_link_graph(records)
+            if "" not in records or not records[""].isdir():
+                raise CacheError("Mathlib archive lacks its exact root directory")
+            required = (".git", ".git/HEAD", ".git/shallow", ".git/objects")
+            for required_path in required:
+                item = records.get(required_path)
+                if item is None:
+                    raise CacheError(f"Mathlib archive lacks required Git entry {required_path}")
+                if required_path in {".git", ".git/objects"} and not item.isdir():
+                    raise CacheError(f"Mathlib archive Git entry {required_path} is not a directory")
+                if required_path in {".git/HEAD", ".git/shallow"} and not item.isfile():
+                    raise CacheError(f"Mathlib archive Git entry {required_path} is not a file")
+            kinds = {
+                relative: "directory" if member.isdir() else "symlink" if member.issym() else "file"
+                for relative, member in records.items()
+            }
+            for relative in records:
+                parent = PurePosixPath(relative).parent
+                while parent != PurePosixPath("."):
+                    parent_text = parent.as_posix()
+                    if kinds.get(parent_text) != "directory":
+                        raise CacheError(f"Mathlib archive member has a non-directory parent: {relative}")
+                    parent = parent.parent
+            destination.mkdir(parents=True)
+            # Create all directories before files so archive symlinks can never
+            # become an intermediate path component during extraction.
+            for relative, member in sorted(records.items(), key=lambda item: (item[0].count("/"), item[0])):
+                if not member.isdir() or relative == "":
+                    continue
+                path = destination / relative
+                path.mkdir(exist_ok=False)
+                path.chmod(member.mode & 0o777 or 0o755)
+            for relative, member in records.items():
+                if not member.isfile():
+                    continue
+                path = destination / relative
+                descriptor = os.open(
+                    path,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                    member.mode & 0o777 or 0o644,
+                )
+                try:
+                    stream = tar.extractfile(member)
+                    if stream is None:
+                        raise CacheError(f"could not read Mathlib archive member {relative}")
+                    copied = 0
+                    while copied < member.size:
+                        chunk = stream.read(min(1024 * 1024, member.size - copied))
+                        if not chunk:
+                            break
+                        view = memoryview(chunk)
+                        while view:
+                            written = os.write(descriptor, view)
+                            if written <= 0:
+                                raise CacheError(
+                                    f"could not write Mathlib archive member {relative}"
+                                )
+                            view = view[written:]
+                        copied += len(chunk)
+                    if copied != member.size or stream.read(1):
+                        raise CacheError(f"Mathlib archive member changed while extracted: {relative}")
+                finally:
+                    os.close(descriptor)
+                (destination / relative).chmod(member.mode & 0o777 or 0o644)
+            for relative, member in records.items():
+                if member.issym():
+                    os.symlink(member.linkname, destination / relative)
+    except (CacheError, tarfile.TarError, OSError) as error:
+        if destination.exists() or destination.is_symlink():
+            try:
+                make_owner_writable(destination)
+                shutil.rmtree(destination)
+            except OSError as cleanup_error:
+                raise CacheError(
+                    f"could not unpack Mathlib archive ({error}); cleanup failed: {cleanup_error}"
+                ) from error
+        if isinstance(error, CacheError):
+            raise
+        raise CacheError(f"could not unpack Mathlib archive: {error}") from error
+    try:
+        facts = validate_mathlib_source(
+            destination, expected_commit=expected_commit, expected_tree=expected_tree
+        )
+    except Exception:
+        if destination.exists() or destination.is_symlink():
+            make_owner_writable(destination)
+            shutil.rmtree(destination)
+        raise
+    facts.update(
+        {
+            "mode": "archive",
+            "archive_sha256": MATHLIB_ARCHIVE_SHA256,
+            "archive_bytes": MATHLIB_ARCHIVE_BYTES,
+        }
+    )
+    return facts
+
+
+def validate_mathlib_evidence(value: Any) -> bool:
+    """Check the stable, path-independent Mathlib evidence in a cache manifest."""
+
+    if not isinstance(value, dict) or set(value) != MATHLIB_EVIDENCE_KEYS:
+        return False
+    if (
+        value["schema_version"] != MATHLIB_SOURCE_EVIDENCE_SCHEMA_VERSION
+        or value["repository_url"] != MATHLIB_REPOSITORY_URL
+        or value["commit"] != MATHLIB_COMMIT
+        or value["tree"] != MATHLIB_TREE
+        or value["mode"] not in {"source", "archive"}
+    ):
+        return False
+    for field in ("archive_sha256", "pack_sha256"):
+        digest = value[field]
+        if digest is not None and not _is_lower_hex(digest, 64):
+            return False
+    for field in ("archive_bytes", "pack_bytes"):
+        number = value[field]
+        if number is not None and (not isinstance(number, int) or isinstance(number, bool) or number < 0):
+            return False
+    if value["mode"] == "archive":
+        if value["archive_sha256"] != MATHLIB_ARCHIVE_SHA256 or value["archive_bytes"] != MATHLIB_ARCHIVE_BYTES:
+            return False
+    elif value["archive_sha256"] is not None or value["archive_bytes"] is not None:
+        return False
+    return (value["pack_sha256"] is None) == (value["pack_bytes"] is None)
+
+
 @dataclass(frozen=True)
 class CacheIdentity:
     cache_key: str
@@ -831,6 +1593,202 @@ class HotMainCache:
         self.lock_path = self.runtime_dir / "locks" / f"hot-main-{self.identity.cache_key}.lock"
         self.metrics_path = self.runtime_dir / "metrics" / "hot-main.jsonl"
         self.metrics_lock_path = self.runtime_dir / "locks" / "hot-main-metrics.lock"
+        self._command_environment: dict[str, str] | None = None
+
+    def _requires_mathlib_source(self) -> bool:
+        """Return whether this recipe executes Lake against the pinned project."""
+
+        return self.recipe == CANONICAL_BUILD_RECIPE
+
+    @staticmethod
+    def _lake_url_map(environment: Mapping[str, str], lake_url: str) -> dict[str, str]:
+        raw = environment.get("LAKE_PKG_URL_MAP")
+        if raw is None or raw == "":
+            mapping: Any = {}
+        else:
+            try:
+                mapping = json.loads(raw, object_pairs_hook=_json_object_without_duplicates)
+            except (TypeError, json.JSONDecodeError) as error:
+                raise CacheError("LAKE_PKG_URL_MAP must be valid JSON") from error
+        if not isinstance(mapping, dict) or any(
+            not isinstance(key, str) or not key or not isinstance(value, str) or not value
+            for key, value in mapping.items()
+        ):
+            raise CacheError("LAKE_PKG_URL_MAP must be a string-to-string JSON object")
+        existing = mapping.get(MATHLIB_PACKAGE_NAME)
+        if existing is not None and existing != lake_url:
+            raise CacheError("LAKE_PKG_URL_MAP already binds mathlib to a different URL")
+        mapping[MATHLIB_PACKAGE_NAME] = lake_url
+        return mapping
+
+    def _command_environment_for_mathlib(
+        self, binding: MathlibSourceBinding
+    ) -> dict[str, str]:
+        environment = _trusted_git_environment()
+        mapping = self._lake_url_map(environment, binding.lake_url)
+        environment["LAKE_PKG_URL_MAP"] = json.dumps(
+            mapping, sort_keys=True, separators=(",", ":")
+        )
+        # A malformed local setup must fail promptly rather than waiting for a
+        # credential prompt if a non-Mathlib dependency is accidentally fetched.
+        environment["GIT_TERMINAL_PROMPT"] = "0"
+        return environment
+
+    @staticmethod
+    def _validate_project_mathlib_pin(project: Path) -> dict[str, str]:
+        """Read the detached project's Mathlib pin and bind it to the known contract."""
+
+        try:
+            document = json.loads(
+                _read_bounded_regular_file(
+                    project / "lake-manifest.json", 16 * 1024 * 1024, "root Lake manifest"
+                ).decode("utf-8"),
+                object_pairs_hook=_json_object_without_duplicates,
+            )
+        except CacheError:
+            raise
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise CacheError("root Lake manifest is not valid JSON") from error
+        if not isinstance(document, dict):
+            raise CacheError("root Lake manifest must be a JSON object")
+        packages = document.get("packages")
+        if not isinstance(packages, list):
+            raise CacheError("root Lake manifest packages must be a JSON array")
+        matches = [
+            package
+            for package in packages
+            if isinstance(package, dict) and package.get("name") == MATHLIB_PACKAGE_NAME
+        ]
+        if len(matches) != 1:
+            raise CacheError("root Lake manifest must contain exactly one mathlib package")
+        package = matches[0]
+        if (
+            package.get("type") != "git"
+            or package.get("url") != MATHLIB_REPOSITORY_URL
+            or package.get("rev") != MATHLIB_COMMIT
+        ):
+            raise CacheError("root Lake manifest mathlib pin differs from the authenticated contract")
+        # Use the URL and revision parsed above for the source binding.  The
+        # tree is the second half of the authenticated exact contract; keeping
+        # it separate avoids confusing the project's own source commit with
+        # Mathlib's revision.
+        return {
+            "repository_url": package["url"],
+            "commit": package["rev"],
+            "tree": MATHLIB_TREE,
+        }
+
+    def _prepare_mathlib_source(self, staging: Path, project: Path) -> MathlibSourceBinding:
+        """Resolve and authenticate the local Mathlib source before Lake runs."""
+
+        if not self._requires_mathlib_source():
+            raise CacheError("Mathlib source preparation is only valid for the canonical recipe")
+        pin = self._validate_project_mathlib_pin(project)
+        source_value = os.environ.get(MATHLIB_SOURCE_ENV)
+        archive_value = os.environ.get(MATHLIB_ARCHIVE_ENV)
+        if bool(source_value) == bool(archive_value):
+            raise CacheError(
+                f"set exactly one of {MATHLIB_SOURCE_ENV} or {MATHLIB_ARCHIVE_ENV}"
+            )
+        owned_path: Path | None = None
+        if source_value:
+            source = _absolute_local_path(source_value, MATHLIB_SOURCE_ENV)
+            facts = validate_mathlib_source(
+                source, expected_commit=pin["commit"], expected_tree=pin["tree"]
+            )
+            mode = "source"
+            archive_sha256 = None
+            archive_bytes = None
+        else:
+            archive = _absolute_local_path(archive_value or "", MATHLIB_ARCHIVE_ENV)
+            owned_path = staging / "mathlib-source"
+            facts = materialize_mathlib_archive(
+                archive,
+                owned_path,
+                expected_commit=pin["commit"],
+                expected_tree=pin["tree"],
+            )
+            source = owned_path
+            mode = "archive"
+            archive_sha256 = MATHLIB_ARCHIVE_SHA256
+            archive_bytes = MATHLIB_ARCHIVE_BYTES
+        evidence = {
+            "schema_version": MATHLIB_SOURCE_EVIDENCE_SCHEMA_VERSION,
+            "repository_url": pin["repository_url"],
+            "commit": facts["commit"],
+            "tree": facts["tree"],
+            "mode": mode,
+            "archive_sha256": archive_sha256,
+            "archive_bytes": archive_bytes,
+            "pack_sha256": facts.get("pack_sha256"),
+            "pack_bytes": facts.get("pack_bytes"),
+        }
+        if not validate_mathlib_evidence(evidence):
+            raise CacheError("authenticated Mathlib source evidence has an invalid shape")
+        return MathlibSourceBinding(
+            path=source,
+            lake_url=source.as_uri(),
+            evidence=evidence,
+            owned_path=owned_path,
+        )
+
+    @staticmethod
+    def _validate_mathlib_archive_input(archive: Path) -> None:
+        """Check an archive's stable bytes before a cache hit or build decision."""
+
+        payload = _read_bounded_regular_file(
+            archive, MATHLIB_ARCHIVE_MAX_BYTES, "Mathlib archive"
+        )
+        if len(payload) != MATHLIB_ARCHIVE_BYTES:
+            raise CacheError(
+                f"Mathlib archive size differs: expected {MATHLIB_ARCHIVE_BYTES}, got {len(payload)}"
+            )
+        if hashlib.sha256(payload).hexdigest() != MATHLIB_ARCHIVE_SHA256:
+            raise CacheError("Mathlib archive checksum differs from the pinned digest")
+
+    def _preflight_mathlib_input(self) -> None:
+        """Fail closed when the canonical warm input is absent or malformed."""
+
+        if not self._requires_mathlib_source():
+            return
+        pin = self._validate_project_mathlib_pin(self.project_dir)
+        source_value = os.environ.get(MATHLIB_SOURCE_ENV)
+        archive_value = os.environ.get(MATHLIB_ARCHIVE_ENV)
+        if bool(source_value) == bool(archive_value):
+            raise CacheError(
+                f"set exactly one of {MATHLIB_SOURCE_ENV} or {MATHLIB_ARCHIVE_ENV}"
+        )
+        if source_value:
+            validate_mathlib_source(
+                _absolute_local_path(source_value, MATHLIB_SOURCE_ENV),
+                expected_commit=pin["commit"],
+                expected_tree=pin["tree"],
+            )
+        else:
+            archive = _absolute_local_path(archive_value or "", MATHLIB_ARCHIVE_ENV)
+            self._validate_mathlib_archive_input(archive)
+
+    @staticmethod
+    def _verify_mathlib_source(binding: MathlibSourceBinding) -> None:
+        expected = binding.evidence
+        facts = validate_mathlib_source(
+            binding.path,
+            expected_commit=expected["commit"],
+            expected_tree=expected["tree"],
+        )
+        if (
+            facts.get("pack_sha256") != expected.get("pack_sha256")
+            or facts.get("pack_bytes") != expected.get("pack_bytes")
+        ):
+            raise CacheError("Mathlib source object pack changed during the cache build")
+
+    @staticmethod
+    def _cleanup_mathlib_source(binding: MathlibSourceBinding | None) -> None:
+        if binding is None or binding.owned_path is None:
+            return
+        if binding.owned_path.exists() or binding.owned_path.is_symlink():
+            make_owner_writable(binding.owned_path)
+            shutil.rmtree(binding.owned_path)
 
     def is_ready(self, *, deep: bool = False) -> bool:
         if not self.ready_path.is_file() or not self.manifest_path.is_file() or not self.build_dir.is_dir():
@@ -855,6 +1813,11 @@ class HotMainCache:
             and isinstance(self.identity.source_contract, dict)
             else manifest.get("source_evidence") is None
         )
+        mathlib_evidence_ready = (
+            validate_mathlib_evidence(manifest.get("mathlib_source"))
+            if self._requires_mathlib_source()
+            else manifest.get("mathlib_source") is None
+        )
         shallow_ready = (
             manifest.get("schema_version") == SCHEMA_VERSION
             and manifest.get("cache_key") == self.identity.cache_key
@@ -864,6 +1827,7 @@ class HotMainCache:
             and manifest.get("source_contract") == self.identity.source_contract
             and isinstance(manifest.get("artifact_inventory"), dict)
             and source_evidence_ready
+            and mathlib_evidence_ready
         )
         if not shallow_ready or not deep:
             return shallow_ready
@@ -901,8 +1865,14 @@ class HotMainCache:
             finally:
                 os.close(descriptor)
 
-    @staticmethod
-    def _run_logged(build_root: Path, command: Sequence[str], log_path: Path) -> int:
+    def _run_logged(
+        self,
+        build_root: Path,
+        command: Sequence[str],
+        log_path: Path,
+        *,
+        environment: Mapping[str, str] | None = None,
+    ) -> int:
         try:
             with log_path.open("ab") as log:
                 result = subprocess.run(
@@ -912,6 +1882,7 @@ class HotMainCache:
                     stderr=subprocess.STDOUT,
                     check=False,
                     shell=False,
+                    env=dict(environment) if environment is not None else None,
                 )
         except OSError as error:
             raise CacheError(f"could not run build command {command[0]!r}: {error}") from error
@@ -1006,8 +1977,17 @@ class HotMainCache:
                 "package_verify_command": list(package_verify_command),
                 "dependency_command": list(dependency_command),
                 "command": list(command),
+                "mathlib_source_required": self._requires_mathlib_source(),
+                "mathlib_source_inputs": (
+                    [MATHLIB_SOURCE_ENV, MATHLIB_ARCHIVE_ENV]
+                    if self._requires_mathlib_source()
+                    else []
+                ),
                 "would_build": not self.is_ready(),
             }
+        # Validate the runtime source before either hit path.  This keeps a
+        # stale or missing local binding from silently masquerading as a hit.
+        self._preflight_mathlib_input()
         started = time.monotonic()
         if self.is_ready():
             result = {
@@ -1020,12 +2000,14 @@ class HotMainCache:
                 "lock_wait_seconds": 0.0,
                 "builds": 0,
                 "build_seconds": 0.0,
+                "mathlib_source_required": self._requires_mathlib_source(),
                 "elapsed_seconds": round(time.monotonic() - started, 6),
             }
             self._append_metric(result)
             return result
 
         with ExclusiveLock(self.lock_path) as cache_lock:
+            self._preflight_mathlib_input()
             if self.is_ready():
                 result = {
                     **self.status(),
@@ -1037,6 +2019,7 @@ class HotMainCache:
                     "lock_wait_seconds": round(cache_lock.wait_seconds, 6),
                     "builds": 0,
                     "build_seconds": 0.0,
+                    "mathlib_source_required": self._requires_mathlib_source(),
                     "elapsed_seconds": round(time.monotonic() - started, 6),
                 }
                 self._append_metric(result)
@@ -1056,13 +2039,33 @@ class HotMainCache:
                 "package_verify_command": list(package_verify_command),
                 "dependency_command": list(dependency_command),
                 "command": list(command),
+                "mathlib_source_required": self._requires_mathlib_source(),
             }
-            callback = _test_command_callback or self._run_logged
+            test_callback = _test_command_callback
+
+            def invoke(
+                project: Path, command_tokens: Sequence[str], command_log: Path
+            ) -> int | None:
+                if test_callback is not None:
+                    return test_callback(project, command_tokens, command_log)
+                environment = (
+                    self._command_environment
+                    if tuple(command_tokens) in (dependency_command, command)
+                    else None
+                )
+                return self._run_logged(
+                    project,
+                    command_tokens,
+                    command_log,
+                    environment=environment,
+                )
+
             self.cache_root.mkdir(parents=True, exist_ok=True)
             staging = Path(
                 tempfile.mkdtemp(prefix=f".{self.identity.cache_key}.staging-", dir=self.cache_root)
             )
             log_path = staging / "build.log"
+            mathlib_binding: MathlibSourceBinding | None = None
             try:
                 checkout = self._detached_clone(staging, log_path)
                 project_relative = self.project_dir.relative_to(self.repo_root)
@@ -1073,7 +2076,7 @@ class HotMainCache:
                 materialize_seconds = 0.0
                 if materialize_command:
                     materialize_started = time.monotonic()
-                    return_code = callback(detached_project, materialize_command, log_path)
+                    return_code = invoke(detached_project, materialize_command, log_path)
                     materialize_seconds = time.monotonic() - materialize_started
                     if return_code not in (None, 0):
                         raise CacheError(
@@ -1084,34 +2087,41 @@ class HotMainCache:
                 package_verify_seconds = 0.0
                 if package_materialize_command:
                     package_materialize_started = time.monotonic()
-                    return_code = callback(detached_project, package_materialize_command, log_path)
+                    return_code = invoke(detached_project, package_materialize_command, log_path)
                     package_materialize_seconds = time.monotonic() - package_materialize_started
                     if return_code not in (None, 0):
                         raise CacheError(
                             f"Lake package materialization command failed with exit code {return_code}"
                         )
                     package_verify_started = time.monotonic()
-                    return_code = callback(detached_project, package_verify_command, log_path)
+                    return_code = invoke(detached_project, package_verify_command, log_path)
                     package_verify_seconds = time.monotonic() - package_verify_started
                     if return_code not in (None, 0):
                         raise CacheError(
                             f"Lake package verification command failed with exit code {return_code}"
                         )
 
+                if self._requires_mathlib_source():
+                    mathlib_binding = self._prepare_mathlib_source(staging, detached_project)
+                    self._command_environment = self._command_environment_for_mathlib(
+                        mathlib_binding
+                    )
+                    metric_base["mathlib_source"] = mathlib_binding.evidence
+
                 dependency_started = time.monotonic()
-                return_code = callback(detached_project, dependency_command, log_path)
+                return_code = invoke(detached_project, dependency_command, log_path)
                 dependency_seconds = time.monotonic() - dependency_started
                 if return_code not in (None, 0):
                     raise CacheError(f"dependency cache command failed with exit code {return_code}")
 
                 compilation_started = time.monotonic()
-                return_code = callback(detached_project, command, log_path)
+                return_code = invoke(detached_project, command, log_path)
                 compilation_seconds = time.monotonic() - compilation_started
                 if return_code not in (None, 0):
                     raise CacheError(f"build command failed with exit code {return_code}")
                 if package_verify_command:
                     package_verify_started = time.monotonic()
-                    return_code = callback(detached_project, package_verify_command, log_path)
+                    return_code = invoke(detached_project, package_verify_command, log_path)
                     package_verify_seconds += time.monotonic() - package_verify_started
                     if return_code not in (None, 0):
                         raise CacheError(
@@ -1128,11 +2138,17 @@ class HotMainCache:
                 source_evidence = self._verify_materialized_source(
                     detached_project, _test_source_verifier
                 )
+                if mathlib_binding is not None:
+                    self._verify_mathlib_source(mathlib_binding)
                 source_lake = detached_project / ".lake"
                 source_build = source_lake / "build"
                 if not source_build.is_dir() or source_build.is_symlink():
                     raise CacheError(f"build succeeded but produced no real directory at {source_build}")
 
+                # An archive source is only a staging input; never publish it
+                # alongside the immutable .lake artifact tree.
+                if mathlib_binding is not None and mathlib_binding.owned_path is not None:
+                    self._cleanup_mathlib_source(mathlib_binding)
                 os.replace(source_lake, staging / ".lake")
                 shutil.rmtree(checkout)
                 build_seconds = time.monotonic() - build_started
@@ -1157,6 +2173,9 @@ class HotMainCache:
                     "log_path": str(self.snapshot_dir / "build.log"),
                     "artifact_inventory": inventory,
                     "source_evidence": source_evidence,
+                    "mathlib_source": (
+                        mathlib_binding.evidence if mathlib_binding is not None else None
+                    ),
                 }
                 atomic_write_json(staging / "manifest.json", manifest)
                 (staging / "READY").write_text(
@@ -1202,6 +2221,8 @@ class HotMainCache:
                             **asdict(self.identity),
                             "failed_at": utc_now(),
                             "error": str(error),
+                            "mathlib_source_required": self._requires_mathlib_source(),
+                            "mathlib_source": metric_base.get("mathlib_source"),
                         },
                     )
                     make_owner_writable(staging)
@@ -1218,6 +2239,12 @@ class HotMainCache:
                 if isinstance(error, CacheError):
                     raise
                 raise CacheError(str(error)) from error
+            finally:
+                self._command_environment = None
+                if mathlib_binding is not None and mathlib_binding.owned_path is not None:
+                    # Failure paths retain only the log/evidence envelope, not
+                    # the unpacked source tree.
+                    self._cleanup_mathlib_source(mathlib_binding)
 
     def _eligible_seed_target(self, supplied_target: Path) -> tuple[Path, Path]:
         lexical_target = reject_symlink_components(supplied_target)
