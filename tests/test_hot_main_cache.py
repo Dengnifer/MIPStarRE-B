@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import redirect_stderr
 import fcntl
+import hashlib
 import io
 import json
 import multiprocessing
@@ -27,6 +28,30 @@ TEST_RECIPE = cache_module.BuildRecipe.for_testing(
     build_command=("fake", "build"),
 )
 
+MATERIALIZING_TEST_RECIPE = cache_module.BuildRecipe.for_testing(
+    materialize_command=("fake", "materialize"),
+    dependency_command=("fake", "deps"),
+    build_command=("fake", "build"),
+    additional_identity_files=(
+        "references/mipstarre-upstream.json",
+        "scripts/materialize_mipstarre.py",
+    ),
+    recipe_id="test-fake-materializing-build",
+)
+
+PACKAGE_MATERIALIZING_TEST_RECIPE = cache_module.BuildRecipe.for_testing(
+    package_materialize_command=("fake", "package-materialize"),
+    package_verify_command=("fake", "package-verify"),
+    dependency_command=("fake", "deps"),
+    build_command=("fake", "build"),
+    additional_identity_files=(
+        "references/lake-packages.json",
+        "references/mathlib-lake-manifest.json",
+        "scripts/materialize_lake_packages.py",
+    ),
+    recipe_id="test-fake-package-materializing-build",
+)
+
 
 def run_git(root: Path, *arguments: str) -> str:
     result = subprocess.run(
@@ -49,13 +74,58 @@ def initialize_repository(root: Path) -> str:
     (root / "lake-manifest.json").write_text("{\"version\": 1}\n", encoding="utf-8")
     (root / "MIPStarRE").mkdir()
     (root / "MIPStarRE" / "Basic.lean").write_text("def answer := 42\n", encoding="utf-8")
+    (root / ".gitignore").write_text(
+        ".lake/\nMIPStarRE/materialized-marker\n", encoding="utf-8"
+    )
+    (root / "references").mkdir()
+    (root / "references" / "mipstarre-upstream.json").write_text(
+        json.dumps(
+            {
+                "source": {"commit": "1" * 40},
+                "output": {
+                    "inventory_sha256": hashlib.sha256(b"materialized\n").hexdigest(),
+                    "files": 1,
+                    "bytes": len(b"materialized\n"),
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (root / "scripts").mkdir()
+    (root / "scripts" / "materialize_mipstarre.py").write_text("# test materializer\n", encoding="utf-8")
+    (root / "references" / "lake-packages.json").write_text("{}\n", encoding="ascii")
+    (root / "references" / "mathlib-lake-manifest.json").write_text(
+        "{\"name\":\"mathlib\"}\n", encoding="ascii"
+    )
+    (root / "scripts" / "materialize_lake_packages.py").write_text(
+        "# test package materializer\n", encoding="ascii"
+    )
     run_git(root, "add", ".")
     run_git(root, "commit", "-m", "initial")
     return run_git(root, "rev-parse", "HEAD")
 
 
 def fake_success(project: Path, command: list[str] | tuple[str, ...], log_path: Path) -> int:
-    if list(command) == ["fake", "deps"]:
+    if list(command) == ["fake", "materialize"]:
+        (project / "MIPStarRE" / "materialized-marker").write_text(
+            "materialized\n", encoding="utf-8"
+        )
+    elif list(command) == ["fake", "package-materialize"]:
+        if not (project / "references" / "mathlib-lake-manifest.json").is_file():
+            return 8
+        if (project / ".lake" / "packages" / "mathlib" / "lake-manifest.json").exists():
+            return 8
+        packages = project / ".lake" / "packages" / "fixture"
+        packages.mkdir(parents=True, exist_ok=True)
+        (packages / "marker").write_text("package\n", encoding="ascii")
+        (project / ".lake" / "package-overrides.json").write_text("{}\n", encoding="ascii")
+    elif list(command) == ["fake", "package-verify"]:
+        marker = project / ".lake" / "packages" / "fixture" / "marker"
+        if not marker.is_file() or marker.read_text(encoding="ascii") != "package\n":
+            return 9
+    elif list(command) == ["fake", "deps"]:
         package = project / ".lake" / "packages" / "mathlib"
         package.mkdir(parents=True, exist_ok=True)
         (package / "marker").write_text("dependency\n", encoding="utf-8")
@@ -66,25 +136,46 @@ def fake_success(project: Path, command: list[str] | tuple[str, ...], log_path: 
     return 0
 
 
+def fake_source_verifier(project: Path) -> dict[str, object]:
+    marker = (project / "MIPStarRE" / "materialized-marker").read_bytes()
+    if marker != b"materialized\n":
+        raise cache_module.CacheError("fake foundation source verification failed")
+    pin_sha256 = cache_module.sha256_file(project / "references" / "mipstarre-upstream.json")
+    return {
+        "schema_version": cache_module.SOURCE_EVIDENCE_SCHEMA_VERSION,
+        "pin_sha256": pin_sha256,
+        "source_commit": "1" * 40,
+        "inventory_sha256": hashlib.sha256(marker).hexdigest(),
+        "files": 1,
+        "bytes": len(marker),
+        "authored_qpbt_files": 0,
+        "authored_qpbt_bytes": 0,
+        "authored_qpbt_sha256": hashlib.sha256().hexdigest(),
+    }
+
+
 def contention_worker(repo: str, runtime: str, counter: str) -> None:
     manager = cache_module.HotMainCache(
         Path(repo),
         Path(repo),
         Path(runtime),
-        _test_recipe=TEST_RECIPE,
+        _test_recipe=MATERIALIZING_TEST_RECIPE,
     )
 
     def callback(project: Path, command: list[str] | tuple[str, ...], log_path: Path) -> int:
-        if list(command) == ["fake", "build"]:
+        if list(command) in (["fake", "materialize"], ["fake", "build"]):
             with Path(counter).open("a+", encoding="utf-8") as stream:
                 fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
-                stream.write("build\n")
+                stream.write(f"{command[1]}\n")
                 stream.flush()
                 fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
             time.sleep(0.25)
         return fake_success(project, command, log_path)
 
-    manager.warm(_test_command_callback=callback)
+    manager.warm(
+        _test_command_callback=callback,
+        _test_source_verifier=fake_source_verifier,
+    )
 
 
 class HotMainCacheTests(unittest.TestCase):
@@ -150,6 +241,287 @@ class HotMainCacheTests(unittest.TestCase):
         target_file.write_text("issue change\n", encoding="utf-8")
         self.assertEqual("compiled-main\n", cached_file.read_text(encoding="utf-8"))
         self.assertTrue((target / ".lake" / "packages" / "mathlib" / "marker").is_file())
+
+    def test_elected_builder_materializes_once_and_identity_binds_materializer(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        calls: list[list[str]] = []
+
+        def callback(project: Path, command: list[str] | tuple[str, ...], log_path: Path) -> int:
+            calls.append(list(command))
+            return fake_success(project, command, log_path)
+
+        built = manager.warm(
+            _test_command_callback=callback,
+            _test_source_verifier=fake_source_verifier,
+        )
+        self.assertEqual("built", built["result"])
+        self.assertEqual(
+            [["fake", "materialize"], ["fake", "deps"], ["fake", "build"]],
+            calls,
+        )
+        self.assertEqual(
+            "hit",
+            manager.warm(
+                _test_command_callback=callback,
+                _test_source_verifier=fake_source_verifier,
+            )["result"],
+        )
+        self.assertEqual(3, len(calls))
+        self.assertIn("references/mipstarre-upstream.json", manager.identity.inputs)
+        self.assertIn("scripts/materialize_mipstarre.py", manager.identity.inputs)
+        self.assertNotIn(str(self.base), json.dumps(manager.identity.recipe))
+        self.assertEqual("1" * 40, manager.identity.source_contract["source_commit"])
+        self.assertEqual(0, manager.identity.source_contract["authored_qpbt_files"])
+        manifest = json.loads(manager.manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual("1" * 40, manifest["source_evidence"]["source_commit"])
+        self.assertEqual(1, manifest["source_evidence"]["files"])
+        self.assertEqual(13, manifest["source_evidence"]["bytes"])
+
+        original_key = manager.identity.cache_key
+        (self.repo / "scripts" / "materialize_mipstarre.py").write_text(
+            "# dirty materializer does not affect committed identity\n", encoding="utf-8"
+        )
+        self.assertEqual(
+            original_key,
+            self.manager(recipe=MATERIALIZING_TEST_RECIPE).identity.cache_key,
+        )
+        run_git(self.repo, "add", "scripts/materialize_mipstarre.py")
+        run_git(self.repo, "commit", "-m", "change materializer")
+        self.assertNotEqual(
+            original_key,
+            self.manager(recipe=MATERIALIZING_TEST_RECIPE).identity.cache_key,
+        )
+
+    def test_packages_are_identity_bound_materialized_and_verified_before_lake_steps(self) -> None:
+        manager = self.manager(recipe=PACKAGE_MATERIALIZING_TEST_RECIPE)
+        calls: list[list[str]] = []
+
+        def callback(project: Path, command: list[str] | tuple[str, ...], log_path: Path) -> int:
+            calls.append(list(command))
+            return fake_success(project, command, log_path)
+
+        self.assertEqual("built", manager.warm(_test_command_callback=callback)["result"])
+        self.assertEqual(
+            [
+                ["fake", "package-materialize"],
+                ["fake", "package-verify"],
+                ["fake", "deps"],
+                ["fake", "build"],
+                ["fake", "package-verify"],
+            ],
+            calls,
+        )
+        self.assertIn("references/lake-packages.json", manager.identity.inputs)
+        self.assertIn("references/mathlib-lake-manifest.json", manager.identity.inputs)
+        self.assertIn("scripts/materialize_lake_packages.py", manager.identity.inputs)
+        manifest = json.loads(manager.manifest_path.read_text(encoding="utf-8"))
+        self.assertGreaterEqual(manifest["package_materialize_seconds"], 0)
+        self.assertGreaterEqual(manifest["package_verify_seconds"], 0)
+
+    def test_warm_rejects_post_build_package_drift(self) -> None:
+        manager = self.manager(
+            runtime=self.base / "runtime-package-drift",
+            recipe=PACKAGE_MATERIALIZING_TEST_RECIPE,
+        )
+
+        def mutate_package(project: Path, command: list[str] | tuple[str, ...], log_path: Path) -> int:
+            result = fake_success(project, command, log_path)
+            if list(command) == ["fake", "build"]:
+                (project / ".lake" / "packages" / "fixture" / "marker").write_text(
+                    "tampered\n", encoding="ascii"
+                )
+            return result
+
+        with self.assertRaisesRegex(
+            cache_module.CacheError, "Lake package verification command failed"
+        ):
+            manager.warm(_test_command_callback=mutate_package)
+        self.assertFalse(manager.is_ready())
+        failures = list((manager.runtime_dir / "cache" / "failures").iterdir())
+        self.assertEqual(1, len(failures))
+        failure = json.loads((failures[0] / "failure.json").read_text(encoding="utf-8"))
+        self.assertIn("Lake package verification command failed", failure["error"])
+
+    def test_canonical_lake_commands_require_override_and_reject_updates(self) -> None:
+        canonical = cache_module.CANONICAL_BUILD_RECIPE
+        for command in (canonical.dependency_command, canonical.build_command):
+            self.assertEqual(1, command.count(cache_module.LAKE_OVERRIDE_ARGUMENT))
+            self.assertNotIn("update", command)
+            self.assertNotIn("--update", command)
+        self.assertEqual(
+            {
+                "references/lake-packages.json",
+                "references/mathlib-lake-manifest.json",
+                "scripts/materialize_lake_packages.py",
+            },
+            set(canonical.additional_identity_files)
+            & {
+                "references/lake-packages.json",
+                "references/mathlib-lake-manifest.json",
+                "scripts/materialize_lake_packages.py",
+            },
+        )
+        valid = ("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "build")
+        invalid_commands = (
+            ("lake", "build"),
+            ("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "update"),
+            ("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "build", "--update"),
+            ("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "build", "-U"),
+            ("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "build", "-qU"),
+            ("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "build", "-Uq"),
+            ("lake", cache_module.LAKE_OVERRIDE_ARGUMENT, "--packages=other.json", "build"),
+        )
+        for invalid in invalid_commands:
+            with self.subTest(command=invalid), self.assertRaisesRegex(ValueError, "Lake"):
+                cache_module.BuildRecipe.for_testing(
+                    dependency_command=invalid,
+                    build_command=valid,
+                )
+
+    def test_warm_rejects_post_build_materialized_source_drift(self) -> None:
+        manager = self.manager(
+            runtime=self.base / "runtime-materialized-drift",
+            recipe=MATERIALIZING_TEST_RECIPE,
+        )
+
+        def mutate_source(project: Path, command: list[str] | tuple[str, ...], log_path: Path) -> int:
+            result = fake_success(project, command, log_path)
+            if list(command) == ["fake", "build"]:
+                with log_path.open("ab") as log:
+                    log.write(b"build completed before source verification\n")
+                (project / "MIPStarRE" / "materialized-marker").write_text(
+                    "tampered\n", encoding="utf-8"
+                )
+            return result
+
+        with self.assertRaisesRegex(cache_module.CacheError, "source verification failed"):
+            manager.warm(
+                _test_command_callback=mutate_source,
+                _test_source_verifier=fake_source_verifier,
+            )
+        self.assertFalse(manager.is_ready())
+        failures = list((manager.runtime_dir / "cache" / "failures").iterdir())
+        self.assertEqual(1, len(failures))
+        self.assertTrue((failures[0] / "build.log").is_file())
+        failure = json.loads((failures[0] / "failure.json").read_text(encoding="utf-8"))
+        self.assertIn("source verification failed", failure["error"])
+
+    def test_warm_rejects_build_created_untracked_qpbt_source(self) -> None:
+        manager = self.manager(
+            runtime=self.base / "runtime-untracked-qpbt",
+            recipe=MATERIALIZING_TEST_RECIPE,
+        )
+
+        def generate_source(
+            project: Path, command: list[str] | tuple[str, ...], log_path: Path
+        ) -> int:
+            result = fake_success(project, command, log_path)
+            if list(command) == ["fake", "build"]:
+                authored = project / "MIPStarRE" / "QPBT"
+                authored.mkdir()
+                (authored / "Generated.lean").write_text(
+                    "def generated := true\n", encoding="utf-8"
+                )
+            return result
+
+        with self.assertRaisesRegex(cache_module.CacheError, "project source changed"):
+            manager.warm(
+                _test_command_callback=generate_source,
+                _test_source_verifier=fake_source_verifier,
+            )
+        self.assertFalse(manager.is_ready())
+
+    def test_committed_authored_qpbt_tree_is_bound_into_cache_identity(self) -> None:
+        before = self.manager(recipe=MATERIALIZING_TEST_RECIPE).identity
+        authored = self.repo / "MIPStarRE" / "QPBT"
+        authored.mkdir()
+        payload = b"def committed := true\n"
+        (authored / "Committed.lean").write_bytes(payload)
+        run_git(self.repo, "add", "MIPStarRE/QPBT/Committed.lean")
+        run_git(self.repo, "commit", "-m", "add committed QPBT source")
+        after = self.manager(recipe=MATERIALIZING_TEST_RECIPE).identity
+        self.assertNotEqual(before.cache_key, after.cache_key)
+        self.assertEqual(1, after.source_contract["authored_qpbt_files"])
+        self.assertEqual(len(payload), after.source_contract["authored_qpbt_bytes"])
+
+    def test_ready_and_seed_require_valid_source_evidence(self) -> None:
+        manager = self.manager(
+            runtime=self.base / "runtime-source-evidence",
+            recipe=MATERIALIZING_TEST_RECIPE,
+        )
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("source-evidence-target")
+        cache_module.make_owner_writable(manager.snapshot_dir)
+        manifest = json.loads(manager.manifest_path.read_text(encoding="utf-8"))
+        manifest["source_evidence"]["inventory_sha256"] = "invalid"
+        manager.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        manager.ready_path.write_text(
+            cache_module.sha256_file(manager.manifest_path) + "\n", encoding="ascii"
+        )
+        self.assertFalse(manager.is_ready())
+        with self.assertRaisesRegex(cache_module.CacheError, "deep artifact verification"):
+            manager.seed(target)
+
+    def test_ready_rejects_valid_shaped_semantic_source_evidence_tampering(self) -> None:
+        manager = self.manager(
+            runtime=self.base / "runtime-semantic-source-evidence",
+            recipe=MATERIALIZING_TEST_RECIPE,
+        )
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        cache_module.make_owner_writable(manager.snapshot_dir)
+        original = json.loads(manager.manifest_path.read_text(encoding="utf-8"))
+        mutations = {
+            "source_commit": "2" * 40,
+            "inventory_sha256": "2" * 64,
+            "files": original["source_evidence"]["files"] + 1,
+            "bytes": original["source_evidence"]["bytes"] + 1,
+            "authored_qpbt_files": 1,
+            "authored_qpbt_bytes": 1,
+            "authored_qpbt_sha256": "2" * 64,
+        }
+        for field, replacement in mutations.items():
+            with self.subTest(field=field):
+                manifest = json.loads(json.dumps(original))
+                manifest["source_evidence"][field] = replacement
+                manager.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                manager.ready_path.write_text(
+                    cache_module.sha256_file(manager.manifest_path) + "\n", encoding="ascii"
+                )
+                self.assertFalse(manager.is_ready(deep=True))
+
+    def test_seed_rechecks_source_evidence_after_copy(self) -> None:
+        manager = self.manager(
+            runtime=self.base / "runtime-seed-source-race",
+            recipe=MATERIALIZING_TEST_RECIPE,
+        )
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("seed-source-race-target")
+        original_copy = cache_module.reflink_copytree
+
+        def copy_then_tamper(source: Path, destination: Path) -> cache_module.CopyStats:
+            copied = original_copy(source, destination)
+            cache_module.make_owner_writable(manager.snapshot_dir)
+            manifest = json.loads(manager.manifest_path.read_text(encoding="utf-8"))
+            manifest["source_evidence"]["pin_sha256"] = "0" * 64
+            manager.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            manager.ready_path.write_text(
+                cache_module.sha256_file(manager.manifest_path) + "\n", encoding="ascii"
+            )
+            return copied
+
+        with mock.patch.object(cache_module, "reflink_copytree", side_effect=copy_then_tamper):
+            with self.assertRaisesRegex(cache_module.CacheError, "lost source evidence"):
+                manager.seed(target)
+        self.assertFalse((target / ".lake").exists())
 
     def test_failed_build_is_retained_but_never_published(self) -> None:
         manager = self.manager()
@@ -248,7 +620,7 @@ class HotMainCacheTests(unittest.TestCase):
                 )
             return result
 
-        with self.assertRaisesRegex(cache_module.CacheError, "tracked source changed"):
+        with self.assertRaisesRegex(cache_module.CacheError, "project source changed"):
             manager.warm(_test_command_callback=mutate_source)
         self.assertFalse(manager.is_ready())
 
@@ -322,7 +694,10 @@ class HotMainCacheTests(unittest.TestCase):
         second.join(10)
         self.assertEqual(0, first.exitcode)
         self.assertEqual(0, second.exitcode)
-        self.assertEqual(["build"], counter.read_text(encoding="utf-8").splitlines())
+        self.assertEqual(
+            ["materialize", "build"],
+            counter.read_text(encoding="utf-8").splitlines(),
+        )
         metrics = [
             json.loads(line)
             for line in (self.runtime / "metrics" / "hot-main.jsonl").read_text(encoding="utf-8").splitlines()
