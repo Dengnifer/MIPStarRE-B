@@ -17,6 +17,11 @@ Raw Codex JSONL, prompts assembled for a specific issue, build logs, cache data,
 and result envelopes live under ignored `.workflow-runtime/`. Only the root
 coordinator imports compact, inspected evidence into canonical files.
 
+Launches of issued sessions are lease-bound: authority is checked under the
+WorkflowStore lock, the session is marked running before child invocation, and
+terminal evidence is imported exactly once. Interrupted sessions are explicitly
+failed and are never silently relaunched.
+
 ## Commands
 
 ```bash

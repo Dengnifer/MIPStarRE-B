@@ -80,6 +80,16 @@ next task depends on a previous mathematical result, dispatch sequentially.
 Every child prompt is self-contained. Child reports are evidence, not accepted
 changes; the orchestrator checks the result and diff.
 
+### Issued session launch lease
+
+Coordinator launchers must call the local session lease API while holding the
+WorkflowStore lock. The API compares session id, immutable base revision,
+registered worktree, ownership claims, and read-only mode, then records
+`issued -> running` before invoking the child process. A terminal envelope is
+imported once using its canonical digest; identical retries are harmless and a
+conflicting retry is rejected. Parent interruption is recovered by recording a
+failed session with an explicit reason. Recovery never invokes the child again.
+
 ## Session lifecycle
 
 Use `i<issue-number>-<role>-a<two-digit-attempt>-<slug>`, for example

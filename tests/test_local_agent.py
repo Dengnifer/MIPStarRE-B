@@ -1371,6 +1371,37 @@ class RuntimeTests(unittest.TestCase):
         self.assertFalse(run.call_args.kwargs["shell"])
         self.assertEqual(["codex", "archive", THREAD_ID], run.call_args.args[0])
 
+    def test_issued_claim_checks_authority_before_running(self) -> None:
+        record = {"id": "s1", "status": "issued", "worktree": str(self.root),
+                  "base_revision": "a" * 40, "owned_paths": ["scripts/local_agent.py"],
+                  "read_only": False}
+        class Store:
+            def mutate(self, _f, _e, _p, fn):
+                return fn({"issued": [record]})
+        with mock.patch.object(local_agent, "_session_store", return_value=Store()):
+            claimed = local_agent.claim_issued_session(
+                session_id="s1", workflow_root=self.root, cwd=self.root,
+                base_revision="a" * 40, owned_paths=["scripts/local_agent.py"], read_only=False)
+        self.assertEqual("running", claimed["status"])
+        self.assertIsNotNone(claimed["started_at"])
+
+    def test_terminal_import_is_idempotent_and_conflicts_fail(self) -> None:
+        record = {"id": "s1", "status": "running", "result_digest": None}
+        class Store:
+            def mutate(self, _f, _e, _p, fn):
+                return fn({"issued": [record]})
+        envelope = {"external_id": THREAD_ID, "status": "finished", "started_at": "2026-01-01T00:00:00Z",
+                    "ended_at": "2026-01-01T00:00:01Z", "elapsed_seconds": 1.0}
+        with mock.patch.object(local_agent, "_session_store", return_value=Store()):
+            first = local_agent.import_session_result(session_id="s1", workflow_root=self.root, envelope=envelope)
+            second = local_agent.import_session_result(session_id="s1", workflow_root=self.root, envelope=envelope)
+        self.assertEqual(first, second)
+        conflict = dict(envelope, external_id="different")
+        record["result_digest"] = first["result_digest"]
+        with mock.patch.object(local_agent, "_session_store", return_value=Store()):
+            with self.assertRaises(local_agent.AgentError):
+                local_agent.import_session_result(session_id="s1", workflow_root=self.root, envelope=conflict)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -27,6 +27,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from urllib.parse import urlsplit
 
 import bootstrap_manifest
+import workflow as workflow_state
 
 
 SCHEMA_VERSION = 1
@@ -120,6 +121,92 @@ class AgentProcessTimeout(Exception):
         self.termination_escalated = termination_escalated
         self.termination_escalation_signal = termination_escalation_signal
         self.termination_cleanup_complete = termination_cleanup_complete
+
+
+def _session_store(workflow_root: Path) -> workflow_state.WorkflowStore:
+    root = workflow_root.resolve()
+    return workflow_state.WorkflowStore(
+        root / "workflow" / "state", root / ".workflow-runtime", root / "workflow" / "events.jsonl"
+    )
+
+
+def claim_issued_session(
+    *, session_id: str, workflow_root: Path, cwd: Path, base_revision: str | None,
+    owned_paths: Sequence[str], read_only: bool,
+) -> dict[str, Any]:
+    """Atomically validate authority and transition one issued session to running."""
+    store = _session_store(workflow_root)
+    requested_paths = list(owned_paths)
+    def mutate(document: dict[str, Any]) -> dict[str, Any]:
+        record = next((item for item in document["issued"] if item.get("id") == session_id), None)
+        if record is None:
+            raise AgentError(f"unknown issued session {session_id!r}")
+        if record.get("status") != "issued":
+            raise AgentError(f"session {session_id!r} is not issued (status={record.get('status')!r})")
+        if Path(record["worktree"]).resolve() != cwd.resolve():
+            raise AgentError("launch cwd does not match issued worktree")
+        if record.get("base_revision") != base_revision:
+            raise AgentError("launch base revision does not match issued authority")
+        if record.get("owned_paths") != requested_paths or record.get("read_only") != read_only:
+            raise AgentError("launch ownership or read-only claim does not match issued authority")
+        workflow_state._transition_record("issued-session", record, "running")
+        record["started_at"] = workflow_state.utc_now()
+        return dict(record)
+    return store.mutate("sessions.json", "session.running", {"session_id": session_id}, mutate)
+
+
+def import_session_result(
+    *, session_id: str, workflow_root: Path, envelope: Mapping[str, Any], outcome_path: str | None = None,
+) -> dict[str, Any]:
+    """Import a terminal envelope exactly once; identical retries are idempotent."""
+    required = {"external_id", "status", "started_at", "ended_at", "elapsed_seconds"}
+    if not required.issubset(envelope):
+        raise AgentError("session envelope is missing lifecycle fields")
+    if envelope["status"] not in {"finished", "failed"}:
+        raise AgentError("session envelope status must be finished or failed")
+    digest = _sha256_text(json.dumps(dict(envelope), sort_keys=True, separators=(",", ":")))
+    store = _session_store(workflow_root)
+    def mutate(document: dict[str, Any]) -> dict[str, Any]:
+        record = next((item for item in document["issued"] if item.get("id") == session_id), None)
+        if record is None:
+            raise AgentError(f"unknown issued session {session_id!r}")
+        prior = record.get("result_digest")
+        if prior is not None:
+            if prior != digest:
+                raise AgentError("conflicting terminal import for issued session")
+            return dict(record)
+        if record.get("status") not in {"running", "issued"}:
+            raise AgentError("issued session is already terminal without an import digest")
+        if record.get("status") == "issued":
+            workflow_state._transition_record("issued-session", record, "running")
+        workflow_state._transition_record("issued-session", record, envelope["status"])
+        for field in ("external_id", "started_at", "ended_at", "elapsed_seconds"):
+            record[field] = envelope[field]
+        if "token_usage" in envelope:
+            record["token_usage"] = envelope["token_usage"]
+        record["outcome_path"] = outcome_path
+        record["result_digest"] = digest
+        return dict(record)
+    return store.mutate("sessions.json", "session.result_imported", {"session_id": session_id, "digest": digest}, mutate)
+
+
+def recover_interrupted_session(*, session_id: str, workflow_root: Path, reason: str) -> dict[str, Any]:
+    """Mark a claimed session failed after interruption; never relaunches it."""
+    if not reason.strip():
+        raise AgentError("interruption reason cannot be empty")
+    store = _session_store(workflow_root)
+    def mutate(document: dict[str, Any]) -> dict[str, Any]:
+        record = next((item for item in document["issued"] if item.get("id") == session_id), None)
+        if record is None:
+            raise AgentError(f"unknown issued session {session_id!r}")
+        if record.get("status") in {"finished", "failed", "archived"}:
+            return dict(record)
+        workflow_state._transition_record("issued-session", record, "failed")
+        record["interruption_reason"] = reason
+        record["ended_at"] = workflow_state.utc_now()
+        record["outcome_path"] = None
+        return dict(record)
+    return store.mutate("sessions.json", "session.interrupted", {"session_id": session_id, "reason": reason}, mutate)
 
 
 def validate_review_transport_profile(
@@ -1767,6 +1854,10 @@ def run_exec(
     timeout_seconds: float | int = DEFAULT_CODEX_TIMEOUT_SECONDS,
     dry_run: bool = False,
     runner: Any = _subprocess_run,
+    session_id: str | None = None,
+    workflow_root: Path | None = None,
+    base_revision: str | None = None,
+    owned_paths: Sequence[str] = (),
 ) -> dict[str, Any]:
     timeout = _validated_timeout_seconds(timeout_seconds)
     command = [
@@ -1797,6 +1888,14 @@ def run_exec(
             "timeout_seconds": timeout,
             "timed_out": False,
         }
+
+    if session_id is not None:
+        if workflow_root is None:
+            raise AgentError("bound launch requires workflow_root")
+        claim_issued_session(
+            session_id=session_id, workflow_root=workflow_root, cwd=cwd,
+            base_revision=base_revision, owned_paths=owned_paths, read_only=False,
+        )
 
     output_dir = _prepare_output_directory(runtime_dir, alias)
     _atomic_write(output_dir / "prompt.md", prompt)
@@ -1865,6 +1964,13 @@ def run_exec(
         ),
     }
     _atomic_write_json(output_dir / "result.json", envelope)
+    if session_id is not None and workflow_root is not None:
+        import_session_result(
+            session_id=session_id,
+            workflow_root=workflow_root,
+            envelope={**envelope, "token_usage": metadata.get("token_usage")},
+            outcome_path=str(output_dir / "result.json"),
+        )
     return envelope
 
 
@@ -2403,6 +2509,7 @@ def _add_packet_arguments(parser: argparse.ArgumentParser, *, reviewer: bool = F
     parser.add_argument("--base-sha")
     parser.add_argument("--head-sha")
     parser.add_argument("--parent-session-id")
+    parser.add_argument("--session-id", help="bind a launch to an issued workflow session")
     parser.add_argument("--model")
     parser.add_argument("--dry-run", action="store_true")
 
@@ -2536,6 +2643,10 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             approval_policy=arguments.approval_policy,
             timeout_seconds=arguments.timeout_seconds,
             dry_run=arguments.dry_run,
+            session_id=arguments.session_id,
+            workflow_root=repo_root,
+            base_revision=arguments.base_sha,
+            owned_paths=arguments.owned_path,
         )
     if arguments.command == "review":
         timeout = _validated_timeout_seconds(arguments.timeout_seconds)

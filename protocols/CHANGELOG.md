@@ -174,3 +174,7 @@ the endpoint-health gate for the next frozen review.
 Revision 0.1.0 is re-evaluated after three completed issue workflows and must be
 superseded if it permits duplicate main builds, overlapping writable ownership,
 or review state that cannot be tied to an immutable SHA or bootstrap manifest.
+## 2026-08-31
+
+- Added issued-session launch leases with locked authority checks, exactly-once
+  terminal envelope imports, and explicit idempotent interruption recovery.
