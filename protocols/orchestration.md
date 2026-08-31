@@ -42,6 +42,12 @@ state. Cross-candidate materialization conflicts are checked for the admitted
 prefix and queued rows are revalidated on a later attempt; ownership conflicts
 are checked across the whole selected set. The result's `request_atomic` and
 `blocked_batch_unchanged` fields identify the transaction boundary explicitly.
+`backend_scope: all` is a single local-service ceiling: active sessions are
+summed across every backend, and `--capacity N` is never interpreted as N slots
+per backend or multiplied by the number of backends.
+An unknown capacity is rejected only after dependency and ownership diagnostics
+are collected; the deterministic diagnostics are carried in the fail-closed
+error and no ledger or event is written.
 The stage
 ledger's `max_concurrency` field is an observed metric, not a substitute for the
 explicit dispatch capacity.
@@ -54,7 +60,9 @@ known.
 ## One orchestrator per issue
 
 The coordinator dispatches exactly one orchestrator for each implementation
-issue. The initial prompt contains the full issue record, protocol revision,
+issue. Admission rejects a second planned or active orchestrator for the same
+issue, including while the issue is still `planned`; terminal attempts remain
+retry provenance. The initial prompt contains the full issue record, protocol revision,
 base SHA, worktree, owned paths, source anchors, acceptance gates, cache key,
 prior attempts, and expected result-envelope path.
 

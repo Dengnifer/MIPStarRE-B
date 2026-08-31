@@ -92,6 +92,12 @@ DISPATCH_SET_ONCE_FIELDS = {
     "archive_status",
     "outcome_path",
 }
+DISPATCH_OVERRIDE_FIELDS = {
+    "id",
+    "status",
+    *DISPATCH_IMMUTABLE_FIELDS,
+    *DISPATCH_SET_ONCE_FIELDS,
+}
 ARCHIVE_STATUSES = {
     "active",
     "not_requested",
@@ -1885,6 +1891,40 @@ def active_non_coordinator_count(
     return count
 
 
+def _duplicate_orchestrator_ids(
+    documents: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+) -> list[str]:
+    """Find planned or active orchestrators already assigned to an issue.
+
+    Archived and terminal attempts remain useful provenance for retries; only
+    planned rows and active issued/running rows reserve the issue's
+    orchestrator slot.
+    """
+
+    if candidate.get("role") != "orchestrator":
+        return []
+    issue_id = candidate.get("issue_id")
+    candidate_id = candidate.get("id")
+    duplicates: list[str] = []
+    for session in documents["sessions.json"]["planned"]:
+        if (
+            session.get("id") != candidate_id
+            and session.get("issue_id") == issue_id
+            and session.get("role") == "orchestrator"
+        ):
+            duplicates.append(str(session.get("id")))
+    for session in documents["sessions.json"]["issued"]:
+        if (
+            session.get("id") != candidate_id
+            and session.get("issue_id") == issue_id
+            and session.get("role") == "orchestrator"
+            and session.get("status") in ACTIVE_SESSION_STATUSES
+        ):
+            duplicates.append(str(session.get("id")))
+    return sorted(set(duplicates))
+
+
 def _dispatch_record(
     planned: Mapping[str, Any],
     override: Mapping[str, Any] | None = None,
@@ -2012,11 +2052,22 @@ def plan_dispatch(
     ownership failures are reported as blocked entries, while candidates beyond
     the available slots are reported as queued entries. Cross-candidate
     materialization conflicts are checked for the admitted prefix; queued rows
-    are revalidated when they are admitted later.
+    are revalidated when they are admitted later. A second planned or active
+    orchestrator for one issue is blocked at admission. If capacity is unknown,
+    the same structural checks still run before a fail-closed error is raised.
     """
 
     validate_documents(documents)
-    limit = _dispatch_capacity(capacity)
+    # Capacity is an admission authority, but it must not hide independent
+    # dependency or ownership diagnostics.  Defer its error until the planner
+    # has inspected the selected candidates; the eventual exception remains
+    # fail-closed and carries the deterministic diagnostics.
+    capacity_error: WorkflowError | None = None
+    try:
+        limit: int | None = _dispatch_capacity(capacity)
+    except WorkflowError as error:
+        capacity_error = error
+        limit = None
     _known_stage(documents, stage_id)
     membership = _issue_stage_membership(documents)
     issues = {
@@ -2116,6 +2167,17 @@ def plan_dispatch(
                 {"id": session_id, "reason": "invalid-dispatch-override", "detail": str(error)}
             )
             continue
+        duplicate_orchestrators = _duplicate_orchestrator_ids(documents, candidate)
+        if duplicate_orchestrators:
+            blocked.append(
+                {
+                    "id": session_id,
+                    "reason": "duplicate-orchestrator",
+                    "issue_id": candidate.get("issue_id"),
+                    "with_session_ids": duplicate_orchestrators,
+                }
+            )
+            continue
         errors = _candidate_validation_errors(
             documents,
             candidate,
@@ -2210,7 +2272,7 @@ def plan_dispatch(
         key=lambda candidate: candidate["id"],
     )
     active_count = active_non_coordinator_count(documents, stage_id=stage_id)
-    available = max(0, limit - active_count)
+    available = max(0, limit - active_count) if limit is not None else 0
     # Cross-candidate uniqueness is checked only for the admitted prefix.  A
     # candidate that remains queued is intentionally revalidated on its later
     # dispatch attempt, so its materialization override cannot poison an
@@ -2242,6 +2304,14 @@ def plan_dispatch(
         unique_blocked,
         key=lambda item: (str(item.get("id")), str(item.get("reason")), json.dumps(item, sort_keys=True, default=str)),
     )
+    if capacity_error is not None:
+        diagnostics = "; ".join(
+            json.dumps(item, ensure_ascii=True, sort_keys=True, default=str)
+            for item in blocked
+        ) or "none"
+        raise WorkflowError(
+            f"{capacity_error}; independent dispatch diagnostics: {diagnostics}"
+        )
     status = "empty"
     if blocked:
         status = "blocked"
@@ -2413,8 +2483,9 @@ def _load_dispatch_overrides(
     """Load per-session materialization fields for a dispatch batch.
 
     The accepted shape is either ``{"session-id": {...}}`` or a list of
-    objects carrying an ``id`` field.  Keeping this input separate from the
-    planned ledger lets the coordinator review authority fields before issue.
+    objects carrying an ``id`` field.  A single object carrying ``id`` may use
+    only known dispatch fields; this strict discriminator rejects a keyed map
+    accidentally mixed into a single-record object.
     """
 
     if raw is None and file_path is None:
@@ -2434,9 +2505,33 @@ def _load_dispatch_overrides(
         # A single full record is convenient for one-session invocations; a
         # keyed object is the unambiguous batch form.
         if isinstance(value.get("id"), str):
+            # A materialization record may carry forward unknown scalar
+            # metadata, but an object-valued sibling is the unmistakable
+            # signature of a keyed batch accidentally mixed with that record.
+            mixed_keys = sorted(
+                key
+                for key, item in value.items()
+                if key not in DISPATCH_OVERRIDE_FIELDS and isinstance(item, Mapping)
+            )
+            if mixed_keys:
+                raise WorkflowError(
+                    "dispatch overrides cannot mix single-record and keyed shapes: "
+                    + ", ".join(mixed_keys)
+                )
             record_id = value["id"]
             return {record_id: value}
-        entries = value.items()
+        if "id" in value:
+            # Permit a keyed map whose session identifier happens to be
+            # ``id``; reject a scalar/record hybrid instead of silently
+            # treating the malformed value as a batch.
+            if isinstance(value["id"], Mapping) and all(
+                isinstance(item, Mapping) for item in value.values()
+            ):
+                entries = value.items()
+            else:
+                raise WorkflowError("dispatch overrides cannot mix single-record and keyed shapes")
+        else:
+            entries = value.items()
         result: dict[str, Mapping[str, Any]] = {}
         for key, item in entries:
             if not isinstance(key, str) or not isinstance(item, dict):
@@ -2714,12 +2809,32 @@ def run_cli(arguments: argparse.Namespace) -> Any:
         additions = _load_json_argument(arguments.json, arguments.file)
         if not isinstance(additions, Mapping):
             raise WorkflowError("issue-session additions must be a JSON object")
-        return store.dispatch_sessions(
+        result = store.dispatch_sessions(
             capacity=arguments.capacity,
             stage_id=arguments.stage,
             session_ids=[arguments.id],
             session_overrides={arguments.id: additions},
         )
+        if result.get("status") != "issued":
+            # Queue/block responses retain the planner envelope so callers can
+            # act on the admission reason without guessing from an exception.
+            return result
+        # Preserve the historical successful issue-session return shape: one
+        # materialized issued record, rather than the batch planner envelope.
+        documents = store.validate()
+        issued_record = next(
+            (
+                copy.deepcopy(item)
+                for item in documents["sessions.json"]["issued"]
+                if item.get("id") == arguments.id
+            ),
+            None,
+        )
+        if issued_record is None:
+            raise WorkflowError(
+                f"issued session {arguments.id!r} disappeared after dispatch"
+            )
+        return issued_record
     if arguments.command == "dispatch":
         overrides = _load_dispatch_overrides(
             arguments.overrides_json,

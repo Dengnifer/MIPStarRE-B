@@ -356,6 +356,44 @@ class WorkflowValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(workflow.ValidationError, "issue dependencies: cycle detected"):
             workflow.plan_dispatch(state, capacity=None)
 
+    def test_unknown_capacity_preserves_dag_and_ownership_diagnostics(self) -> None:
+        state = documents()
+        blocked_issue = issue("QPBT-003", "planned", ["QPBT-002"])
+        state["issues.json"]["issues"].append(blocked_issue)
+        state["stages.json"]["stages"][0]["issue_ids"].append("QPBT-003")
+        active = issued_session(
+            "i002-prover-a01-unknown-capacity-owner",
+            role="prover",
+            status="running",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/Conflict.lean"],
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        conflicting = planned_session(
+            "i002-prover-a02-unknown-capacity-conflict",
+            role="prover",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/Conflict.lean"],
+        )
+        dependency_blocked = planned_session(
+            "i003-reviewer-a01-unknown-capacity-blocked",
+            issue_id="QPBT-003",
+        )
+        state["sessions.json"]["issued"] = [active]
+        state["sessions.json"]["planned"] = [conflicting, dependency_blocked]
+        with self.assertRaisesRegex(workflow.WorkflowError, "capacity is unknown") as caught:
+            workflow.plan_dispatch(
+                state,
+                capacity=None,
+                stage_id="STAGE-01",
+                session_ids=[conflicting["id"], dependency_blocked["id"]],
+            )
+        message = str(caught.exception)
+        self.assertIn("ownership-conflict", message)
+        self.assertIn("dependencies-not-done", message)
+
     def test_dispatch_plan_reports_sorted_queue_and_dependency_block(self) -> None:
         state = documents()
         blocked_issue = issue("QPBT-003", "planned", ["QPBT-002"])
@@ -407,6 +445,65 @@ class WorkflowValidationTests(unittest.TestCase):
         self.assertEqual("blocked", result["status"])
         self.assertEqual("ownership-conflict", result["blocked"][0]["reason"])
         self.assertEqual("i002-prover-a01-active-owner", result["blocked"][0]["with_session_id"])
+
+    def test_dispatch_rejects_duplicate_planned_orchestrators_for_one_issue(self) -> None:
+        state = documents()
+        first = planned_session(
+            "i002-orchestrator-a01-duplicate",
+            role="orchestrator",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/First.lean"],
+        )
+        second = planned_session(
+            "i002-orchestrator-a02-duplicate",
+            role="orchestrator",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/Second.lean"],
+        )
+        state["sessions.json"]["planned"] = [first, second]
+        result = workflow.plan_dispatch(
+            state,
+            capacity=2,
+            stage_id="STAGE-01",
+            session_ids=[first["id"], second["id"]],
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual(
+            [first["id"], second["id"]],
+            [entry["id"] for entry in result["blocked"]],
+        )
+        self.assertTrue(
+            all(entry["reason"] == "duplicate-orchestrator" for entry in result["blocked"])
+        )
+
+    def test_dispatch_rejects_orchestrator_when_active_attempt_exists(self) -> None:
+        state = documents()
+        active = issued_session(
+            "i002-orchestrator-a01-active",
+            role="orchestrator",
+            status="running",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/Existing.lean"],
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        candidate = planned_session(
+            "i002-orchestrator-a02-active-duplicate",
+            role="orchestrator",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/Candidate.lean"],
+        )
+        state["sessions.json"]["issued"] = [active]
+        state["sessions.json"]["planned"] = [candidate]
+        result = workflow.plan_dispatch(
+            state,
+            capacity=2,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+        )
+        self.assertEqual("duplicate-orchestrator", result["blocked"][0]["reason"])
+        self.assertEqual([active["id"]], result["blocked"][0]["with_session_ids"])
 
     def test_dispatch_plan_rejects_cross_candidate_batch_conflict(self) -> None:
         state = documents()
@@ -491,6 +588,30 @@ class WorkflowValidationTests(unittest.TestCase):
             )
             self.assertEqual("blocked", result["status"])
             self.assertIn(expected, result["blocked"][0]["detail"])
+
+    def test_dispatch_rejects_mixed_shape_override_object(self) -> None:
+        session_id = "i002-reviewer-a01-mixed-override"
+        mixed = json.dumps(
+            {
+                "id": session_id,
+                "external_id": "thread-materialized",
+                "another-session": {"external_id": "thread-other"},
+            }
+        )
+        with self.assertRaisesRegex(
+            workflow.WorkflowError,
+            "cannot mix single-record and keyed shapes",
+        ):
+            workflow._load_dispatch_overrides(mixed, None)
+
+        with self.assertRaisesRegex(
+            workflow.WorkflowError,
+            "cannot mix single-record and keyed shapes",
+        ):
+            workflow._load_dispatch_overrides(
+                json.dumps({"id": 17, "external_id": "thread-materialized"}),
+                None,
+            )
 
     def test_protocol_ledger_requires_the_named_unique_active_revision(self) -> None:
         state = documents()
@@ -1113,6 +1234,45 @@ class WorkflowStoreTests(unittest.TestCase):
         )
         self.assertEqual("blocked", blocked["status"])
         self.assertEqual([], self.store.validate()["sessions.json"]["issued"])
+
+        issued = workflow.run_cli(
+            parser.parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "issue-session",
+                    candidate["id"],
+                    "--capacity",
+                    "1",
+                    "--json",
+                    "{}",
+                ]
+            )
+        )
+        # Successful legacy calls retain the historical single-record shape;
+        # admission metadata remains available on the dispatch command.
+        self.assertEqual(candidate["id"], issued["id"])
+        self.assertEqual("issued", issued["status"])
+        self.assertNotIn("dispatchable", issued)
+        self.assertNotIn("queued", issued)
+        self.assertEqual(
+            [candidate["id"]],
+            [row["id"] for row in self.store.validate()["sessions.json"]["issued"]],
+        )
+
+    def test_issue_session_parser_requires_explicit_capacity(self) -> None:
+        parser = workflow.build_parser()
+        with self.assertRaises(SystemExit):
+            parser.parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "issue-session",
+                    "i002-reviewer-a01-parser-capacity",
+                    "--json",
+                    "{}",
+                ]
+            )
 
     def test_atomic_mutation_preserves_metadata_and_appends_event(self) -> None:
         def mutate(document: dict[str, object]) -> None:

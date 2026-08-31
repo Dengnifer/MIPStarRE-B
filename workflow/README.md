@@ -41,17 +41,30 @@ while another coordinator command is active.
 
 `dispatch` is the capacity-aware batch entry point. The legacy `issue-session`
 command is a single-session wrapper around the same planner and also requires
-an explicit capacity. Dispatch requires an explicit
+an explicit capacity. On success it preserves its historical JSON shape by
+returning the issued session record; queued or blocked attempts return the
+planner envelope with a status and reason. Dispatch requires an explicit
 non-negative `--capacity`; an omitted or unknown limit fails closed. The command
-counts active `issued`/`running` sessions other than `coordinator`, optionally
-across all backends (the explicit limit is an aggregate local ceiling), scoped
+counts active `issued`/`running` sessions other than `coordinator` across all
+backends (the explicit limit is an aggregate local ceiling), scoped
 to `--stage` when requested, and sorts planned session IDs before classifying
 them as `dispatchable`, `queued`, or `blocked`. Capacity-only queueing issues the
 available prefix atomically and leaves the remainder planned; a batch containing
 any blocked candidate is left unchanged. Cross-candidate materialization
 conflicts are checked for the admitted prefix; queued rows are revalidated when
 they are admitted. Ownership conflicts are checked across the whole selected
-set. The result's `request_atomic` and `blocked_batch_unchanged` fields make the
+set. `backend_scope: all` is one local-service ceiling: counts are summed across
+backends and `--capacity N` is never multiplied into per-backend quotas. The
+result's `request_atomic` and `blocked_batch_unchanged` fields make the
 transaction and rollback semantics explicit. Use `--dry-run` to inspect that plan.
+When capacity is unknown, dependency and ownership analysis still runs and its
+deterministic diagnostics are included in the fail-closed error; no state or
+event is written.
 Stage `max_concurrency` remains historical observation data and is not an
 admission limit.
+
+The planner reserves one orchestrator slot per issue: a second planned or
+active orchestrator is blocked at admission, including for a still-planned
+issue. Terminal attempts remain provenance for a later retry. Dispatch override
+objects must use one shape (single record, keyed map, or ID-bearing list); a
+single record mixed with keyed entries is rejected.

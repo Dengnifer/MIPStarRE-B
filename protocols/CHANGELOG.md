@@ -12,6 +12,12 @@ leaves the remainder planned; any blocked selected member leaves the requested
 batch unchanged. Cross-candidate materialization checks apply to the admitted
 prefix; queued rows are revalidated on a later attempt, while ownership checks
 remain conservative across the selected set. `--dry-run` has no state effect.
+The `backend_scope: all` value denotes one local-service ceiling: active counts
+are summed across every backend and the explicit capacity is never multiplied
+into per-backend quotas.
+Unknown capacity now defers its rejection until dependency and writable-path
+checks have produced deterministic diagnostics; the operation still fails closed
+without changing state or events.
 The stage `max_concurrency` counter remains an observed metric. Capacity does
 not permit parallel Lean/Lake builds: callers still wait for the singleton
 hot-main cache builder. The four-slot collaboration ceiling is recorded only as
@@ -22,7 +28,11 @@ exclusion, deterministic queue and block reasons, cross-candidate validation,
 ownership conflicts, dry-run behavior, and atomic event/state updates.
 The legacy `issue-session` command now routes through the same planner and
 requires an explicit capacity, so authority-changing additions cannot bypass
-dependency, ownership, or admission checks.
+dependency, ownership, or admission checks; successful calls retain the
+historical issued-record JSON shape while queued/blocked calls return the
+planner envelope. Admission reserves one orchestrator slot per issue (planned
+or active duplicates are blocked), and mixed single-record/keyed override
+objects are rejected.
 The writer snapshots the sessions bytes and event offset and rolls both back
 when an event append or post-append audit fails; crash-recovery journaling is
 deferred to QPBT-020.
