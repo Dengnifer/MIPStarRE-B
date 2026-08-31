@@ -1890,14 +1890,38 @@ class HotMainCache:
 
     def _detached_clone(self, staging: Path, log_path: Path) -> Path:
         checkout = staging / "checkout"
-        commands = (
-            ["git", "clone", "--local", "--no-checkout", str(self.repo_root), str(checkout)],
-            ["git", "-C", str(checkout), "checkout", "--detach", self.identity.main_commit],
-        )
-        for command in commands:
-            return_code = self._run_logged(staging, command, log_path)
-            if return_code != 0:
-                raise CacheError(f"detached clone command failed with exit code {return_code}")
+        clone = ["git", "clone", "--local", "--no-checkout", str(self.repo_root), str(checkout)]
+        try:
+            clone_log_offset = log_path.stat().st_size
+        except FileNotFoundError:
+            clone_log_offset = 0
+        return_code = self._run_logged(staging, clone, log_path)
+        if return_code != 0:
+            try:
+                with log_path.open("rb") as log:
+                    log.seek(clone_log_offset)
+                    clone_log = log.read().decode("utf-8", errors="replace").lower()
+            except OSError:
+                clone_log = ""
+            cross_device = "cross-device" in clone_log or "exdev" in clone_log
+            if cross_device:
+                if checkout.is_symlink() or checkout.is_file():
+                    checkout.unlink()
+                elif checkout.is_dir():
+                    shutil.rmtree(checkout)
+                with log_path.open("ab") as log:
+                    log.write(b"[hot-main-cache] local clone failed with EXDEV; retrying --no-local\n")
+                clone[2] = "--no-local"
+                return_code = self._run_logged(staging, clone, log_path)
+        if return_code != 0:
+            raise CacheError(f"detached clone command failed with exit code {return_code}")
+
+        checkout_command = [
+            "git", "-C", str(checkout), "checkout", "--detach", self.identity.main_commit
+        ]
+        return_code = self._run_logged(staging, checkout_command, log_path)
+        if return_code != 0:
+            raise CacheError(f"detached clone command failed with exit code {return_code}")
         return checkout
 
     def _verify_materialized_source(

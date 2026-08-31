@@ -352,6 +352,173 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual(first.cache_key, second.cache_key)
         self.assertEqual(self.commit, second.main_commit)
 
+    def test_detached_clone_retries_without_local_hardlinks_on_exdev(self) -> None:
+        staging = self.base / "staging"
+        staging.mkdir()
+        log_path = staging / "build.log"
+        manager = self.manager()
+        commands: list[list[str]] = []
+
+        def fake_run(_root: Path, command: list[str], log: Path) -> int:
+            commands.append(list(command))
+            if command[0:3] == ["git", "clone", "--local"]:
+                with log.open("a", encoding="utf-8") as stream:
+                    stream.write("fatal: Invalid cross-device link\n")
+                partial = staging / "checkout"
+                partial.mkdir()
+                (partial / "partial-object").write_text("incomplete\n", encoding="utf-8")
+                return 1
+            if command[0:3] == ["git", "clone", "--no-local"]:
+                self.assertFalse((staging / "checkout").exists())
+                (staging / "checkout").mkdir()
+            return 0
+
+        with mock.patch.object(cache_module.HotMainCache, "_run_logged", side_effect=fake_run):
+            checkout = manager._detached_clone(staging, log_path)
+
+        self.assertEqual(checkout, staging / "checkout")
+        self.assertEqual(
+            [
+                [
+                    "git", "clone", "--local", "--no-checkout",
+                    str(manager.repo_root), str(checkout),
+                ],
+                [
+                    "git", "clone", "--no-local", "--no-checkout",
+                    str(manager.repo_root), str(checkout),
+                ],
+                [
+                    "git", "-C", str(checkout), "checkout", "--detach",
+                    manager.identity.main_commit,
+                ],
+            ],
+            commands,
+        )
+        log = log_path.read_text(encoding="utf-8")
+        self.assertIn("Invalid cross-device link", log)
+        self.assertIn("retrying --no-local", log)
+
+    def test_detached_clone_ignores_cross_device_text_before_attempt(self) -> None:
+        staging = self.base / "stale-log-staging"
+        staging.mkdir()
+        log_path = staging / "build.log"
+        log_path.write_text("old EXDEV diagnostic\n", encoding="utf-8")
+        manager = self.manager()
+        commands: list[list[str]] = []
+
+        def fake_run(_root: Path, command: list[str], log: Path) -> int:
+            commands.append(list(command))
+            with log.open("a", encoding="utf-8") as stream:
+                stream.write("fatal: unrelated clone failure\n")
+            return 9
+
+        with mock.patch.object(cache_module.HotMainCache, "_run_logged", side_effect=fake_run):
+            with self.assertRaisesRegex(cache_module.CacheError, "exit code 9"):
+                manager._detached_clone(staging, log_path)
+
+        self.assertEqual(
+            [[
+                "git", "clone", "--local", "--no-checkout",
+                str(manager.repo_root), str(staging / "checkout"),
+            ]],
+            commands,
+        )
+        self.assertNotIn("retrying --no-local", log_path.read_text(encoding="utf-8"))
+
+    def test_detached_clone_retries_at_most_once_on_exdev(self) -> None:
+        staging = self.base / "bounded-retry-staging"
+        staging.mkdir()
+        log_path = staging / "build.log"
+        manager = self.manager()
+        commands: list[list[str]] = []
+
+        def fake_run(_root: Path, command: list[str], log: Path) -> int:
+            commands.append(list(command))
+            if command[0:3] == ["git", "clone", "--local"]:
+                with log.open("a", encoding="utf-8") as stream:
+                    stream.write("fatal: Invalid cross-device link\n")
+                (staging / "checkout").mkdir()
+                return 1
+            self.assertEqual(command[0:3], ["git", "clone", "--no-local"])
+            self.assertFalse((staging / "checkout").exists())
+            with log.open("a", encoding="utf-8") as stream:
+                stream.write("fatal: fallback clone failed with EXDEV too\n")
+            return 23
+
+        with mock.patch.object(cache_module.HotMainCache, "_run_logged", side_effect=fake_run):
+            with self.assertRaisesRegex(cache_module.CacheError, "exit code 23"):
+                manager._detached_clone(staging, log_path)
+
+        checkout = staging / "checkout"
+        self.assertEqual(
+            [
+                [
+                    "git", "clone", "--local", "--no-checkout",
+                    str(manager.repo_root), str(checkout),
+                ],
+                [
+                    "git", "clone", "--no-local", "--no-checkout",
+                    str(manager.repo_root), str(checkout),
+                ],
+            ],
+            commands,
+        )
+
+    def test_warm_exdev_fallback_checkout_failure_publishes_no_snapshot(self) -> None:
+        manager = self.manager()
+        commands: list[list[str]] = []
+
+        def fake_clone_run(_root: Path, command: list[str], log: Path) -> int:
+            commands.append(list(command))
+            if command[0:3] == ["git", "clone", "--local"]:
+                log.write_text("fatal: Invalid cross-device link\n", encoding="utf-8")
+                (log.parent / "checkout").mkdir()
+                return 1
+            if command[0:3] == ["git", "clone", "--no-local"]:
+                (log.parent / "checkout").mkdir()
+                return 0
+            with log.open("a", encoding="utf-8") as stream:
+                stream.write("fatal: detached checkout failed\n")
+            return 17
+
+        with mock.patch.object(cache_module.HotMainCache, "_run_logged", side_effect=fake_clone_run):
+            with self.assertRaisesRegex(cache_module.CacheError, "exit code 17"):
+                manager.warm(_test_command_callback=fake_success)
+
+        checkout = mock.ANY
+        self.assertEqual(
+            [
+                [
+                    "git", "clone", "--local", "--no-checkout",
+                    str(manager.repo_root), checkout,
+                ],
+                [
+                    "git", "clone", "--no-local", "--no-checkout",
+                    str(manager.repo_root), checkout,
+                ],
+                [
+                    "git", "-C", checkout, "checkout", "--detach",
+                    manager.identity.main_commit,
+                ],
+            ],
+            commands,
+        )
+        self.assertEqual(commands[0][-1], commands[1][-1])
+        self.assertEqual(commands[0][-1], commands[2][2])
+        self.assertFalse(manager.is_ready())
+        self.assertFalse(manager.snapshot_dir.exists())
+        self.assertEqual([], list(manager.runtime_dir.rglob("READY")))
+        failures = list((self.runtime / "cache" / "failures").iterdir())
+        self.assertEqual(len(failures), 1)
+        retained = failures[0]
+        self.assertFalse((retained / "READY").exists())
+        log = (retained / "build.log").read_text(encoding="utf-8")
+        self.assertIn("Invalid cross-device link", log)
+        self.assertIn("retrying --no-local", log)
+        self.assertIn("detached checkout failed", log)
+        failure = json.loads((retained / "failure.json").read_text(encoding="utf-8"))
+        self.assertIsNone(failure["mathlib_source"])
+
     def test_warm_hits_then_seed_is_private_and_writable(self) -> None:
         manager = self.manager()
         calls: list[list[str]] = []
