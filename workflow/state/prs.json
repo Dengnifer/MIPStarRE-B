@@ -5,7 +5,7 @@
     {
       "id": "LPR-001",
       "title": "fix(reference): bound acquisition and fallback transport",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-010"
       ],
@@ -201,10 +201,10 @@
           "line": 279
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "65315213d047d9181804ad74d573f533c904ef4f",
+      "merged_at": "2026-08-31T09:50:50.673317Z",
       "created_at": "2026-08-30T17:33:51.133961Z",
-      "updated_at": "2026-08-31T09:43:18.605710Z",
+      "updated_at": "2026-08-31T09:50:50.673317Z",
       "changed_paths": [
         "scripts/reference_transport.py",
         "tests/test_reference_transport.py",
@@ -225,7 +225,7 @@
     {
       "id": "LPR-002",
       "title": "feat(reference): pin and split QPBT sources",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-002"
       ],
@@ -445,8 +445,8 @@
           "line": 1498
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "65315213d047d9181804ad74d573f533c904ef4f",
+      "merged_at": "2026-08-31T09:50:54.877406Z",
       "created_at": "2026-08-30T18:31:13.092017Z",
       "changed_paths": [
         "scripts/reference_source.py",
@@ -666,7 +666,7 @@
         "materialized_files": 39,
         "label_occurrences": 646
       },
-      "updated_at": "2026-08-30T23:00:59Z"
+      "updated_at": "2026-08-31T09:50:54.877406Z"
     },
     {
       "id": "LPR-003",
@@ -771,7 +771,7 @@
     {
       "id": "LPR-004",
       "title": "docs(blueprint): formalize the QPBT dependency graph",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-003",
         "QPBT-009"
@@ -1051,10 +1051,10 @@
           "line": 213
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "65315213d047d9181804ad74d573f533c904ef4f",
+      "merged_at": "2026-08-31T09:51:01.660952Z",
       "created_at": "2026-08-30T19:42:43.086279Z",
-      "updated_at": "2026-08-30T23:38:52Z",
+      "updated_at": "2026-08-31T09:51:01.660952Z",
       "changed_paths": [
         "blueprint/.gitignore",
         "blueprint/Makefile",

@@ -1332,3 +1332,9 @@
 {"schema_version":1,"timestamp":"2026-08-31T09:41:10.943378Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
 {"schema_version":1,"timestamp":"2026-08-31T09:42:30.770830Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
 {"schema_version":1,"timestamp":"2026-08-31T09:43:18.653451Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"approved","id":"LPR-001"}}
+{"schema_version":1,"timestamp":"2026-08-31T09:50:29.414285Z","event":"record.updated","actor":"local","pid":2547244,"payload":{"kind":"pr","id":"LPR-001","fields":["integration_sha"]}}
+{"schema_version":1,"timestamp":"2026-08-31T09:50:34.705337Z","event":"record.updated","actor":"local","pid":2547302,"payload":{"kind":"pr","id":"LPR-002","fields":["integration_sha"]}}
+{"schema_version":1,"timestamp":"2026-08-31T09:50:40.034311Z","event":"record.updated","actor":"local","pid":2547360,"payload":{"kind":"pr","id":"LPR-004","fields":["integration_sha"]}}
+{"schema_version":1,"timestamp":"2026-08-31T09:50:50.722532Z","event":"record.transitioned","actor":"local","pid":2547501,"payload":{"kind":"pr","status":"merged","id":"LPR-001"}}
+{"schema_version":1,"timestamp":"2026-08-31T09:50:54.926148Z","event":"record.transitioned","actor":"local","pid":2547627,"payload":{"kind":"pr","status":"merged","id":"LPR-002"}}
+{"schema_version":1,"timestamp":"2026-08-31T09:51:01.710565Z","event":"record.transitioned","actor":"local","pid":2547709,"payload":{"kind":"pr","status":"merged","id":"LPR-004"}}

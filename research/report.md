@@ -23,7 +23,7 @@ retained only locally.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 57 terminal sessions plus 1 retained issued attempt; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local immutable review approved; endpoint-dependent transport gate remains |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 239 total issued attempts (238 non-coordinator); 110 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; three immutable integration audits ran concurrently, and an orphaned issued lease was explicitly recovered |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 239 total issued attempts (238 non-coordinator); 110 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; approved source/blueprint ranges integrated at `65315213`; three immutable integration audits ran concurrently |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
@@ -780,8 +780,11 @@ ranges in dependency order (`LPR-001 -> LPR-002 -> LPR-004`) without conflicts.
 Its combined disposable tree passed the 49-test transport suite, 49-test
 source suite, 26 blueprint tests, source-root verification (39 files/646
 labels), 45-page PDF geometry, 285-test aggregate checker, compileall, and
-diff hygiene. Canonical integration is still serialized after this evidence;
-the endpoint-specific QPBT-010 review disposition remains an explicit gate.
+diff hygiene. The ranges are now integrated on canonical main at
+`65315213d047d9181804ad74d573f533c904ef4f` (tree
+`a65bd1bd6f2fa5191d099897ad02ee64b964dd04`), and all three PR records carry
+that immutable integration SHA. The endpoint-specific QPBT-010 review
+disposition remains an explicit gate.
 
 The coordinator interruption at 2026-08-31 07:30 UTC terminated two earlier
 QPBT-020 workers before they could publish evidence. `INC-040` records the
