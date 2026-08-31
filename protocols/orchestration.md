@@ -27,6 +27,30 @@ mathematical or operational result, not merely "cleanup", "phase", or
 Run `python3 scripts/workflow.py ready` to compute dispatchable work rather than
 inferring readiness from list order.
 
+For session admission, use `python3 scripts/workflow.py dispatch` with an
+explicit capacity. The legacy `issue-session` command is a single-session
+wrapper around this planner and also requires that capacity; it cannot bypass
+the admission checks. The dispatcher holds the workflow lock while it checks issue
+dependencies, stage membership, active non-coordinator sessions, and writable
+path ownership. The explicit capacity is an aggregate ceiling across all
+backends in the selected local scope. Candidate IDs are sorted; capacity
+exhaustion is reported as a queued result and dependency or ownership failures
+as blocked results. A capacity-only wave atomically issues the sorted available
+prefix and leaves the remainder planned; any blocked selected member leaves the
+requested batch untouched. `--dry-run` performs the same checks without writing
+state. Cross-candidate materialization conflicts are checked for the admitted
+prefix and queued rows are revalidated on a later attempt; ownership conflicts
+are checked across the whole selected set. The result's `request_atomic` and
+`blocked_batch_unchanged` fields identify the transaction boundary explicitly.
+The stage
+ledger's `max_concurrency` field is an observed metric, not a substitute for the
+explicit dispatch capacity.
+Dispatch capacity does not relax the hot-main cache singleton: Lean/Lake work
+still waits for the one elected builder for a cache key. The currently observed
+four collaboration slots are an environment fact, not a universal default;
+pass the measured limit for the active backend and fail closed when it is not
+known.
+
 ## One orchestrator per issue
 
 The coordinator dispatches exactly one orchestrator for each implementation

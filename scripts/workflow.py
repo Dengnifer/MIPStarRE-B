@@ -60,6 +60,38 @@ PR_STATUSES = {
 SESSION_STATUSES = {"issued", "running", "finished", "failed", "archived"}
 STAGE_STATUSES = {"planned", "in_progress", "completed", "blocked"}
 ACTIVE_SESSION_STATUSES = {"issued", "running"}
+# ``max_concurrency`` in the stage ledger is a historical observation.  Dispatch
+# admission receives its limit explicitly so an observed value is never treated
+# as an authority by accident.
+DISPATCHABLE_ISSUE_STATUSES = {"planned", "ready", "in_progress", "review"}
+COORDINATOR_ROLE = "coordinator"
+DISPATCH_IMMUTABLE_FIELDS = {
+    "name",
+    "backend",
+    "role",
+    "issue_id",
+    "pr_id",
+    "parent_session_id",
+    "attempt",
+    "read_only",
+    "base_revision",
+    "base_revision_reason",
+    "worktree",
+    "owned_paths",
+    "validation_command",
+    "result_envelope_path",
+}
+DISPATCH_SET_ONCE_FIELDS = {
+    "external_id",
+    "started_at",
+    "ended_at",
+    "elapsed_seconds",
+    "timing_quality",
+    "timing_bounds",
+    "token_usage",
+    "archive_status",
+    "outcome_path",
+}
 ARCHIVE_STATUSES = {
     "active",
     "not_requested",
@@ -1409,6 +1441,42 @@ def atomic_write_json(path: Path, value: Any) -> None:
         temporary_path.unlink(missing_ok=True)
 
 
+def _atomic_write_bytes(path: Path, value: bytes) -> None:
+    """Replace a file with exact bytes and make the rename durable."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    file_descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(file_descriptor, "wb") as stream:
+            stream.write(value)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_path, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _fsync_directory(path: Path) -> None:
+    """Best-effort directory barrier used when restoring a transaction."""
+
+    try:
+        directory_fd = os.open(path, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
 class WorkflowStore:
     """Concurrency-safe access to the local workflow ledgers."""
 
@@ -1476,10 +1544,19 @@ class WorkflowStore:
             self.append_event("workflow.initialized", {"created": created}, lock_held=True)
         return created
 
-    def append_event(self, event: str, payload: Mapping[str, Any], *, lock_held: bool = False) -> None:
+    def append_event(
+        self,
+        event: str,
+        payload: Mapping[str, Any],
+        *,
+        lock_held: bool = False,
+        timestamp: str | None = None,
+    ) -> None:
+        if timestamp is not None and _timestamp_value(timestamp) is None:
+            raise WorkflowError("event timestamp must be a timezone-aware ISO-8601 value")
         envelope = {
             "schema_version": SCHEMA_VERSION,
-            "timestamp": utc_now(),
+            "timestamp": timestamp or utc_now(),
             "event": event,
             "actor": os.environ.get("WORKFLOW_ACTOR", "local"),
             "pid": os.getpid(),
@@ -1502,6 +1579,75 @@ class WorkflowStore:
             with self._lock(exclusive=True):
                 write()
 
+    def _batch_event_timestamp(self) -> str:
+        """Return one timestamp that cannot move before the existing log tail."""
+
+        # Keep this helper fail-closed even when called outside dispatch_sessions.
+        validate_event_log(self.events_path)
+        current_text = utc_now()
+        current = _timestamp_value(current_text)
+        if current is None or not self.events_path.exists():
+            return current_text
+        latest: dt.datetime | None = None
+        try:
+            with self.events_path.open("r", encoding="utf-8") as stream:
+                for line in stream:
+                    try:
+                        value = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    timestamp = _timestamp_value(value.get("timestamp")) if isinstance(value, dict) else None
+                    if timestamp is not None and (latest is None or timestamp > latest):
+                        latest = timestamp
+        except OSError:
+            return current_text
+        if latest is not None and current < latest:
+            return latest.isoformat().replace("+00:00", "Z")
+        return current_text
+
+    def _restore_dispatch_transaction(
+        self,
+        *,
+        sessions_path: Path,
+        sessions_bytes: bytes,
+        events_existed: bool,
+        events_offset: int,
+        events_bytes: bytes | None,
+    ) -> None:
+        """Restore the exact pre-dispatch files after a failed append.
+
+        The normal path only needs to truncate the append-only event file back
+        to its captured offset.  The byte snapshot is a defensive fallback for
+        an injected writer that removes or rewrites the file before raising.
+        """
+
+        _atomic_write_bytes(sessions_path, sessions_bytes)
+        if not events_existed:
+            try:
+                self.events_path.unlink()
+            except FileNotFoundError:
+                pass
+            _fsync_directory(self.events_path.parent)
+            return
+        try:
+            with self.events_path.open("r+b") as stream:
+                stream.truncate(events_offset)
+                stream.flush()
+                os.fsync(stream.fileno())
+            _fsync_directory(self.events_path.parent)
+        except OSError:
+            if events_bytes is None:
+                raise
+            _atomic_write_bytes(self.events_path, events_bytes)
+            return
+        if events_bytes is not None:
+            try:
+                current = self.events_path.read_bytes()
+            except OSError:
+                current = None
+            if current != events_bytes:
+                _atomic_write_bytes(self.events_path, events_bytes)
+
     def mutate(
         self,
         filename: str,
@@ -1520,6 +1666,132 @@ class WorkflowStore:
             atomic_write_json(self.state_dir / filename, changed_document)
             self.append_event(event, payload, lock_held=True)
             return result
+
+    def dispatch_sessions(
+        self,
+        *,
+        capacity: int | None,
+        stage_id: str | None = None,
+        session_ids: Sequence[str] | None = None,
+        session_overrides: Mapping[str, Mapping[str, Any]] | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Plan and atomically issue the available session prefix.
+
+        The planner is evaluated while holding the same exclusive lock used by
+        all other state mutations.  A batch with a blocked member is left
+        untouched.  When only capacity is exhausted, the deterministic available
+        prefix is issued as one atomic transaction and the remainder stays
+        planned.  Callers can use ``dry_run`` to inspect the queue without a
+        write.
+        """
+
+        with self._lock(exclusive=True):
+            documents = self.load()
+            validate_documents(documents)
+            # An invalid or reverse-chronological history must never receive a
+            # new event.  This check also makes the timestamp guard's input
+            # trustworthy before any ledger replacement occurs.
+            validate_event_log(self.events_path, documents)
+            plan = plan_dispatch(
+                documents,
+                capacity=capacity,
+                stage_id=stage_id,
+                session_ids=session_ids,
+                session_overrides=session_overrides,
+            )
+            # A blocked candidate invalidates the requested batch.  Capacity-only
+            # queueing is different: issue the deterministic available prefix as
+            # one atomic transaction and leave the remainder planned.
+            if dry_run or plan["status"] == "blocked" or not plan["dispatchable"]:
+                plan["dry_run"] = dry_run
+                plan["issued"] = []
+                return plan
+
+            selected_ids = list(plan["dispatchable"])
+            overrides = dict(session_overrides or {})
+            planned_by_id = {
+                session["id"]: session
+                for session in documents["sessions.json"]["planned"]
+            }
+            issued = copy.deepcopy(documents["sessions.json"]["issued"])
+            batch_timestamp = self._batch_event_timestamp()
+            materialized = [
+                _dispatch_record(planned_by_id[session_id], overrides.get(session_id))
+                for session_id in selected_ids
+            ]
+            remaining_planned = [
+                session
+                for session in documents["sessions.json"]["planned"]
+                if session["id"] not in set(selected_ids)
+            ]
+            documents["sessions.json"] = {
+                **documents["sessions.json"],
+                "planned": remaining_planned,
+                "issued": issued + materialized,
+            }
+            # Revalidate the complete cross-file snapshot before replacing the
+            # sessions document; no member of the admitted prefix can be partial.
+            validate_documents(documents)
+            sessions_path = self.state_dir / "sessions.json"
+            sessions_bytes = sessions_path.read_bytes()
+            events_existed = self.events_path.exists()
+            events_offset = self.events_path.stat().st_size if events_existed else 0
+            events_bytes = self.events_path.read_bytes() if events_existed else None
+            try:
+                atomic_write_json(sessions_path, documents["sessions.json"])
+                for session_id in selected_ids:
+                    self.append_event(
+                        "session.issued",
+                        {
+                            "session_id": session_id,
+                            "dispatch_capacity": plan["capacity"],
+                            "dispatch_capacity_scope": plan["capacity_scope"],
+                            "dispatch_backend_scope": plan["backend_scope"],
+                            "dispatch_stage_id": stage_id,
+                            "dispatch_batch_timestamp": batch_timestamp,
+                        },
+                        lock_held=True,
+                        timestamp=batch_timestamp,
+                    )
+                self.append_event(
+                    "sessions.dispatched",
+                    {
+                        "session_ids": selected_ids,
+                        "capacity": plan["capacity"],
+                        "capacity_scope": plan["capacity_scope"],
+                        "backend_scope": plan["backend_scope"],
+                        "active_non_coordinator": plan["active_non_coordinator"],
+                        "stage_id": stage_id,
+                        "admitted_session_ids": selected_ids,
+                        "queued_session_ids": [item["id"] for item in plan["queued"]],
+                        "atomic_batch": True,
+                        "request_atomic": True,
+                        "blocked_batch_unchanged": False,
+                        "all_or_nothing_request": not bool(plan["queued"]),
+                    },
+                    lock_held=True,
+                    timestamp=batch_timestamp,
+                )
+                # Check the post-append lifecycle while the lock is still held;
+                # an injected or malformed writer is handled by the rollback.
+                validate_event_log(self.events_path, documents)
+            except Exception:
+                self._restore_dispatch_transaction(
+                    sessions_path=sessions_path,
+                    sessions_bytes=sessions_bytes,
+                    events_existed=events_existed,
+                    events_offset=events_offset,
+                    events_bytes=events_bytes,
+                )
+                raise
+            plan["status"] = "issued"
+            plan["dry_run"] = False
+            plan["issued"] = selected_ids
+            plan["atomic_batch"] = True
+            plan["request_atomic"] = True
+            plan["all_or_nothing"] = not bool(plan["queued"])
+            return plan
 
 
 def dependency_ready_issues(documents: Mapping[str, Any], *, stage_id: str | None = None) -> list[dict[str, Any]]:
@@ -1546,6 +1818,454 @@ def dependency_ready_issues(documents: Mapping[str, Any], *, stage_id: str | Non
         if all(issue_by_id[dependency]["status"] == "done" for dependency in issue["dependency_ids"]):
             ready.append(copy.deepcopy(issue))
     return sorted(ready, key=lambda issue: issue["id"])
+
+
+def _dispatch_capacity(capacity: int | None) -> int:
+    """Validate the explicit admission limit used by a dispatch attempt."""
+
+    if capacity is None:
+        raise WorkflowError(
+            "dispatch capacity is unknown; pass an explicit non-negative integer"
+        )
+    if not _is_int(capacity) or capacity < 0:
+        raise WorkflowError("dispatch capacity must be a non-negative integer")
+    return capacity
+
+
+def _issue_stage_membership(documents: Mapping[str, Any]) -> dict[str, list[str]]:
+    """Return the stage IDs containing each issue, in deterministic order."""
+
+    membership: dict[str, list[str]] = {}
+    for stage in documents["stages.json"]["stages"]:
+        stage_id = stage["id"]
+        for issue_id in stage["issue_ids"]:
+            membership.setdefault(issue_id, []).append(stage_id)
+    for issue_ids in membership.values():
+        issue_ids.sort()
+    return membership
+
+
+def _known_stage(documents: Mapping[str, Any], stage_id: str | None) -> None:
+    if stage_id is None:
+        return
+    if not any(stage.get("id") == stage_id for stage in documents["stages.json"]["stages"]):
+        raise WorkflowError(f"unknown stage {stage_id!r}")
+
+
+def active_non_coordinator_count(
+    documents: Mapping[str, Any], *, stage_id: str | None = None
+) -> int:
+    """Count active issued/running sessions, excluding coordinator sessions.
+
+    A stage-scoped count follows the issue-to-stage mapping rather than adding a
+    second stage field to session authority records.  The mapping must therefore
+    be unambiguous for callers that use a stage capacity.  Counts include every
+    backend; an explicit capacity is the aggregate ceiling for the selected
+    local scope, not a per-backend quota.
+    """
+
+    validate_documents(documents)
+    _known_stage(documents, stage_id)
+    membership = _issue_stage_membership(documents)
+    count = 0
+    for session in documents["sessions.json"]["issued"]:
+        if session.get("status") not in ACTIVE_SESSION_STATUSES:
+            continue
+        if session.get("role") == COORDINATOR_ROLE:
+            continue
+        if stage_id is not None:
+            mapped_stages = membership.get(session.get("issue_id"), [])
+            if len(mapped_stages) > 1:
+                raise WorkflowError(
+                    f"active session {session.get('id')!r} has ambiguous stage mapping"
+                )
+            if not mapped_stages or stage_id not in mapped_stages:
+                continue
+        count += 1
+    return count
+
+
+def _dispatch_record(
+    planned: Mapping[str, Any],
+    override: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Construct an issued candidate without mutating the planned row."""
+
+    record = copy.deepcopy(dict(planned))
+    if override:
+        if override.get("id", record.get("id")) != record.get("id"):
+            raise WorkflowError(
+                f"dispatch override for {record.get('id')!r} changes immutable id"
+            )
+        if "status" in override and override["status"] not in {"planned", "issued"}:
+            raise WorkflowError(
+                f"dispatch override for {record.get('id')!r} has invalid status"
+            )
+        for field in DISPATCH_IMMUTABLE_FIELDS:
+            if field in override and field in record and override[field] != record[field]:
+                raise WorkflowError(
+                    f"dispatch override for {record.get('id')!r} changes immutable field {field!r}"
+                )
+        for field in DISPATCH_SET_ONCE_FIELDS:
+            if (
+                field in override
+                and field in record
+                and record[field] is not None
+                and override[field] != record[field]
+            ):
+                raise WorkflowError(
+                    f"dispatch override for {record.get('id')!r} rewrites set-once field {field!r}"
+                )
+        record.update(copy.deepcopy(dict(override)))
+    record["status"] = "issued"
+    return record
+
+
+def _ownership_claims(record: Mapping[str, Any]) -> tuple[list[tuple[str, tuple[str, ...], str]], str | None]:
+    """Normalize a writable record's path claims for dispatch conflict checks."""
+
+    if record.get("read_only") is True:
+        return [], None
+    worktree = record.get("worktree")
+    owned_paths = record.get("owned_paths")
+    if not isinstance(worktree, str) or not worktree.strip():
+        return [], "missing-worktree"
+    if not isinstance(owned_paths, list) or not owned_paths:
+        return [], "missing-owned-paths"
+    claims: list[tuple[str, tuple[str, ...], str]] = []
+    for owned_path in owned_paths:
+        if not isinstance(owned_path, str):
+            return [], "invalid-owned-path"
+        parts = _owned_path_parts(worktree, owned_path)
+        if parts is None:
+            return [], "invalid-owned-path"
+        claims.append((_ownership_scope(worktree, owned_path), parts, owned_path))
+    return claims, None
+
+
+def _candidate_validation_errors(
+    documents: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+    *,
+    ignore_active_ownership: bool = False,
+) -> list[str]:
+    """Validate one materialized candidate against an otherwise valid snapshot."""
+
+    candidate_documents = copy.deepcopy(documents)
+    planned = candidate_documents["sessions.json"]["planned"]
+    candidate_documents["sessions.json"]["planned"] = [
+        row for row in planned if row.get("id") != candidate.get("id")
+    ]
+    candidate_documents["sessions.json"]["issued"].append(copy.deepcopy(dict(candidate)))
+    try:
+        validate_documents(candidate_documents)
+    except ValidationError as error:
+        errors = list(error.errors)
+        if ignore_active_ownership:
+            errors = [
+                detail
+                for detail in errors
+                if "active writable ownership overlap" not in detail
+            ]
+        return sorted(errors)
+    return []
+
+
+def _batch_validation_errors(
+    documents: Mapping[str, Any],
+    candidates: Sequence[Mapping[str, Any]],
+) -> list[str]:
+    """Validate all candidates together before an atomic batch replacement."""
+
+    if not candidates:
+        return []
+    candidate_documents = copy.deepcopy(documents)
+    candidate_ids = {candidate.get("id") for candidate in candidates}
+    candidate_documents["sessions.json"]["planned"] = [
+        row
+        for row in candidate_documents["sessions.json"]["planned"]
+        if row.get("id") not in candidate_ids
+    ]
+    candidate_documents["sessions.json"]["issued"].extend(
+        copy.deepcopy(dict(candidate)) for candidate in candidates
+    )
+    try:
+        validate_documents(candidate_documents)
+    except ValidationError as error:
+        return sorted(error.errors)
+    return []
+
+
+def plan_dispatch(
+    documents: Mapping[str, Any],
+    *,
+    capacity: int | None,
+    stage_id: str | None = None,
+    session_ids: Sequence[str] | None = None,
+    session_overrides: Mapping[str, Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Plan a deterministic, capacity-bounded dispatch without changing state.
+
+    ``capacity`` is deliberately required at call time.  The stage ledger's
+    historical ``max_concurrency`` value is not consulted as a scheduling limit.
+    Candidates are sorted by session ID; dependency, materialization, and
+    ownership failures are reported as blocked entries, while candidates beyond
+    the available slots are reported as queued entries. Cross-candidate
+    materialization conflicts are checked for the admitted prefix; queued rows
+    are revalidated when they are admitted later.
+    """
+
+    validate_documents(documents)
+    limit = _dispatch_capacity(capacity)
+    _known_stage(documents, stage_id)
+    membership = _issue_stage_membership(documents)
+    issues = {
+        issue["id"]: issue for issue in documents["issues.json"]["issues"]
+    }
+    planned = {
+        session["id"]: session for session in documents["sessions.json"]["planned"]
+    }
+    overrides = dict(session_overrides or {})
+    if any(not isinstance(key, str) or not key.strip() for key in overrides):
+        raise WorkflowError("dispatch override keys must be non-empty session IDs")
+    if any(not isinstance(value, Mapping) for value in overrides.values()):
+        raise WorkflowError("dispatch overrides must map session IDs to objects")
+    unknown_overrides = sorted(set(overrides) - set(planned))
+    if unknown_overrides:
+        raise WorkflowError(
+            "dispatch overrides name unknown planned sessions: "
+            + ", ".join(unknown_overrides)
+        )
+
+    if session_ids is None:
+        selected_ids = sorted(
+            session_id
+            for session_id, session in planned.items()
+            if stage_id is None
+            or stage_id in membership.get(session.get("issue_id"), [])
+        )
+    else:
+        requested = list(session_ids)
+        if any(not isinstance(item, str) or not item.strip() for item in requested):
+            raise WorkflowError("dispatch session IDs must be non-empty strings")
+        if len(requested) != len(set(requested)):
+            raise WorkflowError("dispatch session IDs must be unique")
+        selected_ids = sorted(requested)
+
+    unused_overrides = sorted(set(overrides) - set(selected_ids))
+    if unused_overrides:
+        raise WorkflowError(
+            "dispatch overrides do not target selected planned sessions: "
+            + ", ".join(unused_overrides)
+        )
+
+    blocked: list[dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
+    for session_id in selected_ids:
+        session = planned.get(session_id)
+        if session is None:
+            blocked.append({"id": session_id, "reason": "unknown-planned-session"})
+            continue
+        issue_id = session.get("issue_id")
+        issue = issues.get(issue_id)
+        if issue is None:
+            blocked.append({"id": session_id, "reason": "unknown-issue"})
+            continue
+        stage_membership = membership.get(issue_id, [])
+        if len(stage_membership) > 1:
+            blocked.append(
+                {
+                    "id": session_id,
+                    "reason": "issue-mapped-to-multiple-stages",
+                    "stages": stage_membership,
+                }
+            )
+            continue
+        if stage_id is not None and stage_id not in stage_membership:
+            blocked.append(
+                {"id": session_id, "reason": "issue-not-in-stage", "stage_id": stage_id}
+            )
+            continue
+        if issue.get("status") not in DISPATCHABLE_ISSUE_STATUSES:
+            blocked.append(
+                {
+                    "id": session_id,
+                    "reason": "issue-not-dispatchable",
+                    "issue_status": issue.get("status"),
+                }
+            )
+            continue
+        incomplete = sorted(
+            dependency
+            for dependency in issue.get("dependency_ids", [])
+            if issues[dependency].get("status") != "done"
+        )
+        if incomplete:
+            blocked.append(
+                {
+                    "id": session_id,
+                    "reason": "dependencies-not-done",
+                    "dependencies": incomplete,
+                }
+            )
+            continue
+        try:
+            candidate = _dispatch_record(session, overrides.get(session_id))
+        except WorkflowError as error:
+            blocked.append(
+                {"id": session_id, "reason": "invalid-dispatch-override", "detail": str(error)}
+            )
+            continue
+        errors = _candidate_validation_errors(
+            documents,
+            candidate,
+            ignore_active_ownership=True,
+        )
+        if errors:
+            blocked.append(
+                {
+                    "id": session_id,
+                    "reason": "invalid-issued-record",
+                    "details": errors,
+                }
+            )
+            continue
+        candidates.append(candidate)
+
+    # Check claims before capacity slicing so an ownership violation cannot be
+    # hidden merely because the conflicting candidate happens to be queued.
+    active_claims: list[tuple[str, str, tuple[str, ...]]] = []
+    for session in documents["sessions.json"]["issued"]:
+        if session.get("status") not in ACTIVE_SESSION_STATUSES:
+            continue
+        if session.get("read_only") is True:
+            continue
+        claims, claim_error = _ownership_claims(session)
+        if claim_error is not None:
+            # The complete snapshot has already passed validation; this branch is
+            # defensive and keeps the planner fail-closed if validation evolves.
+            blocked.append(
+                {
+                    "id": session.get("id"),
+                    "reason": "invalid-active-ownership",
+                    "detail": claim_error,
+                }
+            )
+            continue
+        active_claims.extend((str(session["id"]), scope, parts) for scope, parts, _ in claims)
+
+    candidate_claims: dict[str, list[tuple[str, tuple[str, ...]]]] = {}
+    ownership_blocked: set[str] = set()
+    for candidate in candidates:
+        claims, claim_error = _ownership_claims(candidate)
+        if claim_error is not None:
+            blocked.append(
+                {"id": candidate["id"], "reason": claim_error}
+            )
+            ownership_blocked.add(candidate["id"])
+            continue
+        candidate_claims[candidate["id"]] = [(scope, parts) for scope, parts, _ in claims]
+        for owner_id, scope, parts in active_claims:
+            if any(scope == other_scope and _paths_overlap(parts, other_parts) for other_scope, other_parts in candidate_claims[candidate["id"]]):
+                blocked.append(
+                    {
+                        "id": candidate["id"],
+                        "reason": "ownership-conflict",
+                        "with_session_id": owner_id,
+                    }
+                )
+                ownership_blocked.add(candidate["id"])
+                break
+
+    ownership_candidates = [
+        candidate for candidate in candidates if candidate["id"] not in ownership_blocked
+    ]
+    for index, left in enumerate(ownership_candidates):
+        left_claims = candidate_claims.get(left["id"], [])
+        for right in ownership_candidates[index + 1 :]:
+            right_claims = candidate_claims.get(right["id"], [])
+            if any(
+                left_scope == right_scope and _paths_overlap(left_parts, right_parts)
+                for left_scope, left_parts in left_claims
+                for right_scope, right_parts in right_claims
+            ):
+                blocked.extend(
+                    [
+                        {
+                            "id": left["id"],
+                            "reason": "ownership-conflict",
+                            "with_session_id": right["id"],
+                        },
+                        {
+                            "id": right["id"],
+                            "reason": "ownership-conflict",
+                            "with_session_id": left["id"],
+                        },
+                    ]
+                )
+                ownership_blocked.update({left["id"], right["id"]})
+
+    eligible = sorted(
+        [candidate for candidate in ownership_candidates if candidate["id"] not in ownership_blocked],
+        key=lambda candidate: candidate["id"],
+    )
+    active_count = active_non_coordinator_count(documents, stage_id=stage_id)
+    available = max(0, limit - active_count)
+    # Cross-candidate uniqueness is checked only for the admitted prefix.  A
+    # candidate that remains queued is intentionally revalidated on its later
+    # dispatch attempt, so its materialization override cannot poison an
+    # otherwise admissible capacity-one prefix.
+    hypothetical = eligible[:available]
+    batch_errors = _batch_validation_errors(documents, hypothetical)
+    if batch_errors:
+        blocked.extend(
+            {
+                "id": candidate["id"],
+                "reason": "batch-validation-failure",
+                "details": batch_errors,
+            }
+            for candidate in hypothetical
+        )
+        hypothetical = []
+    queued = [
+        {"id": candidate["id"], "reason": "capacity-exhausted"}
+        for candidate in eligible[available:]
+    ]
+    unique_blocked: list[dict[str, Any]] = []
+    seen_blocked: set[str] = set()
+    for entry in blocked:
+        key = json.dumps(entry, ensure_ascii=True, sort_keys=True, default=str)
+        if key not in seen_blocked:
+            seen_blocked.add(key)
+            unique_blocked.append(entry)
+    blocked = sorted(
+        unique_blocked,
+        key=lambda item: (str(item.get("id")), str(item.get("reason")), json.dumps(item, sort_keys=True, default=str)),
+    )
+    status = "empty"
+    if blocked:
+        status = "blocked"
+    elif queued:
+        status = "queued"
+    elif hypothetical:
+        status = "ready"
+    return {
+        "status": status,
+        "capacity": limit,
+        "capacity_scope": "stage" if stage_id is not None else "global",
+        "backend_scope": "all",
+        "stage_id": stage_id,
+        "active_non_coordinator": active_count,
+        "available_capacity": available,
+        "selected_session_ids": selected_ids,
+        "dispatchable": [candidate["id"] for candidate in hypothetical],
+        "queued": queued,
+        "blocked": blocked,
+        "atomic_batch": True,
+        "request_atomic": True,
+        "blocked_batch_unchanged": bool(blocked),
+        "all_or_nothing": not bool(queued) and not bool(blocked),
+    }
 
 
 def _find_record(document: MutableMapping[str, Any], collection: str, record_id: str) -> MutableMapping[str, Any]:
@@ -1686,6 +2406,56 @@ def _load_json_argument(raw: str | None, file_path: str | None) -> dict[str, Any
     return value
 
 
+def _load_dispatch_overrides(
+    raw: str | None,
+    file_path: str | None,
+) -> dict[str, Mapping[str, Any]]:
+    """Load per-session materialization fields for a dispatch batch.
+
+    The accepted shape is either ``{"session-id": {...}}`` or a list of
+    objects carrying an ``id`` field.  Keeping this input separate from the
+    planned ledger lets the coordinator review authority fields before issue.
+    """
+
+    if raw is None and file_path is None:
+        return {}
+    if raw is not None and file_path is not None:
+        raise WorkflowError("provide at most one of --overrides-json or --overrides-file")
+    try:
+        if raw is not None:
+            value = json.loads(raw)
+        else:
+            with Path(file_path).open("r", encoding="utf-8") as stream:  # type: ignore[arg-type]
+                value = json.load(stream)
+    except (OSError, json.JSONDecodeError) as error:
+        raise WorkflowError(f"could not load dispatch overrides: {error}") from error
+
+    if isinstance(value, dict):
+        # A single full record is convenient for one-session invocations; a
+        # keyed object is the unambiguous batch form.
+        if isinstance(value.get("id"), str):
+            record_id = value["id"]
+            return {record_id: value}
+        entries = value.items()
+        result: dict[str, Mapping[str, Any]] = {}
+        for key, item in entries:
+            if not isinstance(key, str) or not isinstance(item, dict):
+                raise WorkflowError("dispatch overrides must map session IDs to objects")
+            result[key] = item
+        return result
+    if isinstance(value, list):
+        result = {}
+        for item in value:
+            if not isinstance(item, dict) or not isinstance(item.get("id"), str):
+                raise WorkflowError("dispatch override lists require object entries with string id")
+            record_id = item["id"]
+            if record_id in result:
+                raise WorkflowError(f"duplicate dispatch override for {record_id!r}")
+            result[record_id] = item
+        return result
+    raise WorkflowError("dispatch overrides must be an object or list")
+
+
 def _elapsed_seconds(started_at: Any, ended_at: str) -> float | None:
     if not isinstance(started_at, str):
         return None
@@ -1779,11 +2549,54 @@ def build_parser() -> argparse.ArgumentParser:
     transition.add_argument("status")
 
     issue_session = subparsers.add_parser(
-        "issue-session", help="atomically move a planned session into the issued ledger"
+        "issue-session",
+        help="capacity-gated compatibility wrapper for dispatching one planned session",
     )
     issue_session.add_argument("id", help="planned session id")
+    issue_session.add_argument(
+        "--capacity",
+        required=True,
+        type=int,
+        help="explicit active non-coordinator session capacity (required)",
+    )
+    issue_session.add_argument("--stage", help="optional stage scope for the dispatch")
     issue_session.add_argument("--json")
     issue_session.add_argument("--file")
+
+    dispatch = subparsers.add_parser(
+        "dispatch",
+        help="plan and atomically issue a capacity-bounded session batch",
+    )
+    dispatch.add_argument(
+        "--capacity",
+        required=True,
+        type=int,
+        help="explicit active non-coordinator session capacity (required)",
+    )
+    dispatch.add_argument("--stage", help="scope capacity and candidates to one stage")
+    dispatch.add_argument(
+        "--session-id",
+        action="append",
+        dest="session_ids",
+        help="planned session ID (repeatable; defaults to all planned sessions)",
+    )
+    dispatch.add_argument(
+        "--overrides-json",
+        "--json",
+        dest="overrides_json",
+        help="JSON object/list supplying materialization fields for planned sessions",
+    )
+    dispatch.add_argument(
+        "--overrides-file",
+        "--file",
+        dest="overrides_file",
+        help="file containing dispatch overrides JSON",
+    )
+    dispatch.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="return the deterministic plan without issuing sessions",
+    )
     return parser
 
 
@@ -1899,23 +2712,25 @@ def run_cli(arguments: argparse.Namespace) -> Any:
         )
     if arguments.command == "issue-session":
         additions = _load_json_argument(arguments.json, arguments.file)
-
-        def issue_planned(document: MutableMapping[str, Any]) -> dict[str, Any]:
-            planned_record = _find_record(document, "planned", arguments.id)
-            issued_record = copy.deepcopy(planned_record)
-            issued_record.update(additions)
-            if issued_record.get("id") != arguments.id:
-                raise WorkflowError("issued session id must match the planned session id")
-            issued_record["status"] = "issued"
-            document["planned"] = [item for item in document["planned"] if item.get("id") != arguments.id]
-            document["issued"].append(issued_record)
-            return issued_record
-
-        return store.mutate(
-            "sessions.json",
-            "session.issued",
-            {"session_id": arguments.id},
-            issue_planned,
+        if not isinstance(additions, Mapping):
+            raise WorkflowError("issue-session additions must be a JSON object")
+        return store.dispatch_sessions(
+            capacity=arguments.capacity,
+            stage_id=arguments.stage,
+            session_ids=[arguments.id],
+            session_overrides={arguments.id: additions},
+        )
+    if arguments.command == "dispatch":
+        overrides = _load_dispatch_overrides(
+            arguments.overrides_json,
+            arguments.overrides_file,
+        )
+        return store.dispatch_sessions(
+            capacity=arguments.capacity,
+            stage_id=arguments.stage,
+            session_ids=arguments.session_ids,
+            session_overrides=overrides,
+            dry_run=arguments.dry_run,
         )
     raise WorkflowError(f"unsupported command {arguments.command!r}")
 

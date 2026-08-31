@@ -1,5 +1,32 @@
 # Protocol Changelog
 
+## 0.1.5 - 2026-08-31
+
+QPBT-019 adds a locked, capacity-aware dispatch boundary for local session
+creation. The explicit `dispatch --capacity N` limit is compared with active
+non-coordinator `issued`/`running` sessions; planned IDs are sorted and
+reported across all backends in the selected local scope as dispatchable,
+queued, or blocked after dependency, stage, and writable-path
+checks. Capacity-only queueing issues the sorted available prefix atomically and
+leaves the remainder planned; any blocked selected member leaves the requested
+batch unchanged. Cross-candidate materialization checks apply to the admitted
+prefix; queued rows are revalidated on a later attempt, while ownership checks
+remain conservative across the selected set. `--dry-run` has no state effect.
+The stage `max_concurrency` counter remains an observed metric. Capacity does
+not permit parallel Lean/Lake builds: callers still wait for the singleton
+hot-main cache builder. The four-slot collaboration ceiling is recorded only as
+the current environment observation, never as a hard-coded default.
+
+Focused dispatch regressions cover explicit/unknown capacity, coordinator
+exclusion, deterministic queue and block reasons, cross-candidate validation,
+ownership conflicts, dry-run behavior, and atomic event/state updates.
+The legacy `issue-session` command now routes through the same planner and
+requires an explicit capacity, so authority-changing additions cannot bypass
+dependency, ownership, or admission checks.
+The writer snapshots the sessions bytes and event offset and rolls both back
+when an event append or post-append audit fails; crash-recovery journaling is
+deferred to QPBT-020.
+
 ## 0.1.4 - 2026-08-31
 
 The first full-tree staging attempt after A14's approval failed

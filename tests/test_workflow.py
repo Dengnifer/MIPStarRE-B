@@ -95,6 +95,38 @@ def issued_session(
     }
 
 
+def planned_session(
+    session_id: str,
+    *,
+    issue_id: str = "QPBT-002",
+    role: str = "reviewer",
+    read_only: bool = True,
+    worktree: str = "/tmp/qpbt-worktree",
+    owned_paths: list[str] | None = None,
+) -> dict[str, object]:
+    """Build a complete planned row suitable for dispatch materialization."""
+
+    if owned_paths is None:
+        owned_paths = [] if read_only else ["MIPStarRE/QPBT/Test.lean"]
+    record = issued_session(
+        session_id,
+        issue_id=issue_id,
+        role=role,
+        status="issued",
+        read_only=read_only,
+        owned_paths=owned_paths,
+        started_at=None,
+        ended_at=None,
+        elapsed_seconds=None,
+    )
+    record["worktree"] = worktree
+    record["status"] = "planned"
+    record["external_id"] = None
+    record["archive_status"] = "not_requested"
+    record["outcome_path"] = None
+    return record
+
+
 def check_evidence(*, head_sha: str = HEAD_SHA, status: str = "passed") -> dict[str, object]:
     return {
         "id": "check-full-build",
@@ -222,6 +254,243 @@ class WorkflowValidationTests(unittest.TestCase):
         state = documents()
         workflow.validate_documents(state)
         self.assertEqual(["QPBT-002"], [item["id"] for item in workflow.dependency_ready_issues(state)])
+
+    def test_active_non_coordinator_count_excludes_coordinator_and_terminal_sessions(self) -> None:
+        state = documents()
+        coordinator = issued_session(
+            "i001-coordinator-a01-active",
+            issue_id="QPBT-001",
+            role="coordinator",
+            status="running",
+            read_only=False,
+            owned_paths=["workflow/"],
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        active = issued_session(
+            "i002-prover-a01-active",
+            status="running",
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        terminal = issued_session("i002-reviewer-a01-terminal", read_only=True)
+        state["sessions.json"]["issued"] = [coordinator, active, terminal]
+        self.assertEqual(1, workflow.active_non_coordinator_count(state))
+        self.assertEqual(1, workflow.active_non_coordinator_count(state, stage_id="STAGE-01"))
+
+    def test_active_count_is_conservative_across_backends(self) -> None:
+        state = documents()
+        cli_session = issued_session(
+            "i002-prover-a01-cli-active",
+            status="running",
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        collaboration_session = issued_session(
+            "i002-reviewer-a01-collaboration-active",
+            role="reviewer",
+            read_only=True,
+            status="issued",
+            started_at=None,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        collaboration_session["backend"] = "codex-collaboration"
+        state["sessions.json"]["issued"] = [cli_session, collaboration_session]
+        self.assertEqual(2, workflow.active_non_coordinator_count(state))
+        result = workflow.plan_dispatch(state, capacity=2, stage_id="STAGE-01")
+        self.assertEqual("stage", result["capacity_scope"])
+        self.assertEqual("all", result["backend_scope"])
+
+    def test_stage_count_ignores_active_issue_without_stage_mapping(self) -> None:
+        state = documents()
+        unrelated = issued_session(
+            "i001-reviewer-a01-unmapped-active",
+            issue_id="QPBT-001",
+            role="reviewer",
+            read_only=True,
+            status="running",
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        state["sessions.json"]["issued"] = [unrelated]
+        self.assertEqual(1, workflow.active_non_coordinator_count(state))
+        self.assertEqual(0, workflow.active_non_coordinator_count(state, stage_id="STAGE-01"))
+
+    def test_stage_count_fails_closed_on_any_ambiguous_active_mapping(self) -> None:
+        state = documents()
+        duplicate_stage = copy.deepcopy(state["stages.json"]["stages"][0])
+        duplicate_stage["id"] = "STAGE-02"
+        duplicate_stage["issue_ids"] = ["QPBT-001"]
+        state["stages.json"]["stages"][0]["issue_ids"].append("QPBT-001")
+        state["stages.json"]["stages"].append(duplicate_stage)
+        active = issued_session(
+            "i001-reviewer-a01-ambiguous-active",
+            issue_id="QPBT-001",
+            role="reviewer",
+            read_only=True,
+            status="running",
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        state["sessions.json"]["issued"] = [active]
+        with self.assertRaisesRegex(workflow.WorkflowError, "ambiguous stage mapping"):
+            workflow.active_non_coordinator_count(state, stage_id="STAGE-01")
+
+    def test_dispatch_requires_explicit_capacity_and_rejects_invalid_values(self) -> None:
+        state = documents()
+        for capacity in (None, -1, True, 1.5):
+            with self.assertRaises(workflow.WorkflowError):
+                workflow.plan_dispatch(state, capacity=capacity)  # type: ignore[arg-type]
+
+    def test_unknown_capacity_does_not_mask_dag_diagnostics(self) -> None:
+        state = documents()
+        state["issues.json"]["issues"][0]["status"] = "planned"
+        state["issues.json"]["issues"][0]["dependency_ids"] = ["QPBT-002"]
+        state["issues.json"]["issues"][1]["dependency_ids"] = ["QPBT-001"]
+        with self.assertRaisesRegex(workflow.ValidationError, "issue dependencies: cycle detected"):
+            workflow.plan_dispatch(state, capacity=None)
+
+    def test_dispatch_plan_reports_sorted_queue_and_dependency_block(self) -> None:
+        state = documents()
+        blocked_issue = issue("QPBT-003", "planned", ["QPBT-002"])
+        state["issues.json"]["issues"].append(blocked_issue)
+        state["stages.json"]["stages"][0]["issue_ids"].append("QPBT-003")
+        state["sessions.json"]["planned"] = [
+            planned_session("i003-reviewer-a01-blocked", issue_id="QPBT-003"),
+            planned_session("i002-reviewer-a02-queued"),
+            planned_session("i002-reviewer-a01-queued"),
+        ]
+        result = workflow.plan_dispatch(
+            state,
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[
+                "i003-reviewer-a01-blocked",
+                "i002-reviewer-a02-queued",
+                "i002-reviewer-a01-queued",
+            ],
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual(["i002-reviewer-a01-queued"], result["dispatchable"])
+        self.assertEqual(
+            [{"id": "i002-reviewer-a02-queued", "reason": "capacity-exhausted"}],
+            result["queued"],
+        )
+        self.assertEqual("dependencies-not-done", result["blocked"][0]["reason"])
+
+    def test_dispatch_plan_reports_writable_ownership_conflict(self) -> None:
+        state = documents()
+        active = issued_session(
+            "i002-prover-a01-active-owner",
+            status="running",
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+            owned_paths=["MIPStarRE/QPBT/Test.lean"],
+        )
+        state["sessions.json"]["issued"] = [active]
+        state["sessions.json"]["planned"] = [
+            planned_session(
+                "i002-prover-a02-conflict",
+                role="prover",
+                read_only=False,
+                owned_paths=["MIPStarRE/QPBT/Test.lean"],
+            )
+        ]
+        result = workflow.plan_dispatch(state, capacity=2, stage_id="STAGE-01")
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual("ownership-conflict", result["blocked"][0]["reason"])
+        self.assertEqual("i002-prover-a01-active-owner", result["blocked"][0]["with_session_id"])
+
+    def test_dispatch_plan_rejects_cross_candidate_batch_conflict(self) -> None:
+        state = documents()
+        first = planned_session("i002-reviewer-a01-batch-conflict")
+        second = planned_session("i002-reviewer-a02-batch-conflict")
+        state["sessions.json"]["planned"] = [first, second]
+        result = workflow.plan_dispatch(
+            state,
+            capacity=2,
+            session_ids=[first["id"], second["id"]],
+            session_overrides={
+                first["id"]: {"external_id": "shared-external-id"},
+                second["id"]: {"external_id": "shared-external-id"},
+            },
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual(
+            [first["id"], second["id"]],
+            [entry["id"] for entry in result["blocked"]],
+        )
+        self.assertTrue(all(entry["reason"] == "batch-validation-failure" for entry in result["blocked"]))
+
+    def test_queued_cross_candidate_conflict_is_deferred_until_admission(self) -> None:
+        state = documents()
+        first = planned_session("i002-reviewer-a01-queued-conflict")
+        second = planned_session("i002-reviewer-a02-queued-conflict")
+        state["sessions.json"]["planned"] = [first, second]
+        result = workflow.plan_dispatch(
+            state,
+            capacity=1,
+            session_ids=[first["id"], second["id"]],
+            session_overrides={
+                first["id"]: {"external_id": "shared-queued-external-id"},
+                second["id"]: {"external_id": "shared-queued-external-id"},
+            },
+        )
+        self.assertEqual("queued", result["status"])
+        self.assertEqual([first["id"]], result["dispatchable"])
+        self.assertEqual(
+            [{"id": second["id"], "reason": "capacity-exhausted"}],
+            result["queued"],
+        )
+        self.assertEqual([], result["blocked"])
+        self.assertTrue(result["request_atomic"])
+        self.assertFalse(result["all_or_nothing"])
+
+    def test_dispatch_override_cannot_change_planned_authority(self) -> None:
+        state = documents()
+        candidate = planned_session("i002-reviewer-a01-authority")
+        state["sessions.json"]["planned"] = [candidate]
+        result = workflow.plan_dispatch(
+            state,
+            capacity=1,
+            session_ids=[candidate["id"]],
+            session_overrides={candidate["id"]: {"issue_id": "QPBT-001"}},
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual("invalid-dispatch-override", result["blocked"][0]["reason"])
+        self.assertIn("issue_id", result["blocked"][0]["detail"])
+
+    def test_dispatch_override_cannot_retarget_pr_or_rewrite_external_id(self) -> None:
+        state = documents()
+        candidate = planned_session("i002-reviewer-a01-provenance")
+        candidate["pr_id"] = "LPR-001"
+        candidate["external_id"] = "thread-original"
+        state["sessions.json"]["planned"] = [candidate]
+        cases = [
+            ({"pr_id": "LPR-002"}, "pr_id", candidate),
+            (
+                {"external_id": "thread-new"},
+                "external_id",
+                {**candidate, "pr_id": None},
+            ),
+        ]
+        for override, expected, row in cases:
+            state["sessions.json"]["planned"] = [row]
+            result = workflow.plan_dispatch(
+                state,
+                capacity=1,
+                session_ids=[row["id"]],
+                session_overrides={row["id"]: override},
+            )
+            self.assertEqual("blocked", result["status"])
+            self.assertIn(expected, result["blocked"][0]["detail"])
 
     def test_protocol_ledger_requires_the_named_unique_active_revision(self) -> None:
         state = documents()
@@ -568,6 +837,283 @@ class WorkflowStoreTests(unittest.TestCase):
         self.store.validate()
         self.assertFalse(self.runtime.exists())
 
+    def test_dispatch_batch_issues_available_prefix_when_capacity_is_exhausted(self) -> None:
+        first = planned_session("i002-reviewer-a01-batch")
+        second = planned_session("i002-reviewer-a02-batch")
+        state = documents()
+        state["sessions.json"]["planned"] = [second, first]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+
+        queued = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[second["id"], first["id"]],
+        )
+        self.assertEqual("issued", queued["status"])
+        self.assertEqual([first["id"]], queued["issued"])
+        self.assertEqual([first["id"]], queued["dispatchable"])
+        self.assertEqual(
+            [{"id": second["id"], "reason": "capacity-exhausted"}],
+            queued["queued"],
+        )
+        unchanged = self.store.validate()
+        self.assertEqual([second["id"]], [row["id"] for row in unchanged["sessions.json"]["planned"]])
+        self.assertEqual([first["id"]], [row["id"] for row in unchanged["sessions.json"]["issued"]])
+        events = [
+            json.loads(line)
+            for line in self.events.read_text(encoding="utf-8").splitlines()
+            if line
+        ]
+        self.assertFalse(events[-1]["payload"]["all_or_nothing_request"])
+        self.assertTrue(events[-1]["payload"]["atomic_batch"])
+
+    def test_dispatch_batch_issues_sorted_candidates_atomically_and_records_events(self) -> None:
+        first = planned_session("i002-reviewer-a01-batch")
+        second = planned_session("i002-reviewer-a02-batch")
+        state = documents()
+        state["sessions.json"]["planned"] = [second, first]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+
+        issued = self.store.dispatch_sessions(
+            capacity=2,
+            stage_id="STAGE-01",
+            session_ids=[second["id"], first["id"]],
+        )
+        self.assertEqual("issued", issued["status"])
+        self.assertEqual([first["id"], second["id"]], issued["issued"])
+        loaded = self.store.validate()
+        self.assertEqual([], loaded["sessions.json"]["planned"])
+        self.assertEqual(
+            [first["id"], second["id"]],
+            [session["id"] for session in loaded["sessions.json"]["issued"]],
+        )
+        events = [
+            json.loads(line)
+            for line in self.events.read_text(encoding="utf-8").splitlines()
+            if line
+        ]
+        self.assertEqual(
+            [first["id"], second["id"]],
+            [
+                event["payload"]["session_id"]
+                for event in events
+                if event["event"] == "session.issued"
+            ],
+        )
+        issuance_events = [event for event in events if event["event"] == "session.issued"]
+        self.assertEqual(1, len({event["timestamp"] for event in issuance_events}))
+        self.assertEqual("sessions.dispatched", events[-1]["event"])
+        self.assertEqual(issuance_events[0]["timestamp"], events[-1]["timestamp"])
+        self.assertTrue(events[-1]["payload"]["all_or_nothing_request"])
+        self.assertTrue(events[-1]["payload"]["atomic_batch"])
+
+    def test_dispatch_batch_with_blocked_member_leaves_every_candidate_planned(self) -> None:
+        blocked_issue = issue("QPBT-003", "planned", ["QPBT-002"])
+        state = documents()
+        state["issues.json"]["issues"].append(blocked_issue)
+        state["stages.json"]["stages"][0]["issue_ids"].append("QPBT-003")
+        eligible = planned_session("i002-reviewer-a01-eligible")
+        blocked = planned_session("i003-reviewer-a01-blocked", issue_id="QPBT-003")
+        state["sessions.json"]["planned"] = [eligible, blocked]
+        (self.state_dir / "issues.json").write_text(
+            json.dumps(state["issues.json"]), encoding="utf-8"
+        )
+        (self.state_dir / "stages.json").write_text(
+            json.dumps(state["stages.json"]), encoding="utf-8"
+        )
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+
+        result = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[blocked["id"], eligible["id"]],
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual([], result["issued"])
+        self.assertTrue(result["request_atomic"])
+        self.assertTrue(result["blocked_batch_unchanged"])
+        loaded = self.store.validate()
+        self.assertEqual(
+            sorted([blocked["id"], eligible["id"]]),
+            sorted(row["id"] for row in loaded["sessions.json"]["planned"]),
+        )
+        self.assertEqual([], loaded["sessions.json"]["issued"])
+
+    def test_dispatch_dry_run_and_cli_leave_state_unchanged(self) -> None:
+        candidate = planned_session("i002-reviewer-a01-dry-run")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        parser = workflow.build_parser()
+        result = workflow.run_cli(
+            parser.parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "dispatch",
+                    "--capacity",
+                    "1",
+                    "--stage",
+                    "STAGE-01",
+                    "--session-id",
+                    candidate["id"],
+                    "--dry-run",
+                ]
+            )
+        )
+        self.assertEqual("ready", result["status"])
+        self.assertTrue(result["dry_run"])
+        self.assertEqual([], self.store.validate()["sessions.json"]["issued"])
+
+    def test_dispatch_store_rejects_unknown_capacity_without_mutation(self) -> None:
+        candidate = planned_session("i002-reviewer-a01-unknown-capacity")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        before_events = self.events.read_text(encoding="utf-8")
+        with self.assertRaisesRegex(workflow.WorkflowError, "capacity is unknown"):
+            self.store.dispatch_sessions(
+                capacity=None,
+                stage_id="STAGE-01",
+                session_ids=[candidate["id"]],
+            )
+        loaded = self.store.validate()
+        self.assertEqual([candidate["id"]], [row["id"] for row in loaded["sessions.json"]["planned"]])
+        self.assertEqual([], loaded["sessions.json"]["issued"])
+        self.assertEqual(before_events, self.events.read_text(encoding="utf-8"))
+
+    def test_dispatch_rejects_invalid_existing_event_log_without_mutation(self) -> None:
+        candidate = planned_session("i002-reviewer-a01-invalid-history")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        before_sessions = sessions_path.read_bytes()
+
+        self.events.write_text("{bad}\n", encoding="utf-8")
+        before_events = self.events.read_bytes()
+        with self.assertRaises(workflow.ValidationError):
+            self.store.dispatch_sessions(
+                capacity=1,
+                stage_id="STAGE-01",
+                session_ids=[candidate["id"]],
+            )
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+        def event(timestamp: str, name: str) -> str:
+            return json.dumps(
+                {
+                    "schema_version": 1,
+                    "timestamp": timestamp,
+                    "event": name,
+                    "actor": "test",
+                    "pid": 1,
+                    "payload": {},
+                }
+            )
+
+        self.events.write_text(
+            event(REVIEW_ENDED, "later") + "\n" + event(REVIEW_STARTED, "earlier") + "\n",
+            encoding="utf-8",
+        )
+        before_events = self.events.read_bytes()
+        with self.assertRaisesRegex(workflow.ValidationError, "chronological"):
+            self.store.dispatch_sessions(
+                capacity=1,
+                stage_id="STAGE-01",
+                session_ids=[candidate["id"]],
+            )
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_dispatch_rolls_back_state_and_events_when_event_append_fails(self) -> None:
+        candidate = planned_session("i002-reviewer-a01-event-rollback")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+        original_append_event = self.store.append_event
+        calls = 0
+
+        def fail_on_summary(event: str, payload: object, **kwargs: object) -> None:
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise RuntimeError("injected append failure")
+            original_append_event(event, payload, **kwargs)
+
+        self.store.append_event = fail_on_summary  # type: ignore[method-assign]
+        try:
+            with self.assertRaisesRegex(RuntimeError, "injected append failure"):
+                self.store.dispatch_sessions(
+                    capacity=1,
+                    stage_id="STAGE-01",
+                    session_ids=[candidate["id"]],
+                )
+        finally:
+            self.store.append_event = original_append_event  # type: ignore[method-assign]
+        self.assertEqual(2, calls)
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+        loaded = self.store.validate()
+        self.assertEqual([candidate["id"]], [row["id"] for row in loaded["sessions.json"]["planned"]])
+        self.assertEqual([], loaded["sessions.json"]["issued"])
+
+    def test_issue_session_wrapper_honors_capacity_and_authority_checks(self) -> None:
+        candidate = planned_session("i002-reviewer-a01-legacy-wrapper")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        parser = workflow.build_parser()
+
+        queued = workflow.run_cli(
+            parser.parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "issue-session",
+                    candidate["id"],
+                    "--capacity",
+                    "0",
+                    "--json",
+                    "{}",
+                ]
+            )
+        )
+        self.assertEqual("queued", queued["status"])
+        self.assertEqual([], self.store.validate()["sessions.json"]["issued"])
+
+        blocked = workflow.run_cli(
+            parser.parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "issue-session",
+                    candidate["id"],
+                    "--capacity",
+                    "1",
+                    "--json",
+                    json.dumps({"issue_id": "QPBT-001"}),
+                ]
+            )
+        )
+        self.assertEqual("blocked", blocked["status"])
+        self.assertEqual([], self.store.validate()["sessions.json"]["issued"])
+
     def test_atomic_mutation_preserves_metadata_and_appends_event(self) -> None:
         def mutate(document: dict[str, object]) -> None:
             document["issues"][1]["title"] = "updated"
@@ -709,6 +1255,7 @@ class WorkflowStoreTests(unittest.TestCase):
         }
         issued = issued_session(
             session_id,
+            role="reviewer",
             status="issued",
             read_only=True,
             started_at=None,
@@ -728,6 +1275,8 @@ class WorkflowStoreTests(unittest.TestCase):
                 str(self.root),
                 "issue-session",
                 session_id,
+                "--capacity",
+                "1",
                 "--json",
                 json.dumps(issued),
             ]

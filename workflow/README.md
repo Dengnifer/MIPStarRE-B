@@ -27,6 +27,7 @@ python3 scripts/workflow.py add --help
 python3 scripts/workflow.py update --help
 python3 scripts/workflow.py transition --help
 python3 scripts/workflow.py issue-session --help
+python3 scripts/workflow.py dispatch --help
 python3 scripts/hot_main_cache.py status
 python3 scripts/local_agent.py --help
 python3 scripts/bootstrap_manifest.py --help
@@ -37,3 +38,20 @@ integration. The aggregate gate also reconciles canonical event lifecycles,
 incident references, protocol-change evidence, and terminal-session metrics.
 State writes are locked and atomically renamed. Do not hand-edit canonical JSON
 while another coordinator command is active.
+
+`dispatch` is the capacity-aware batch entry point. The legacy `issue-session`
+command is a single-session wrapper around the same planner and also requires
+an explicit capacity. Dispatch requires an explicit
+non-negative `--capacity`; an omitted or unknown limit fails closed. The command
+counts active `issued`/`running` sessions other than `coordinator`, optionally
+across all backends (the explicit limit is an aggregate local ceiling), scoped
+to `--stage` when requested, and sorts planned session IDs before classifying
+them as `dispatchable`, `queued`, or `blocked`. Capacity-only queueing issues the
+available prefix atomically and leaves the remainder planned; a batch containing
+any blocked candidate is left unchanged. Cross-candidate materialization
+conflicts are checked for the admitted prefix; queued rows are revalidated when
+they are admitted. Ownership conflicts are checked across the whole selected
+set. The result's `request_atomic` and `blocked_batch_unchanged` fields make the
+transaction and rollback semantics explicit. Use `--dry-run` to inspect that plan.
+Stage `max_concurrency` remains historical observation data and is not an
+admission limit.
