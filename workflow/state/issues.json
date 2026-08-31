@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 22,
+  "next_sequence": 23,
   "issues": [
     {
       "id": "QPBT-000",
@@ -401,7 +401,8 @@
       "status": "planned",
       "parent_id": "QPBT-005",
       "dependency_ids": [
-        "QPBT-004"
+        "QPBT-004",
+        "QPBT-023"
       ],
       "labels": [
         "lean",
@@ -427,7 +428,7 @@
         "MIPStarRE/QPBT/Basic/Approximation.lean"
       ],
       "created_at": "2026-08-30T23:54:39.078758Z",
-      "updated_at": "2026-08-30T23:54:39.078758Z"
+      "updated_at": "2026-08-31T10:14:49.223511Z"
     },
     {
       "id": "QPBT-014",
@@ -729,6 +730,40 @@
       ],
       "created_at": "2026-08-31T05:55:00Z",
       "updated_at": "2026-08-31T08:01:16.800703Z"
+    },
+    {
+      "id": "QPBT-023",
+      "title": "Freeze QPBT leaf signatures and self-dual basis obligation",
+      "kind": "blueprint",
+      "status": "blocked",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-003"
+      ],
+      "labels": [
+        "blueprint",
+        "paper-gap",
+        "statement-integrity",
+        "leaf-contract"
+      ],
+      "acceptance_gates": [
+        "Freeze callable Lean signatures, imports, universes, finite/decidable instances, carrier domains, distributions, state representations, and return/error types for F01, F03, and F04",
+        "Record a source-anchored paper-gap note and a discharge plan for the self-dual-normal-basis existence obligation in characteristic two without adding a hidden public assumption",
+        "Obtain an independent immutable blueprint contract review",
+        "Blueprint declaration synchronization, graph, source-root, and diff-integrity checks pass"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "references/2001.04383v3/QPBT_SOURCE_MAP.md",
+        "workflow/reviews/stage-04a-q013-leaf-contract.md",
+        "blueprint/metadata/nodes.json#F01-FIELD",
+        "blueprint/metadata/nodes.json#F03-MEASUREMENT",
+        "blueprint/metadata/nodes.json#F04-DISTANCE"
+      ],
+      "created_at": "2026-08-31T10:13:51Z",
+      "updated_at": "2026-08-31T10:15:14.932767Z",
+      "blocked_reason": "The approved blueprint freezes names and carrier policies but omits exact callable signatures and several finite question/distribution/state domains; the pinned Mathlib boundary also lacks a self-dual-normal-basis existence theorem for GaloisField 2 k with odd k.",
+      "unblock_condition": "After QPBT-003 is unblocked, publish exact F01/F03/F04 signatures and imports, document the self-dual-normal-basis proof or a separately tracked internal obligation without changing the paper theorem assumptions, pass an independent immutable contract review, and then allow QPBT-013 dispatch."
     }
   ]
 }

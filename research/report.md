@@ -22,8 +22,8 @@ retained only locally.
 | --- | --- | --- | --- | ---: | --- | --- |
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 57 terminal sessions plus 1 retained issued attempt; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local immutable review approved; endpoint-dependent transport gate remains |
-| 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 239 total issued attempts (238 non-coordinator); 110 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; approved source/blueprint ranges integrated at `65315213`; three immutable integration audits ran concurrently |
+| 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed; QPBT-023 tracks the newly found leaf-contract gap |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 242 total issued attempts (241 non-coordinator); 113 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; approved source/blueprint ranges integrated at `65315213`; three recycled-thread audits ran concurrently on the measured ceiling |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
@@ -760,15 +760,15 @@ ceiling.
 
 ### Current parallel dispatch snapshot
 
-At the latest coordinator checkpoint the ledger contains 239 issued attempts
-(238 non-coordinator), including 110 Stage-4A attempts. The root plus three
+At the latest coordinator checkpoint the ledger contains 242 issued attempts
+(241 non-coordinator), including 113 Stage-4A attempts. The root plus three
 worker threads are the measured four-node collaboration ceiling. The latest
-post-merge wave admitted three independent immutable integration audits
-concurrently for LPR-001, LPR-002, and LPR-004. All three reports are archived,
-the three-way replays report zero conflicts, and there is currently no active
-non-coordinator lease. A stale QPBT-010 endpoint reviewer lease was verified
-process-free and clean, then explicitly failed and archived under `INC-042`,
-releasing one admission slot.
+wave admitted three independent read-only audits concurrently by recycling
+completed worker threads: a QPBT-013 leaf-contract audit, a QPBT-017 cache-
+protocol audit, and a QPBT-004 gate audit. All three reports are archived and
+there is currently no active non-coordinator lease. Recycling retained threads
+preserved their external-session provenance while avoiding the collaboration
+service's completed-thread limit.
 
 The post-merge evidence wave passed the full checker (187 tests in 53.704 s)
 after the three leases were archived. The cache probe remains a miss, so the
@@ -816,6 +816,10 @@ The cache audit confirms that the singleton builder and private seeding locks
 already permit safe bounded fan-out; the CLI audit found no exposed worker
 multiplier. The practical speed-up is therefore three independent analysis or
 review lanes around one serialized hot-main build, not competing Lake builds.
+The QPBT-013 audit additionally found that its leaf writer cannot be admitted
+until exact callable signatures and the self-dual-normal-basis obligation are
+recorded; the QPBT-004 audit found no repair lane and requires a fresh
+current-head review plus authenticated archive inputs before the cache gate.
 The remaining unapproved gates are QPBT-021 (changes requested after its
 aggregate baseline timeout, `INC-038`) and QPBT-018 (draft, awaiting the
 singleton cache gate). QPBT-020's nine recorded findings are resolved by the

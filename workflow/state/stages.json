@@ -95,8 +95,9 @@
       "name": "Lean blueprint",
       "status": "in_progress",
       "issue_ids": [
+        "QPBT-003",
         "QPBT-009",
-        "QPBT-003"
+        "QPBT-023"
       ],
       "started_at": "2026-08-30T19:45:38.627483Z",
       "ended_at": null,
@@ -147,7 +148,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 110,
+      "subagents_issued": 113,
       "max_concurrency": 4,
       "outputs": [
         "research/report.md"
