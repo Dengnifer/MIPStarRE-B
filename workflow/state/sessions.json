@@ -11177,6 +11177,175 @@
       },
       "notes": "Post-QPBT-020 queue remains dependency constrained; source and blueprint payload are still isolated in approved worktrees.",
       "timing_quality": "agent-reported-approximate"
+    },
+    {
+      "id": "i000-auditor-a36-lpr001-integration",
+      "name": "i000-auditor-a36-lpr001-integration",
+      "role": "auditor",
+      "issue_id": "QPBT-000",
+      "attempt": 36,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "backend": "codex-collaboration",
+      "pr_id": "LPR-001",
+      "external_id": "/root/qpbt020_review_a27#logical:i000-auditor-a36-lpr001-integration",
+      "read_only": true,
+      "base_revision": "920e53e8bf978951fff631cc9b3c228d05bc1312",
+      "base_revision_reason": "Read-only immutable integration audit against current main snapshot",
+      "worktree": "/home/drx/MIPStarRE-auto",
+      "owned_paths": [],
+      "validation_command": "read-only inspect LPR-001 immutable base/head/tree and changed paths against current main; produce a conflict-safe integration map; no edits, builds, or network",
+      "result_envelope_path": "workflow/reviews/stage-04a-lpr001-integration.md",
+      "started_at": "2026-08-31T09:28:58.167005Z",
+      "ended_at": "2026-08-31T09:40:21.576001Z",
+      "elapsed_seconds": 683.409,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/stage-04a-lpr001-integration.md",
+      "requested_model": "gpt-5.6-sol",
+      "status": "archived",
+      "outcome": "lpr001-integration-audit-complete",
+      "checks": {
+        "base_sha": "920e53e8bf978951fff631cc9b3c228d05bc1312",
+        "candidate_head": "e93d949d06af2a7f4407d198a37aad315deac6aa",
+        "replay_parent_commits": [
+          "cf43b33b5cd77cb005b90b02b6d369cfbd86d316",
+          "e93d949d06af2a7f4407d198a37aad315deac6aa"
+        ],
+        "reference_tests": {
+          "passed": 49,
+          "failed": 0
+        },
+        "workflow_validate": "passed",
+        "diff_check": "passed",
+        "network": 0,
+        "lean_builds": 0,
+        "lake_builds": 0,
+        "canonical_edits": false
+      },
+      "notes": "Full LPR-001 path-creating history replays cleanly; cherry-picking the repaired tip alone would conflict.",
+      "timing_quality": "agent-reported-approximate"
+    },
+    {
+      "id": "i000-auditor-a37-lpr002-integration",
+      "name": "i000-auditor-a37-lpr002-integration",
+      "role": "auditor",
+      "issue_id": "QPBT-000",
+      "attempt": 37,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "backend": "codex-collaboration",
+      "pr_id": "LPR-002",
+      "external_id": "/root/qpbt021_scout_a29#logical:i000-auditor-a37-lpr002-integration",
+      "read_only": true,
+      "base_revision": "920e53e8bf978951fff631cc9b3c228d05bc1312",
+      "base_revision_reason": "Read-only immutable integration audit against current main snapshot",
+      "worktree": "/home/drx/MIPStarRE-auto",
+      "owned_paths": [],
+      "validation_command": "read-only inspect LPR-002 immutable base/head/tree and source-split changed paths against current main; produce a conflict-safe integration map; no edits, builds, or network",
+      "result_envelope_path": "workflow/reviews/stage-04a-lpr002-integration.md",
+      "started_at": "2026-08-31T09:28:58.895300Z",
+      "ended_at": "2026-08-31T09:40:22.510146Z",
+      "elapsed_seconds": 683.615,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/stage-04a-lpr002-integration.md",
+      "requested_model": "gpt-5.6-sol",
+      "status": "archived",
+      "outcome": "lpr002-integration-audit-complete",
+      "checks": {
+        "base_sha": "920e53e8bf978951fff631cc9b3c228d05bc1312",
+        "candidate_head": "63037ddceada7a88436f9afa9ed1ef4d74319098",
+        "changed_paths": 7,
+        "three_way_conflicts": 0,
+        "source_inventory": {
+          "files": 39,
+          "labels": 646,
+          "inventory_sha256": "04548808c30c476e9b2b7cb2f728a6d0c348a6706a8ed1bc9fb9945f20a124f4"
+        },
+        "transport_tests": {
+          "passed": 49,
+          "failed": 0
+        },
+        "source_tests": {
+          "passed": 49,
+          "failed": 0
+        },
+        "network": 0,
+        "lean_builds": 0,
+        "lake_builds": 0,
+        "canonical_edits": false
+      },
+      "notes": "LPR-002 applies after LPR-001 and preserves the current source-map stub through a clean three-way replay.",
+      "timing_quality": "agent-reported-approximate"
+    },
+    {
+      "id": "i000-auditor-a38-lpr004-integration",
+      "name": "i000-auditor-a38-lpr004-integration",
+      "role": "auditor",
+      "issue_id": "QPBT-000",
+      "attempt": 38,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "backend": "codex-collaboration",
+      "pr_id": "LPR-004",
+      "external_id": "/root/qpbt022_review_a26#logical:i000-auditor-a38-lpr004-integration",
+      "read_only": true,
+      "base_revision": "920e53e8bf978951fff631cc9b3c228d05bc1312",
+      "base_revision_reason": "Read-only immutable integration audit against current main snapshot",
+      "worktree": "/home/drx/MIPStarRE-auto",
+      "owned_paths": [],
+      "validation_command": "read-only inspect LPR-004 immutable base/head/tree and blueprint changed paths against current main; produce a conflict-safe integration map; no edits, builds, or network",
+      "result_envelope_path": "workflow/reviews/stage-04a-lpr004-integration.md",
+      "started_at": "2026-08-31T09:28:59.557532Z",
+      "ended_at": "2026-08-31T09:40:23.407591Z",
+      "elapsed_seconds": 683.85,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/stage-04a-lpr004-integration.md",
+      "requested_model": "gpt-5.6-sol",
+      "status": "archived",
+      "outcome": "lpr004-integration-audit-complete",
+      "checks": {
+        "base_sha": "920e53e8bf978951fff631cc9b3c228d05bc1312",
+        "candidate_head": "3f4d4b302b96b74dffaf595c11ff01db4e6c7fbd",
+        "changed_paths": 39,
+        "three_way_conflicts": 0,
+        "blueprint_tests": {
+          "passed": 26,
+          "failed": 0
+        },
+        "blueprint_check": "passed",
+        "source_root_check": "passed",
+        "pdf": {
+          "pages": 45,
+          "planned_identifiers": 109,
+          "status": "passed"
+        },
+        "aggregate_tests": {
+          "passed": 285,
+          "failed": 0
+        },
+        "compileall": "passed",
+        "network": 0,
+        "lean_builds": 0,
+        "lake_builds": 0,
+        "canonical_edits": false
+      },
+      "notes": "LPR-004 blueprint range is disjoint and replays after the source ranges; combined source-root and PDF gates pass.",
+      "timing_quality": "agent-reported-approximate"
     }
   ]
 }
