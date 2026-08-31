@@ -23,14 +23,14 @@ retained only locally.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 60 terminal sessions plus 1 retained issued attempt; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local immutable review approved; endpoint-dependent transport gate remains |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed; QPBT-023 tracks the newly found leaf-contract gap |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 269 total issued attempts (268 non-coordinator); 137 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; approved source/blueprint ranges integrated at `65315213`; repair, cache-readiness, and contract lanes were recycled at the measured ceiling |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 304 total issued attempts (303 non-coordinator); 172 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | recipe-v5 cache accepted at `d73cce44`; QPBT-003 remains the critical dependency |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
 
 ## Schedule estimates
 
-The snapshot below was taken at 2026-08-31 21:54 +08. Ranges are wall-clock
+The snapshot below was updated at 2026-09-01 04:25 +08. Ranges are wall-clock
 forecasts with the root coordinator plus three safe worker lanes, not token or
 person-hour estimates. The lanes are allocated to one critical-path writer,
 one fresh source/fidelity reviewer, and one independent API/cache or disjoint
@@ -40,9 +40,9 @@ hot-main build remains a singleton.
 | Stage | Measured elapsed at snapshot | Estimated remaining wall time | Dominant assumption |
 | --- | ---: | ---: | --- |
 | 1. Workflow skeleton | 15 h 53 min (complete) | 0 | Acceptance and independent review are complete. |
-| 2. Source split | 20 h 20 min | 2-6 h after gate disposition | Offline materialization and verification pass; if the endpoint-specific review remains mandatory, completion is externally unbounded. |
-| 3. Lean blueprint | 18 h 9 min | 2-5 working days | Freeze and independently review the F01/F03/F04 callable contracts and record the self-dual-basis gap. |
-| 4A. Minimal skeleton | 18 h 9 min | 6-16 weeks | The cache closes promptly and a source-faithful self-dual normal basis boundary is found or formalized. |
+| 2. Source split | 26 h 52 min | 2-6 h after gate disposition | Offline materialization and verification pass; if the endpoint-specific review remains mandatory, completion is externally unbounded. |
+| 3. Lean blueprint | 24 h 40 min | 2-5 working days | Freeze and independently review the F01/F03/F04 callable contracts and record the self-dual-basis gap. |
+| 4A. Minimal skeleton | 24 h 40 min | 6-16 weeks | The recipe-v5 main cache is accepted; the remaining critical gate is QPBT-003, including the callable-contract and self-dual-normal-basis boundary. |
 | 4B. Complete skeleton | not started | 4-10 weeks | All 48 blueprint declarations receive reviewed signatures; tracked `sorry` is allowed but no assumptions hide proof debt. |
 | 4C. Proofs | not started | 18-48 months | External theorem boundaries are admissible where declared and the rigidity/LDT dependencies do not require foundational redevelopment. |
 | 5. Final audit | not started | 3-8 weeks | Statements remain stable and full build/declaration synchronization does not expose late source gaps. |
@@ -67,7 +67,7 @@ fresh completion audits, and a third-occurrence rule for extracting abstractions
 Its campaign evidence identifies concurrency duplication as the leading
 non-quality failure and treats zero-edit simplification as success.
 
-The local protocol combines those lessons. The campaign has recorded 39
+The local protocol combines those lessons. The campaign has recorded 44
 incidents so far, beginning with invalid empty Git metadata, hanging Git
 transport, missing expected references, upstream documentation/pin drift, and
 ambiguous paper-source redistribution rights. Later incidents came from state
@@ -799,17 +799,17 @@ ceiling.
 
 ### Current parallel dispatch snapshot
 
-At the latest coordinator checkpoint the ledger contains 269 issued attempts
-(268 non-coordinator), including 137 Stage-4A attempts. The root plus three
+At the cache-acceptance checkpoint the ledger contains 304 issued attempts
+(303 non-coordinator), including 172 Stage-4A attempts. The root plus three
 worker threads are the measured four-node collaboration ceiling. The latest
-wave admitted three independent read-only audits concurrently by recycling
-completed worker threads: a QPBT-013 leaf-contract audit, a QPBT-017 cache-
-protocol audit, and a QPBT-004 gate audit. All three reports are archived and
-there is currently no active non-coordinator lease. Recycling retained threads
+wave admitted three independent QPBT-025 read-only audits concurrently by
+recycling completed worker threads: post-warm closure, monotone-ledger closure,
+and research-metrics reconciliation. All three reports are archived and there
+is currently no active non-coordinator lease. Recycling retained threads
 preserved their external-session provenance while avoiding the collaboration
 service's completed-thread limit.
 
-The following frontier wave again filled all three worker lanes concurrently.
+An earlier frontier wave also filled all three worker lanes concurrently.
 The QPBT-010 endpoint-gate audit confirmed that authorization and the health
 canary pass, but the recorded LPR-005 approval is not the current-main head, so
 an exact-head governed review is still required. The QPBT-018 audit found that
@@ -927,8 +927,8 @@ The live dispatch probe recorded `active_non_coordinator: 3` and
 --capacity 3`, while the host exposed 128 CPUs. This separates service
 capacity from host CPU capacity: a fourth worker is not admitted, and extra
 builders would still serialize on the per-key hot-main lock. At the current
-checkpoint the ledger has 269 issued attempts (268 non-coordinator), including
-137 Stage-4A attempts; token usage remains unavailable and is recorded as
+checkpoint the ledger has 304 issued attempts (303 non-coordinator), including
+172 Stage-4A attempts; token usage remains unavailable and is recorded as
 `null`. One provisional-identity launch was cancelled and replaced with an
 exactly identified session, preserving auditable provenance rather than
 leaving an unverifiable parallel result.
@@ -942,6 +942,41 @@ confirmed that QPBT-023 still blocks a source-faithful Lean writer. The three
 scouts reported approximately 10, 18, and 30 minutes of work respectively;
 their coordinator lifecycle windows also record the later ingestion delay.
 No scout invoked network, Lean, Lake, a cache action, or a canonical build.
+
+### QPBT-025 cache-acceptance closure (2026-09-01)
+
+The independently approved recipe-v5 repair was fast-forwarded onto local
+`main` at `d73cce44d5f9f37d38ee8d916811719408818c03`. Exactly one authenticated
+warm was authorized. It elected one builder, missed the previously absent key,
+ran one full Lake build, and published cache key
+`5377961b0bebafd24648ea2ae9d0bc6e10f5c9481433db433e55b687c8bcd266`.
+The warm took `655.003154` seconds, including `551.877742` seconds for the build,
+`39.60957` seconds for dependency-cache retrieval, and `16.824722` seconds for
+post-build package verification. Lock wait was zero; no retry or seed ran.
+
+The published READY digest equals manifest SHA-256
+`f41716f8a1213bd1fbff2939723c739653c360d6b797d93be69cb5a42f5ad234`.
+Independent deep verification matched an inventory of 124,925 files, 4,147
+directories, 3 symlinks, and 10,097,592,794 bytes. The trusted ProofWidgets
+hash sidecar is absent while its authenticated target and package-local build
+output remain. The cache key has exactly one warm metric and no failure
+envelope.
+
+Three independent read-only lanes audited closure semantics, incident and PR
+state, and research metrics around the singleton builder. This is the measured
+parallelism boundary: analysis and review can fill the other worker slots, but
+warming or building the same main snapshot remains single-owner. The audits
+found and corrected one dependency-graph wording error before closure; the
+edge from QPBT-004 to completed QPBT-024 is retained, while QPBT-003 is its sole
+unfinished dependency. Token usage remains `null` because the collaboration
+backend exposes no per-session count. Stage 4A therefore remains in progress
+on QPBT-003 rather than on the now-accepted cache.
+
+After terminal state reconciliation, `workflow.py validate`, the research
+ledger checker, and diff hygiene passed. The full aggregate checker then passed
+all 312 tests in `179.941` seconds. This final run exercised the state,
+research-ledger, cache, package-authentication, local-agent, source-transport,
+and workflow suites without another Lean build or cache action.
 
 ### Repository publication topology (2026-08-31)
 

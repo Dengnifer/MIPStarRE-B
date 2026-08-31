@@ -166,9 +166,9 @@
         "workflow/state/issues.json#QPBT-025"
       ],
       "created_at": "2026-08-30T09:31:33+08:00",
-      "updated_at": "2026-08-31T18:11:24.410692Z",
-      "blocked_reason": "QPBT-003 remains incomplete. The cache acceptance path remains represented by QPBT-024, whose child QPBT-025 now owns the exact recipe-v5 proofwidgets sidecar-removal repair after the failed 9b6 warm.",
-      "unblock_condition": "Complete QPBT-003 and close QPBT-024 only after QPBT-025 receives immutable approval, guarded integration, and one successful recipe-v5 warm with verified status/READY/deep inventory; never retry 9c9b495/9b6ccb7 unchanged.",
+      "updated_at": "2026-08-31T20:34:55.454341Z",
+      "blocked_reason": "QPBT-003 remains incomplete. QPBT-024 and its QPBT-025 child are done after the successful authenticated recipe-v5 warm, READY check, and deep-inventory verification.",
+      "unblock_condition": "Complete QPBT-003, then reconcile QPBT-004's own pin, provenance, empty-project build, and local-cache acceptance gates before transitioning planned to ready.",
       "last_cache_failure_evidence": {
         "main_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
         "cache_key": "9b6ccb722e8943a7790b94f839edca0b6bed53f720284ea2a3f6762a9fba1f36",
@@ -184,6 +184,62 @@
         "build_log_sha256": "ed0f4d6e2f05f52e175723aac2d69b60230b50962c706c67098d81c665e1fe45",
         "metric_line_sha256": "9ce27db86209c0e33b0b80f79d641d72a123ef74b105970d0c37e75be7aa7689",
         "unchanged_retry_allowed": false
+      },
+      "cache_acceptance_evidence": {
+        "report_path": "workflow/reviews/qpbt-025-postintegration-warm-success-537.md",
+        "report_sha256": "940f18e7bbd60b7e440860bbcc6ce8b851b6515c983c0ff45da97dafb0070cbb",
+        "closure_audit_path": "workflow/reviews/qpbt-025-postwarm-closure-a06.md",
+        "closure_audit_sha256": "38b31d20168bbd06521874a2002b246a67c894167d8969a51b3f9d6ac9b360a2",
+        "ledger_audit_path": "workflow/reviews/qpbt-025-closure-ledger-a07.md",
+        "ledger_audit_sha256": "791259a3399b964476067a3cc92cecc917657410c18920814d13d58eb61d3172",
+        "main_sha": "d73cce44d5f9f37d38ee8d916811719408818c03",
+        "cache_key": "5377961b0bebafd24648ea2ae9d0bc6e10f5c9481433db433e55b687c8bcd266",
+        "recipe_schema": 3,
+        "recipe_version": 5,
+        "warm_result": "built",
+        "post_status": "hit",
+        "cache_hit": 0,
+        "cache_miss": 1,
+        "builds": 1,
+        "warm_retries": 0,
+        "lock_waited": 0,
+        "lock_wait_seconds": 0.0,
+        "materialize_seconds": 3.038161,
+        "package_materialize_seconds": 17.847069,
+        "package_verify_seconds": 16.824722,
+        "dependency_cache_seconds": 39.60957,
+        "build_seconds": 551.877742,
+        "elapsed_seconds": 655.003154,
+        "command": [
+          "lake",
+          "--packages=.lake/package-overrides.json",
+          "build"
+        ],
+        "package_verify_command": [
+          "python3",
+          "scripts/materialize_lake_packages.py",
+          "verify",
+          "--remove-validated-generated-sidecars"
+        ],
+        "metric_timestamp": "2026-08-31T20:02:45.006319Z",
+        "metric_line_sha256": "5022a23bf7a4a686588a5bba912e136051b743328a640c7dcb3b6185de1cb919",
+        "manifest_sha256": "f41716f8a1213bd1fbff2939723c739653c360d6b797d93be69cb5a42f5ad234",
+        "ready_file_sha256": "06720bffaa45dfc2fe92f5816caf9e31178d52bd4a95bcb4fdf70eceae4aa80a",
+        "build_log_sha256": "4737436c617f7072fd7bfb6d0fd65f900e8713fb7bfd722eb98e22e0c58b7b5c",
+        "ready_manifest_sha256_equal": true,
+        "deep_inventory_verified": true,
+        "artifact_inventory": {
+          "schema_version": 1,
+          "sha256": "321e2813533a93c8218eefb277bd3425d3b55a59d978a233fc9b4795de42df60",
+          "files": 124925,
+          "directories": 4147,
+          "symlinks": 3,
+          "bytes": 10097592794
+        },
+        "trusted_sidecar_absent": true,
+        "trusted_target_present": true,
+        "proofwidgets_build_present": true,
+        "matching_failure_envelopes": 0
       }
     },
     {
@@ -795,7 +851,7 @@
       "title": "Distinguish authenticated package source from Lake build output",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-001"
@@ -834,7 +890,7 @@
         "workflow/state/issues.json#QPBT-025"
       ],
       "created_at": "2026-08-31T15:48:51.289733Z",
-      "updated_at": "2026-08-31T18:11:03.929348Z",
+      "updated_at": "2026-08-31T20:34:03.512068Z",
       "last_cache_failure_evidence": {
         "main_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
         "cache_key": "9b6ccb722e8943a7790b94f839edca0b6bed53f720284ea2a3f6762a9fba1f36",
@@ -852,7 +908,7 @@
         "unchanged_retry_allowed": false
       },
       "child_issue_id": "QPBT-025",
-      "blocked_reason": "LPR-014 is physically present on main but its changed-hypothesis warm failed closed at proofwidgets. QPBT-025 owns the independently adjudicated exact sidecar-removal repair.",
+      "blocked_reason": null,
       "unblock_condition": "Complete QPBT-025 through immutable LPR-015 approval, guarded integration, and exactly one successful recipe-v5 authenticated warm with status/READY/deep-inventory evidence; never retry the old 9b6 key unchanged.",
       "sidecar_repair_decision": {
         "adjudication_report": "workflow/reviews/qpbt-024-sidecar-synthesis-a14.md",
@@ -870,6 +926,62 @@
         "pin_schema_change": false,
         "protocol_revision": false,
         "unchanged_retry_allowed": false
+      },
+      "completion_evidence": {
+        "report_path": "workflow/reviews/qpbt-025-postintegration-warm-success-537.md",
+        "report_sha256": "940f18e7bbd60b7e440860bbcc6ce8b851b6515c983c0ff45da97dafb0070cbb",
+        "closure_audit_path": "workflow/reviews/qpbt-025-postwarm-closure-a06.md",
+        "closure_audit_sha256": "38b31d20168bbd06521874a2002b246a67c894167d8969a51b3f9d6ac9b360a2",
+        "ledger_audit_path": "workflow/reviews/qpbt-025-closure-ledger-a07.md",
+        "ledger_audit_sha256": "791259a3399b964476067a3cc92cecc917657410c18920814d13d58eb61d3172",
+        "main_sha": "d73cce44d5f9f37d38ee8d916811719408818c03",
+        "cache_key": "5377961b0bebafd24648ea2ae9d0bc6e10f5c9481433db433e55b687c8bcd266",
+        "recipe_schema": 3,
+        "recipe_version": 5,
+        "warm_result": "built",
+        "post_status": "hit",
+        "cache_hit": 0,
+        "cache_miss": 1,
+        "builds": 1,
+        "warm_retries": 0,
+        "lock_waited": 0,
+        "lock_wait_seconds": 0.0,
+        "materialize_seconds": 3.038161,
+        "package_materialize_seconds": 17.847069,
+        "package_verify_seconds": 16.824722,
+        "dependency_cache_seconds": 39.60957,
+        "build_seconds": 551.877742,
+        "elapsed_seconds": 655.003154,
+        "command": [
+          "lake",
+          "--packages=.lake/package-overrides.json",
+          "build"
+        ],
+        "package_verify_command": [
+          "python3",
+          "scripts/materialize_lake_packages.py",
+          "verify",
+          "--remove-validated-generated-sidecars"
+        ],
+        "metric_timestamp": "2026-08-31T20:02:45.006319Z",
+        "metric_line_sha256": "5022a23bf7a4a686588a5bba912e136051b743328a640c7dcb3b6185de1cb919",
+        "manifest_sha256": "f41716f8a1213bd1fbff2939723c739653c360d6b797d93be69cb5a42f5ad234",
+        "ready_file_sha256": "06720bffaa45dfc2fe92f5816caf9e31178d52bd4a95bcb4fdf70eceae4aa80a",
+        "build_log_sha256": "4737436c617f7072fd7bfb6d0fd65f900e8713fb7bfd722eb98e22e0c58b7b5c",
+        "ready_manifest_sha256_equal": true,
+        "deep_inventory_verified": true,
+        "artifact_inventory": {
+          "schema_version": 1,
+          "sha256": "321e2813533a93c8218eefb277bd3425d3b55a59d978a233fc9b4795de42df60",
+          "files": 124925,
+          "directories": 4147,
+          "symlinks": 3,
+          "bytes": 10097592794
+        },
+        "trusted_sidecar_absent": true,
+        "trusted_target_present": true,
+        "proofwidgets_build_present": true,
+        "matching_failure_envelopes": 0
       }
     },
     {
@@ -877,7 +989,7 @@
       "title": "Remove trusted ProofWidgets hash sidecar before cache publication",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "ready",
+      "status": "done",
       "parent_id": "QPBT-024",
       "dependency_ids": [
         "QPBT-001"
@@ -901,7 +1013,7 @@
         "A fresh independent immutable reviewer approves the exact candidate head",
         "After guarded integration, exactly one newly authorized authenticated recipe-v5 main warm succeeds, status and READY bind the manifest, and deep inventory verification passes; the failed 9b6 key is never retried unchanged"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i025-orchestrator-a01-sidecar-removal",
       "source_refs": [
         "workflow/reviews/qpbt-024-postintegration-warm-failure-9b6.md",
         "workflow/reviews/qpbt-024-proofwidgets-sidecar-a11.md",
@@ -914,9 +1026,65 @@
         "research/metrics/incidents.jsonl#INC-044"
       ],
       "created_at": "2026-08-31T18:09:28.513040Z",
-      "updated_at": "2026-08-31T18:09:28.513040Z",
+      "updated_at": "2026-08-31T20:32:13.916315Z",
       "blocked_reason": null,
-      "unblock_condition": "Implement and independently review the exact four-file recipe-v5 sidecar-removal repair, integrate it from a dedicated worktree, and complete exactly one successful changed-hypothesis warm with status/READY/deep-inventory evidence."
+      "unblock_condition": "Implement and independently review the exact four-file recipe-v5 sidecar-removal repair, integrate it from a dedicated worktree, and complete exactly one successful changed-hypothesis warm with status/READY/deep-inventory evidence.",
+      "completion_evidence": {
+        "report_path": "workflow/reviews/qpbt-025-postintegration-warm-success-537.md",
+        "report_sha256": "940f18e7bbd60b7e440860bbcc6ce8b851b6515c983c0ff45da97dafb0070cbb",
+        "closure_audit_path": "workflow/reviews/qpbt-025-postwarm-closure-a06.md",
+        "closure_audit_sha256": "38b31d20168bbd06521874a2002b246a67c894167d8969a51b3f9d6ac9b360a2",
+        "ledger_audit_path": "workflow/reviews/qpbt-025-closure-ledger-a07.md",
+        "ledger_audit_sha256": "791259a3399b964476067a3cc92cecc917657410c18920814d13d58eb61d3172",
+        "main_sha": "d73cce44d5f9f37d38ee8d916811719408818c03",
+        "cache_key": "5377961b0bebafd24648ea2ae9d0bc6e10f5c9481433db433e55b687c8bcd266",
+        "recipe_schema": 3,
+        "recipe_version": 5,
+        "warm_result": "built",
+        "post_status": "hit",
+        "cache_hit": 0,
+        "cache_miss": 1,
+        "builds": 1,
+        "warm_retries": 0,
+        "lock_waited": 0,
+        "lock_wait_seconds": 0.0,
+        "materialize_seconds": 3.038161,
+        "package_materialize_seconds": 17.847069,
+        "package_verify_seconds": 16.824722,
+        "dependency_cache_seconds": 39.60957,
+        "build_seconds": 551.877742,
+        "elapsed_seconds": 655.003154,
+        "command": [
+          "lake",
+          "--packages=.lake/package-overrides.json",
+          "build"
+        ],
+        "package_verify_command": [
+          "python3",
+          "scripts/materialize_lake_packages.py",
+          "verify",
+          "--remove-validated-generated-sidecars"
+        ],
+        "metric_timestamp": "2026-08-31T20:02:45.006319Z",
+        "metric_line_sha256": "5022a23bf7a4a686588a5bba912e136051b743328a640c7dcb3b6185de1cb919",
+        "manifest_sha256": "f41716f8a1213bd1fbff2939723c739653c360d6b797d93be69cb5a42f5ad234",
+        "ready_file_sha256": "06720bffaa45dfc2fe92f5816caf9e31178d52bd4a95bcb4fdf70eceae4aa80a",
+        "build_log_sha256": "4737436c617f7072fd7bfb6d0fd65f900e8713fb7bfd722eb98e22e0c58b7b5c",
+        "ready_manifest_sha256_equal": true,
+        "deep_inventory_verified": true,
+        "artifact_inventory": {
+          "schema_version": 1,
+          "sha256": "321e2813533a93c8218eefb277bd3425d3b55a59d978a233fc9b4795de42df60",
+          "files": 124925,
+          "directories": 4147,
+          "symlinks": 3,
+          "bytes": 10097592794
+        },
+        "trusted_sidecar_absent": true,
+        "trusted_target_present": true,
+        "proofwidgets_build_present": true,
+        "matching_failure_envelopes": 0
+      }
     }
   ]
 }
