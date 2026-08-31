@@ -98,8 +98,13 @@ interrupt.
 Governed `run` and `review` calls pass `--session-id` plus the complete packet
 authority; both modes use the lease. Omitting `--session-id` is retained only
 for explicitly ungoverned local experiments and does not mutate workflow state.
+Immediately before either child process is spawned, the launcher repeats the
+canonical worktree-path, clean-status, `HEAD`, and tree checks from the claim;
+replacement or drift in that interval fails the lease and triggers recovery.
 Archive retries return the existing matching envelope without invoking Codex;
-conflicting archive identities fail closed. Terminal result publication is part
+conflicting archive identities fail closed. Reuse additionally compares each
+recorded stdout/stderr byte count and SHA-256 digest with the current log bytes.
+Terminal result publication is part
 of the import transaction, so an event-append failure rolls back lifecycle
 state and the result artifact before interruption recovery writes its envelope.
 Archive aliases are published by atomic directory rename under the runtime root;

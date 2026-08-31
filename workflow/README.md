@@ -79,7 +79,8 @@ admission limit.
 
 An issued launch lease also binds the live worktree: the launcher must observe
 a clean Git repository at the registered root with the exact issued `HEAD` and
-tree (or an unborn repository when the base is null). Terminal imports must use
+tree (or an unborn repository when the base is null), and repeats that identity
+check immediately before spawning the child. Terminal imports must use
 the normalized, in-root `result_envelope_path` from the issued row. An
 interrupted lease writes a deterministic failed recovery envelope at that path;
 the recovery and its subsequent archive transition are retried only by

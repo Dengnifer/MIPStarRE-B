@@ -192,3 +192,7 @@ or review state that cannot be tied to an immutable SHA or bootstrap manifest.
   terminal imports transactionally publish or roll back their result artifact;
   archive aliases use no-follow runtime confinement, strict envelope reuse,
   atomic directory publication, interruption cleanup, and same-alias locking.
+- Closed the remaining launch/archive race window after immutable review:
+  governed exec/review repeat canonical worktree identity checks immediately
+  before child spawn, and archive retries verify stdout/stderr byte counts and
+  SHA-256 digests against the recorded log files before reusing an envelope.

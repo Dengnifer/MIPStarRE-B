@@ -1704,6 +1704,23 @@ def _validate_claim_worktree(cwd: Path, base_revision: str | None) -> dict[str, 
     return {"head": actual_head, "tree": actual_tree}
 
 
+def _revalidate_claimed_worktree(
+    cwd: Path, base_revision: str | None, claimed_worktree: Path
+) -> dict[str, str | None]:
+    """Recheck lease identity immediately before spawning a governed child.
+
+    The initial claim is performed under the workflow-state lock, but that lock
+    cannot cover the external Codex process.  Requiring the same canonical
+    repository path and immutable Git identity immediately before spawn closes
+    the interval in which a worktree could be replaced after claiming.
+    """
+
+    current_worktree = cwd.resolve()
+    if current_worktree != claimed_worktree:
+        raise AgentError("launch worktree path changed after claim")
+    return _validate_claim_worktree(cwd, base_revision)
+
+
 def _canonical_session_path(
     workflow_root: Path, value: Any, *, label: str
 ) -> tuple[str, Path]:
@@ -2388,6 +2405,7 @@ def run_exec(
         return _run_exec_unbound(**arguments)
     if workflow_root is None or role is None or issue_id is None:
         raise AgentError("bound launch requires workflow root, role, and issue authority")
+    claimed_worktree = cwd.resolve()
     claimed = claim_issued_session(
         session_id=session_id, workflow_root=workflow_root, alias=alias, cwd=cwd,
         base_revision=base_revision, owned_paths=owned_paths,
@@ -2395,6 +2413,7 @@ def run_exec(
         role=role, issue_id=issue_id, parent_session_id=parent_session_id,
     )
     try:
+        _revalidate_claimed_worktree(cwd, base_revision, claimed_worktree)
         envelope = _run_exec_unbound(**arguments, started_at_override=claimed["started_at"])
         _, registered_outcome = _canonical_session_path(
             workflow_root,
@@ -2506,12 +2525,14 @@ def run_review(
         return _run_review_unbound(**arguments)
     if workflow_root is None or issue_id is None:
         raise AgentError("bound review requires workflow root and issue authority")
+    claimed_worktree = cwd.resolve()
     claimed = claim_issued_session(
         session_id=session_id, workflow_root=workflow_root, alias=alias, cwd=cwd,
         base_revision=base_sha, owned_paths=owned_paths, read_only=True,
         role="reviewer", issue_id=issue_id, parent_session_id=parent_session_id,
     )
     try:
+        _revalidate_claimed_worktree(cwd, base_sha, claimed_worktree)
         envelope = _run_review_unbound(**arguments)
         envelope["started_at"] = claimed["started_at"]
         _, registered_outcome = _canonical_session_path(
@@ -2968,6 +2989,22 @@ def _validate_archive_envelope(
         path = Path(value[field])
         if path != expected or path.is_symlink() or not path.is_file():
             raise AgentError("existing archive result log path is invalid")
+    for stream, path_field in (("stdout", "stdout_path"), ("stderr", "stderr_path")):
+        try:
+            log_bytes = Path(value[path_field]).read_bytes()
+        except OSError as error:
+            raise AgentError(f"existing archive {stream} log is unreadable") from error
+        recorded_bytes = value[f"{stream}_bytes"]
+        if (
+            not isinstance(recorded_bytes, int)
+            or isinstance(recorded_bytes, bool)
+            or recorded_bytes < 0
+            or recorded_bytes != len(log_bytes)
+        ):
+            raise AgentError(f"existing archive {stream} log byte count does not match envelope")
+        recorded_digest = value[f"{stream}_sha256"]
+        if not isinstance(recorded_digest, str) or recorded_digest != _sha256_bytes(log_bytes):
+            raise AgentError(f"existing archive {stream} log digest does not match envelope")
     return value
 
 

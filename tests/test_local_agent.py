@@ -1661,6 +1661,20 @@ class RuntimeTests(unittest.TestCase):
                 runner=runner,
             )
 
+    def test_archive_retry_rejects_tampered_log_bytes_or_digest(self) -> None:
+        alias = "i001-prover-a01-tampered-log"
+        runner = FakeRunner("archived output\n", stderr="diagnostic\n")
+        envelope = local_agent.run_archive(
+            external_id=THREAD_ID, runtime_dir=self.runtime, alias=alias, runner=runner
+        )
+        stdout_path = Path(envelope["stdout_path"])
+        stdout_path.write_text("tampered output\n", encoding="utf-8")
+        with self.assertRaisesRegex(local_agent.AgentError, "stdout log (byte count|digest)"):
+            local_agent.run_archive(
+                external_id=THREAD_ID, runtime_dir=self.runtime, alias=alias, runner=runner
+            )
+        self.assertEqual(1, len(runner.calls))
+
     def test_archive_timeout_is_failed_and_preserves_partial_logs(self) -> None:
         runner = TimeoutRunner("partial archive\n", "archive stalled\n")
         envelope = local_agent.run_archive(
@@ -1746,6 +1760,80 @@ class RuntimeTests(unittest.TestCase):
                 role="prover", issue_id="QPBT-001", parent_session_id=None)
         self.assertEqual("running", claimed["status"])
         self.assertIsNotNone(claimed["started_at"])
+
+    def test_bound_exec_revalidates_real_worktree_before_child_spawn(self) -> None:
+        session_id = "i002-prover-a01-launch-race"
+        record = self.real_issued_ledger(session_id)
+        authority = dict(
+            session_id=session_id, workflow_root=self.root, alias=session_id,
+            cwd=Path(record["worktree"]), base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"], role="prover",
+            issue_id="QPBT-002", parent_session_id=None,
+        )
+        original = local_agent._validate_claim_worktree
+        calls = 0
+
+        def validate_then_replace(cwd: Path, base_revision: str | None) -> dict[str, str | None]:
+            nonlocal calls
+            calls += 1
+            identity = original(cwd, base_revision)
+            if calls == 1:
+                write(cwd / "tracked.txt", "replaced\n")
+                git(cwd, "add", "tracked.txt")
+                git(cwd, "commit", "-m", "replace after claim")
+            return identity
+
+        runner = FakeRunner(codex_events())
+        with mock.patch.object(
+            local_agent, "_validate_claim_worktree", side_effect=validate_then_replace
+        ), self.assertRaisesRegex(local_agent.AgentError, "HEAD does not match"):
+            local_agent.run_exec(
+                **authority, prompt="proof", runtime_dir=self.runtime, runner=runner
+            )
+        self.assertEqual(2, calls)
+        self.assertEqual([], runner.calls)
+        final = local_agent._session_store(self.root).validate()["sessions.json"]["issued"][0]
+        self.assertEqual("failed", final["status"])
+
+    def test_bound_review_revalidates_real_worktree_before_child_spawn(self) -> None:
+        session_id = "i002-reviewer-a01-launch-race"
+        record = self.real_issued_ledger(session_id)
+        sessions_path = self.root / "workflow" / "state" / "sessions.json"
+        sessions_document = json.loads(sessions_path.read_text(encoding="utf-8"))
+        sessions_document["issued"][0].update(
+            {"role": "reviewer", "read_only": True, "owned_paths": []}
+        )
+        sessions_path.write_text(json.dumps(sessions_document) + "\n", encoding="utf-8")
+        record.update({"role": "reviewer", "read_only": True, "owned_paths": []})
+        original = local_agent._validate_claim_worktree
+        calls = 0
+
+        def validate_then_replace(cwd: Path, base_revision: str | None) -> dict[str, str | None]:
+            nonlocal calls
+            calls += 1
+            identity = original(cwd, base_revision)
+            if calls == 1:
+                write(cwd / "tracked.txt", "replaced\n")
+                git(cwd, "add", "tracked.txt")
+                git(cwd, "commit", "-m", "replace after claim")
+            return identity
+
+        with mock.patch.object(
+            local_agent, "_validate_claim_worktree", side_effect=validate_then_replace
+        ), mock.patch.object(local_agent, "_run_review_unbound") as child, self.assertRaisesRegex(
+            local_agent.AgentError, "HEAD does not match"
+        ):
+            local_agent.run_review(
+                alias=session_id, prompt="review", cwd=Path(record["worktree"]),
+                runtime_dir=self.runtime, target_kind="commit", target_value=record["base_revision"],
+                base_sha=record["base_revision"], head_sha=record["base_revision"],
+                session_id=session_id, workflow_root=self.root, issue_id="QPBT-002",
+                owned_paths=record["owned_paths"], runner=FakeRunner(codex_events()),
+            )
+        self.assertEqual(2, calls)
+        child.assert_not_called()
+        final = local_agent._session_store(self.root).validate()["sessions.json"]["issued"][0]
+        self.assertEqual("failed", final["status"])
 
     def test_terminal_import_is_idempotent_and_conflicts_fail(self) -> None:
         record = {"id": "s1", "status": "running", "result_digest": None,
