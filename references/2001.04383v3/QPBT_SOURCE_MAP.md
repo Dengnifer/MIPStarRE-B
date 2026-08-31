@@ -18,6 +18,31 @@ Version 3 is mandatory. Version 1 uses an obsolete seven-component parameter
 tuple; versions 2 and 3 use `(q, m, d)` and the repaired low-individual-degree
 soundness route.
 
+## Local source layout
+
+`source-pin.json` authenticates the archive and its two fixed regular members.
+`split-manifest.json` gives the closed output-path convention, inclusive source
+line range, byte count, SHA-256, and lexical label count for every generated
+fragment. `RIGHTS.md` records why all author-owned source and derived fragments
+remain ignored.
+
+After `python3 scripts/reference_source.py materialize`, use:
+
+- `source/compression_arXiv_v3.tex` as the exact CRLF-preserving primary source;
+- `sections/top-level/` for the 15-fragment exact reconstruction;
+- `sections/qpbt/` for the three Section 7.3 and seven Appendix A fragments;
+- `sections/dependencies/` for the nine intentionally sparse dependency excerpts;
+- `sections/labels.json` for all 646 ordered lexical label occurrences, including
+  one-based line and byte-column positions, half-open absolute source byte
+  ranges, and every containing split-file path; and
+- `sections/inventory.json` plus `sections/READY` as the verified generation
+  boundary. A tree without a matching `READY` marker is not usable source.
+
+The QPBT main collection exactly covers lines 5028-5766 and the Appendix
+collection exactly covers lines 13032-14930. The top-level collection exactly
+reconstructs all 14,935 lines. Dependency excerpts are deliberately sparse and
+must not be concatenated as a source reconstruction.
+
 ## Primary QPBT regions
 
 Original source lines refer to `compression_arXiv_v3.tex` from the pinned
