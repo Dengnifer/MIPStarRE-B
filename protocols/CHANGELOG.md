@@ -20,7 +20,7 @@ The pinned archive is 51,938,317 bytes with SHA-256
 `c29325b477966a6f8eb784723f19da26800c71458f7c24cc668713725eba78d7`; its
 decompressed tar is 147,712,000 bytes with SHA-256
 `ad9a60b01736070112fbc1008ea98c67e68fa045c5b69e66873e0b9444ddd3ba`. Focused
-hot-cache tests pass 37/37, including a real archive extraction, malformed
+hot-cache tests pass 42/42, including a real archive extraction, malformed
 archive and symlink-chain rejection, alternate source paths with one cache key,
 an executable `core.fsmonitor` trap, exact Lake command/environment
 construction, and an explicit Reservoir `cache get` failure. Reservoir artifact
