@@ -23,7 +23,7 @@ retained only locally.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 57 terminal sessions plus 1 retained issued attempt; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local immutable review approved; endpoint-dependent transport gate remains |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed; QPBT-023 tracks the newly found leaf-contract gap |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 242 total issued attempts (241 non-coordinator); 113 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; approved source/blueprint ranges integrated at `65315213`; three recycled-thread audits ran concurrently on the measured ceiling |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 245 total issued attempts (244 non-coordinator); 116 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; approved source/blueprint ranges integrated at `65315213`; three recycled-thread audits ran concurrently on the measured ceiling |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
@@ -760,8 +760,8 @@ ceiling.
 
 ### Current parallel dispatch snapshot
 
-At the latest coordinator checkpoint the ledger contains 242 issued attempts
-(241 non-coordinator), including 113 Stage-4A attempts. The root plus three
+At the latest coordinator checkpoint the ledger contains 245 issued attempts
+(244 non-coordinator), including 116 Stage-4A attempts. The root plus three
 worker threads are the measured four-node collaboration ceiling. The latest
 wave admitted three independent read-only audits concurrently by recycling
 completed worker threads: a QPBT-013 leaf-contract audit, a QPBT-017 cache-
@@ -769,6 +769,18 @@ protocol audit, and a QPBT-004 gate audit. All three reports are archived and
 there is currently no active non-coordinator lease. Recycling retained threads
 preserved their external-session provenance while avoiding the collaboration
 service's completed-thread limit.
+
+The following frontier wave again filled all three worker lanes concurrently.
+The QPBT-010 endpoint-gate audit confirmed that authorization and the health
+canary pass, but the recorded LPR-005 approval is not the current-main head, so
+an exact-head governed review is still required. The QPBT-018 audit found that
+its candidate object is stranded in a temporary clone, has stale ancestry, and
+has no accepted READY cache; it must wait for the QPBT-021 cache repair. The
+QPBT-021 audit found a real serial-aggregate failure at
+`tests/test_local_agent.py:500`, reproduced on the unchanged baseline, plus a
+malformed diff-check ledger entry. These are recorded as no-go evidence rather
+than parallel repair work because the candidate paths overlap. All three
+audits were read-only, made no build or network calls, and are now archived.
 
 The post-merge evidence wave passed the full checker (187 tests in 53.704 s)
 after the three leases were archived. The cache probe remains a miss, so the
