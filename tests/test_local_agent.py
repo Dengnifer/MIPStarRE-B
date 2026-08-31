@@ -559,6 +559,52 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(local_agent.AgentError, "worktree must be clean"):
             local_agent.claim_issued_session(**authority)
 
+    def test_git_identity_probes_disable_repository_hooks_and_fsmonitor(self) -> None:
+        repo = self.root / "config-hostile"
+        repo.mkdir()
+        git(repo, "init", "-b", "main", ".")
+        marker = self.root / "git-config-marker"
+        hook = self.root / "fsmonitor-hook"
+        write(hook, f"#!/bin/sh\nprintf x >> {marker}\n")
+        hook.chmod(0o755)
+        git(repo, "config", "core.fsmonitor", str(hook))
+        git(repo, "config", "core.hooksPath", str(self.root / "hooks"))
+        write(repo / "tracked.txt", "clean\n")
+        git(repo, "add", ".")
+        git(repo, "commit", "-m", "tracked")
+        marker.unlink(missing_ok=True)
+        self.assertEqual(b"", local_agent._working_tree_status(repo))
+        self.assertFalse(marker.exists())
+
+    def test_terminal_import_rolls_back_artifact_when_event_append_interrupts(self) -> None:
+        session_id = "i002-prover-a01-import-rollback"
+        record = self.real_issued_ledger(session_id)
+        claimed = local_agent.claim_issued_session(
+            session_id=session_id, workflow_root=self.root, alias=session_id,
+            cwd=Path(record["worktree"]), base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"], read_only=False, role="prover",
+            issue_id="QPBT-002", parent_session_id=None,
+        )
+        envelope = {
+            "external_id": THREAD_ID, "status": "finished",
+            "started_at": claimed["started_at"], "ended_at": claimed["started_at"],
+            "elapsed_seconds": 0.0,
+            "token_usage": {"input": 1, "output": 1, "total": 2, "availability_reason": None},
+        }
+        artifact = self.root / record["result_envelope_path"]
+        with mock.patch.object(
+            local_agent.workflow_state.WorkflowStore, "append_event", side_effect=KeyboardInterrupt
+        ), self.assertRaises(KeyboardInterrupt):
+            local_agent.import_session_result(
+                session_id=session_id, workflow_root=self.root, envelope=envelope,
+                outcome_path=record["result_envelope_path"],
+            )
+        self.assertFalse(artifact.exists())
+        self.assertEqual(
+            "running",
+            local_agent._session_store(self.root).validate()["sessions.json"]["issued"][0]["status"],
+        )
+
     def test_session_transaction_rolls_back_keyboard_interrupt(self) -> None:
         session_id = "i002-prover-a01-keyboard"
         record = self.real_issued_ledger(session_id)
@@ -1635,6 +1681,46 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(
             runner.stderr,
             Path(envelope["stderr_path"]).read_text(encoding="utf-8"),
+        )
+
+    def test_archive_rejects_symlink_root_and_incomplete_alias(self) -> None:
+        outside = self.root / "outside"
+        outside.mkdir()
+        runtime = self.root / "runtime"
+        runtime.mkdir()
+        (runtime / "archives").symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(local_agent.AgentError, "may not be a symlink"):
+            local_agent.run_archive(
+                external_id=THREAD_ID, runtime_dir=runtime,
+                alias="i001-prover-a01-symlink", runner=FakeRunner("ok\n"),
+            )
+
+        runtime = self.root / "runtime-incomplete"
+        alias = "i001-prover-a01-incomplete"
+        output = runtime / "archives" / alias
+        output.mkdir(parents=True)
+        write(output / "result.json", "{}\n")
+        with self.assertRaisesRegex(local_agent.AgentError, "complete envelope"):
+            local_agent.run_archive(
+                external_id=THREAD_ID, runtime_dir=runtime, alias=alias,
+                runner=FakeRunner("should not run\n"),
+            )
+
+    def test_archive_interrupt_cleans_temporary_publication(self) -> None:
+        class InterruptingRunner:
+            def __call__(self, command: list[str], *, cwd: Path, prompt: str | None):
+                raise KeyboardInterrupt
+
+        alias = "i001-prover-a01-interrupt"
+        with self.assertRaises(KeyboardInterrupt):
+            local_agent.run_archive(
+                external_id=THREAD_ID, runtime_dir=self.runtime, alias=alias,
+                runner=InterruptingRunner(),
+            )
+        archive_root = self.runtime / "archives"
+        self.assertFalse(
+            any(path.name.startswith(f".{alias}.") and path.name != f".{alias}.lock"
+                for path in archive_root.iterdir())
         )
 
     @mock.patch("local_agent.subprocess.run")

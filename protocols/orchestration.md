@@ -99,7 +99,15 @@ Governed `run` and `review` calls pass `--session-id` plus the complete packet
 authority; both modes use the lease. Omitting `--session-id` is retained only
 for explicitly ungoverned local experiments and does not mutate workflow state.
 Archive retries return the existing matching envelope without invoking Codex;
-conflicting archive identities fail closed.
+conflicting archive identities fail closed. Terminal result publication is part
+of the import transaction, so an event-append failure rolls back lifecycle
+state and the result artifact before interruption recovery writes its envelope.
+Archive aliases are published by atomic directory rename under the runtime root;
+runtime and alias paths are no-follow, complete envelopes are validated before
+reuse, and per-alias locking handles concurrent retries without clobbering
+evidence. All Git identity/status probes clear inherited configuration and
+override repository-local hooks/fsmonitor settings so claims cannot execute
+untrusted callbacks.
 
 ## Session lifecycle
 

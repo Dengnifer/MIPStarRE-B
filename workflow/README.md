@@ -47,6 +47,12 @@ incident references, protocol-change evidence, and terminal-session metrics.
 State writes are locked and atomically renamed. Do not hand-edit canonical JSON
 while another coordinator command is active.
 
+Terminal artifact publication and lifecycle import are one rollback-safe
+transaction. Archive directories are confined beneath `.workflow-runtime`,
+published by atomic alias rename, and reused only after strict envelope and log
+validation. Git claim/status probes run with isolated configuration and disabled
+repository hooks/fsmonitor callbacks.
+
 `dispatch` is the capacity-aware batch entry point. The legacy `issue-session`
 command is a single-session wrapper around the same planner and also requires
 an explicit capacity. On success it preserves its historical JSON shape by

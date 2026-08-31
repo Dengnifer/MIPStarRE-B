@@ -187,3 +187,8 @@ or review state that cannot be tied to an immutable SHA or bootstrap manifest.
   covers interrupts, terminal paths are normalized and bound to the issued
   result envelope, and recovery emits archiveable evidence with exact-once
   reuse.
+- Hardened runtime publication after LPR-009: Git claim/status probes isolate
+  inherited configuration and disable repository hooks/fsmonitor; governed
+  terminal imports transactionally publish or roll back their result artifact;
+  archive aliases use no-follow runtime confinement, strict envelope reuse,
+  atomic directory publication, interruption cleanup, and same-alias locking.
