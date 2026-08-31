@@ -39,6 +39,18 @@ endpoint, model, or evidence scope invalidates the authorization binding and
 requires a new preflight decision. A rejected launch is terminal and cannot be
 routed through a different persistence or network path.
 
+The authorization is a version-1 JSON record with exactly these non-secret
+fields: `authorized`, endpoint origin, model, `wire_api`, immutable `base_sha`,
+`head_sha`, and `tree_sha`, plus the sorted `private_file_paths` list and true
+`exclude_credentials`/`exclude_unrelated_contents` controls. For a committed
+review, the wrapper resolves the source HEAD and tree, verifies ancestry and a
+clean worktree, computes the exact changed-path set, and compares every field
+before loading task/context files, preparing evidence, probing persistence, or
+claiming a reviewer lease. Missing or mismatched authorization fails closed;
+uncommitted targets cannot be externally disclosed through this gate. Credential
+or secret-looking paths are rejected, and authorization contents are never
+copied into prompts, envelopes, or logs.
+
 Custom reviewer transport is an explicit, non-secret all-or-none profile: the
 model-provider key, provider display name, HTTPS base URL, `responses` wire API,
 and the provider's `requires_openai_auth` boolean. The wrapper keeps

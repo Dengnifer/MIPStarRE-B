@@ -43,6 +43,24 @@ UUID_RE = re.compile(
 )
 FULL_GIT_OID_RE = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 REVIEW_PROVIDER_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
+DISCLOSURE_AUTH_SCHEMA_VERSION = 1
+DISCLOSURE_AUTH_KEYS = {
+    "schema_version",
+    "authorized",
+    "endpoint_origin",
+    "model",
+    "wire_api",
+    "base_sha",
+    "head_sha",
+    "tree_sha",
+    "private_file_paths",
+    "exclude_credentials",
+    "exclude_unrelated_contents",
+}
+DISCLOSURE_FORBIDDEN_PATH_RE = re.compile(
+    r"(?:credential|secret|token|password|api[_-]?key|^\.env(?:$|\.))",
+    re.IGNORECASE,
+)
 BOOTSTRAP_TERMINAL_EVIDENCE_RULE = (
     "Only review outcome and lifecycle evidence may change after freeze; "
     "seal binds their final bytes before commit"
@@ -566,6 +584,134 @@ def _review_transport_config_arguments(profile: Mapping[str, Any]) -> list[str]:
         encoded = str(value).lower() if isinstance(value, bool) else json.dumps(value, ensure_ascii=True)
         arguments.extend(["-c", f"{key}={encoded}"])
     return arguments
+
+
+def _load_disclosure_authorization(path: Path) -> dict[str, Any]:
+    """Load a non-secret, exact-scope authorization record without echoing it."""
+
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise AgentError(f"disclosure authorization is not valid JSON: {error}") from error
+    if not isinstance(value, Mapping):
+        raise AgentError("disclosure authorization must be a JSON object")
+    if set(value) != DISCLOSURE_AUTH_KEYS:
+        raise AgentError("disclosure authorization has unexpected or missing fields")
+    return dict(value)
+
+
+def validate_review_disclosure_authorization(
+    authorization: Mapping[str, Any] | None,
+    *, endpoint_origin: str, model: str | None, wire_api: str,
+    base_sha: str, head_sha: str, tree_sha: str,
+    private_file_paths: Sequence[str],
+) -> dict[str, Any]:
+    """Fail closed unless authorization exactly binds the outbound review scope."""
+
+    if authorization is None:
+        raise AgentError("external review requires an explicit disclosure authorization record")
+    if set(authorization) != DISCLOSURE_AUTH_KEYS:
+        raise AgentError("disclosure authorization has unexpected or missing fields")
+    if authorization.get("schema_version") != DISCLOSURE_AUTH_SCHEMA_VERSION:
+        raise AgentError("unsupported disclosure authorization schema version")
+    if authorization.get("authorized") is not True:
+        raise AgentError("disclosure authorization is not explicitly authorized")
+    if authorization.get("endpoint_origin") != endpoint_origin:
+        raise AgentError("disclosure authorization endpoint origin does not match")
+    if authorization.get("model") != model or not isinstance(model, str) or not model:
+        raise AgentError("disclosure authorization model does not match")
+    if authorization.get("wire_api") != wire_api:
+        raise AgentError("disclosure authorization wire API does not match")
+    for field, expected in (("base_sha", base_sha), ("head_sha", head_sha), ("tree_sha", tree_sha)):
+        actual = authorization.get(field)
+        if actual != expected or not isinstance(actual, str) or not FULL_GIT_OID_RE.fullmatch(actual):
+            raise AgentError(f"disclosure authorization {field} does not match")
+    if authorization.get("exclude_credentials") is not True:
+        raise AgentError("disclosure authorization must exclude credentials")
+    if authorization.get("exclude_unrelated_contents") is not True:
+        raise AgentError("disclosure authorization must exclude unrelated contents")
+    expected_paths = sorted(set(private_file_paths))
+    authorized_paths = authorization.get("private_file_paths")
+    if not isinstance(authorized_paths, list) or any(
+        not isinstance(path, str) or not path or Path(path).is_absolute() or ".." in Path(path).parts
+        for path in authorized_paths
+    ):
+        raise AgentError("disclosure authorization private file paths are invalid")
+    if len(authorized_paths) != len(set(authorized_paths)):
+        raise AgentError("disclosure authorization private file paths contain duplicates")
+    if any(DISCLOSURE_FORBIDDEN_PATH_RE.search(Path(path).name) for path in authorized_paths):
+        raise AgentError("disclosure authorization private file paths include credentials")
+    if sorted(authorized_paths) != expected_paths:
+        raise AgentError("disclosure authorization private file scope does not match")
+    return {
+        "schema_version": DISCLOSURE_AUTH_SCHEMA_VERSION,
+        "endpoint_origin": endpoint_origin,
+        "model": model,
+        "wire_api": wire_api,
+        "base_sha": base_sha,
+        "head_sha": head_sha,
+        "tree_sha": tree_sha,
+        "private_file_paths": expected_paths,
+        "exclude_credentials": True,
+        "exclude_unrelated_contents": True,
+    }
+
+
+def _review_disclosure_target(
+    *, cwd: Path, target_kind: str, target_value: str | None,
+    base_sha: str | None, head_sha: str | None,
+) -> tuple[str, str, str, list[str]]:
+    """Resolve the immutable committed target used by disclosure authorization."""
+
+    source_root = _git_repo_root(cwd)
+    source_head = _try_head(source_root)
+    if target_kind == "base":
+        if not base_sha or not head_sha:
+            raise AgentError("external review authorization requires immutable base/head SHAs")
+        resolved_base = _resolve_commit(source_root, base_sha, label="base SHA", require_full=True)
+        resolved_head = _resolve_commit(source_root, head_sha, label="head SHA", require_full=True)
+        if source_head != resolved_head:
+            raise AgentError("disclosure target head does not match source HEAD")
+        if _working_tree_status(source_root):
+            raise AgentError("disclosure target requires a clean source working tree")
+        ancestry = _git_text(source_root, ["merge-base", "--is-ancestor", resolved_base, resolved_head], allowed_returncodes=(0, 1))
+        if ancestry.returncode != 0:
+            raise AgentError("disclosure target base is not an ancestor of head")
+        diff_base = resolved_base
+    elif target_kind == "commit":
+        if not target_value:
+            raise AgentError("disclosure target commit is missing")
+        resolved_head = _resolve_commit(source_root, target_value, label="commit target", require_full=True)
+        if source_head != resolved_head or _working_tree_status(source_root):
+            raise AgentError("disclosure target commit requires the clean source HEAD")
+        resolved_base = _resolve_commit(source_root, base_sha or f"{resolved_head}^1", label="base SHA", require_full=True)
+        diff_base = resolved_base
+    else:
+        raise AgentError("external disclosure authorization requires a committed review target")
+    tree_sha = _git_text(source_root, ["rev-parse", "--verify", f"{resolved_head}^{{tree}}"],).stdout.strip().lower()
+    changed = _git_bytes(source_root, ["diff", "--name-only", "-z", diff_base, resolved_head]).stdout
+    paths = [os.fsdecode(item) for item in changed.split(b"\0") if item]
+    return resolved_base, resolved_head, tree_sha, paths
+
+
+def _preflight_external_disclosure(
+    *, cwd: Path, target_kind: str, target_value: str | None,
+    base_sha: str | None, head_sha: str | None, model: str | None,
+    transport_profile: Mapping[str, Any] | None,
+    authorization: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if transport_profile is None:
+        return None
+    resolved_base, resolved_head, tree_sha, paths = _review_disclosure_target(
+        cwd=cwd, target_kind=target_kind, target_value=target_value,
+        base_sha=base_sha, head_sha=head_sha,
+    )
+    return validate_review_disclosure_authorization(
+        authorization,
+        endpoint_origin=str(transport_profile["base_url"]), model=model,
+        wire_api=str(transport_profile["wire_api"]), base_sha=resolved_base,
+        head_sha=resolved_head, tree_sha=tree_sha, private_file_paths=paths,
+    )
 
 
 def validate_bootstrap_review_phase(
@@ -2449,6 +2595,7 @@ def _run_review_unbound(
     provider_base_url: str | None = None,
     wire_api: str | None = None,
     requires_openai_auth: bool | None = None,
+    disclosure_authorization: Mapping[str, Any] | None = None,
     bootstrap_snapshot_digest: str | None = None,
     timeout_seconds: float | int = DEFAULT_CODEX_TIMEOUT_SECONDS,
     dry_run: bool = False,
@@ -2462,6 +2609,12 @@ def _run_review_unbound(
         provider_base_url=provider_base_url,
         wire_api=wire_api,
         requires_openai_auth=requires_openai_auth,
+    )
+    validated_disclosure = _preflight_external_disclosure(
+        cwd=cwd, target_kind=target_kind, target_value=target_value,
+        base_sha=base_sha, head_sha=head_sha, model=model,
+        transport_profile=transport_profile,
+        authorization=disclosure_authorization,
     )
     if dry_run:
         persistence_probe = _skipped_codex_persistence_probe()
@@ -2495,6 +2648,7 @@ def _run_review_unbound(
         codex_capability=codex_capability,
         transport_profile=transport_profile,
         persistence_probe=persistence_probe,
+        disclosure_authorization=validated_disclosure,
     )
 
 
@@ -2504,7 +2658,9 @@ def run_review(
     head_sha: str | None = None, model: str | None = None,
     model_provider: str | None = None, provider_name: str | None = None,
     provider_base_url: str | None = None, wire_api: str | None = None,
-    requires_openai_auth: bool | None = None, bootstrap_snapshot_digest: str | None = None,
+    requires_openai_auth: bool | None = None,
+    disclosure_authorization: Mapping[str, Any] | None = None,
+    bootstrap_snapshot_digest: str | None = None,
     timeout_seconds: float | int = DEFAULT_CODEX_TIMEOUT_SECONDS, dry_run: bool = False,
     runner: Any = _subprocess_run, codex_capability: Mapping[str, Any] | None = None,
     session_id: str | None = None, workflow_root: Path | None = None,
@@ -2517,6 +2673,7 @@ def run_review(
         head_sha=head_sha, model=model, model_provider=model_provider,
         provider_name=provider_name, provider_base_url=provider_base_url,
         wire_api=wire_api, requires_openai_auth=requires_openai_auth,
+        disclosure_authorization=disclosure_authorization,
         bootstrap_snapshot_digest=bootstrap_snapshot_digest,
         timeout_seconds=timeout_seconds, dry_run=dry_run, runner=runner,
         codex_capability=codex_capability,
@@ -2526,6 +2683,17 @@ def run_review(
     if workflow_root is None or issue_id is None:
         raise AgentError("bound review requires workflow root and issue authority")
     claimed_worktree = cwd.resolve()
+    transport_profile = validate_review_transport_profile(
+        model_provider=model_provider, provider_name=provider_name,
+        provider_base_url=provider_base_url, wire_api=wire_api,
+        requires_openai_auth=requires_openai_auth,
+    )
+    _preflight_external_disclosure(
+        cwd=cwd, target_kind=target_kind, target_value=target_value,
+        base_sha=base_sha, head_sha=head_sha, model=model,
+        transport_profile=transport_profile,
+        authorization=disclosure_authorization,
+    )
     claimed = claim_issued_session(
         session_id=session_id, workflow_root=workflow_root, alias=alias, cwd=cwd,
         base_revision=base_sha, owned_paths=owned_paths, read_only=True,
@@ -2571,6 +2739,7 @@ def _run_review_after_persistence_probe(
     codex_capability: Mapping[str, Any] | None,
     transport_profile: Mapping[str, Any] | None,
     persistence_probe: Mapping[str, Any],
+    disclosure_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run a review after an internal caller has completed persistence preflight."""
 
@@ -2711,6 +2880,10 @@ def _run_review_after_persistence_probe(
             "source_status_entries": source_status.count(b"\0"),
             **prepared,
         }
+        if prepared.get("target_tree_oid") is not None:
+            target["target_tree_oid"] = prepared["target_tree_oid"]
+        if disclosure_authorization is not None:
+            target["disclosure_authorization"] = dict(disclosure_authorization)
         if target_kind == "uncommitted":
             _verify_uncommitted_harness_manifest(harness, target)
         if bootstrap_snapshot_digest is not None:
@@ -3185,6 +3358,7 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--provider-name")
     review.add_argument("--provider-base-url")
     review.add_argument("--wire-api")
+    review.add_argument("--disclosure-authorization-file")
     review.add_argument("--bootstrap-snapshot-digest")
     review.add_argument(
         "--provider-requires-openai-auth",
@@ -3280,14 +3454,33 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             parent_session_id=arguments.parent_session_id,
         )
     if arguments.command == "review":
+        disclosure_authorization = None
+        if getattr(arguments, "disclosure_authorization_file", None):
+            disclosure_authorization = _load_disclosure_authorization(
+                _resolve(repo_root, arguments.disclosure_authorization_file)
+            )
+        transport_profile = validate_review_transport_profile(
+            model_provider=arguments.model_provider,
+            provider_name=arguments.provider_name,
+            provider_base_url=arguments.provider_base_url,
+            wire_api=arguments.wire_api,
+            requires_openai_auth=arguments.provider_requires_openai_auth,
+        )
+        if arguments.uncommitted:
+            target_kind, target_value = "uncommitted", None
+        elif arguments.commit:
+            target_kind, target_value = "commit", arguments.commit
+        else:
+            target_kind, target_value = "base", arguments.base or "main"
         if arguments.session_id is not None:
+            cwd = _resolve(repo_root, arguments.cwd).resolve()
+            _preflight_external_disclosure(
+                cwd=cwd, target_kind=target_kind, target_value=target_value,
+                base_sha=arguments.base_sha, head_sha=arguments.head_sha,
+                model=arguments.model, transport_profile=transport_profile,
+                authorization=disclosure_authorization,
+            )
             alias, prompt, cwd = _packet_from_arguments(arguments, repo_root, reviewer=True)
-            if arguments.uncommitted:
-                target_kind, target_value = "uncommitted", None
-            elif arguments.commit:
-                target_kind, target_value = "commit", arguments.commit
-            else:
-                target_kind, target_value = "base", arguments.base or "main"
             return run_review(
                 alias=alias, prompt=prompt, cwd=cwd, runtime_dir=runtime_dir,
                 target_kind=target_kind, target_value=target_value,
@@ -3296,6 +3489,7 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
                 provider_name=arguments.provider_name,
                 provider_base_url=arguments.provider_base_url, wire_api=arguments.wire_api,
                 requires_openai_auth=arguments.provider_requires_openai_auth,
+                disclosure_authorization=disclosure_authorization,
                 bootstrap_snapshot_digest=arguments.bootstrap_snapshot_digest,
                 timeout_seconds=arguments.timeout_seconds, dry_run=arguments.dry_run,
                 session_id=arguments.session_id, workflow_root=repo_root,
@@ -3303,12 +3497,12 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
                 parent_session_id=arguments.parent_session_id,
             )
         timeout = _validated_timeout_seconds(arguments.timeout_seconds)
-        transport_profile = validate_review_transport_profile(
-            model_provider=arguments.model_provider,
-            provider_name=arguments.provider_name,
-            provider_base_url=arguments.provider_base_url,
-            wire_api=arguments.wire_api,
-            requires_openai_auth=arguments.provider_requires_openai_auth,
+        cwd = _resolve(repo_root, arguments.cwd).resolve()
+        _preflight_external_disclosure(
+            cwd=cwd, target_kind=target_kind, target_value=target_value,
+            base_sha=arguments.base_sha, head_sha=arguments.head_sha,
+            model=arguments.model, transport_profile=transport_profile,
+            authorization=disclosure_authorization,
         )
         if arguments.dry_run:
             persistence_probe = _skipped_codex_persistence_probe()
@@ -3327,12 +3521,6 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
                     started=probe_started,
                 )
         alias, prompt, cwd = _packet_from_arguments(arguments, repo_root, reviewer=True)
-        if arguments.uncommitted:
-            target_kind, target_value = "uncommitted", None
-        elif arguments.commit:
-            target_kind, target_value = "commit", arguments.commit
-        else:
-            target_kind, target_value = "base", arguments.base or "main"
         return _run_review_after_persistence_probe(
             alias=alias,
             prompt=prompt,
@@ -3350,6 +3538,7 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             codex_capability=None,
             transport_profile=transport_profile,
             persistence_probe=persistence_probe,
+            disclosure_authorization=disclosure_authorization,
         )
     if arguments.command == "archive":
         return run_archive(

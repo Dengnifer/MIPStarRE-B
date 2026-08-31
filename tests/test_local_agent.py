@@ -837,6 +837,20 @@ class RuntimeTests(unittest.TestCase):
             "residual_risk": "none",
         }
         runner = FakeRunner(codex_events(json.dumps(review)))
+        tree = git(repo, "rev-parse", f"{head}^{{tree}}")
+        authorization = {
+            "schema_version": 1,
+            "authorized": True,
+            "endpoint_origin": "https://api.finite-dimensional.space",
+            "model": "gpt-5.6-sol",
+            "wire_api": "responses",
+            "base_sha": base,
+            "head_sha": head,
+            "tree_sha": tree,
+            "private_file_paths": ["code.txt"],
+            "exclude_credentials": True,
+            "exclude_unrelated_contents": True,
+        }
         persistence_probe = mock.Mock(wraps=local_agent._probe_codex_persistence)
         with mock.patch.object(
             local_agent, "_probe_codex_persistence", persistence_probe
@@ -850,11 +864,13 @@ class RuntimeTests(unittest.TestCase):
                 target_value="main",
                 base_sha=base,
                 head_sha=head,
+                model="gpt-5.6-sol",
                 model_provider="OpenAI",
                 provider_name="OpenAI",
                 provider_base_url="https://api.finite-dimensional.space",
                 wire_api="responses",
                 requires_openai_auth=True,
+                disclosure_authorization=authorization,
                 runner=runner,
                 codex_capability=capability(native=False),
             )
@@ -1058,7 +1074,9 @@ class RuntimeTests(unittest.TestCase):
 
     def test_review_transport_overrides_precede_exec_and_retain_isolation(self) -> None:
         repo, head = initialize_review_repo(self.root)
-        write(repo / "code.txt", "unstaged\n")
+        commit_change(repo, "unstaged\n")
+        base = git(repo, "rev-parse", "HEAD^")
+        head = git(repo, "rev-parse", "HEAD")
         expected_overrides = [
             'model_provider="OpenAI"',
             'model_providers.OpenAI.name="Finite Dimensional Space"',
@@ -1073,6 +1091,19 @@ class RuntimeTests(unittest.TestCase):
             "wire_api": "responses",
             "requires_openai_auth": True,
         }
+        authorization = {
+            "schema_version": 1,
+            "authorized": True,
+            "endpoint_origin": "https://api.finite-dimensional.space",
+            "model": "gpt-5.6-sol",
+            "wire_api": "responses",
+            "base_sha": base,
+            "head_sha": head,
+            "tree_sha": git(repo, "rev-parse", f"{head}^{{tree}}"),
+            "private_file_paths": ["code.txt"],
+            "exclude_credentials": True,
+            "exclude_unrelated_contents": True,
+        }
         secret = "must-not-appear-in-review-envelope"
 
         with mock.patch.dict(os.environ, {"OPENAI_API_KEY": secret}):
@@ -1083,8 +1114,9 @@ class RuntimeTests(unittest.TestCase):
                         prompt="review transport",
                         cwd=repo,
                         runtime_dir=self.runtime,
-                        target_kind="uncommitted",
-                        target_value=None,
+                        target_kind="base",
+                        target_value="main",
+                        base_sha=base,
                         head_sha=head,
                         model="gpt-5.6-sol",
                         model_provider="OpenAI",
@@ -1092,6 +1124,7 @@ class RuntimeTests(unittest.TestCase):
                         provider_base_url="https://api.finite-dimensional.space",
                         wire_api="responses",
                         requires_openai_auth=True,
+                        disclosure_authorization=authorization,
                         dry_run=True,
                         codex_capability=capability(native=native),
                     )
@@ -1168,6 +1201,99 @@ class RuntimeTests(unittest.TestCase):
             local_agent.validate_review_transport_profile(
                 **{**valid, "requires_openai_auth": "true"}
             )
+
+    def test_external_disclosure_preflight_is_exact_and_precedes_evidence(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        write(repo / "private.txt", "authorized payload\n")
+        git(repo, "add", ".")
+        git(repo, "commit", "-m", "private review target")
+        head = git(repo, "rev-parse", "HEAD")
+        tree = git(repo, "rev-parse", f"{head}^{{tree}}")
+        profile = {
+            "model_provider": "OpenAI",
+            "provider_name": "OpenAI",
+            "provider_base_url": "https://api.finite-dimensional.space",
+            "wire_api": "responses",
+            "requires_openai_auth": True,
+        }
+        authorization = {
+            "schema_version": 1,
+            "authorized": True,
+            "endpoint_origin": profile["provider_base_url"],
+            "model": "gpt-5.6-sol",
+            "wire_api": "responses",
+            "base_sha": base,
+            "head_sha": head,
+            "tree_sha": tree,
+            "private_file_paths": ["private.txt"],
+            "exclude_credentials": True,
+            "exclude_unrelated_contents": True,
+        }
+        with self.assertRaisesRegex(local_agent.AgentError, "explicit disclosure"):
+            local_agent.run_review(
+                alias="i026-reviewer-a01-no-auth",
+                prompt="review",
+                cwd=repo,
+                runtime_dir=self.runtime,
+                target_kind="base",
+                target_value="main",
+                base_sha=base,
+                head_sha=head,
+                model="gpt-5.6-sol",
+                **profile,
+                runner=FakeRunner(""),
+                codex_capability=capability(native=False),
+            )
+        self.assertFalse((self.runtime / "review-harnesses").exists())
+
+        for field, value in (
+            ("endpoint_origin", "https://elsewhere.invalid"),
+            ("model", "other-model"),
+            ("wire_api", "chat"),
+            ("base_sha", head),
+            ("tree_sha", "0" * 40),
+            ("private_file_paths", ["private.txt", "unrelated.txt"]),
+            ("private_file_paths", ["private.txt", "credentials.json"]),
+        ):
+            with self.subTest(field=field, value=value):
+                candidate = {**authorization, field: value}
+                with self.assertRaises(local_agent.AgentError):
+                    local_agent.run_review(
+                        alias=f"i026-reviewer-a01-mismatch-{field.replace('_', '-')}",
+                        prompt="review",
+                        cwd=repo,
+                        runtime_dir=self.runtime,
+                        target_kind="base",
+                        target_value="main",
+                        base_sha=base,
+                        head_sha=head,
+                        model="gpt-5.6-sol",
+                        disclosure_authorization=candidate,
+                        **profile,
+                        runner=FakeRunner(""),
+                        codex_capability=capability(native=False),
+                    )
+
+        result = local_agent.run_review(
+            alias="i026-reviewer-a01-exact",
+            prompt="review",
+            cwd=repo,
+            runtime_dir=self.runtime,
+            target_kind="base",
+            target_value="main",
+            base_sha=base,
+            head_sha=head,
+            model="gpt-5.6-sol",
+            disclosure_authorization=authorization,
+            **profile,
+            dry_run=True,
+            codex_capability=capability(native=False),
+        )
+        self.assertEqual(tree, result["review_target"]["target_tree_oid"])
+        self.assertEqual(
+            {key: value for key, value in authorization.items() if key != "authorized"},
+            result["review_target"]["disclosure_authorization"],
+        )
 
     def test_review_timeout_preserves_partial_evidence_without_a_verdict(self) -> None:
         repo, base = initialize_review_repo(self.root)

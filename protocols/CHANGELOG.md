@@ -216,6 +216,15 @@ superseded if it permits duplicate main builds, overlapping writable ownership,
 or review state that cannot be tied to an immutable SHA or bootstrap manifest.
 ## 2026-08-31
 
+- QPBT-026: external reviewer dispatch now has a strict opt-in disclosure
+  preflight. A version-1 non-secret authorization record binds endpoint origin,
+  model, wire API, immutable base/head/tree, and the exact changed private-file
+  scope while requiring credential and unrelated-content exclusion. The check
+  runs before packet/evidence preparation, persistence probing, or issued-lease
+  claim, and rejects missing, drifted, duplicate, or credential-looking paths.
+  This is the smallest protocol response to INC-045 and does not authorize any
+  endpoint, model, or repository contents by itself.
+
 - Added issued-session launch leases with locked authority checks, exactly-once
   terminal envelope imports, and explicit idempotent interruption recovery.
 - Remediated the initial candidate after pre-review: governed exec and review
