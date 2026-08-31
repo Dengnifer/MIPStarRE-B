@@ -17,6 +17,14 @@ Raw Codex JSONL, prompts assembled for a specific issue, build logs, cache data,
 and result envelopes live under ignored `.workflow-runtime/`. Only the root
 coordinator imports compact, inspected evidence into canonical files.
 
+Launches of issued sessions are lease-bound: authority is checked under the
+WorkflowStore lock, the session is marked running before child invocation, and
+terminal evidence is imported exactly once. Interrupted sessions are explicitly
+failed and are never silently relaunched.
+The `run` and `review` commands accept `--session-id` to select this governed
+path. Calls without it are explicitly ungoverned compatibility operations and
+cannot update canonical session state.
+
 ## Commands
 
 ```bash
@@ -38,6 +46,12 @@ integration. The aggregate gate also reconciles canonical event lifecycles,
 incident references, protocol-change evidence, and terminal-session metrics.
 State writes are locked and atomically renamed. Do not hand-edit canonical JSON
 while another coordinator command is active.
+
+Terminal artifact publication and lifecycle import are one rollback-safe
+transaction. Archive directories are confined beneath `.workflow-runtime`,
+published by atomic alias rename, and reused only after strict envelope and log
+validation. Git claim/status probes run with isolated configuration and disabled
+repository hooks/fsmonitor callbacks.
 
 `dispatch` is the capacity-aware batch entry point. The legacy `issue-session`
 command is a single-session wrapper around the same planner and also requires
@@ -62,6 +76,15 @@ deterministic diagnostics are included in the fail-closed error; no state or
 event is written.
 Stage `max_concurrency` remains historical observation data and is not an
 admission limit.
+
+An issued launch lease also binds the live worktree: the launcher must observe
+a clean Git repository at the registered root with the exact issued `HEAD` and
+tree (or an unborn repository when the base is null), and repeats that identity
+check immediately before spawning the child. Terminal imports must use
+the normalized, in-root `result_envelope_path` from the issued row. An
+interrupted lease writes a deterministic failed recovery envelope at that path;
+the recovery and its subsequent archive transition are retried only by
+reusing the recorded evidence.
 
 The planner reserves one orchestrator slot per issue: a second planned or
 active orchestrator is blocked at admission, including for a still-planned

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import fcntl
 import hashlib
 import json
 import math
@@ -27,6 +28,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from urllib.parse import urlsplit
 
 import bootstrap_manifest
+import workflow as workflow_state
 
 
 SCHEMA_VERSION = 1
@@ -120,6 +122,359 @@ class AgentProcessTimeout(Exception):
         self.termination_escalated = termination_escalated
         self.termination_escalation_signal = termination_escalation_signal
         self.termination_cleanup_complete = termination_cleanup_complete
+
+
+def _session_store(workflow_root: Path) -> workflow_state.WorkflowStore:
+    root = workflow_root.resolve()
+    return workflow_state.WorkflowStore(
+        root / "workflow" / "state", root / ".workflow-runtime", root / "workflow" / "events.jsonl"
+    )
+
+
+def _session_transaction(
+    workflow_root: Path, session_id: str, operation: Any,
+    *, artifact_factory: Any = None,
+) -> dict[str, Any]:
+    """Apply one lifecycle mutation with exact state/event/artifact rollback.
+
+    ``artifact_factory`` is used by interruption recovery to prepare a
+    deterministic terminal envelope while the WorkflowStore lock is held.
+    The artifact is restored together with the state and event log if any
+    write or validation raises, including a ``BaseException`` such as
+    ``KeyboardInterrupt``.
+    """
+    store = _session_store(workflow_root)
+    with store._lock(exclusive=True):
+        documents = store.load()
+        workflow_state.validate_documents(documents)
+        workflow_state.validate_event_log(store.events_path, documents)
+        record = next(
+            (item for item in documents["sessions.json"]["issued"] if item.get("id") == session_id),
+            None,
+        )
+        if record is None:
+            raise AgentError(f"unknown issued session {session_id!r}")
+        changed, event, payload = operation(record)
+        if not changed:
+            return dict(record)
+        artifact_spec = artifact_factory(record) if artifact_factory is not None else None
+        workflow_state.validate_documents(documents)
+        sessions_path = store.state_dir / "sessions.json"
+        sessions_bytes = sessions_path.read_bytes()
+        events_existed = store.events_path.exists()
+        events_bytes = store.events_path.read_bytes() if events_existed else None
+        artifact_path: Path | None = None
+        artifact_bytes: bytes | None = None
+        artifact_existed = False
+        prior_artifact: bytes | None = None
+        if artifact_spec is not None:
+            artifact_path, artifact_bytes = artifact_spec
+            if not artifact_path.is_absolute():
+                raise AgentError("transaction artifact path must be absolute")
+            artifact_path = artifact_path.resolve(strict=False)
+            artifact_existed = artifact_path.exists()
+            if artifact_existed:
+                if not artifact_path.is_file():
+                    raise AgentError("transaction artifact path is not a regular file")
+                prior_artifact = artifact_path.read_bytes()
+        try:
+            if artifact_path is not None and artifact_bytes is not None:
+                _write_exact_artifact(artifact_path, artifact_bytes)
+            workflow_state.atomic_write_json(sessions_path, documents["sessions.json"])
+            store.append_event(event, payload, lock_held=True)
+            workflow_state.validate_event_log(store.events_path, documents)
+        except BaseException:
+            _restore_session_transaction(
+                events_path=store.events_path,
+                sessions_path=sessions_path, sessions_bytes=sessions_bytes,
+                events_existed=events_existed,
+                events_bytes=events_bytes,
+            )
+            if artifact_path is not None:
+                _restore_artifact(
+                    artifact_path,
+                    existed=artifact_existed,
+                    prior_bytes=prior_artifact,
+                )
+            raise
+        return dict(record)
+
+
+def _write_exact_artifact(path: Path, data: bytes) -> None:
+    """Create an artifact once, rejecting an existing conflicting payload."""
+
+    if path.is_symlink():
+        raise AgentError(f"terminal artifact path may not be a symlink: {path}")
+    if path.exists():
+        if not path.is_file() or path.read_bytes() != data:
+            raise AgentError(f"existing terminal artifact conflicts at {path}")
+        return
+    _atomic_write_bytes(path, data)
+
+
+def _restore_artifact(path: Path, *, existed: bool, prior_bytes: bytes | None) -> None:
+    """Restore one transaction artifact to its exact pre-write bytes."""
+
+    if existed:
+        assert prior_bytes is not None
+        _atomic_write_bytes(path, prior_bytes)
+    else:
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def _restore_session_transaction(
+    *,
+    events_path: Path,
+    sessions_path: Path,
+    sessions_bytes: bytes,
+    events_existed: bool,
+    events_bytes: bytes | None,
+) -> None:
+    """Restore lifecycle files without re-entering a potentially failing writer."""
+
+    # Replacing the snapshots directly keeps rollback independent of the
+    # injected writer that raised (including a one-shot KeyboardInterrupt).
+    _atomic_write_bytes(sessions_path, sessions_bytes)
+    if not events_existed:
+        try:
+            events_path.unlink()
+        except FileNotFoundError:
+            pass
+        return
+    if events_bytes is None:
+        raise AgentError("event snapshot disappeared during transaction rollback")
+    _atomic_write_bytes(events_path, events_bytes)
+
+
+def _recovery_envelope(
+    session_id: str, record: Mapping[str, Any], registered_path: str
+) -> dict[str, Any]:
+    """Build the canonical terminal evidence for one interrupted session."""
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "kind": "session-recovery",
+        "session_id": session_id,
+        "status": "failed",
+        "interruption_reason": record["interruption_reason"],
+        "started_at": record["started_at"],
+        "ended_at": record["ended_at"],
+        "elapsed_seconds": record["elapsed_seconds"],
+        "token_usage": record["token_usage"],
+        "result_envelope_path": registered_path,
+        "outcome_path": registered_path,
+    }
+
+
+def claim_issued_session(
+    *, session_id: str, workflow_root: Path, alias: str, cwd: Path,
+    base_revision: str | None, owned_paths: Sequence[str], read_only: bool,
+    role: str, issue_id: str, parent_session_id: str | None,
+) -> dict[str, Any]:
+    """Atomically validate authority and transition one issued session to running."""
+    requested_paths = list(owned_paths)
+
+    def mutate(record: dict[str, Any]) -> tuple[bool, str, dict[str, Any]]:
+        if record.get("status") != "issued":
+            raise AgentError(f"session {session_id!r} is not issued (status={record.get('status')!r})")
+        expected = {
+            "name": alias, "role": role, "issue_id": issue_id,
+            "parent_session_id": parent_session_id,
+        }
+        if any(record.get(key) != value for key, value in expected.items()):
+            raise AgentError("launch identity does not match issued authority")
+        if Path(record["worktree"]).resolve() != cwd.resolve():
+            raise AgentError("launch cwd does not match issued worktree")
+        if record.get("base_revision") != base_revision:
+            raise AgentError("launch base revision does not match issued authority")
+        if record.get("owned_paths") != requested_paths or record.get("read_only") != read_only:
+            raise AgentError("launch ownership or read-only claim does not match issued authority")
+        result_path, _ = _canonical_session_path(
+            workflow_root, record.get("result_envelope_path"), label="issued result envelope"
+        )
+        identity = _validate_claim_worktree(cwd, base_revision)
+        workflow_state._transition_record("issued-session", record, "running")
+        return True, "record.transitioned", {
+            "kind": "issued-session", "session_id": session_id, "status": "running",
+            "base_revision": base_revision,
+            "worktree_head": identity["head"],
+            "worktree_tree": identity["tree"],
+            "result_envelope_path": result_path,
+        }
+    return _session_transaction(workflow_root, session_id, mutate)
+
+
+def import_session_result(
+    *, session_id: str, workflow_root: Path, envelope: Mapping[str, Any], outcome_path: str | None = None,
+) -> dict[str, Any]:
+    """Import a terminal envelope exactly once; identical retries are idempotent."""
+    required = {"external_id", "status", "started_at", "ended_at", "elapsed_seconds", "token_usage"}
+    if not required.issubset(envelope):
+        raise AgentError("session envelope is missing lifecycle fields")
+    if envelope["status"] not in {"finished", "failed"}:
+        raise AgentError("session envelope status must be finished or failed")
+    if not isinstance(envelope["external_id"], str) or not envelope["external_id"].strip():
+        raise AgentError("terminal external_id must be non-empty")
+    elapsed = envelope["elapsed_seconds"]
+    if not isinstance(elapsed, (int, float)) or isinstance(elapsed, bool) or not math.isfinite(elapsed) or elapsed < 0:
+        raise AgentError("terminal elapsed_seconds must be finite and non-negative")
+    try:
+        start_value = dt.datetime.fromisoformat(str(envelope["started_at"]).replace("Z", "+00:00"))
+        end_value = dt.datetime.fromisoformat(str(envelope["ended_at"]).replace("Z", "+00:00"))
+    except (TypeError, ValueError) as error:
+        raise AgentError("terminal timestamps must be ISO-8601") from error
+    if start_value.tzinfo is None or end_value.tzinfo is None:
+        raise AgentError("terminal timestamps must include a timezone")
+    if end_value < start_value:
+        raise AgentError("terminal ended_at precedes started_at")
+    supplied_path, _ = _canonical_session_path(
+        workflow_root, outcome_path, label="terminal outcome"
+    )
+    token_usage = envelope["token_usage"]
+    token_errors: list[str] = []
+    workflow_state._validate_token_usage(token_usage, "token_usage", token_errors)
+    if token_errors:
+        raise AgentError("invalid terminal token usage: " + "; ".join(token_errors))
+
+    envelope_bytes = (json.dumps(dict(envelope), indent=2, ensure_ascii=True) + "\n").encode(
+        "utf-8"
+    )
+
+    def mutate(record: dict[str, Any]) -> tuple[bool, str, dict[str, Any]]:
+        registered_path, _ = _canonical_session_path(
+            workflow_root,
+            record.get("result_envelope_path"),
+            label="issued result envelope",
+        )
+        if supplied_path != registered_path:
+            raise AgentError(
+                "terminal outcome path does not match the issued result envelope path"
+            )
+        provenance = {
+            "session_id": session_id,
+            "envelope": dict(envelope),
+            "outcome_path": supplied_path,
+            "result_envelope_path": registered_path,
+        }
+        digest = _sha256_text(
+            json.dumps(provenance, sort_keys=True, separators=(",", ":"))
+        )
+        prior = record.get("result_digest")
+        if prior is not None:
+            if record.get("outcome_path") != registered_path:
+                raise AgentError("recorded terminal outcome path conflicts with issued authority")
+            if prior != digest:
+                raise AgentError("conflicting terminal import for issued session")
+            return False, "", {}
+        if record.get("status") != "running":
+            raise AgentError("issued session is already terminal without an import digest")
+        prior_external_id = record.get("external_id")
+        if prior_external_id is not None and prior_external_id != envelope["external_id"]:
+            raise AgentError("terminal external id conflicts with issued authority")
+        if envelope["started_at"] != record.get("started_at"):
+            raise AgentError("terminal envelope does not preserve the claimed start time")
+        workflow_state._transition_record("issued-session", record, envelope["status"])
+        for field in ("external_id", "ended_at", "elapsed_seconds"):
+            record[field] = envelope[field]
+        record["token_usage"] = token_usage
+        record["timing_quality"] = "runtime-measured"
+        record["outcome_path"] = supplied_path
+        record["result_digest"] = digest
+        return True, "record.transitioned", {
+            "kind": "issued-session", "session_id": session_id,
+            "status": envelope["status"], "result_digest": digest,
+        }
+    def artifact_factory(record: Mapping[str, Any]) -> tuple[Path, bytes] | None:
+        if record.get("result_digest") is None:
+            return None
+        registered_path, artifact_path = _canonical_session_path(
+            workflow_root,
+            record.get("result_envelope_path"),
+            label="issued result envelope",
+        )
+        if registered_path != supplied_path:
+            raise AgentError("terminal outcome path changed during import")
+        return artifact_path, envelope_bytes
+
+    try:
+        return _session_transaction(
+            workflow_root, session_id, mutate, artifact_factory=artifact_factory
+        )
+    except TypeError as error:
+        # Keep lightweight injected transaction doubles source-compatible;
+        # the real store always accepts the artifact factory.
+        if "artifact_factory" not in str(error):
+            raise
+        return _session_transaction(workflow_root, session_id, mutate)
+
+
+def recover_interrupted_session(*, session_id: str, workflow_root: Path, reason: str) -> dict[str, Any]:
+    """Mark a claimed session failed after interruption; never relaunches it.
+
+    Recovery writes a deterministic terminal envelope at the issued result
+    path.  That evidence makes the failed row archiveable and lets identical
+    retries verify and reuse the prior artifact without appending another
+    lifecycle event.
+    """
+    if not reason.strip():
+        raise AgentError("interruption reason cannot be empty")
+
+    def mutate(record: dict[str, Any]) -> tuple[bool, str, dict[str, Any]]:
+        registered_path, artifact_path = _canonical_session_path(
+            workflow_root,
+            record.get("result_envelope_path"),
+            label="issued result envelope",
+        )
+        if record.get("recovery_digest") is not None:
+            if record.get("interruption_reason") != reason:
+                raise AgentError("conflicting interruption recovery reason")
+            if record.get("outcome_path") != registered_path:
+                raise AgentError("recovered outcome path conflicts with issued result envelope")
+            if not artifact_path.is_file():
+                raise AgentError("recovery artifact is missing; refusing a silent rerun")
+            if _sha256_bytes(artifact_path.read_bytes()) != record.get("recovery_digest"):
+                raise AgentError("recovery artifact digest conflicts with recorded recovery")
+            return False, "", {}
+        if record.get("status") != "running":
+            raise AgentError("only a claimed running session can be recovered")
+        workflow_state._transition_record("issued-session", record, "failed")
+        record["interruption_reason"] = reason
+        record["ended_at"] = workflow_state.utc_now()
+        started = dt.datetime.fromisoformat(record["started_at"].replace("Z", "+00:00"))
+        ended = dt.datetime.fromisoformat(record["ended_at"].replace("Z", "+00:00"))
+        record["elapsed_seconds"] = round(max(0.0, (ended - started).total_seconds()), 6)
+        record["timing_quality"] = "runtime-measured"
+        record["token_usage"] = {"input": None, "output": None, "total": None,
+                                 "availability_reason": "session interrupted before terminal import"}
+        record["outcome_path"] = registered_path
+        recovery_envelope = _recovery_envelope(session_id, record, registered_path)
+        recovery_bytes = _json_bytes(recovery_envelope)
+        record["recovery_digest"] = _sha256_bytes(recovery_bytes)
+        return True, "record.transitioned", {
+            "kind": "issued-session", "session_id": session_id, "status": "failed",
+            "interruption_reason": reason, "recovery_digest": record["recovery_digest"],
+        }
+
+    def artifact_factory(record: Mapping[str, Any]) -> tuple[Path, bytes] | None:
+        if record.get("recovery_digest") is None:
+            return None
+        registered_path, artifact_path = _canonical_session_path(
+            workflow_root,
+            record.get("result_envelope_path"),
+            label="issued result envelope",
+        )
+        recovery_envelope = _recovery_envelope(session_id, record, registered_path)
+        recovery_bytes = _json_bytes(recovery_envelope)
+        if _sha256_bytes(recovery_bytes) != record.get("recovery_digest"):
+            raise AgentError("recovery envelope digest construction is inconsistent")
+        return artifact_path, recovery_bytes
+
+    return _session_transaction(
+        workflow_root, session_id, mutate, artifact_factory=artifact_factory
+    )
 
 
 def validate_review_transport_profile(
@@ -668,6 +1023,32 @@ def _atomic_write(path: Path, data: str) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _atomic_write_bytes(path: Path, data: bytes) -> None:
+    """Write bytes through a same-directory temporary file."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _json_bytes(value: Any) -> bytes:
+    """Encode canonical evidence bytes for hashing and durable storage."""
+
+    return (json.dumps(value, indent=2, ensure_ascii=True, sort_keys=True) + "\n").encode(
+        "utf-8"
+    )
+
+
 def _atomic_write_json(path: Path, value: Any) -> None:
     _atomic_write(path, json.dumps(value, indent=2, ensure_ascii=True) + "\n")
 
@@ -1137,11 +1518,23 @@ def _sha256_text(value: str) -> str:
 
 
 def _git_environment(extra: Mapping[str, str] | None = None) -> dict[str, str]:
-    environment = os.environ.copy()
+    environment = {
+        key: value
+        for key, value in os.environ.items()
+        if not (
+            key == "GIT_CONFIG_PARAMETERS"
+            or key == "GIT_CONFIG_COUNT"
+            or re.fullmatch(r"GIT_CONFIG_(?:KEY|VALUE)_\d+", key) is not None
+        )
+    }
     environment.update(
         {
             "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_SYSTEM": os.devnull,
             "GIT_CONFIG_GLOBAL": os.devnull,
+            # Git has no portable switch to omit the repository-local file;
+            # command-local hardening below disables hooks and fsmonitor too.
+            "GIT_CONFIG_LOCAL": os.devnull,
             "GIT_TERMINAL_PROMPT": "0",
         }
     )
@@ -1158,7 +1551,17 @@ def _git_bytes(
     allowed_returncodes: Sequence[int] = (0,),
     extra_environment: Mapping[str, str] | None = None,
 ) -> subprocess.CompletedProcess[bytes]:
-    command = ["git", *arguments]
+    # Repository-local config can select hooks and fsmonitor callbacks.  Keep
+    # every identity/status probe deterministic even when the worktree is
+    # hostile or inherited config is present.
+    command = [
+        "git",
+        "-c",
+        f"core.hooksPath={os.devnull}",
+        "-c",
+        "core.fsmonitor=false",
+        *arguments,
+    ]
     try:
         completed = subprocess.run(
             command,
@@ -1244,6 +1647,119 @@ def _working_tree_status(cwd: Path) -> bytes:
         cwd,
         ["status", "--porcelain=v1", "-z", "--untracked-files=all"],
     ).stdout
+
+
+def _git_tree(cwd: Path, revision: str) -> str:
+    """Resolve one commit's tree object using the isolated Git environment."""
+
+    resolved = _git_text(
+        cwd,
+        ["rev-parse", "--verify", "--end-of-options", f"{revision}^{{tree}}"],
+    ).stdout.strip().lower()
+    if not FULL_GIT_OID_RE.fullmatch(resolved):
+        raise AgentError(f"Git resolved an invalid tree object id {resolved!r}")
+    return resolved
+
+
+def _validate_claim_worktree(cwd: Path, base_revision: str | None) -> dict[str, str | None]:
+    """Verify the actual clean Git worktree identity for a launch lease.
+
+    The check intentionally fails closed when Git is unavailable, the path is
+    not the repository root, or the worktree is dirty.  A null issued base is
+    only valid for an unborn, clean repository; a committed worktree must have
+    an immutable base SHA to bind the lease.
+    """
+
+    worktree = cwd.resolve()
+    try:
+        repository_root = _git_repo_root(worktree)
+        if repository_root != worktree:
+            raise AgentError("launch cwd must be the Git repository root")
+        status = _working_tree_status(worktree)
+        if status:
+            raise AgentError("launch worktree must be clean")
+        actual_head = _try_head(worktree)
+    except AgentError as error:
+        raise AgentError(f"launch worktree Git identity unavailable: {error}") from error
+
+    if base_revision is None:
+        if actual_head is not None:
+            raise AgentError(
+                "issued base revision is unavailable for a committed worktree"
+            )
+        return {"head": None, "tree": None}
+
+    expected_base = _resolve_commit(
+        worktree, base_revision, label="issued base revision", require_full=True
+    )
+    if actual_head != expected_base:
+        raise AgentError(
+            "launch worktree HEAD does not match issued base revision "
+            f"(expected {expected_base}, observed {actual_head or 'unborn'})"
+        )
+    actual_tree = _git_tree(worktree, "HEAD")
+    expected_tree = _git_tree(worktree, expected_base)
+    if actual_tree != expected_tree:
+        raise AgentError("launch worktree tree does not match issued base revision")
+    return {"head": actual_head, "tree": actual_tree}
+
+
+def _revalidate_claimed_worktree(
+    cwd: Path, base_revision: str | None, claimed_worktree: Path
+) -> dict[str, str | None]:
+    """Recheck lease identity immediately before spawning a governed child.
+
+    The initial claim is performed under the workflow-state lock, but that lock
+    cannot cover the external Codex process.  Requiring the same canonical
+    repository path and immutable Git identity immediately before spawn closes
+    the interval in which a worktree could be replaced after claiming.
+    """
+
+    current_worktree = cwd.resolve()
+    if current_worktree != claimed_worktree:
+        raise AgentError("launch worktree path changed after claim")
+    return _validate_claim_worktree(cwd, base_revision)
+
+
+def _canonical_session_path(
+    workflow_root: Path, value: Any, *, label: str
+) -> tuple[str, Path]:
+    """Normalize an issued result path and require it to stay under the root."""
+
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise AgentError(f"{label} path must be a non-empty, trimmed string")
+    if "\x00" in value or "\\" in value:
+        raise AgentError(f"{label} path contains an unsafe separator")
+    raw_path = Path(value)
+    if any(part == ".." for part in raw_path.parts):
+        raise AgentError(f"{label} path traversal is not allowed")
+    root = workflow_root.resolve()
+    lexical = raw_path if raw_path.is_absolute() else root / raw_path
+    try:
+        lexical_relative = lexical.relative_to(root)
+    except ValueError as error:
+        raise AgentError(f"{label} path must remain inside the workflow root") from error
+    current_lexical = root
+    for part in lexical_relative.parts:
+        current_lexical = current_lexical / part
+        if current_lexical.is_symlink():
+            raise AgentError(f"{label} path may not traverse a symlink")
+    candidate = lexical
+    candidate = candidate.resolve(strict=False)
+    try:
+        relative = candidate.relative_to(root)
+    except ValueError as error:
+        raise AgentError(f"{label} path must remain inside the workflow root") from error
+    if not relative.parts or relative == Path("."):
+        raise AgentError(f"{label} path must name a file below the workflow root")
+    # Reject symlink aliases even when their target happens to remain inside
+    # the root; the issued spelling must identify one canonical file.
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise AgentError(f"{label} path may not traverse a symlink")
+    return relative.as_posix(), candidate
 
 
 def _git_object_text(cwd: Path, revision: str, path: str) -> tuple[str, str] | None:
@@ -1755,7 +2271,7 @@ def _base_envelope(
     }
 
 
-def run_exec(
+def _run_exec_unbound(
     *,
     alias: str,
     prompt: str,
@@ -1767,6 +2283,7 @@ def run_exec(
     timeout_seconds: float | int = DEFAULT_CODEX_TIMEOUT_SECONDS,
     dry_run: bool = False,
     runner: Any = _subprocess_run,
+    started_at_override: str | None = None,
 ) -> dict[str, Any]:
     timeout = _validated_timeout_seconds(timeout_seconds)
     command = [
@@ -1800,7 +2317,7 @@ def run_exec(
 
     output_dir = _prepare_output_directory(runtime_dir, alias)
     _atomic_write(output_dir / "prompt.md", prompt)
-    started_at = utc_now()
+    started_at = started_at_override or utc_now()
     started = time.monotonic()
     timeout_error: AgentProcessTimeout | None = None
     try:
@@ -1868,7 +2385,55 @@ def run_exec(
     return envelope
 
 
-def run_review(
+def run_exec(
+    *, alias: str, prompt: str, cwd: Path, runtime_dir: Path,
+    model: str | None = None, sandbox: str = "workspace-write",
+    approval_policy: str = "never", timeout_seconds: float | int = DEFAULT_CODEX_TIMEOUT_SECONDS,
+    dry_run: bool = False, runner: Any = _subprocess_run,
+    session_id: str | None = None, workflow_root: Path | None = None,
+    base_revision: str | None = None, owned_paths: Sequence[str] = (),
+    role: str | None = None, issue_id: str | None = None,
+    parent_session_id: str | None = None,
+) -> dict[str, Any]:
+    """Run Codex, optionally under an issued-session lease."""
+    arguments = dict(
+        alias=alias, prompt=prompt, cwd=cwd, runtime_dir=runtime_dir, model=model,
+        sandbox=sandbox, approval_policy=approval_policy, timeout_seconds=timeout_seconds,
+        dry_run=dry_run, runner=runner,
+    )
+    if session_id is None or dry_run:
+        return _run_exec_unbound(**arguments)
+    if workflow_root is None or role is None or issue_id is None:
+        raise AgentError("bound launch requires workflow root, role, and issue authority")
+    claimed_worktree = cwd.resolve()
+    claimed = claim_issued_session(
+        session_id=session_id, workflow_root=workflow_root, alias=alias, cwd=cwd,
+        base_revision=base_revision, owned_paths=owned_paths,
+        read_only=sandbox == "read-only",
+        role=role, issue_id=issue_id, parent_session_id=parent_session_id,
+    )
+    try:
+        _revalidate_claimed_worktree(cwd, base_revision, claimed_worktree)
+        envelope = _run_exec_unbound(**arguments, started_at_override=claimed["started_at"])
+        _, registered_outcome = _canonical_session_path(
+            workflow_root,
+            claimed.get("result_envelope_path"),
+            label="issued result envelope",
+        )
+        import_session_result(
+            session_id=session_id, workflow_root=workflow_root, envelope=envelope,
+            outcome_path=str(registered_outcome),
+        )
+        return envelope
+    except BaseException as error:
+        recover_interrupted_session(
+            session_id=session_id, workflow_root=workflow_root,
+            reason=f"post-claim launch failure: {type(error).__name__}: {error}",
+        )
+        raise
+
+
+def _run_review_unbound(
     *,
     alias: str,
     prompt: str,
@@ -1931,6 +2496,61 @@ def run_review(
         transport_profile=transport_profile,
         persistence_probe=persistence_probe,
     )
+
+
+def run_review(
+    *, alias: str, prompt: str, cwd: Path, runtime_dir: Path,
+    target_kind: str, target_value: str | None, base_sha: str | None = None,
+    head_sha: str | None = None, model: str | None = None,
+    model_provider: str | None = None, provider_name: str | None = None,
+    provider_base_url: str | None = None, wire_api: str | None = None,
+    requires_openai_auth: bool | None = None, bootstrap_snapshot_digest: str | None = None,
+    timeout_seconds: float | int = DEFAULT_CODEX_TIMEOUT_SECONDS, dry_run: bool = False,
+    runner: Any = _subprocess_run, codex_capability: Mapping[str, Any] | None = None,
+    session_id: str | None = None, workflow_root: Path | None = None,
+    owned_paths: Sequence[str] = (), issue_id: str | None = None,
+    parent_session_id: str | None = None,
+) -> dict[str, Any]:
+    arguments = dict(
+        alias=alias, prompt=prompt, cwd=cwd, runtime_dir=runtime_dir,
+        target_kind=target_kind, target_value=target_value, base_sha=base_sha,
+        head_sha=head_sha, model=model, model_provider=model_provider,
+        provider_name=provider_name, provider_base_url=provider_base_url,
+        wire_api=wire_api, requires_openai_auth=requires_openai_auth,
+        bootstrap_snapshot_digest=bootstrap_snapshot_digest,
+        timeout_seconds=timeout_seconds, dry_run=dry_run, runner=runner,
+        codex_capability=codex_capability,
+    )
+    if session_id is None or dry_run:
+        return _run_review_unbound(**arguments)
+    if workflow_root is None or issue_id is None:
+        raise AgentError("bound review requires workflow root and issue authority")
+    claimed_worktree = cwd.resolve()
+    claimed = claim_issued_session(
+        session_id=session_id, workflow_root=workflow_root, alias=alias, cwd=cwd,
+        base_revision=base_sha, owned_paths=owned_paths, read_only=True,
+        role="reviewer", issue_id=issue_id, parent_session_id=parent_session_id,
+    )
+    try:
+        _revalidate_claimed_worktree(cwd, base_sha, claimed_worktree)
+        envelope = _run_review_unbound(**arguments)
+        envelope["started_at"] = claimed["started_at"]
+        _, registered_outcome = _canonical_session_path(
+            workflow_root,
+            claimed.get("result_envelope_path"),
+            label="issued result envelope",
+        )
+        import_session_result(
+            session_id=session_id, workflow_root=workflow_root,
+            envelope=envelope, outcome_path=str(registered_outcome),
+        )
+        return envelope
+    except BaseException as error:
+        recover_interrupted_session(
+            session_id=session_id, workflow_root=workflow_root,
+            reason=f"post-claim review failure: {type(error).__name__}: {error}",
+        )
+        raise
 
 
 def _run_review_after_persistence_probe(
@@ -2295,6 +2915,116 @@ def _run_review_after_persistence_probe(
         return envelope
 
 
+_ARCHIVE_ENVELOPE_FIELDS = {
+    "schema_version", "kind", "alias", "status", "command", "started_at",
+    "ended_at", "elapsed_seconds", "returncode", "external_id", "archive_status",
+    "stdout_path", "stderr_path", "timeout_seconds", "timed_out",
+    "termination_signal", "termination_escalated", "termination_escalation_signal",
+    "termination_cleanup_complete", "partial_stdout_bytes", "partial_stderr_bytes",
+    "stdout_bytes", "stdout_sha256", "stderr_bytes", "stderr_sha256", "timeout_error",
+}
+
+
+def _archive_directory(runtime_dir: Path) -> Path:
+    """Create and verify the archive root without following symlink aliases."""
+
+    root = runtime_dir if runtime_dir.is_absolute() else Path.cwd() / runtime_dir
+    root = root.absolute()
+    current = Path(root.anchor)
+    for part in root.relative_to(Path(root.anchor)).parts:
+        current /= part
+        if current.is_symlink():
+            raise AgentError("archive runtime path may not traverse a symlink")
+    if root.exists() and root.is_symlink():
+        raise AgentError("archive runtime root may not be a symlink")
+    root.mkdir(parents=True, exist_ok=True)
+    if root.is_symlink() or not root.is_dir():
+        raise AgentError("archive runtime root is not a real directory")
+    archive_root = root / "archives"
+    if archive_root.exists() and archive_root.is_symlink():
+        raise AgentError("archive root may not be a symlink")
+    archive_root.mkdir(exist_ok=True)
+    if archive_root.is_symlink() or not archive_root.is_dir():
+        raise AgentError("archive root is not a real directory")
+    return archive_root
+
+
+def _validate_archive_envelope(
+    value: Any, *, alias: str | None, external_id: str, output_dir: Path
+) -> dict[str, Any]:
+    """Accept only a complete envelope whose logs are confined to its alias."""
+
+    if not isinstance(value, dict) or set(value) != _ARCHIVE_ENVELOPE_FIELDS:
+        raise AgentError("existing archive result is not a complete envelope")
+    if value["schema_version"] != SCHEMA_VERSION or value["kind"] != "archive":
+        raise AgentError("existing archive result has an invalid kind or schema")
+    if value["alias"] != alias or value["external_id"] != external_id:
+        raise AgentError("existing archive result conflicts with archive identity")
+    if value["command"] != ["codex", "archive", external_id]:
+        raise AgentError("existing archive result has an invalid command")
+    if value["status"] not in {"archived", "failed"}:
+        raise AgentError("existing archive result has an invalid status")
+    if value["archive_status"] != value["status"]:
+        raise AgentError("existing archive result has inconsistent archive status")
+    for field in ("started_at", "ended_at"):
+        try:
+            timestamp = dt.datetime.fromisoformat(str(value[field]).replace("Z", "+00:00"))
+        except (TypeError, ValueError) as error:
+            raise AgentError("existing archive result has invalid timestamps") from error
+        if timestamp.tzinfo is None:
+            raise AgentError("existing archive result timestamps need a timezone")
+    if dt.datetime.fromisoformat(str(value["ended_at"]).replace("Z", "+00:00")) < dt.datetime.fromisoformat(str(value["started_at"]).replace("Z", "+00:00")):
+        raise AgentError("existing archive result ended before it started")
+    elapsed = value["elapsed_seconds"]
+    if not isinstance(elapsed, (int, float)) or isinstance(elapsed, bool) or not math.isfinite(elapsed) or elapsed < 0:
+        raise AgentError("existing archive result has invalid elapsed_seconds")
+    timeout = value["timeout_seconds"]
+    if not isinstance(timeout, (int, float)) or isinstance(timeout, bool) or not math.isfinite(timeout) or timeout <= 0:
+        raise AgentError("existing archive result has invalid timeout_seconds")
+    for field, expected in {
+        "stdout_path": output_dir / "stdout.log", "stderr_path": output_dir / "stderr.log"
+    }.items():
+        if not isinstance(value[field], str):
+            raise AgentError("existing archive result log path is invalid")
+        path = Path(value[field])
+        if path != expected or path.is_symlink() or not path.is_file():
+            raise AgentError("existing archive result log path is invalid")
+    for stream, path_field in (("stdout", "stdout_path"), ("stderr", "stderr_path")):
+        try:
+            log_bytes = Path(value[path_field]).read_bytes()
+        except OSError as error:
+            raise AgentError(f"existing archive {stream} log is unreadable") from error
+        recorded_bytes = value[f"{stream}_bytes"]
+        if (
+            not isinstance(recorded_bytes, int)
+            or isinstance(recorded_bytes, bool)
+            or recorded_bytes < 0
+            or recorded_bytes != len(log_bytes)
+        ):
+            raise AgentError(f"existing archive {stream} log byte count does not match envelope")
+        recorded_digest = value[f"{stream}_sha256"]
+        if not isinstance(recorded_digest, str) or recorded_digest != _sha256_bytes(log_bytes):
+            raise AgentError(f"existing archive {stream} log digest does not match envelope")
+    return value
+
+
+def _load_archive_result(
+    output_dir: Path, *, alias: str | None, external_id: str
+) -> dict[str, Any]:
+    if output_dir.is_symlink() or not output_dir.is_dir():
+        raise AgentError("existing archive alias is not a real directory")
+    result_path = output_dir / "result.json"
+    if result_path.is_symlink() or not result_path.is_file():
+        raise AgentError("existing archive result is incomplete")
+    try:
+        prior = json.loads(result_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise AgentError(f"existing archive result is incomplete: {error}") from error
+    return _validate_archive_envelope(
+        prior, alias=alias, external_id=external_id, output_dir=output_dir
+    )
+
+
 def run_archive(
     *,
     external_id: str,
@@ -2307,6 +3037,8 @@ def run_archive(
     timeout = _validated_timeout_seconds(timeout_seconds)
     if not external_id.strip():
         raise AgentError("external id cannot be empty")
+    if alias is not None and not SESSION_NAME_RE.fullmatch(alias):
+        raise AgentError("archive alias must be a canonical local session name")
     command = ["codex", "archive", external_id]
     if dry_run:
         return {
@@ -2319,65 +3051,67 @@ def run_archive(
             "timeout_seconds": timeout,
             "timed_out": False,
         }
-    if alias is not None and not SESSION_NAME_RE.fullmatch(alias):
-        raise AgentError("archive alias must be a canonical local session name")
     safe_name = alias or f"archive-{hashlib.sha256(external_id.encode('utf-8')).hexdigest()[:16]}"
-    output_dir = runtime_dir / "archives" / safe_name
-    if output_dir.exists():
-        suffix = hashlib.sha256(f"{external_id}-{time.monotonic_ns()}".encode("utf-8")).hexdigest()[:8]
-        output_dir = runtime_dir / "archives" / f"{safe_name}-{suffix}"
-    output_dir.mkdir(parents=True)
-    started_at = utc_now()
-    started = time.monotonic()
-    timeout_error: AgentProcessTimeout | None = None
-    try:
-        completed = _run_bounded(
-            runner,
-            command,
-            cwd=Path.cwd(),
-            prompt=None,
-            timeout_seconds=timeout,
-        )
-    except AgentProcessTimeout as error:
-        timeout_error = error
-        completed = subprocess.CompletedProcess(
-            command,
-            error.returncode,
-            stdout=_output_text(error.stdout),
-            stderr=_output_text(error.stderr),
-        )
-    elapsed = time.monotonic() - started
-    ended_at = utc_now()
-    stdout = completed.stdout or ""
-    stderr = completed.stderr or ""
-    _atomic_write(output_dir / "stdout.log", stdout)
-    _atomic_write(output_dir / "stderr.log", stderr)
-    archived = timeout_error is None and completed.returncode == 0
-    envelope = {
-        **_base_envelope(
-            alias=alias,
-            kind="archive",
-            command=command,
-            started_at=started_at,
-            ended_at=ended_at,
-            elapsed_seconds=elapsed,
-            returncode=completed.returncode,
-            status="archived" if archived else "failed",
-        ),
-        "external_id": external_id,
-        "archive_status": "archived" if archived else "failed",
-        "stdout_path": str(output_dir / "stdout.log"),
-        "stderr_path": str(output_dir / "stderr.log"),
-        **_timeout_envelope_fields(
-            timeout_seconds=timeout,
-            timed_out=timeout_error is not None,
-            stdout=stdout,
-            stderr=stderr,
-            timeout_error=timeout_error,
-        ),
-    }
-    _atomic_write_json(output_dir / "result.json", envelope)
-    return envelope
+    archive_root = _archive_directory(runtime_dir)
+    output_dir = archive_root / safe_name
+    lock_path = archive_root / f".{safe_name}.lock"
+    if lock_path.is_symlink():
+        raise AgentError("archive alias lock may not be a symlink")
+    lock_path.touch(exist_ok=True)
+    with lock_path.open("r+") as lock_stream:
+        fcntl.flock(lock_stream.fileno(), fcntl.LOCK_EX)
+        try:
+            if output_dir.exists() or output_dir.is_symlink():
+                return _load_archive_result(output_dir, alias=alias, external_id=external_id)
+            temporary = Path(tempfile.mkdtemp(prefix=f".{safe_name}.", dir=archive_root))
+            try:
+                started_at = utc_now()
+                started = time.monotonic()
+                timeout_error: AgentProcessTimeout | None = None
+                try:
+                    completed = _run_bounded(
+                        runner, command, cwd=Path.cwd(), prompt=None, timeout_seconds=timeout
+                    )
+                except AgentProcessTimeout as error:
+                    timeout_error = error
+                    completed = subprocess.CompletedProcess(
+                        command, error.returncode, stdout=_output_text(error.stdout), stderr=_output_text(error.stderr)
+                    )
+                elapsed = time.monotonic() - started
+                ended_at = utc_now()
+                stdout = completed.stdout or ""
+                stderr = completed.stderr or ""
+                _atomic_write(temporary / "stdout.log", stdout)
+                _atomic_write(temporary / "stderr.log", stderr)
+                archived = timeout_error is None and completed.returncode == 0
+                envelope = {
+                    **_base_envelope(
+                        alias=alias, kind="archive", command=command, started_at=started_at,
+                        ended_at=ended_at, elapsed_seconds=elapsed,
+                        returncode=completed.returncode,
+                        status="archived" if archived else "failed",
+                    ),
+                    "external_id": external_id,
+                    "archive_status": "archived" if archived else "failed",
+                    "stdout_path": str(output_dir / "stdout.log"),
+                    "stderr_path": str(output_dir / "stderr.log"),
+                    **_timeout_envelope_fields(
+                        timeout_seconds=timeout, timed_out=timeout_error is not None,
+                        stdout=stdout, stderr=stderr, timeout_error=timeout_error,
+                    ),
+                }
+                _atomic_write_json(temporary / "result.json", envelope)
+                try:
+                    os.rename(temporary, output_dir)
+                except FileExistsError:
+                    return _load_archive_result(output_dir, alias=alias, external_id=external_id)
+                temporary = None  # type: ignore[assignment]
+                return envelope
+            finally:
+                if temporary is not None:
+                    shutil.rmtree(temporary, ignore_errors=True)
+        finally:
+            fcntl.flock(lock_stream.fileno(), fcntl.LOCK_UN)
 
 
 def _resolve(root: Path, value: str) -> Path:
@@ -2403,6 +3137,7 @@ def _add_packet_arguments(parser: argparse.ArgumentParser, *, reviewer: bool = F
     parser.add_argument("--base-sha")
     parser.add_argument("--head-sha")
     parser.add_argument("--parent-session-id")
+    parser.add_argument("--session-id", help="bind a launch to an issued workflow session")
     parser.add_argument("--model")
     parser.add_argument("--dry-run", action="store_true")
 
@@ -2536,8 +3271,37 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             approval_policy=arguments.approval_policy,
             timeout_seconds=arguments.timeout_seconds,
             dry_run=arguments.dry_run,
+            session_id=arguments.session_id,
+            workflow_root=repo_root,
+            base_revision=arguments.base_sha,
+            owned_paths=arguments.owned_path,
+            role=arguments.role,
+            issue_id=arguments.issue,
+            parent_session_id=arguments.parent_session_id,
         )
     if arguments.command == "review":
+        if arguments.session_id is not None:
+            alias, prompt, cwd = _packet_from_arguments(arguments, repo_root, reviewer=True)
+            if arguments.uncommitted:
+                target_kind, target_value = "uncommitted", None
+            elif arguments.commit:
+                target_kind, target_value = "commit", arguments.commit
+            else:
+                target_kind, target_value = "base", arguments.base or "main"
+            return run_review(
+                alias=alias, prompt=prompt, cwd=cwd, runtime_dir=runtime_dir,
+                target_kind=target_kind, target_value=target_value,
+                base_sha=arguments.base_sha, head_sha=arguments.head_sha,
+                model=arguments.model, model_provider=arguments.model_provider,
+                provider_name=arguments.provider_name,
+                provider_base_url=arguments.provider_base_url, wire_api=arguments.wire_api,
+                requires_openai_auth=arguments.provider_requires_openai_auth,
+                bootstrap_snapshot_digest=arguments.bootstrap_snapshot_digest,
+                timeout_seconds=arguments.timeout_seconds, dry_run=arguments.dry_run,
+                session_id=arguments.session_id, workflow_root=repo_root,
+                owned_paths=arguments.owned_path, issue_id=arguments.issue,
+                parent_session_id=arguments.parent_session_id,
+            )
         timeout = _validated_timeout_seconds(arguments.timeout_seconds)
         transport_profile = validate_review_transport_profile(
             model_provider=arguments.model_provider,

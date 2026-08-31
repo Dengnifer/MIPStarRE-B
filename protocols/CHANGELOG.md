@@ -187,3 +187,25 @@ the endpoint-health gate for the next frozen review.
 Revision 0.1.0 is re-evaluated after three completed issue workflows and must be
 superseded if it permits duplicate main builds, overlapping writable ownership,
 or review state that cannot be tied to an immutable SHA or bootstrap manifest.
+## 2026-08-31
+
+- Added issued-session launch leases with locked authority checks, exactly-once
+  terminal envelope imports, and explicit idempotent interruption recovery.
+- Remediated the initial candidate after pre-review: governed exec and review
+  now bind complete authority, all post-claim failures terminate the lease,
+  imports and recovery are byte-idempotent under the real WorkflowStore, and
+  archive retries cannot silently invoke Codex again.
+- Hardened the lease boundary after independent review: claims now verify the
+  live clean Git `HEAD` and tree against the issued base, lifecycle rollback
+  covers interrupts, terminal paths are normalized and bound to the issued
+  result envelope, and recovery emits archiveable evidence with exact-once
+  reuse.
+- Hardened runtime publication after LPR-009: Git claim/status probes isolate
+  inherited configuration and disable repository hooks/fsmonitor; governed
+  terminal imports transactionally publish or roll back their result artifact;
+  archive aliases use no-follow runtime confinement, strict envelope reuse,
+  atomic directory publication, interruption cleanup, and same-alias locking.
+- Closed the remaining launch/archive race window after immutable review:
+  governed exec/review repeat canonical worktree identity checks immediately
+  before child spawn, and archive retries verify stdout/stderr byte counts and
+  SHA-256 digests against the recorded log files before reusing an envelope.

@@ -80,6 +80,40 @@ next task depends on a previous mathematical result, dispatch sequentially.
 Every child prompt is self-contained. Child reports are evidence, not accepted
 changes; the orchestrator checks the result and diff.
 
+### Issued session launch lease
+
+Coordinator launchers must call the local session lease API while holding the
+WorkflowStore lock. The API compares session id, immutable base revision,
+registered worktree, ownership claims, and read-only mode, then verifies that
+the actual clean Git repository root, `HEAD`, and tree match that base before
+recording `issued -> running`. Git-unavailable, dirty, moved, or mismatched
+worktrees fail closed; a null base is valid only for an unborn repository. A
+terminal envelope is imported once using its canonical digest and the issued
+`result_envelope_path`; traversal, symlink, and external paths are rejected.
+Identical retries are harmless and a conflicting retry is rejected. Parent
+interruption is recovered by recording a failed session with an explicit,
+archiveable recovery envelope at that same result path. Recovery never invokes
+the child again, and state/event/artifact writes roll back on any exception or
+interrupt.
+Governed `run` and `review` calls pass `--session-id` plus the complete packet
+authority; both modes use the lease. Omitting `--session-id` is retained only
+for explicitly ungoverned local experiments and does not mutate workflow state.
+Immediately before either child process is spawned, the launcher repeats the
+canonical worktree-path, clean-status, `HEAD`, and tree checks from the claim;
+replacement or drift in that interval fails the lease and triggers recovery.
+Archive retries return the existing matching envelope without invoking Codex;
+conflicting archive identities fail closed. Reuse additionally compares each
+recorded stdout/stderr byte count and SHA-256 digest with the current log bytes.
+Terminal result publication is part
+of the import transaction, so an event-append failure rolls back lifecycle
+state and the result artifact before interruption recovery writes its envelope.
+Archive aliases are published by atomic directory rename under the runtime root;
+runtime and alias paths are no-follow, complete envelopes are validated before
+reuse, and per-alias locking handles concurrent retries without clobbering
+evidence. All Git identity/status probes clear inherited configuration and
+override repository-local hooks/fsmonitor settings so claims cannot execute
+untrusted callbacks.
+
 ## Session lifecycle
 
 Use `i<issue-number>-<role>-a<two-digit-attempt>-<slug>`, for example
