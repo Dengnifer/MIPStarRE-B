@@ -71,6 +71,14 @@ event is written.
 Stage `max_concurrency` remains historical observation data and is not an
 admission limit.
 
+An issued launch lease also binds the live worktree: the launcher must observe
+a clean Git repository at the registered root with the exact issued `HEAD` and
+tree (or an unborn repository when the base is null). Terminal imports must use
+the normalized, in-root `result_envelope_path` from the issued row. An
+interrupted lease writes a deterministic failed recovery envelope at that path;
+the recovery and its subsequent archive transition are retried only by
+reusing the recorded evidence.
+
 The planner reserves one orchestrator slot per issue: a second planned or
 active orchestrator is blocked at admission, including for a still-planned
 issue. Terminal attempts remain provenance for a later retry. Dispatch override

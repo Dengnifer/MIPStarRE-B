@@ -84,11 +84,17 @@ changes; the orchestrator checks the result and diff.
 
 Coordinator launchers must call the local session lease API while holding the
 WorkflowStore lock. The API compares session id, immutable base revision,
-registered worktree, ownership claims, and read-only mode, then records
-`issued -> running` before invoking the child process. A terminal envelope is
-imported once using its canonical digest; identical retries are harmless and a
-conflicting retry is rejected. Parent interruption is recovered by recording a
-failed session with an explicit reason. Recovery never invokes the child again.
+registered worktree, ownership claims, and read-only mode, then verifies that
+the actual clean Git repository root, `HEAD`, and tree match that base before
+recording `issued -> running`. Git-unavailable, dirty, moved, or mismatched
+worktrees fail closed; a null base is valid only for an unborn repository. A
+terminal envelope is imported once using its canonical digest and the issued
+`result_envelope_path`; traversal, symlink, and external paths are rejected.
+Identical retries are harmless and a conflicting retry is rejected. Parent
+interruption is recovered by recording a failed session with an explicit,
+archiveable recovery envelope at that same result path. Recovery never invokes
+the child again, and state/event/artifact writes roll back on any exception or
+interrupt.
 Governed `run` and `review` calls pass `--session-id` plus the complete packet
 authority; both modes use the lease. Omitting `--session-id` is retained only
 for explicitly ungoverned local experiments and does not mutate workflow state.

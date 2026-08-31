@@ -182,3 +182,8 @@ or review state that cannot be tied to an immutable SHA or bootstrap manifest.
   now bind complete authority, all post-claim failures terminate the lease,
   imports and recovery are byte-idempotent under the real WorkflowStore, and
   archive retries cannot silently invoke Codex again.
+- Hardened the lease boundary after independent review: claims now verify the
+  live clean Git `HEAD` and tree against the issued base, lifecycle rollback
+  covers interrupts, terminal paths are normalized and bound to the issued
+  result envelope, and recovery emits archiveable evidence with exact-once
+  reuse.

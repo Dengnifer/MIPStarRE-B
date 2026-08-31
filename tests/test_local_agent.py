@@ -413,16 +413,29 @@ class RuntimeTests(unittest.TestCase):
         self.temporary.cleanup()
 
     def real_issued_ledger(self, session_id: str) -> dict[str, object]:
+        worktree = self.root / f"worktree-{session_id}"
+        worktree.mkdir()
+        git(worktree, "init", "-b", "main", ".")
+        write(worktree / "tracked.txt", "base\n")
+        git(worktree, "add", ".")
+        git(worktree, "commit", "-m", "base")
+        base_revision = git(worktree, "rev-parse", "HEAD")
         state = test_workflow.documents()
         record = test_workflow.issued_session(
             session_id, status="issued", started_at=None, ended_at=None,
             elapsed_seconds=None,
         )
-        record.update({"worktree": str(self.root), "external_id": None,
-                       "archive_status": "active", "outcome_path": None})
+        record.update({
+            "worktree": str(worktree),
+            "base_revision": base_revision,
+            "external_id": None,
+            "archive_status": "active",
+            "outcome_path": None,
+            "result_envelope_path": f".workflow-runtime/runs/{session_id}/result.json",
+        })
         state["sessions.json"]["issued"] = [record]
         state_dir = self.root / "workflow" / "state"
-        state_dir.mkdir(parents=True)
+        state_dir.mkdir(parents=True, exist_ok=True)
         for filename, document in state.items():
             write(state_dir / filename, json.dumps(document) + "\n")
         event = {
@@ -438,7 +451,7 @@ class RuntimeTests(unittest.TestCase):
         record = self.real_issued_ledger(session_id)
         authority = dict(
             session_id=session_id, workflow_root=self.root, alias=session_id,
-            cwd=self.root, base_revision=record["base_revision"],
+            cwd=Path(record["worktree"]), base_revision=record["base_revision"],
             owned_paths=record["owned_paths"], read_only=False, role="prover",
             issue_id="QPBT-002", parent_session_id=None,
         )
@@ -460,12 +473,12 @@ class RuntimeTests(unittest.TestCase):
         }
         local_agent.import_session_result(
             session_id=session_id, workflow_root=self.root, envelope=envelope,
-            outcome_path=".workflow-runtime/runs/result.json",
+            outcome_path=record["result_envelope_path"],
         )
         terminal_bytes = (sessions.read_bytes(), events.read_bytes())
         local_agent.import_session_result(
             session_id=session_id, workflow_root=self.root, envelope=envelope,
-            outcome_path=".workflow-runtime/runs/result.json",
+            outcome_path=record["result_envelope_path"],
         )
         self.assertEqual(terminal_bytes, (sessions.read_bytes(), events.read_bytes()))
         local_agent._session_store(self.root).validate()
@@ -475,7 +488,7 @@ class RuntimeTests(unittest.TestCase):
         record = self.real_issued_ledger(session_id)
         local_agent.claim_issued_session(
             session_id=session_id, workflow_root=self.root, alias=session_id,
-            cwd=self.root, base_revision=record["base_revision"],
+            cwd=Path(record["worktree"]), base_revision=record["base_revision"],
             owned_paths=record["owned_paths"], read_only=False, role="prover",
             issue_id="QPBT-002", parent_session_id=None,
         )
@@ -498,7 +511,7 @@ class RuntimeTests(unittest.TestCase):
         record = self.real_issued_ledger(session_id)
         authority = dict(
             session_id=session_id, workflow_root=self.root, alias=session_id,
-            cwd=self.root, base_revision=record["base_revision"],
+            cwd=Path(record["worktree"]), base_revision=record["base_revision"],
             owned_paths=record["owned_paths"], read_only=False, role="prover",
             issue_id="QPBT-002", parent_session_id=None,
         )
@@ -511,6 +524,157 @@ class RuntimeTests(unittest.TestCase):
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
             outcomes = sorted(pool.map(lambda _: attempt(), range(2)))
         self.assertEqual(["claimed", "rejected"], outcomes)
+
+    def test_real_store_claim_rejects_git_drift_and_dirty_worktree(self) -> None:
+        session_id = "i002-prover-a01-git-drift"
+        record = self.real_issued_ledger(session_id)
+        worktree = Path(record["worktree"])
+        write(worktree / "tracked.txt", "drifted\n")
+        git(worktree, "add", ".")
+        git(worktree, "commit", "-m", "drift")
+        authority = dict(
+            session_id=session_id, workflow_root=self.root, alias=session_id,
+            cwd=worktree, base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"], read_only=False, role="prover",
+            issue_id="QPBT-002", parent_session_id=None,
+        )
+        with self.assertRaisesRegex(local_agent.AgentError, "HEAD does not match"):
+            local_agent.claim_issued_session(**authority)
+        self.assertEqual(
+            "issued",
+            local_agent._session_store(self.root).validate()["sessions.json"]["issued"][0]["status"],
+        )
+
+        session_id = "i002-prover-a01-git-dirty"
+        record = self.real_issued_ledger(session_id)
+        worktree = Path(record["worktree"])
+        write(worktree / "tracked.txt", "dirty\n")
+        authority.update(
+            session_id=session_id,
+            alias=session_id,
+            cwd=worktree,
+            base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"],
+        )
+        with self.assertRaisesRegex(local_agent.AgentError, "worktree must be clean"):
+            local_agent.claim_issued_session(**authority)
+
+    def test_session_transaction_rolls_back_keyboard_interrupt(self) -> None:
+        session_id = "i002-prover-a01-keyboard"
+        record = self.real_issued_ledger(session_id)
+        authority = dict(
+            session_id=session_id, workflow_root=self.root, alias=session_id,
+            cwd=Path(record["worktree"]), base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"], read_only=False, role="prover",
+            issue_id="QPBT-002", parent_session_id=None,
+        )
+        sessions = self.root / "workflow" / "state" / "sessions.json"
+        events = self.root / "workflow" / "events.jsonl"
+        before = (sessions.read_bytes(), events.read_bytes())
+        with mock.patch.object(
+            local_agent.workflow_state.WorkflowStore,
+            "append_event",
+            side_effect=KeyboardInterrupt,
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                local_agent.claim_issued_session(**authority)
+        self.assertEqual(before, (sessions.read_bytes(), events.read_bytes()))
+        self.assertEqual(
+            "issued",
+            local_agent._session_store(self.root).validate()["sessions.json"]["issued"][0]["status"],
+        )
+
+    def test_import_rejects_conflicting_and_traversal_outcome_paths(self) -> None:
+        session_id = "i002-prover-a01-outcome-path"
+        record = self.real_issued_ledger(session_id)
+        authority = dict(
+            session_id=session_id, workflow_root=self.root, alias=session_id,
+            cwd=Path(record["worktree"]), base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"], read_only=False, role="prover",
+            issue_id="QPBT-002", parent_session_id=None,
+        )
+        claimed = local_agent.claim_issued_session(**authority)
+        envelope = {
+            "external_id": THREAD_ID, "status": "finished",
+            "started_at": claimed["started_at"],
+            "ended_at": (
+                dt.datetime.fromisoformat(claimed["started_at"].replace("Z", "+00:00"))
+                + dt.timedelta(seconds=1)
+            ).isoformat().replace("+00:00", "Z"),
+            "elapsed_seconds": 1.0,
+            "token_usage": {"input": 1, "output": 1, "total": 2,
+                            "availability_reason": None},
+        }
+        for path in (".workflow-runtime/runs/other/result.json", "../outside.json", "/tmp/outside.json"):
+            with self.subTest(path=path), self.assertRaises(local_agent.AgentError):
+                local_agent.import_session_result(
+                    session_id=session_id, workflow_root=self.root,
+                    envelope=envelope, outcome_path=path,
+                )
+        symlink_target = self.root / ".workflow-runtime" / "runs"
+        symlink_target.mkdir(parents=True)
+        (self.root / "runs-link").symlink_to(symlink_target, target_is_directory=True)
+        with self.assertRaises(local_agent.AgentError):
+            local_agent.import_session_result(
+                session_id=session_id, workflow_root=self.root,
+                envelope=envelope, outcome_path="runs-link/result.json",
+            )
+        self.assertEqual(
+            "running",
+            local_agent._session_store(self.root).validate()["sessions.json"]["issued"][0]["status"],
+        )
+
+    def test_recovery_writes_archiveable_evidence_exactly_once(self) -> None:
+        session_id = "i002-prover-a01-recovery-archive"
+        record = self.real_issued_ledger(session_id)
+        worktree = Path(record["worktree"])
+        local_agent.claim_issued_session(
+            session_id=session_id, workflow_root=self.root, alias=session_id,
+            cwd=worktree, base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"], read_only=False, role="prover",
+            issue_id="QPBT-002", parent_session_id=None,
+        )
+        sessions = self.root / "workflow" / "state" / "sessions.json"
+        events = self.root / "workflow" / "events.jsonl"
+        local_agent.recover_interrupted_session(
+            session_id=session_id, workflow_root=self.root, reason="parent interrupted"
+        )
+        recovered = local_agent._session_store(self.root).validate()["sessions.json"]["issued"][0]
+        self.assertEqual("failed", recovered["status"])
+        self.assertEqual(record["result_envelope_path"], recovered["outcome_path"])
+        artifact = self.root / recovered["outcome_path"]
+        self.assertTrue(artifact.is_file())
+        artifact_bytes = artifact.read_bytes()
+        marker = json.loads(artifact_bytes.decode("utf-8"))
+        self.assertEqual("session-recovery", marker["kind"])
+        self.assertEqual(recovered["recovery_digest"], local_agent._sha256_bytes(artifact_bytes))
+        before_retry = (sessions.read_bytes(), events.read_bytes(), artifact_bytes)
+        local_agent.recover_interrupted_session(
+            session_id=session_id, workflow_root=self.root, reason="parent interrupted"
+        )
+        self.assertEqual(before_retry, (sessions.read_bytes(), events.read_bytes(), artifact.read_bytes()))
+        with self.assertRaises(local_agent.AgentError):
+            local_agent.recover_interrupted_session(
+                session_id=session_id, workflow_root=self.root, reason="different reason"
+            )
+
+        store = local_agent._session_store(self.root)
+
+        def archive(document: dict[str, object]) -> dict[str, object]:
+            archived = next(item for item in document["issued"] if item["id"] == session_id)
+            workflow_state = local_agent.workflow_state
+            workflow_state._transition_record("issued-session", archived, "archived")
+            return archived
+
+        store.mutate(
+            "sessions.json",
+            "record.transitioned",
+            {"kind": "issued-session", "session_id": session_id, "status": "archived"},
+            archive,
+        )
+        final = store.validate()["sessions.json"]["issued"][0]
+        self.assertEqual("archived", final["status"])
+        self.assertEqual("archived", final["archive_status"])
 
     def test_exec_uses_argv_stdin_and_extracts_lineage_and_usage(self) -> None:
         runner = FakeRunner(codex_events())
@@ -1484,11 +1648,12 @@ class RuntimeTests(unittest.TestCase):
         record = {"id": "s1", "name": "alias", "status": "issued", "worktree": str(self.root),
                   "base_revision": "a" * 40, "owned_paths": ["scripts/local_agent.py"],
                   "read_only": False, "role": "prover", "issue_id": "QPBT-001",
-                  "parent_session_id": None}
+                  "parent_session_id": None,
+                  "result_envelope_path": ".workflow-runtime/runs/s1/result.json"}
         def transaction(_root, _id, fn):
             fn(record)
             return record
-        with mock.patch.object(local_agent, "_session_transaction", side_effect=transaction):
+        with mock.patch.object(local_agent, "_validate_claim_worktree", return_value={"head": "a" * 40, "tree": "b" * 40}), mock.patch.object(local_agent, "_session_transaction", side_effect=transaction):
             claimed = local_agent.claim_issued_session(
                 session_id="s1", workflow_root=self.root, alias="alias", cwd=self.root,
                 base_revision="a" * 40, owned_paths=["scripts/local_agent.py"], read_only=False,
@@ -1497,7 +1662,8 @@ class RuntimeTests(unittest.TestCase):
         self.assertIsNotNone(claimed["started_at"])
 
     def test_terminal_import_is_idempotent_and_conflicts_fail(self) -> None:
-        record = {"id": "s1", "status": "running", "result_digest": None}
+        record = {"id": "s1", "status": "running", "result_digest": None,
+                  "result_envelope_path": ".workflow-runtime/runs/s1/result.json"}
         envelope = {"external_id": THREAD_ID, "status": "finished", "started_at": "2026-01-01T00:00:00Z",
                     "ended_at": "2026-01-01T00:00:01Z", "elapsed_seconds": 1.0,
                     "token_usage": {"input": 1, "output": 1, "total": 2, "availability_reason": None}}
@@ -1506,14 +1672,14 @@ class RuntimeTests(unittest.TestCase):
             fn(record)
             return record
         with mock.patch.object(local_agent, "_session_transaction", side_effect=transaction):
-            first = local_agent.import_session_result(session_id="s1", workflow_root=self.root, envelope=envelope, outcome_path="result.json")
-            second = local_agent.import_session_result(session_id="s1", workflow_root=self.root, envelope=envelope, outcome_path="result.json")
+            first = local_agent.import_session_result(session_id="s1", workflow_root=self.root, envelope=envelope, outcome_path=".workflow-runtime/runs/s1/result.json")
+            second = local_agent.import_session_result(session_id="s1", workflow_root=self.root, envelope=envelope, outcome_path=".workflow-runtime/runs/s1/result.json")
         self.assertEqual(first, second)
         conflict = dict(envelope, external_id="different")
         record["result_digest"] = first["result_digest"]
         with mock.patch.object(local_agent, "_session_transaction", side_effect=transaction):
             with self.assertRaises(local_agent.AgentError):
-                local_agent.import_session_result(session_id="s1", workflow_root=self.root, envelope=conflict, outcome_path="result.json")
+                local_agent.import_session_result(session_id="s1", workflow_root=self.root, envelope=conflict, outcome_path=".workflow-runtime/runs/s1/result.json")
 
 
 if __name__ == "__main__":
