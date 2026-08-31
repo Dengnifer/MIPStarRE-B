@@ -141,7 +141,8 @@
       "status": "planned",
       "parent_id": "QPBT-000",
       "dependency_ids": [
-        "QPBT-003"
+        "QPBT-003",
+        "QPBT-024"
       ],
       "labels": [
         "lean",
@@ -155,12 +156,15 @@
       ],
       "owner_session_id": null,
       "source_refs": [
-        "blueprint/src/chapter/"
+        "blueprint/src/chapter/",
+        "workflow/reviews/qpbt-018-plausible-drift-a15.md",
+        "workflow/reviews/qpbt-018-hotcache-verify-order-a16.md",
+        "research/metrics/incidents.jsonl#INC-044"
       ],
       "created_at": "2026-08-30T09:31:33+08:00",
-      "updated_at": "2026-08-30T23:40:49Z",
-      "blocked_reason": "Formal immutable review i004-reviewer-a32-package-full-immutable found two high findings on b92935e98b1d631b88065c2b6887451c6ae416d4: package output is not reverified after build, and the package lock pathname is not bound to its held inode.",
-      "unblock_condition": "Fix F-LPR005-001 and F-LPR005-002 on a new head, rerun exact package/cache/aggregate gates, obtain a fresh independent immutable approval, then run the singleton cache-get and Lake build gates exactly once through the hot-main protocol."
+      "updated_at": "2026-08-31T15:49:37.298941Z",
+      "blocked_reason": "The exact c0de090 authenticated warm completed all 8,992 Lean jobs but failed closed when post-build package verification hashed 169 normal plausible artifacts under .lake/build as package source; QPBT-024 owns the bounded verifier repair, and QPBT-003 remains incomplete.",
+      "unblock_condition": "Complete QPBT-003 and QPBT-024; for QPBT-024 require exact focused and aggregate gates, fresh immutable approval, physical integration, and one successful changed-hypothesis authenticated main warm with verified READY and deep inventory evidence."
     },
     {
       "id": "QPBT-005",
@@ -592,15 +596,16 @@
         "The singleton warm with the authenticated local archives completes exactly once and publishes a verified cache",
         "A fresh independent immutable reviewer approves the changed head"
       ],
-      "owner_session_id": "i018-orchestrator-a01-clone-fallback",
+      "owner_session_id": "i018-orchestrator-a10-current-exdev",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-032",
         "research/metrics/incidents.jsonl#INC-035",
         "research/metrics/incidents.jsonl#INC-036",
-        "scripts/hot_main_cache.py:875-899"
+        "scripts/hot_main_cache.py:875-899",
+        "research/metrics/incidents.jsonl#INC-043"
       ],
       "created_at": "2026-08-31T01:34:01Z",
-      "updated_at": "2026-08-31T02:47:19.725577Z"
+      "updated_at": "2026-08-31T14:39:56.191994Z"
     },
     {
       "id": "QPBT-019",
@@ -764,6 +769,43 @@
       "updated_at": "2026-08-31T10:15:14.932767Z",
       "blocked_reason": "The approved blueprint freezes names and carrier policies but omits exact callable signatures and several finite question/distribution/state domains; the pinned Mathlib boundary also lacks a self-dual-normal-basis existence theorem for GaloisField 2 k with odd k.",
       "unblock_condition": "After QPBT-003 is unblocked, publish exact F01/F03/F04 signatures and imports, document the self-dual-normal-basis proof or a separately tracked internal obligation without changing the paper theorem assumptions, pass an independent immutable contract review, and then allow QPBT-013 dispatch."
+    },
+    {
+      "id": "QPBT-024",
+      "title": "Distinguish authenticated package source from Lake build output",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "ready",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-001"
+      ],
+      "labels": [
+        "workflow",
+        "cache",
+        "package-authentication",
+        "acceptance-blocker",
+        "safety"
+      ],
+      "acceptance_gates": [
+        "Pre-Lake archive verification remains a full-tree identity check, while post-build verification excludes only a validated package-root .lake/build subtree",
+        "Archives containing .lake/build, malformed generated boundaries, and every package mutation outside .lake/build remain rejected without publishing READY",
+        "Focused materializer and hot-cache regressions cover legitimate generated output, source/config drift, exact exclusion scope, special objects, call order, and Gitlink preservation",
+        "Focused suites, the full serial aggregate, workflow checker and validation, compile checks, and SHA-bound diff hygiene pass on the exact candidate",
+        "A fresh independent immutable reviewer approves the changed head",
+        "After integration, exactly one changed-hypothesis authenticated main warm succeeds and publishes a status-ready cache with a verified deep inventory"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-018-plausible-drift-a15.md",
+        "workflow/reviews/qpbt-018-hotcache-verify-order-a16.md",
+        "workflow/reviews/qpbt-018-failure-disposition-a17.md",
+        "research/metrics/incidents.jsonl#INC-044",
+        "workflow/reviews/qpbt-018-review-a13-pr013.md",
+        "workflow/state/prs.json#LPR-005/F-LPR005-001"
+      ],
+      "created_at": "2026-08-31T15:48:51.289733Z",
+      "updated_at": "2026-08-31T15:49:21.145832Z"
     }
   ]
 }

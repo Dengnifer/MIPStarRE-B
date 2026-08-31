@@ -1944,7 +1944,7 @@
     {
       "id": "LPR-007",
       "title": "fix(cache): make detached clone portable across devices",
-      "status": "draft",
+      "status": "closed",
       "issue_ids": [
         "QPBT-018"
       ],
@@ -2040,7 +2040,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T01:49:30Z",
-      "updated_at": "2026-08-31T11:39:05.293772Z",
+      "updated_at": "2026-08-31T14:42:45.884955Z",
       "changed_paths": [
         "scripts/hot_main_cache.py",
         "tests/test_hot_main_cache.py"
@@ -2051,7 +2051,9 @@
       "addresses": "QPBT-018",
       "speculative_until_dependency_done": "QPBT-001",
       "requested_external_review": false,
-      "unexecuted_gate": "authenticated singleton warm reached the candidate dependency gate but failed on pinned mathlib GitHub transport; no READY/snapshot was published, so a further warm is deferred until a local pinned mathlib source is supplied; fresh immutable review remains required"
+      "unexecuted_gate": "authenticated singleton warm reached the candidate dependency gate but failed on pinned mathlib GitHub transport; no READY/snapshot was published, so a further warm is deferred until a local pinned mathlib source is supplied; fresh immutable review remains required",
+      "superseded_by_pr_id": "LPR-013",
+      "closure_reason": "Superseded by exact-current-base LPR-013; immutable old-base checks and reviews remain historical evidence."
     },
     {
       "id": "LPR-008",
@@ -3477,6 +3479,116 @@
         "i021-orchestrator-a04-pr012-bind",
         "i021-orchestrator-a06-changelog-count"
       ]
+    },
+    {
+      "id": "LPR-013",
+      "title": "fix(cache): replay portable detached clone on current main",
+      "status": "approved",
+      "issue_ids": [
+        "QPBT-018"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-018-current-a10",
+      "base_sha": "c5a0fecc26eb18452219cf0df31ce2a9113e45f1",
+      "head_sha": "c0de0900a01724c2a515311424dcbe5e7526ebd4",
+      "implementer_session_ids": [
+        "i018-integrator-a12-pr013-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-018-current-focused-c0de090",
+          "name": "current-head hot-main cache focused tests",
+          "command": "python3 -m unittest discover -s tests -p test_hot_main_cache.py -v",
+          "status": "passed",
+          "base_sha": "c5a0fecc26eb18452219cf0df31ce2a9113e45f1",
+          "head_sha": "c0de0900a01724c2a515311424dcbe5e7526ebd4",
+          "completed_at": "2026-08-31T14:34:36.513986Z",
+          "result_path": "workflow/reviews/qpbt-018-current-a10.md"
+        },
+        {
+          "id": "check-qpbt-018-current-full-c0de090",
+          "name": "current-head full serial unit tests",
+          "command": "python3 -m unittest discover -s tests -v",
+          "status": "passed",
+          "base_sha": "c5a0fecc26eb18452219cf0df31ce2a9113e45f1",
+          "head_sha": "c0de0900a01724c2a515311424dcbe5e7526ebd4",
+          "completed_at": "2026-08-31T14:34:36.513986Z",
+          "result_path": "workflow/reviews/qpbt-018-current-a10.md"
+        },
+        {
+          "id": "check-qpbt-018-current-workflow-c0de090",
+          "name": "current-head aggregate workflow checker",
+          "command": "python3 scripts/check_workflow.py",
+          "status": "passed",
+          "base_sha": "c5a0fecc26eb18452219cf0df31ce2a9113e45f1",
+          "head_sha": "c0de0900a01724c2a515311424dcbe5e7526ebd4",
+          "completed_at": "2026-08-31T14:34:36.513986Z",
+          "result_path": "workflow/reviews/qpbt-018-current-a10.md"
+        },
+        {
+          "id": "check-qpbt-018-current-compile-c0de090",
+          "name": "current-head Python compile check",
+          "command": "python3 -m compileall -q scripts tests",
+          "status": "passed",
+          "base_sha": "c5a0fecc26eb18452219cf0df31ce2a9113e45f1",
+          "head_sha": "c0de0900a01724c2a515311424dcbe5e7526ebd4",
+          "completed_at": "2026-08-31T14:34:36.513986Z",
+          "result_path": "workflow/reviews/qpbt-018-current-a10.md"
+        },
+        {
+          "id": "check-qpbt-018-current-validate-c0de090",
+          "name": "current-head workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "c5a0fecc26eb18452219cf0df31ce2a9113e45f1",
+          "head_sha": "c0de0900a01724c2a515311424dcbe5e7526ebd4",
+          "completed_at": "2026-08-31T14:34:36.513986Z",
+          "result_path": "workflow/reviews/qpbt-018-current-a10.md"
+        },
+        {
+          "id": "check-qpbt-018-current-hygiene-c0de090",
+          "name": "current-head SHA-bound diff hygiene",
+          "command": "git diff --check c5a0fecc26eb18452219cf0df31ce2a9113e45f1..c0de0900a01724c2a515311424dcbe5e7526ebd4",
+          "status": "passed",
+          "base_sha": "c5a0fecc26eb18452219cf0df31ce2a9113e45f1",
+          "head_sha": "c0de0900a01724c2a515311424dcbe5e7526ebd4",
+          "completed_at": "2026-08-31T14:34:36.513986Z",
+          "result_path": "workflow/reviews/qpbt-018-current-a10.md"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-018-pr013-a13",
+          "reviewer_session_id": "i018-reviewer-a13-pr013-immutable",
+          "verdict": "approve",
+          "base_sha": "c5a0fecc26eb18452219cf0df31ce2a9113e45f1",
+          "head_sha": "c0de0900a01724c2a515311424dcbe5e7526ebd4",
+          "started_at": "2026-08-31T14:50:51.440037Z",
+          "completed_at": "2026-08-31T14:59:55.266354Z",
+          "result_path": "workflow/reviews/qpbt-018-review-a13-pr013.md",
+          "finding_ids": []
+        }
+      ],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-08-31T14:42:45.297996Z",
+      "updated_at": "2026-08-31T15:09:50.668232Z",
+      "changed_paths": [
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py"
+      ],
+      "motivation": "Restore the elected hot-main cache after the integrated current-main warm reproduced a local-clone hard-link EXDEV failure.",
+      "description": "Replay the bounded object-copy fallback on the exact QPBT-021-aware main base, retaining exact detached identity, authenticated Mathlib gates, and no-publication behavior.",
+      "testing": "python3 -m unittest discover -s tests -p test_hot_main_cache.py -v; python3 -m unittest discover -s tests -v; python3 scripts/check_workflow.py; python3 -m compileall -q scripts tests; python3 scripts/workflow.py validate; git diff --check c5a0fecc26eb18452219cf0df31ce2a9113e45f1..c0de0900a01724c2a515311424dcbe5e7526ebd4",
+      "addresses": "QPBT-018",
+      "supersedes_pr_id": "LPR-007",
+      "provenance_session_ids": [
+        "i018-orchestrator-a10-current-exdev",
+        "i018-scout-a11-fallback-diff"
+      ],
+      "requested_external_review": false,
+      "unexecuted_gate": "Faithful guarded fast-forward to c0de090 plus post-integration Python gates and exactly one authenticated singleton warm/status-ready/deep-inventory result remain required."
     }
   ]
 }
