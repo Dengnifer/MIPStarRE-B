@@ -5,7 +5,7 @@
     {
       "id": "LPR-001",
       "title": "fix(reference): bound acquisition and fallback transport",
-      "status": "ready",
+      "status": "approved",
       "issue_ids": [
         "QPBT-010"
       ],
@@ -204,7 +204,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-30T17:33:51.133961Z",
-      "updated_at": "2026-08-30T20:44:11Z",
+      "updated_at": "2026-08-31T09:43:18.605710Z",
       "changed_paths": [
         "scripts/reference_transport.py",
         "tests/test_reference_transport.py",

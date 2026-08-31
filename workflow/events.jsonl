@@ -1331,3 +1331,4 @@
 {"schema_version":1,"timestamp":"2026-08-31T09:40:24.062423Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"archived","session_id":"i000-auditor-a38-lpr004-integration"}}
 {"schema_version":1,"timestamp":"2026-08-31T09:41:10.943378Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
 {"schema_version":1,"timestamp":"2026-08-31T09:42:30.770830Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
+{"schema_version":1,"timestamp":"2026-08-31T09:43:18.653451Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"approved","id":"LPR-001"}}
