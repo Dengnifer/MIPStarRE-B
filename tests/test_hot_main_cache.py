@@ -44,7 +44,11 @@ MATERIALIZING_TEST_RECIPE = cache_module.BuildRecipe.for_testing(
 
 PACKAGE_MATERIALIZING_TEST_RECIPE = cache_module.BuildRecipe.for_testing(
     package_materialize_command=("fake", "package-materialize"),
-    package_verify_command=("fake", "package-verify"),
+    package_verify_command=(
+        "fake",
+        "package-verify",
+        "--remove-validated-generated-sidecars",
+    ),
     dependency_command=("fake", "deps"),
     build_command=("fake", "build"),
     additional_identity_files=(
@@ -54,6 +58,16 @@ PACKAGE_MATERIALIZING_TEST_RECIPE = cache_module.BuildRecipe.for_testing(
     ),
     recipe_id="test-fake-package-materializing-build",
 )
+
+FAKE_PACKAGE_VERIFY_COMMAND = [
+    "fake",
+    "package-verify",
+    "--remove-validated-generated-sidecars",
+]
+FAKE_WIDGET_TARGET = Path(".lake/packages/fixture/widget/package-lock.json")
+FAKE_WIDGET_SIDECAR = Path(".lake/packages/fixture/widget/package-lock.json.hash")
+FAKE_WIDGET_TARGET_BYTES = b"fixture package lock\n"
+FAKE_WIDGET_SIDECAR_BYTES = b"179e66574f04806e"
 
 
 PRODUCTION_PROBE_RECIPE = cache_module.BuildRecipe(
@@ -219,9 +233,20 @@ def fake_success(project: Path, command: list[str] | tuple[str, ...], log_path: 
         packages = project / ".lake" / "packages" / "fixture"
         packages.mkdir(parents=True, exist_ok=True)
         (packages / "marker").write_text("package\n", encoding="ascii")
+        target = project / FAKE_WIDGET_TARGET
+        target.parent.mkdir()
+        target.write_bytes(FAKE_WIDGET_TARGET_BYTES)
         (project / ".lake" / "package-overrides.json").write_text("{}\n", encoding="ascii")
-    elif list(command) == ["fake", "package-verify"]:
+    elif list(command) == FAKE_PACKAGE_VERIFY_COMMAND:
         marker = project / ".lake" / "packages" / "fixture" / "marker"
+        target = project / FAKE_WIDGET_TARGET
+        if not target.is_file() or target.read_bytes() != FAKE_WIDGET_TARGET_BYTES:
+            return 9
+        sidecar = project / FAKE_WIDGET_SIDECAR
+        if sidecar.exists() or sidecar.is_symlink():
+            if not sidecar.is_file() or sidecar.read_bytes() != FAKE_WIDGET_SIDECAR_BYTES:
+                return 9
+            sidecar.unlink()
         if not marker.is_file() or marker.read_text(encoding="ascii") != "package\n":
             return 9
     elif list(command) == ["fake", "deps"]:
@@ -235,6 +260,9 @@ def fake_success(project: Path, command: list[str] | tuple[str, ...], log_path: 
         build = project / ".lake" / "build"
         build.mkdir(parents=True, exist_ok=True)
         (build / "QPBT.olean").write_text("compiled-main\n", encoding="utf-8")
+        target = project / FAKE_WIDGET_TARGET
+        if target.is_file():
+            (project / FAKE_WIDGET_SIDECAR).write_bytes(FAKE_WIDGET_SIDECAR_BYTES)
     return 0
 
 
@@ -617,46 +645,182 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual(
             [
                 ["fake", "package-materialize"],
-                ["fake", "package-verify"],
+                FAKE_PACKAGE_VERIFY_COMMAND,
                 ["fake", "deps"],
                 ["fake", "build"],
-                ["fake", "package-verify"],
+                FAKE_PACKAGE_VERIFY_COMMAND,
             ],
             calls,
         )
+        snapshot_sidecar = manager.snapshot_dir / FAKE_WIDGET_SIDECAR
+        snapshot_build = (
+            manager.snapshot_dir
+            / ".lake/packages/fixture/.lake/build/Fixture.olean"
+        )
+        self.assertFalse(snapshot_sidecar.exists())
+        self.assertEqual("compiled-package\n", snapshot_build.read_text(encoding="utf-8"))
+        self.assertTrue(manager.is_ready(deep=True))
         self.assertIn("references/lake-packages.json", manager.identity.inputs)
         self.assertIn("references/mathlib-lake-manifest.json", manager.identity.inputs)
         self.assertIn("scripts/materialize_lake_packages.py", manager.identity.inputs)
         manifest = json.loads(manager.manifest_path.read_text(encoding="utf-8"))
         self.assertGreaterEqual(manifest["package_materialize_seconds"], 0)
         self.assertGreaterEqual(manifest["package_verify_seconds"], 0)
-
-    def test_warm_rejects_post_build_package_drift(self) -> None:
-        manager = self.manager(
-            runtime=self.base / "runtime-package-drift",
-            recipe=PACKAGE_MATERIALIZING_TEST_RECIPE,
+        self.assertEqual(
+            manifest["artifact_inventory"],
+            cache_module.artifact_inventory(manager.lake_dir),
         )
 
-        def mutate_package(project: Path, command: list[str] | tuple[str, ...], log_path: Path) -> int:
-            result = fake_success(project, command, log_path)
-            if list(command) == ["fake", "build"]:
-                (project / ".lake" / "packages" / "fixture" / "marker").write_text(
-                    "tampered\n", encoding="ascii"
-                )
-            return result
+        target = self.issue_worktree("package-seed")
+        self.assertEqual("seeded", manager.seed(target)["result"])
+        self.assertFalse((target / FAKE_WIDGET_SIDECAR).exists())
+        self.assertEqual(
+            "compiled-package\n",
+            (
+                target / ".lake/packages/fixture/.lake/build/Fixture.olean"
+            ).read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            manifest["artifact_inventory"],
+            cache_module.artifact_inventory(target / ".lake"),
+        )
 
-        with self.assertRaisesRegex(
-            cache_module.CacheError, "Lake package verification command failed"
-        ):
-            manager.warm(_test_command_callback=mutate_package)
-        self.assertFalse(manager.is_ready())
-        failures = list((manager.runtime_dir / "cache" / "failures").iterdir())
-        self.assertEqual(1, len(failures))
-        failure = json.loads((failures[0] / "failure.json").read_text(encoding="utf-8"))
-        self.assertIn("Lake package verification command failed", failure["error"])
+        original_key = manager.identity.cache_key
+        materializer = self.repo / "scripts/materialize_lake_packages.py"
+        materializer.write_text("# dirty contract does not redefine main\n", encoding="ascii")
+        self.assertEqual(
+            original_key,
+            self.manager(recipe=PACKAGE_MATERIALIZING_TEST_RECIPE).identity.cache_key,
+        )
+        run_git(self.repo, "add", "scripts/materialize_lake_packages.py")
+        run_git(self.repo, "commit", "-m", "change package sidecar contract")
+        self.assertNotEqual(
+            original_key,
+            self.manager(recipe=PACKAGE_MATERIALIZING_TEST_RECIPE).identity.cache_key,
+        )
+
+        cache_module.make_owner_writable(manager.snapshot_dir)
+        snapshot_sidecar.write_bytes(FAKE_WIDGET_SIDECAR_BYTES)
+        self.assertTrue(manager.is_ready())
+        self.assertFalse(manager.is_ready(deep=True))
+        snapshot_sidecar.unlink()
+        seeded_sidecar = target / FAKE_WIDGET_SIDECAR
+        seeded_sidecar.write_bytes(FAKE_WIDGET_SIDECAR_BYTES)
+        with self.assertRaisesRegex(cache_module.CacheError, "inventory"):
+            manager._validate_seeded_destination(target / ".lake")
+
+    def test_warm_rejects_post_build_package_drift(self) -> None:
+        for case in ("malformed-sidecar", "source-drift"):
+            with self.subTest(case=case):
+                manager = self.manager(
+                    runtime=self.base / f"runtime-package-{case}",
+                    recipe=PACKAGE_MATERIALIZING_TEST_RECIPE,
+                )
+
+                def mutate_package(
+                    project: Path,
+                    command: list[str] | tuple[str, ...],
+                    log_path: Path,
+                ) -> int:
+                    result = fake_success(project, command, log_path)
+                    if list(command) == ["fake", "build"]:
+                        if case == "malformed-sidecar":
+                            (project / FAKE_WIDGET_SIDECAR).write_bytes(b"0000000000000000")
+                        else:
+                            (project / ".lake/packages/fixture/marker").write_text(
+                                "tampered\n", encoding="ascii"
+                            )
+                    return result
+
+                with self.assertRaisesRegex(
+                    cache_module.CacheError, "Lake package verification command failed"
+                ):
+                    manager.warm(_test_command_callback=mutate_package)
+                self.assertFalse(manager.is_ready())
+                self.assertFalse(manager.snapshot_dir.exists())
+                self.assertEqual([], list(manager.runtime_dir.rglob("READY")))
+                failures = list((manager.runtime_dir / "cache" / "failures").iterdir())
+                self.assertEqual(1, len(failures))
+                self.assertFalse((failures[0] / "READY").exists())
+                failure = json.loads(
+                    (failures[0] / "failure.json").read_text(encoding="utf-8")
+                )
+                self.assertIn("Lake package verification command failed", failure["error"])
 
     def test_canonical_lake_commands_require_override_and_reject_updates(self) -> None:
         canonical = cache_module.CANONICAL_BUILD_RECIPE
+        self.assertEqual(3, cache_module.BUILD_RECIPE_SCHEMA_VERSION)
+        self.assertEqual(5, canonical.version)
+        self.assertEqual(
+            (
+                "python3",
+                "scripts/materialize_lake_packages.py",
+                "materialize",
+                "--archive-directory-env",
+                "LAKE_PACKAGE_ARCHIVES",
+            ),
+            canonical.package_materialize_command,
+        )
+        self.assertEqual(
+            (
+                "python3",
+                "scripts/materialize_lake_packages.py",
+                "verify",
+                "--remove-validated-generated-sidecars",
+            ),
+            canonical.package_verify_command,
+        )
+        self.assertEqual(
+            {
+                "schema_version",
+                "recipe_id",
+                "version",
+                "dependency_command",
+                "build_command",
+                "materialize_command",
+                "package_materialize_command",
+                "package_verify_command",
+                "additional_identity_files",
+                "test_only",
+            },
+            set(canonical.identity_payload()),
+        )
+        unflagged_recipe = cache_module.BuildRecipe.for_testing(
+            package_materialize_command=("fake", "package-materialize"),
+            package_verify_command=("fake", "package-verify"),
+            dependency_command=("fake", "deps"),
+            build_command=("fake", "build"),
+            additional_identity_files=PACKAGE_MATERIALIZING_TEST_RECIPE.additional_identity_files,
+            recipe_id=PACKAGE_MATERIALIZING_TEST_RECIPE.recipe_id,
+            version=PACKAGE_MATERIALIZING_TEST_RECIPE.version,
+        )
+        versioned_recipe = cache_module.BuildRecipe.for_testing(
+            package_materialize_command=("fake", "package-materialize"),
+            package_verify_command=tuple(FAKE_PACKAGE_VERIFY_COMMAND),
+            dependency_command=("fake", "deps"),
+            build_command=("fake", "build"),
+            additional_identity_files=PACKAGE_MATERIALIZING_TEST_RECIPE.additional_identity_files,
+            recipe_id=PACKAGE_MATERIALIZING_TEST_RECIPE.recipe_id,
+            version=PACKAGE_MATERIALIZING_TEST_RECIPE.version + 1,
+        )
+        flagged_key = self.manager(
+            runtime=self.base / "runtime-flagged-key",
+            recipe=PACKAGE_MATERIALIZING_TEST_RECIPE,
+        ).identity.cache_key
+        self.assertNotEqual(
+            flagged_key,
+            self.manager(
+                runtime=self.base / "runtime-unflagged-key",
+                recipe=unflagged_recipe,
+            ).identity.cache_key,
+        )
+        self.assertNotEqual(
+            flagged_key,
+            self.manager(
+                runtime=self.base / "runtime-versioned-key",
+                recipe=versioned_recipe,
+            ).identity.cache_key,
+        )
         for command in (canonical.dependency_command, canonical.build_command):
             self.assertEqual(1, command.count(cache_module.LAKE_OVERRIDE_ARGUMENT))
             self.assertNotIn("update", command)

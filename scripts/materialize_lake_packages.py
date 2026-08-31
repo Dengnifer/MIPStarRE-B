@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Callable, Iterator, Mapping, Sequence
+from typing import Any, Callable, Iterator, Mapping, NamedTuple, Sequence
 import zlib
 
 
@@ -39,6 +39,29 @@ HARD_MAX_REGULAR_BYTES = 128 * 1024 * 1024
 DEFAULT_TIMEOUT_SECONDS = 300.0
 CANONICAL_ARCHIVE_DIRECTORY_MODE = 0o775
 CANONICAL_ARCHIVE_REGULAR_MODES = {0o664: 0o644, 0o775: 0o755}
+
+
+class GeneratedSidecarContract(NamedTuple):
+    """One revision-bound generated file that may be validated and removed."""
+
+    package: str
+    revision: str
+    target: str
+    target_sha256: str
+    sidecar: str
+    sidecar_bytes: bytes
+
+
+GENERATED_SIDECAR_CONTRACTS = (
+    GeneratedSidecarContract(
+        package="proofwidgets",
+        revision="6e311e2a844da9b2cc3971187df2fe0066947b93",
+        target="widget/package-lock.json",
+        target_sha256="3850e21b0823d6200db6da336ce1bd17a463db97ce314585ae47ed81a7327a7d",
+        sidecar="widget/package-lock.json.hash",
+        sidecar_bytes=b"179e66574f04806e",
+    ),
+)
 
 ARCHIVE_KEYS = {
     "sha256", "bytes", "tar_sha256", "tar_bytes", "exact_prefix", "members",
@@ -298,6 +321,49 @@ def load_pin(path: Path, *, allow_pending: bool = False) -> dict[str, Any]:
         repositories.add(repository)
         _validate_facts(package, index, allow_pending=allow_pending)
     return value
+
+
+def _generated_sidecar_contract_for(
+    package: Mapping[str, Any],
+) -> GeneratedSidecarContract | None:
+    matches = [
+        contract
+        for contract in GENERATED_SIDECAR_CONTRACTS
+        if contract.package == package.get("name")
+        and contract.revision == package.get("revision")
+    ]
+    if len(matches) > 1:
+        raise MaterializationError("generated sidecar contracts overlap")
+    for contract in GENERATED_SIDECAR_CONTRACTS:
+        _safe_component(contract.package, "generated sidecar package")
+        _full_sha1(contract.revision, "generated sidecar revision")
+        _sha256(contract.target_sha256, "generated sidecar target SHA-256")
+        target_parts = PurePosixPath(contract.target).parts
+        sidecar_parts = PurePosixPath(contract.sidecar).parts
+        if (
+            not target_parts
+            or not sidecar_parts
+            or contract.target.startswith("/")
+            or contract.sidecar.startswith("/")
+            or "\\" in contract.target
+            or "\\" in contract.sidecar
+            or "\0" in contract.target
+            or "\0" in contract.sidecar
+            or PurePosixPath(contract.target).as_posix() != contract.target
+            or PurePosixPath(contract.sidecar).as_posix() != contract.sidecar
+            or any(part in {"", ".", ".."} for part in (*target_parts, *sidecar_parts))
+            or target_parts[:-1] != sidecar_parts[:-1]
+            or contract.sidecar != contract.target + ".hash"
+        ):
+            raise MaterializationError("generated sidecar contract paths are unsafe")
+        for component in (*target_parts, *sidecar_parts):
+            _safe_component(component, "generated sidecar path component")
+        if (
+            len(contract.sidecar_bytes) != 16
+            or any(byte not in b"0123456789abcdef" for byte in contract.sidecar_bytes)
+        ):
+            raise MaterializationError("generated sidecar contract bytes are not canonical")
+    return matches[0] if matches else None
 
 
 def _file_sha256(path: Path) -> str:
@@ -758,6 +824,28 @@ def _inventory_digest(entries: Sequence[Mapping[str, Any]]) -> str:
     return digest.hexdigest()
 
 
+def _validate_generated_sidecar_archive_contract(
+    package: Mapping[str, Any], entries: Sequence[Mapping[str, Any]]
+) -> None:
+    contract = _generated_sidecar_contract_for(package)
+    if contract is None:
+        return
+    by_path = {entry["path"]: entry for entry in entries}
+    target = by_path.get(contract.target)
+    if (
+        target is None
+        or target.get("kind") != "file"
+        or target.get("sha256") != contract.target_sha256
+    ):
+        raise MaterializationError(
+            f"generated sidecar target differs for {contract.package}"
+        )
+    if contract.sidecar in by_path:
+        raise MaterializationError(
+            f"generated sidecar is archive-owned for {contract.package}"
+        )
+
+
 def inspect_archive_bytes(
     compressed: bytes, package: Mapping[str, Any]
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -873,6 +961,7 @@ def inspect_archive_bytes(
             continue
         if not any(entry_path.startswith(path + "/") for entry_path in entry_kinds):
             raise MaterializationError(f"unpinned empty archive directory: {path}")
+    _validate_generated_sidecar_archive_contract(package, entries)
     facts = {
         "archive": {
             "sha256": hashlib.sha256(compressed).hexdigest(), "bytes": len(compressed),
@@ -1258,6 +1347,257 @@ def _bind_child(parent_fd: int, name: str, label: str, *, directory: bool) -> Bo
     except Exception:
         os.close(descriptor)
         raise
+
+
+def _generated_sidecar_phase(_phase: str) -> None:
+    """Narrow test seam for deterministic substitution checks."""
+
+
+def _regular_file_identity(value: os.stat_result) -> tuple[int, ...]:
+    return (
+        value.st_dev,
+        value.st_ino,
+        value.st_mode,
+        value.st_size,
+        value.st_mtime_ns,
+        value.st_ctime_ns,
+        value.st_nlink,
+    )
+
+
+def _assert_bound_regular_current(
+    bound: BoundChild,
+    parent_fd: int,
+    name: str,
+    identity: tuple[int, ...],
+) -> None:
+    try:
+        descriptor_value = os.fstat(bound.descriptor)
+        name_value = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    except OSError as error:
+        raise MaterializationError(f"{bound.label} changed while selected") from error
+    if (
+        not stat.S_ISREG(descriptor_value.st_mode)
+        or descriptor_value.st_nlink != 1
+        or _regular_file_identity(descriptor_value) != identity
+        or _regular_file_identity(name_value) != identity
+    ):
+        raise MaterializationError(f"{bound.label} changed while selected")
+
+
+def _read_bound_regular(
+    bound: BoundChild, *, maximum_bytes: int, exact_bytes: int | None = None
+) -> tuple[bytes, tuple[int, ...], os.stat_result]:
+    try:
+        before = os.fstat(bound.descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_nlink != 1
+            or before.st_size > maximum_bytes
+            or (exact_bytes is not None and before.st_size != exact_bytes)
+        ):
+            raise MaterializationError(f"{bound.label} identity or byte count differs")
+        os.lseek(bound.descriptor, 0, os.SEEK_SET)
+        payload = bytearray()
+        while len(payload) <= maximum_bytes:
+            chunk = os.read(
+                bound.descriptor,
+                min(1024 * 1024, maximum_bytes + 1 - len(payload)),
+            )
+            if not chunk:
+                break
+            payload.extend(chunk)
+        after = os.fstat(bound.descriptor)
+    except OSError as error:
+        raise MaterializationError(f"could not read {bound.label}: {error}") from error
+    identity = _regular_file_identity(before)
+    if (
+        _regular_file_identity(after) != identity
+        or len(payload) != before.st_size
+        or len(payload) > maximum_bytes
+    ):
+        raise MaterializationError(f"{bound.label} changed while read")
+    return bytes(payload), identity, after
+
+
+def _validate_generated_sidecar_metadata(value: os.stat_result, expected_bytes: int) -> None:
+    permissions = stat.S_IMODE(value.st_mode)
+    forbidden = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH | stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX
+    if (
+        not stat.S_ISREG(value.st_mode)
+        or value.st_nlink != 1
+        or value.st_size != expected_bytes
+        or permissions & forbidden
+    ):
+        raise MaterializationError("generated sidecar has unsafe metadata")
+
+
+class _PreparedPackageSource:
+    def __init__(
+        self,
+        layout: BoundProjectLayout,
+        package_name: str,
+        package: BoundChild,
+    ) -> None:
+        self.layout = layout
+        self.package_name = package_name
+        self.package = package
+        self.directories: list[tuple[int, str, BoundChild]] = []
+        self.target: tuple[int, str, BoundChild, tuple[int, ...]] | None = None
+        self.removed_sidecar: tuple[int, str] | None = None
+
+    @property
+    def source(self) -> Path:
+        return Path(f"/proc/self/fd/{self.package.descriptor}")
+
+    def assert_current(self) -> None:
+        self.layout.assert_current()
+        if not self.package.matches(self.layout.packages.descriptor, self.package_name):
+            raise MaterializationError(
+                f"materialized package incarnation changed: {self.package_name}"
+            )
+        for parent_fd, name, directory in self.directories:
+            if not directory.matches(parent_fd, name):
+                raise MaterializationError(
+                    f"generated sidecar parent incarnation changed: {name}"
+                )
+        if self.target is not None:
+            parent_fd, name, target, identity = self.target
+            _assert_bound_regular_current(target, parent_fd, name, identity)
+        if self.removed_sidecar is not None:
+            parent_fd, name = self.removed_sidecar
+            if _child_exists(parent_fd, name):
+                raise MaterializationError("generated sidecar reappeared after removal")
+
+    def close(self) -> None:
+        if self.target is not None:
+            self.target[2].close()
+        for _, _, directory in reversed(self.directories):
+            directory.close()
+        self.package.close()
+
+
+def _remove_generated_sidecar(
+    prepared: _PreparedPackageSource,
+    contract: GeneratedSidecarContract,
+) -> str | None:
+    target_parts = PurePosixPath(contract.target).parts
+    sidecar_parts = PurePosixPath(contract.sidecar).parts
+    parent_fd = prepared.package.descriptor
+    for component in target_parts[:-1]:
+        directory = _bind_child(
+            parent_fd,
+            component,
+            f"generated sidecar parent {contract.package}/{component}",
+            directory=True,
+        )
+        prepared.directories.append((parent_fd, component, directory))
+        parent_fd = directory.descriptor
+    sidecar_name = sidecar_parts[-1]
+    if not _child_exists(parent_fd, sidecar_name):
+        prepared.assert_current()
+        return None
+
+    target_name = target_parts[-1]
+    target = _bind_child(
+        parent_fd,
+        target_name,
+        f"generated sidecar target {contract.package}/{contract.target}",
+        directory=False,
+    )
+    try:
+        target_initial_identity = _regular_file_identity(os.fstat(target.descriptor))
+    except OSError as error:
+        target.close()
+        raise MaterializationError(
+            f"could not inspect generated sidecar target for {contract.package}"
+        ) from error
+    prepared.target = (parent_fd, target_name, target, target_initial_identity)
+    target_payload, target_identity, _ = _read_bound_regular(
+        target, maximum_bytes=HARD_MAX_MEMBER_BYTES
+    )
+    prepared.target = (parent_fd, target_name, target, target_identity)
+    if hashlib.sha256(target_payload).hexdigest() != contract.target_sha256:
+        raise MaterializationError(
+            f"generated sidecar target digest differs for {contract.package}"
+        )
+    _generated_sidecar_phase("after_target_authenticated")
+
+    sidecar = _bind_child(
+        parent_fd,
+        sidecar_name,
+        f"generated sidecar {contract.package}/{contract.sidecar}",
+        directory=False,
+    )
+    try:
+        sidecar_payload, sidecar_identity, sidecar_value = _read_bound_regular(
+            sidecar,
+            maximum_bytes=len(contract.sidecar_bytes),
+            exact_bytes=len(contract.sidecar_bytes),
+        )
+        _validate_generated_sidecar_metadata(sidecar_value, len(contract.sidecar_bytes))
+        if sidecar_payload != contract.sidecar_bytes:
+            raise MaterializationError(
+                f"generated sidecar bytes differ for {contract.package}"
+            )
+        _generated_sidecar_phase("after_sidecar_authenticated")
+        _generated_sidecar_phase("before_unlink")
+        prepared.assert_current()
+        _assert_bound_regular_current(
+            sidecar, parent_fd, sidecar_name, sidecar_identity
+        )
+        try:
+            os.unlink(sidecar_name, dir_fd=parent_fd)
+            os.fsync(parent_fd)
+        except OSError as error:
+            raise MaterializationError(
+                f"could not remove generated sidecar for {contract.package}: {error}"
+            ) from error
+        if _child_exists(parent_fd, sidecar_name):
+            raise MaterializationError(
+                f"generated sidecar remained after removal for {contract.package}"
+            )
+        prepared.removed_sidecar = (parent_fd, sidecar_name)
+        _generated_sidecar_phase("after_unlink")
+        prepared.assert_current()
+    finally:
+        sidecar.close()
+    return f"{contract.package}/{contract.sidecar}"
+
+
+@contextmanager
+def _prepared_package_source(
+    layout: BoundProjectLayout,
+    package: Mapping[str, Any],
+    *,
+    remove_validated_generated_sidecars: bool,
+) -> Iterator[tuple[_PreparedPackageSource, str | None]]:
+    name = package["name"]
+    contract = _generated_sidecar_contract_for(package)
+    if (
+        remove_validated_generated_sidecars
+        and contract is not None
+        and (not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"))
+    ):
+        raise MaterializationError(
+            "generated sidecar removal requires no-follow nonblocking file opens"
+        )
+    package_bound = _bind_child(
+        layout.packages.descriptor,
+        name,
+        f"materialized package {name}",
+        directory=True,
+    )
+    prepared = _PreparedPackageSource(layout, name, package_bound)
+    try:
+        removed = None
+        if remove_validated_generated_sidecars and contract is not None:
+            removed = _remove_generated_sidecar(prepared, contract)
+        prepared.assert_current()
+        yield prepared, removed
+        prepared.assert_current()
+    finally:
+        prepared.close()
 
 
 def _locate_bound_child(
@@ -1923,7 +2263,12 @@ def _scan_tree(root: Path) -> None:
                 raise MaterializationError(f"materialized package contains a special file: {path}")
 
 
-def verify(repo_root: Path, pin_path: Path) -> dict[str, Any]:
+def verify(
+    repo_root: Path,
+    pin_path: Path,
+    *,
+    remove_validated_generated_sidecars: bool = False,
+) -> dict[str, Any]:
     repo_root = Path(os.path.abspath(repo_root))
     _assert_real_directory(repo_root)
     _reject_symlink_components(repo_root)
@@ -1935,26 +2280,48 @@ def verify(repo_root: Path, pin_path: Path) -> dict[str, Any]:
         if actual_override != expected_override:
             raise MaterializationError("Lake package override differs from exact pin")
         verified: list[str] = []
+        removed_generated_sidecars: list[str] = []
         with tempfile.TemporaryDirectory(prefix="lake-package-verify-") as temporary:
             scratch_root = Path(temporary)
             for package in pin["packages"]:
-                source = layout.packages.path / package["name"]
-                if source.is_symlink() or not source.is_dir():
-                    raise MaterializationError(f"materialized package is unavailable: {package['name']}")
-                _scan_tree(source)
-                archive_tree = compute_source_tree_sha(
-                    source, scratch_root / f"{package['name']}-archive", []
-                )
-                if archive_tree != package["output"]["archive_tree_sha"]:
-                    raise MaterializationError(f"materialized archive tree differs for {package['name']}")
-                tree = compute_source_tree_sha(
-                    source, scratch_root / package["name"], package["output"]["gitlinks"]
-                )
-                if tree != package["output"]["tree_sha"]:
-                    raise MaterializationError(f"materialized Git tree differs for {package['name']}")
-                layout.assert_current()
-                verified.append(package["name"])
-    return {"status": "verified", "packages": verified, "override": OVERRIDE_PATH.as_posix()}
+                with _prepared_package_source(
+                    layout,
+                    package,
+                    remove_validated_generated_sidecars=(
+                        remove_validated_generated_sidecars
+                    ),
+                ) as (prepared, removed):
+                    source = prepared.source
+                    if removed is not None:
+                        removed_generated_sidecars.append(removed)
+                    _scan_tree(source)
+                    prepared.assert_current()
+                    archive_tree = compute_source_tree_sha(
+                        source, scratch_root / f"{package['name']}-archive", []
+                    )
+                    prepared.assert_current()
+                    if archive_tree != package["output"]["archive_tree_sha"]:
+                        raise MaterializationError(
+                            f"materialized archive tree differs for {package['name']}"
+                        )
+                    tree = compute_source_tree_sha(
+                        source,
+                        scratch_root / package["name"],
+                        package["output"]["gitlinks"],
+                    )
+                    prepared.assert_current()
+                    if tree != package["output"]["tree_sha"]:
+                        raise MaterializationError(
+                            f"materialized Git tree differs for {package['name']}"
+                        )
+                    verified.append(package["name"])
+    return {
+        "status": "verified",
+        "packages": verified,
+        "override": OVERRIDE_PATH.as_posix(),
+        "remove_validated_generated_sidecars": remove_validated_generated_sidecars,
+        "removed_generated_sidecars": removed_generated_sidecars,
+    }
 
 
 def _safe_transport_argv(
@@ -2104,7 +2471,11 @@ def build_parser() -> argparse.ArgumentParser:
     archive_source.add_argument("--archive-directory", type=Path)
     archive_source.add_argument("--archive-directory-env")
     materialize_parser.add_argument("--replace-existing", action="store_true")
-    commands.add_parser("verify")
+    verify_parser = commands.add_parser("verify")
+    verify_parser.add_argument(
+        "--remove-validated-generated-sidecars",
+        action="store_true",
+    )
     fetch = commands.add_parser("fetch-materialize")
     fetch.add_argument("--archive-directory", type=Path, required=True)
     fetch.add_argument("--transport-argv-file", type=Path, required=True)
@@ -2119,7 +2490,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     pin_path = arguments.pin or repo_root / PIN_RELATIVE_PATH
     try:
         if arguments.command == "verify":
-            result = verify(repo_root, pin_path)
+            result = verify(
+                repo_root,
+                pin_path,
+                remove_validated_generated_sidecars=(
+                    arguments.remove_validated_generated_sidecars
+                ),
+            )
         else:
             if arguments.command == "fetch-materialize":
                 fetch_archives(

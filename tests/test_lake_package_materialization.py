@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from contextlib import contextmanager
 import gzip
 import hashlib
 import importlib.util
@@ -8,6 +9,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import socket
+import stat
 import sys
 import tempfile
 import threading
@@ -23,6 +26,13 @@ SPEC = importlib.util.spec_from_file_location(
 assert SPEC and SPEC.loader
 source = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(source)
+
+FIXTURE_WIDGET_TARGET_PATH = "widget/package-lock.json"
+FIXTURE_WIDGET_SIDECAR_PATH = "widget/package-lock.json.hash"
+FIXTURE_WIDGET_TRACE_PATH = "widget/package-lock.json.trace"
+FIXTURE_WIDGET_TARGET = b"fixture package lock\n"
+FIXTURE_LAKE_HASH = b"179e66574f04806e"
+FIXTURE_WIDGET_TRACE = b'{"outputs":"179e66574f04806e.art"}\n'
 
 
 def is_transaction_stage(path: Path) -> bool:
@@ -97,6 +107,13 @@ def make_archive(
         (prefix + "tool", b"0", b"#!/bin/sh\nexit 0\n", 0o775, ""),
         (prefix + "src/source-link", b"2", b"", 0o777, "source.txt"),
     ]
+    if replace_entries is None and package["name"] == "proofwidgets":
+        entries += [
+            (prefix + "widget/", b"5", b"", directory_mode, ""),
+            (prefix + FIXTURE_WIDGET_TARGET_PATH, b"0", FIXTURE_WIDGET_TARGET, 0o664, ""),
+            (prefix + FIXTURE_WIDGET_TRACE_PATH, b"0", FIXTURE_WIDGET_TRACE, 0o664, ""),
+            (prefix + "widget/package.json", b"0", b"{}\n", 0o664, ""),
+        ]
     if extra:
         entries += extra
     pax = pax_record("comment", package["revision"])
@@ -253,6 +270,79 @@ class LakePackageMaterializationTests(unittest.TestCase):
     def _materialize(self, **kwargs: object) -> dict:
         return source.materialize(self.root, self.pin_path, self.archives, **kwargs)
 
+    def _proofwidgets_package(self) -> dict:
+        return next(package for package in self.packages if package["name"] == "proofwidgets")
+
+    def _proofwidgets_root(self) -> Path:
+        return self.root / ".lake/packages/proofwidgets"
+
+    def _fixture_sidecar_contract(
+        self,
+        *,
+        package: str = "proofwidgets",
+        revision: str | None = None,
+        target: str = FIXTURE_WIDGET_TARGET_PATH,
+        target_sha256: str | None = None,
+        sidecar: str = FIXTURE_WIDGET_SIDECAR_PATH,
+    ) -> source.GeneratedSidecarContract:
+        proofwidgets = self._proofwidgets_package()
+        return source.GeneratedSidecarContract(
+            package=package,
+            revision=revision or proofwidgets["revision"],
+            target=target,
+            target_sha256=target_sha256 or hashlib.sha256(FIXTURE_WIDGET_TARGET).hexdigest(),
+            sidecar=sidecar,
+            sidecar_bytes=FIXTURE_LAKE_HASH,
+        )
+
+    @contextmanager
+    def _fixture_sidecar_policy(
+        self, contract: source.GeneratedSidecarContract | None = None
+    ):
+        selected = contract or self._fixture_sidecar_contract()
+        with mock.patch.object(source, "GENERATED_SIDECAR_CONTRACTS", (selected,)):
+            yield selected
+
+    def _write_sidecar(self, payload: bytes = FIXTURE_LAKE_HASH) -> Path:
+        sidecar = self._proofwidgets_root() / FIXTURE_WIDGET_SIDECAR_PATH
+        sidecar.write_bytes(payload)
+        return sidecar
+
+    def _replace_fixture_archive(
+        self,
+        name: str,
+        *,
+        extra: list[tuple[str, bytes, bytes, int, str]] | None = None,
+        replace_entries: list[tuple[str, bytes, bytes, int, str]] | None = None,
+    ) -> None:
+        package = next(package for package in self.packages if package["name"] == name)
+        compressed, raw = make_archive(
+            package,
+            extra=extra,
+            replace_entries=replace_entries,
+        )
+        package["archive"]["tar_bytes"] = len(raw)
+        facts, entries = source.inspect_archive_bytes(compressed, package)
+        with tempfile.TemporaryDirectory() as tree_temporary:
+            tree_root = Path(tree_temporary)
+            extracted = tree_root / "source"
+            source._write_entries(extracted, entries)
+            archive_tree_sha = source.compute_tree_sha(
+                extracted, tree_root / "archive-scratch", []
+            )
+            tree_sha = source.compute_tree_sha(
+                extracted,
+                tree_root / "tree-scratch",
+                package["output"]["gitlinks"],
+            )
+        facts["output"]["archive_tree_sha"] = archive_tree_sha
+        facts["output"]["tree_sha"] = tree_sha
+        package["archive"] = facts["archive"]
+        package["output"] = facts["output"]
+        self.archive_bytes[name] = compressed
+        (self.archives / f"{name}-{package['revision']}.tar.gz").write_bytes(compressed)
+        self._write_json(self.pin_path, self.pin)
+
     def test_replaced_lock_path_cannot_admit_concurrent_materializer(self) -> None:
         runtime = self.root / source.RUNTIME_DIRECTORY
         runtime.mkdir(parents=True)
@@ -357,6 +447,554 @@ class LakePackageMaterializationTests(unittest.TestCase):
         (self.root / ".lake/packages/plausible/src/source.txt").write_text("tampered\n")
         with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
             source.verify(self.root, self.pin_path)
+
+    def test_proofwidgets_sidecar_absent_or_exact_is_safely_removed(self) -> None:
+        with self._fixture_sidecar_policy():
+            self._materialize()
+            target = self._proofwidgets_root() / FIXTURE_WIDGET_TARGET_PATH
+            before = target.stat()
+            absent_fsync_targets: list[str] = []
+            real_fsync = os.fsync
+
+            def record_absent_fsync(descriptor: int) -> None:
+                absent_fsync_targets.append(os.readlink(f"/proc/self/fd/{descriptor}"))
+                real_fsync(descriptor)
+
+            with mock.patch.object(os, "fsync", side_effect=record_absent_fsync):
+                absent = source.verify(
+                    self.root,
+                    self.pin_path,
+                    remove_validated_generated_sidecars=True,
+                )
+            self.assertEqual([], absent["removed_generated_sidecars"])
+            self.assertTrue(absent["remove_validated_generated_sidecars"])
+            self.assertEqual(before, target.stat())
+            self.assertFalse(
+                any(path.endswith("/proofwidgets/widget") for path in absent_fsync_targets)
+            )
+
+            build_output = self._proofwidgets_root() / ".lake/build/ProofWidgets.olean"
+            build_output.parent.mkdir(parents=True)
+            build_output.write_bytes(b"compiled")
+            sidecar = self._write_sidecar()
+            with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+                source.verify(self.root, self.pin_path)
+            self.assertEqual(FIXTURE_LAKE_HASH, sidecar.read_bytes())
+
+            fsync_targets: list[str] = []
+
+            def recording_fsync(descriptor: int) -> None:
+                fsync_targets.append(os.readlink(f"/proc/self/fd/{descriptor}"))
+                real_fsync(descriptor)
+
+            with mock.patch.object(os, "fsync", side_effect=recording_fsync):
+                exact = source.verify(
+                    self.root,
+                    self.pin_path,
+                    remove_validated_generated_sidecars=True,
+                )
+            self.assertEqual(
+                ["proofwidgets/widget/package-lock.json.hash"],
+                exact["removed_generated_sidecars"],
+            )
+            self.assertFalse(sidecar.exists())
+            self.assertEqual(b"compiled", build_output.read_bytes())
+            after = target.stat()
+            self.assertEqual((before.st_dev, before.st_ino, before.st_mode),
+                             (after.st_dev, after.st_ino, after.st_mode))
+            self.assertTrue(
+                any(path.endswith("/proofwidgets/widget") for path in fsync_targets)
+            )
+
+        parser = source.build_parser()
+        parsed = parser.parse_args(["verify", "--remove-validated-generated-sidecars"])
+        self.assertTrue(parsed.remove_validated_generated_sidecars)
+        with self.assertRaises(SystemExit):
+            parser.parse_args(
+                ["verify", "--remove-validated-generated-sidecars=widget/other.hash"]
+            )
+        with self.assertRaises(SystemExit):
+            parser.parse_args(
+                ["verify", "--remove-validated-generated-sidecars", "proofwidgets"]
+            )
+
+    def test_proofwidgets_sidecar_rejects_malformed_payloads(self) -> None:
+        malformed = (
+            b"0000000000000000",
+            b"179E66574F04806E",
+            b"179e66574f04806",
+            b"179e66574f04806e0",
+            b"179e66574f04806e\n",
+            b"179e66574f04806g",
+        )
+        with self._fixture_sidecar_policy():
+            self._materialize()
+            target = self._proofwidgets_root() / FIXTURE_WIDGET_TARGET_PATH
+            target_bytes = target.read_bytes()
+            for payload in malformed:
+                with self.subTest(payload=payload):
+                    sidecar = self._write_sidecar(payload)
+                    with self.assertRaises(source.MaterializationError):
+                        source.verify(
+                            self.root,
+                            self.pin_path,
+                            remove_validated_generated_sidecars=True,
+                        )
+                    self.assertEqual(payload, sidecar.read_bytes())
+                    self.assertEqual(target_bytes, target.read_bytes())
+                    sidecar.unlink()
+
+    def test_proofwidgets_sidecar_rejects_unsafe_types_links_and_modes(self) -> None:
+        with self._fixture_sidecar_policy():
+            self._materialize()
+            sidecar = self._proofwidgets_root() / FIXTURE_WIDGET_SIDECAR_PATH
+            outside = Path(self.temporary.name) / "sidecar-outside"
+            outside.write_bytes(FIXTURE_LAKE_HASH)
+
+            def verify_fails() -> None:
+                with self.assertRaises(source.MaterializationError):
+                    source.verify(
+                        self.root,
+                        self.pin_path,
+                        remove_validated_generated_sidecars=True,
+                    )
+
+            sidecar.symlink_to(outside)
+            verify_fails()
+            self.assertEqual(FIXTURE_LAKE_HASH, outside.read_bytes())
+            sidecar.unlink()
+
+            sidecar.mkdir()
+            verify_fails()
+            sidecar.rmdir()
+
+            os.mkfifo(sidecar)
+            verify_fails()
+            sidecar.unlink()
+
+            listener = socket.socket(socket.AF_UNIX)
+            listener.bind(str(sidecar))
+            try:
+                verify_fails()
+            finally:
+                listener.close()
+                sidecar.unlink()
+
+            peer = Path(self.temporary.name) / "sidecar-peer"
+            peer.write_bytes(FIXTURE_LAKE_HASH)
+            os.link(peer, sidecar)
+            verify_fails()
+            self.assertEqual(FIXTURE_LAKE_HASH, peer.read_bytes())
+            sidecar.unlink()
+            peer.unlink()
+
+            for mode in (0o755, 0o4644, 0o2644, 0o1644):
+                with self.subTest(mode=oct(mode)):
+                    sidecar.write_bytes(FIXTURE_LAKE_HASH)
+                    sidecar.chmod(mode)
+                    verify_fails()
+                    self.assertTrue(sidecar.exists())
+                    sidecar.unlink()
+
+            for kind in (stat.S_IFCHR, stat.S_IFBLK):
+                metadata = mock.Mock(
+                    st_mode=kind | 0o600,
+                    st_nlink=1,
+                    st_size=len(FIXTURE_LAKE_HASH),
+                )
+                with self.subTest(kind=kind), self.assertRaisesRegex(
+                    source.MaterializationError, "unsafe metadata"
+                ):
+                    source._validate_generated_sidecar_metadata(
+                        metadata, len(FIXTURE_LAKE_HASH)
+                    )
+
+    def test_proofwidgets_sidecar_rejects_target_path_and_substitution_races(self) -> None:
+        with self._fixture_sidecar_policy() as contract:
+            self._materialize()
+
+            for target_kind in ("symlink", "directory", "fifo", "socket", "hardlink", "bytes"):
+                with self.subTest(target_kind=target_kind):
+                    self._materialize(replace_existing=True)
+                    target = self._proofwidgets_root() / FIXTURE_WIDGET_TARGET_PATH
+                    target.unlink()
+                    listener = None
+                    peer = None
+                    if target_kind == "symlink":
+                        outside = Path(self.temporary.name) / "target-outside"
+                        outside.write_bytes(FIXTURE_WIDGET_TARGET)
+                        target.symlink_to(outside)
+                    elif target_kind == "directory":
+                        target.mkdir()
+                    elif target_kind == "fifo":
+                        os.mkfifo(target)
+                    elif target_kind == "socket":
+                        listener = socket.socket(socket.AF_UNIX)
+                        listener.bind(str(target))
+                    elif target_kind == "hardlink":
+                        peer = Path(self.temporary.name) / "target-peer"
+                        peer.write_bytes(FIXTURE_WIDGET_TARGET)
+                        os.link(peer, target)
+                    else:
+                        target.write_bytes(b"wrong target\n")
+                    sidecar = self._write_sidecar()
+                    try:
+                        with self.assertRaises(source.MaterializationError):
+                            source.verify(
+                                self.root,
+                                self.pin_path,
+                                remove_validated_generated_sidecars=True,
+                            )
+                        self.assertTrue(sidecar.exists())
+                        if peer is not None:
+                            self.assertEqual(FIXTURE_WIDGET_TARGET, peer.read_bytes())
+                    finally:
+                        if listener is not None:
+                            listener.close()
+                        if peer is not None:
+                            peer.unlink()
+
+            self._materialize(replace_existing=True)
+            package_root = self._proofwidgets_root()
+            widget = package_root / "widget"
+            widget.rename(package_root / "widget-bound")
+            outside_widget = Path(self.temporary.name) / "outside-widget"
+            outside_widget.mkdir()
+            (outside_widget / "package-lock.json").write_bytes(FIXTURE_WIDGET_TARGET)
+            (outside_widget / "package-lock.json.hash").write_bytes(FIXTURE_LAKE_HASH)
+            sentinel = outside_widget / "sentinel"
+            sentinel.write_text("untouched\n")
+            widget.symlink_to(outside_widget, target_is_directory=True)
+            with self.assertRaises(source.MaterializationError):
+                source.verify(
+                    self.root,
+                    self.pin_path,
+                    remove_validated_generated_sidecars=True,
+                )
+            self.assertEqual("untouched\n", sentinel.read_text())
+            self.assertEqual(FIXTURE_LAKE_HASH, (outside_widget / "package-lock.json.hash").read_bytes())
+
+            race_cases = (
+                "target_name",
+                "sidecar_after_read",
+                "sidecar_mode",
+                "sidecar_name",
+                "widget_parent",
+                "package_root",
+                "sidecar_reappears",
+            )
+            for race in race_cases:
+                with self.subTest(race=race):
+                    self._materialize(replace_existing=True)
+                    package_root = self._proofwidgets_root()
+                    widget = package_root / "widget"
+                    target = package_root / FIXTURE_WIDGET_TARGET_PATH
+                    sidecar = self._write_sidecar()
+                    fired = False
+
+                    def inject(phase: str) -> None:
+                        nonlocal fired
+                        selected_phase = {
+                            "target_name": "after_target_authenticated",
+                            "sidecar_after_read": "after_sidecar_authenticated",
+                            "sidecar_mode": "after_sidecar_authenticated",
+                            "sidecar_name": "before_unlink",
+                            "widget_parent": "before_unlink",
+                            "package_root": "after_unlink",
+                            "sidecar_reappears": "after_unlink",
+                        }[race]
+                        if fired or phase != selected_phase:
+                            return
+                        fired = True
+                        if race == "target_name":
+                            target.rename(widget / "target-bound")
+                            target.write_bytes(FIXTURE_WIDGET_TARGET)
+                        elif race == "sidecar_after_read":
+                            sidecar.rename(widget / "sidecar-after-read-bound")
+                            sidecar.write_bytes(FIXTURE_LAKE_HASH)
+                        elif race == "sidecar_mode":
+                            sidecar.chmod(0o755)
+                        elif race == "sidecar_name":
+                            sidecar.rename(widget / "sidecar-bound")
+                            sidecar.write_bytes(FIXTURE_LAKE_HASH)
+                        elif race == "widget_parent":
+                            widget.rename(package_root / "widget-bound")
+                            widget.mkdir()
+                            (widget / "sentinel").write_text("untouched\n")
+                        elif race == "package_root":
+                            package_root.rename(package_root.with_name("proofwidgets-bound"))
+                            package_root.mkdir()
+                            (package_root / "sentinel").write_text("untouched\n")
+                        else:
+                            sidecar.write_bytes(FIXTURE_LAKE_HASH)
+
+                    with mock.patch.object(source, "_generated_sidecar_phase", side_effect=inject):
+                        with self.assertRaises(source.MaterializationError):
+                            source.verify(
+                                self.root,
+                                self.pin_path,
+                                remove_validated_generated_sidecars=True,
+                            )
+                    self.assertTrue(fired)
+                    if race in {"widget_parent", "package_root"}:
+                        self.assertEqual(
+                            "untouched\n",
+                            (widget / "sentinel" if race == "widget_parent" else package_root / "sentinel").read_text(),
+                        )
+
+            self._materialize(replace_existing=True)
+            self._write_sidecar()
+            unsafe = source.GeneratedSidecarContract(
+                package=contract.package,
+                revision=contract.revision,
+                target="../package-lock.json",
+                target_sha256=contract.target_sha256,
+                sidecar="../package-lock.json.hash",
+                sidecar_bytes=contract.sidecar_bytes,
+            )
+            with mock.patch.object(source, "GENERATED_SIDECAR_CONTRACTS", (unsafe,)):
+                with self.assertRaisesRegex(source.MaterializationError, "paths are unsafe"):
+                    source.verify(
+                        self.root,
+                        self.pin_path,
+                        remove_validated_generated_sidecars=True,
+                    )
+
+            unsafe_paths = (
+                ("widget//package-lock.json", "widget//package-lock.json.hash"),
+                ("widget/./package-lock.json", "widget/./package-lock.json.hash"),
+                ("widget/package\0-lock.json", "widget/package\0-lock.json.hash"),
+                ("widget\\package-lock.json", "widget\\package-lock.json.hash"),
+                ("widget/package-lock.json", "widget/other.hash"),
+            )
+            for unsafe_target, unsafe_sidecar in unsafe_paths:
+                with self.subTest(
+                    unsafe_target=unsafe_target, unsafe_sidecar=unsafe_sidecar
+                ):
+                    candidate = contract._replace(
+                        target=unsafe_target, sidecar=unsafe_sidecar
+                    )
+                    with mock.patch.object(
+                        source, "GENERATED_SIDECAR_CONTRACTS", (candidate,)
+                    ), self.assertRaises(source.MaterializationError):
+                        source._generated_sidecar_contract_for(
+                            self._proofwidgets_package()
+                        )
+
+            wrong_revision = contract._replace(revision="0" * 40)
+            with mock.patch.object(source, "GENERATED_SIDECAR_CONTRACTS", (wrong_revision,)):
+                with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+                    source.verify(
+                        self.root,
+                        self.pin_path,
+                        remove_validated_generated_sidecars=True,
+                    )
+            self.assertTrue(self._proofwidgets_root().joinpath(FIXTURE_WIDGET_SIDECAR_PATH).exists())
+
+            self._materialize(replace_existing=True)
+            plausible = self.root / ".lake/packages/plausible/widget"
+            plausible.mkdir()
+            (plausible / "package-lock.json").write_bytes(FIXTURE_WIDGET_TARGET)
+            other_sidecar = plausible / "package-lock.json.hash"
+            other_sidecar.write_bytes(FIXTURE_LAKE_HASH)
+            with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+                source.verify(
+                    self.root,
+                    self.pin_path,
+                    remove_validated_generated_sidecars=True,
+                )
+            self.assertTrue(other_sidecar.exists())
+
+    def test_proofwidgets_sidecar_cleanup_does_not_mask_tree_drift(self) -> None:
+        mutations = (
+            (FIXTURE_WIDGET_TARGET_PATH, b"wrong target\n", True),
+            (FIXTURE_WIDGET_TRACE_PATH, b"{}\n", False),
+            ("widget/package.json", b'{"changed":true}\n', False),
+            ("lakefile.lean", b'name = "changed"\n', False),
+            ("lake-manifest.json", b'{"changed":true}\n', False),
+            ("src/source.txt", b"changed\n", False),
+        )
+        with self._fixture_sidecar_policy():
+            for relative, payload, sidecar_remains in mutations:
+                with self.subTest(relative=relative):
+                    self._materialize(replace_existing=True)
+                    changed = self._proofwidgets_root() / relative
+                    changed.write_bytes(payload)
+                    sidecar = self._write_sidecar()
+                    with self.assertRaises(source.MaterializationError):
+                        source.verify(
+                            self.root,
+                            self.pin_path,
+                            remove_validated_generated_sidecars=True,
+                        )
+                    self.assertEqual(sidecar_remains, sidecar.exists())
+
+            self._materialize(replace_existing=True)
+            target = self._proofwidgets_root() / FIXTURE_WIDGET_TARGET_PATH
+            target.chmod(0o755)
+            sidecar = self._write_sidecar()
+            with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+                source.verify(
+                    self.root,
+                    self.pin_path,
+                    remove_validated_generated_sidecars=True,
+                )
+            self.assertFalse(sidecar.exists())
+
+            for relative in (
+                "widget/other.hash",
+                "widget/package-lock.json.hash.extra",
+                "widget/nested/package-lock.json.hash",
+            ):
+                with self.subTest(relative=relative):
+                    self._materialize(replace_existing=True)
+                    lookalike = self._proofwidgets_root() / relative
+                    lookalike.parent.mkdir(parents=True, exist_ok=True)
+                    lookalike.write_bytes(FIXTURE_LAKE_HASH)
+                    self._write_sidecar()
+                    with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+                        source.verify(
+                            self.root,
+                            self.pin_path,
+                            remove_validated_generated_sidecars=True,
+                        )
+                    self.assertTrue(lookalike.exists())
+
+    def test_proofwidgets_sidecar_archive_provenance_is_exact(self) -> None:
+        proofwidgets = self._proofwidgets_package()
+        prefix = proofwidgets["archive"]["exact_prefix"]
+        contract = self._fixture_sidecar_contract()
+        with self._fixture_sidecar_policy(contract):
+            self._replace_fixture_archive(
+                "proofwidgets",
+                extra=[
+                    (prefix + "docs/", b"5", b"", 0o775, ""),
+                    (prefix + "docs/reference.hash", b"0", b"archive-owned\n", 0o664, ""),
+                ],
+            )
+            self._materialize()
+            archive_hash = self._proofwidgets_root() / "docs/reference.hash"
+            self.assertEqual(b"archive-owned\n", archive_hash.read_bytes())
+            source.verify(
+                self.root,
+                self.pin_path,
+                remove_validated_generated_sidecars=True,
+            )
+            archive_hash.write_bytes(b"changed\n")
+            with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+                source.verify(self.root, self.pin_path)
+            self._materialize(replace_existing=True)
+            archive_hash = self._proofwidgets_root() / "docs/reference.hash"
+            archive_hash.unlink()
+            with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+                source.verify(self.root, self.pin_path)
+
+            def archive_entries(
+                target_kind: bytes, target_payload: bytes, target_mode: int, target_link: str
+            ) -> list[tuple[str, bytes, bytes, int, str]]:
+                return [
+                    (prefix, b"5", b"", 0o775, ""),
+                    (prefix + "lakefile.lean", b"0", b'name = "proofwidgets"\n', 0o664, ""),
+                    (prefix + "lake-manifest.json", b"0", b"{}\n", 0o664, ""),
+                    (prefix + "src/", b"5", b"", 0o775, ""),
+                    (prefix + "src/source.txt", b"0", b"proofwidgets\n", 0o664, ""),
+                    (prefix + "tool", b"0", b"#!/bin/sh\nexit 0\n", 0o775, ""),
+                    (prefix + "src/source-link", b"2", b"", 0o777, "source.txt"),
+                    (prefix + "widget/", b"5", b"", 0o775, ""),
+                    (
+                        prefix + FIXTURE_WIDGET_TARGET_PATH,
+                        target_kind,
+                        target_payload,
+                        target_mode,
+                        target_link,
+                    ),
+                    (prefix + FIXTURE_WIDGET_TRACE_PATH, b"0", FIXTURE_WIDGET_TRACE, 0o664, ""),
+                    (prefix + "widget/package.json", b"0", b"{}\n", 0o664, ""),
+                ]
+
+            for label, entries in (
+                (
+                    "wrong-digest",
+                    archive_entries(b"0", b"wrong target\n", 0o664, ""),
+                ),
+                (
+                    "wrong-type",
+                    archive_entries(b"2", b"", 0o777, "package.json"),
+                ),
+            ):
+                with self.subTest(archive_target=label):
+                    malformed, malformed_raw = make_archive(
+                        proofwidgets, replace_entries=entries
+                    )
+                    malformed_package = copy.deepcopy(proofwidgets)
+                    malformed_package["archive"]["tar_bytes"] = len(malformed_raw)
+                    with self.assertRaisesRegex(
+                        source.MaterializationError, "target differs"
+                    ):
+                        source.inspect_archive_bytes(malformed, malformed_package)
+
+            compressed, raw = make_archive(
+                proofwidgets,
+                extra=[
+                    (
+                        prefix + FIXTURE_WIDGET_SIDECAR_PATH,
+                        b"0",
+                        FIXTURE_LAKE_HASH,
+                        0o664,
+                        "",
+                    )
+                ],
+            )
+            candidate = copy.deepcopy(proofwidgets)
+            candidate["archive"]["tar_bytes"] = len(raw)
+            with self.assertRaisesRegex(source.MaterializationError, "archive-owned"):
+                source.inspect_archive_bytes(compressed, candidate)
+
+            for payload in (b"179E66574F04806E", b"179e66574f04806"):
+                malformed_contract = contract._replace(sidecar_bytes=payload)
+                with self.subTest(contract_payload=payload), mock.patch.object(
+                    source,
+                    "GENERATED_SIDECAR_CONTRACTS",
+                    (malformed_contract,),
+                ), self.assertRaisesRegex(
+                    source.MaterializationError, "not canonical"
+                ):
+                    source._generated_sidecar_contract_for(proofwidgets)
+
+        production = source.GENERATED_SIDECAR_CONTRACTS
+        self.assertEqual(1, len(production))
+        self.assertEqual(
+            (
+                "proofwidgets",
+                "6e311e2a844da9b2cc3971187df2fe0066947b93",
+                "widget/package-lock.json",
+                "3850e21b0823d6200db6da336ce1bd17a463db97ce314585ae47ed81a7327a7d",
+                "widget/package-lock.json.hash",
+                b"179e66574f04806e",
+            ),
+            (
+                production[0].package,
+                production[0].revision,
+                production[0].target,
+                production[0].target_sha256,
+                production[0].sidecar,
+                production[0].sidecar_bytes,
+            ),
+        )
+        real_pin = source.load_pin(ROOT / "references/lake-packages.json")
+        real_proofwidgets = next(
+            package for package in real_pin["packages"] if package["name"] == "proofwidgets"
+        )
+        self.assertEqual(production[0].revision, real_proofwidgets["revision"])
+        self.assertEqual(3_896_457, real_proofwidgets["archive"]["bytes"])
+        self.assertEqual(
+            "dffb4652003f31f8e393e0f2887526ec4b6cc8244b960afa8dcbc1918b020c68",
+            real_proofwidgets["archive"]["sha256"],
+        )
+        self.assertEqual(
+            "bec90bac5dd8afade168e76c5b508482f9043b26",
+            real_proofwidgets["output"]["archive_tree_sha"],
+        )
 
     def test_verify_projects_only_validated_generated_build_output(self) -> None:
         self._materialize()
@@ -641,6 +1279,33 @@ class LakePackageMaterializationTests(unittest.TestCase):
             changed = dict(gitlink, sha="b" * 40)
             second = source.compute_source_tree_sha(extracted, root / "second", [changed])
             self.assertNotEqual(first, second)
+
+        live_package = self.packages[0]
+        live_package["output"]["gitlinks"] = [gitlink]
+        live_prefix = live_package["archive"]["exact_prefix"]
+        self._replace_fixture_archive(
+            live_package["name"],
+            extra=[
+                (live_prefix + "vendor/", b"5", b"", 0o775, ""),
+                (live_prefix + "vendor/std/", b"5", b"", 0o775, ""),
+            ],
+        )
+        self._materialize()
+        self.assertEqual("verified", source.verify(self.root, self.pin_path)["status"])
+        archive_tree = live_package["output"]["archive_tree_sha"]
+        gitlink_tree = live_package["output"]["tree_sha"]
+        self.assertNotEqual(archive_tree, gitlink_tree)
+        live_package["output"]["archive_tree_sha"] = "0" * 40
+        self._write_json(self.pin_path, self.pin)
+        with self.assertRaisesRegex(source.MaterializationError, "archive tree differs"):
+            source.verify(self.root, self.pin_path)
+        live_package["output"]["archive_tree_sha"] = archive_tree
+        live_package["output"]["tree_sha"] = "0" * 40
+        self._write_json(self.pin_path, self.pin)
+        with self.assertRaisesRegex(source.MaterializationError, "Git tree differs"):
+            source.verify(self.root, self.pin_path)
+        live_package["output"]["tree_sha"] = gitlink_tree
+        self._write_json(self.pin_path, self.pin)
 
         unpinned = copy.deepcopy(package)
         unpinned["output"]["gitlinks"] = []

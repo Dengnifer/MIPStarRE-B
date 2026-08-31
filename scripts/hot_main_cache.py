@@ -204,7 +204,7 @@ class BuildRecipe:
 
 CANONICAL_BUILD_RECIPE = BuildRecipe(
     recipe_id="qpbt-hot-main",
-    version=4,
+    version=5,
     dependency_command=("lake", LAKE_OVERRIDE_ARGUMENT, "exe", "cache", "get"),
     build_command=("lake", LAKE_OVERRIDE_ARGUMENT, "build"),
     materialize_command=(
@@ -217,6 +217,7 @@ CANONICAL_BUILD_RECIPE = BuildRecipe(
     ),
     package_verify_command=(
         "python3", "scripts/materialize_lake_packages.py", "verify",
+        "--remove-validated-generated-sidecars",
     ),
     additional_identity_files=(
         "references/mipstarre-upstream.json",
