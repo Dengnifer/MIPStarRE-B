@@ -672,6 +672,138 @@ def _atomic_write_json(path: Path, value: Any) -> None:
     _atomic_write(path, json.dumps(value, indent=2, ensure_ascii=True) + "\n")
 
 
+def _codex_persistence_root() -> tuple[Path, str]:
+    configured = os.environ.get("CODEX_HOME")
+    if configured:
+        return Path(configured), "CODEX_HOME"
+    return Path.home() / ".codex", "default-user-home"
+
+
+def _probe_codex_persistence(root: Path | None = None) -> dict[str, Any]:
+    """Prove that Codex can durably write one private path without reading state."""
+
+    if root is None:
+        root, root_source = _codex_persistence_root()
+    else:
+        root_source = "explicit"
+    probe_directory: Path | None = None
+    probe_file: Path | None = None
+    cleanup_complete = True
+    try:
+        if not root.is_absolute():
+            raise OSError("Codex persistence root must be absolute")
+        root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        probe_directory = Path(tempfile.mkdtemp(prefix=".qpbt-persistence-probe-", dir=root))
+        if stat.S_IMODE(probe_directory.stat().st_mode) & 0o077:
+            raise OSError("private persistence probe directory has unsafe permissions")
+        probe_file = probe_directory / "write-check"
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        descriptor = os.open(probe_file, flags, 0o600)
+        try:
+            os.write(descriptor, b"qpbt-codex-persistence-probe\n")
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        probe_file.unlink()
+        probe_file = None
+        probe_directory.rmdir()
+        probe_directory = None
+        directory_descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    except OSError as error:
+        try:
+            if probe_file is not None:
+                probe_file.unlink(missing_ok=True)
+            if probe_directory is not None:
+                probe_directory.rmdir()
+        except OSError:
+            cleanup_complete = False
+        return {
+            "status": "failed",
+            "classification": "outer-host-codex-persistence-unwritable",
+            "root_source": root_source,
+            "private_probe": True,
+            "cleanup_complete": cleanup_complete,
+            "error_type": type(error).__name__,
+            "errno": error.errno,
+        }
+    return {
+        "status": "available",
+        "classification": "codex-persistence-writable",
+        "root_source": root_source,
+        "private_probe": True,
+        "cleanup_complete": True,
+        "error_type": None,
+        "errno": None,
+    }
+
+
+def _skipped_codex_persistence_probe() -> dict[str, Any]:
+    return {
+        "status": "not-run",
+        "classification": "dry-run-does-not-launch-codex",
+        "root_source": None,
+        "private_probe": True,
+        "cleanup_complete": None,
+        "error_type": None,
+        "errno": None,
+    }
+
+
+def _review_preflight_failure_envelope(
+    *,
+    alias: str,
+    runtime_dir: Path,
+    timeout_seconds: float,
+    persistence_probe: Mapping[str, Any],
+    started_at: str,
+    started: float,
+) -> dict[str, Any]:
+    output_dir = _prepare_output_directory(runtime_dir, alias)
+    envelope = {
+        **_base_envelope(
+            alias=alias,
+            kind="review",
+            command=[],
+            started_at=started_at,
+            ended_at=utc_now(),
+            elapsed_seconds=time.monotonic() - started,
+            returncode=None,
+            status="failed",
+        ),
+        "failure_classification": persistence_probe["classification"],
+        "host_persistence_probe": dict(persistence_probe),
+        "repository_evidence_prepared": False,
+        "repository_evidence_transmitted": False,
+        "external_id": None,
+        "token_usage": {
+            "input": None,
+            "output": None,
+            "total": None,
+            "availability_reason": "Codex was not launched after local persistence preflight failure",
+            "cached_input": None,
+            "reasoning_output": None,
+        },
+        "read_only": True,
+        "nested_sandbox": "read-only",
+        "result_path": str(output_dir / "result.json"),
+        **_timeout_envelope_fields(
+            timeout_seconds=timeout_seconds,
+            timed_out=False,
+            stdout="",
+            stderr="",
+            timeout_error=None,
+        ),
+    }
+    _atomic_write_json(output_dir / "result.json", envelope)
+    return envelope
+
+
 def _walk_objects(value: Any) -> Iterable[Mapping[str, Any]]:
     if isinstance(value, dict):
         yield value
@@ -967,6 +1099,8 @@ def _timeout_envelope_fields(
     stderr: str,
     timeout_error: AgentProcessTimeout | None,
 ) -> dict[str, Any]:
+    stdout_bytes = stdout.encode("utf-8", errors="replace")
+    stderr_bytes = stderr.encode("utf-8", errors="replace")
     return {
         "timeout_seconds": timeout_seconds,
         "timed_out": timed_out,
@@ -981,11 +1115,15 @@ def _timeout_envelope_fields(
             timeout_error.termination_cleanup_complete if timeout_error else None
         ),
         "partial_stdout_bytes": (
-            len(stdout.encode("utf-8", errors="replace")) if timed_out else 0
+            len(stdout_bytes) if timed_out else 0
         ),
         "partial_stderr_bytes": (
-            len(stderr.encode("utf-8", errors="replace")) if timed_out else 0
+            len(stderr_bytes) if timed_out else 0
         ),
+        "stdout_bytes": len(stdout_bytes),
+        "stdout_sha256": _sha256_bytes(stdout_bytes),
+        "stderr_bytes": len(stderr_bytes),
+        "stderr_sha256": _sha256_bytes(stderr_bytes),
         "timeout_error": str(timeout_error) if timeout_error else None,
     }
 
@@ -1760,6 +1898,62 @@ def run_review(
         wire_api=wire_api,
         requires_openai_auth=requires_openai_auth,
     )
+    if dry_run:
+        persistence_probe = _skipped_codex_persistence_probe()
+    else:
+        probe_started_at = utc_now()
+        probe_started = time.monotonic()
+        persistence_probe = _probe_codex_persistence()
+        if persistence_probe["status"] != "available":
+            return _review_preflight_failure_envelope(
+                alias=alias,
+                runtime_dir=runtime_dir,
+                timeout_seconds=timeout,
+                persistence_probe=persistence_probe,
+                started_at=probe_started_at,
+                started=probe_started,
+            )
+    return _run_review_after_persistence_probe(
+        alias=alias,
+        prompt=prompt,
+        cwd=cwd,
+        runtime_dir=runtime_dir,
+        target_kind=target_kind,
+        target_value=target_value,
+        base_sha=base_sha,
+        head_sha=head_sha,
+        model=model,
+        bootstrap_snapshot_digest=bootstrap_snapshot_digest,
+        timeout=timeout,
+        dry_run=dry_run,
+        runner=runner,
+        codex_capability=codex_capability,
+        transport_profile=transport_profile,
+        persistence_probe=persistence_probe,
+    )
+
+
+def _run_review_after_persistence_probe(
+    *,
+    alias: str,
+    prompt: str,
+    cwd: Path,
+    runtime_dir: Path,
+    target_kind: str,
+    target_value: str | None,
+    base_sha: str | None,
+    head_sha: str | None,
+    model: str | None,
+    bootstrap_snapshot_digest: str | None,
+    timeout: float,
+    dry_run: bool,
+    runner: Any,
+    codex_capability: Mapping[str, Any] | None,
+    transport_profile: Mapping[str, Any] | None,
+    persistence_probe: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Run a review after an internal caller has completed persistence preflight."""
+
     source_root = _git_repo_root(cwd)
     source_head = _try_head(source_root)
     source_status = _working_tree_status(source_root)
@@ -1989,6 +2183,7 @@ def run_review(
                 "transport_profile": transport_profile,
                 "bootstrap_phase": bootstrap_phase,
                 "codex_cli": capability,
+                "host_persistence_probe": persistence_probe,
                 "review_target": target_record,
                 "timeout_seconds": timeout,
                 "timed_out": False,
@@ -2077,6 +2272,7 @@ def run_review(
             "transport_profile": transport_profile,
             "bootstrap_phase": bootstrap_phase,
             "codex_cli": capability,
+            "host_persistence_probe": persistence_probe,
             "review_target": target_record,
             "prompt_sha256": _sha256_text(review_prompt),
             "prompt_bytes": len(review_prompt.encode("utf-8")),
@@ -2342,6 +2538,30 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             dry_run=arguments.dry_run,
         )
     if arguments.command == "review":
+        timeout = _validated_timeout_seconds(arguments.timeout_seconds)
+        transport_profile = validate_review_transport_profile(
+            model_provider=arguments.model_provider,
+            provider_name=arguments.provider_name,
+            provider_base_url=arguments.provider_base_url,
+            wire_api=arguments.wire_api,
+            requires_openai_auth=arguments.provider_requires_openai_auth,
+        )
+        if arguments.dry_run:
+            persistence_probe = _skipped_codex_persistence_probe()
+        else:
+            alias = make_alias(arguments.issue, "reviewer", arguments.attempt, arguments.slug)
+            probe_started_at = utc_now()
+            probe_started = time.monotonic()
+            persistence_probe = _probe_codex_persistence()
+            if persistence_probe["status"] != "available":
+                return _review_preflight_failure_envelope(
+                    alias=alias,
+                    runtime_dir=runtime_dir,
+                    timeout_seconds=timeout,
+                    persistence_probe=persistence_probe,
+                    started_at=probe_started_at,
+                    started=probe_started,
+                )
         alias, prompt, cwd = _packet_from_arguments(arguments, repo_root, reviewer=True)
         if arguments.uncommitted:
             target_kind, target_value = "uncommitted", None
@@ -2349,7 +2569,7 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             target_kind, target_value = "commit", arguments.commit
         else:
             target_kind, target_value = "base", arguments.base or "main"
-        return run_review(
+        return _run_review_after_persistence_probe(
             alias=alias,
             prompt=prompt,
             cwd=cwd,
@@ -2359,14 +2579,13 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             base_sha=arguments.base_sha,
             head_sha=arguments.head_sha,
             model=arguments.model,
-            model_provider=arguments.model_provider,
-            provider_name=arguments.provider_name,
-            provider_base_url=arguments.provider_base_url,
-            wire_api=arguments.wire_api,
-            requires_openai_auth=arguments.provider_requires_openai_auth,
             bootstrap_snapshot_digest=arguments.bootstrap_snapshot_digest,
-            timeout_seconds=arguments.timeout_seconds,
+            timeout=timeout,
             dry_run=arguments.dry_run,
+            runner=_subprocess_run,
+            codex_capability=None,
+            transport_profile=transport_profile,
+            persistence_probe=persistence_probe,
         )
     if arguments.command == "archive":
         return run_archive(

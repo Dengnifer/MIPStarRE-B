@@ -12,6 +12,7 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import workflow  # noqa: E402
+import check_workflow  # noqa: E402
 
 
 NOW = "2026-08-30T00:00:00Z"
@@ -695,6 +696,149 @@ class WorkflowStoreTests(unittest.TestCase):
         result = workflow.run_cli(merge)
         self.assertEqual("merged", result["status"])
         self.assertIsNotNone(result["merged_at"])
+
+    def test_issue_and_transition_events_use_canonical_session_id(self) -> None:
+        session_id = "i002-reviewer-a01-lifecycle"
+        planned = {
+            "id": session_id,
+            "name": session_id,
+            "role": "reviewer",
+            "issue_id": "QPBT-002",
+            "status": "planned",
+            "parent_session_id": None,
+        }
+        issued = issued_session(
+            session_id,
+            status="issued",
+            read_only=True,
+            started_at=None,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        issued["outcome_path"] = ".workflow-runtime/runs/lifecycle/result.json"
+        state = documents()
+        state["sessions.json"]["planned"] = [planned]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        parser = workflow.build_parser()
+        issue_arguments = parser.parse_args(
+            [
+                "--root",
+                str(self.root),
+                "issue-session",
+                session_id,
+                "--json",
+                json.dumps(issued),
+            ]
+        )
+        workflow.run_cli(issue_arguments)
+        for status in ("running", "finished", "archived"):
+            transition = parser.parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "transition",
+                    "issued-session",
+                    session_id,
+                    status,
+                ]
+            )
+            workflow.run_cli(transition)
+        self.store.validate()
+        events = [
+            json.loads(line)
+            for line in self.events.read_text(encoding="utf-8").splitlines()
+            if line
+        ]
+        lifecycle = [
+            event for event in events if event["event"] in {"session.issued", "record.transitioned"}
+        ]
+        self.assertEqual(4, len(lifecycle))
+        for event in lifecycle:
+            self.assertEqual(session_id, event["payload"]["session_id"])
+            self.assertNotIn("id", event["payload"])
+
+    def test_failed_session_transition_reconciles_with_canonical_session_id(self) -> None:
+        session_id = "i002-reviewer-a02-lifecycle-failure"
+        session = issued_session(
+            session_id,
+            status="issued",
+            read_only=True,
+            started_at=None,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        session["outcome_path"] = ".workflow-runtime/runs/lifecycle-failure/result.json"
+        state = documents()
+        state["sessions.json"]["issued"] = [session]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        self.store.append_event("session.issued", {"session_id": session_id})
+        parser = workflow.build_parser()
+        for status in ("failed", "archived"):
+            transition = parser.parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "transition",
+                    "issued-session",
+                    session_id,
+                    status,
+                ]
+            )
+            workflow.run_cli(transition)
+        self.store.validate()
+
+
+class ResearchReconciliationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        self.state = documents()
+        session = issued_session("i002-reviewer-a01-metric", read_only=True)
+        self.state["sessions.json"]["issued"] = [session]
+        self.state["stages.json"]["stages"][0]["subagents_issued"] = 1
+        metrics = self.root / "research" / "metrics"
+        metrics.mkdir(parents=True)
+        (metrics / "incidents.jsonl").write_text('{"id":"INC-001"}\n', encoding="utf-8")
+        (metrics / "protocol_changes.jsonl").write_text("", encoding="utf-8")
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def validate_metric(self, **updates: object) -> None:
+        metric = {
+            "session_id": "i002-reviewer-a01-metric",
+            "issue_id": "QPBT-002",
+            "stage_id": "STAGE-01",
+        }
+        metric.update(updates)
+        path = self.root / "research" / "metrics" / "sessions.jsonl"
+        path.write_text(json.dumps(metric) + "\n", encoding="utf-8")
+        check_workflow.validate_research_ledgers(self.root, self.state)
+
+    def test_exact_metric_and_stage_reconciliation_passes(self) -> None:
+        self.validate_metric()
+
+    def test_metric_issue_and_stage_mismatches_are_rejected(self) -> None:
+        with self.assertRaisesRegex(workflow.ValidationError, "issue_id: expected"):
+            self.validate_metric(issue_id="QPBT-001")
+        with self.assertRaisesRegex(workflow.ValidationError, "unknown stage"):
+            self.validate_metric(stage_id="STAGE-404")
+
+    def test_duplicate_issue_to_stage_mapping_is_rejected(self) -> None:
+        duplicate = copy.deepcopy(self.state["stages.json"]["stages"][0])
+        duplicate["id"] = "STAGE-02"
+        self.state["stages.json"]["stages"].append(duplicate)
+        with self.assertRaisesRegex(workflow.ValidationError, "mapped to multiple stages"):
+            self.validate_metric()
+
+    def test_stale_stage_subagent_total_is_rejected(self) -> None:
+        self.state["stages.json"]["stages"][0]["subagents_issued"] = 0
+        with self.assertRaisesRegex(workflow.ValidationError, "subagents_issued: expected 1"):
+            self.validate_metric()
 
 
 class EventLogTests(unittest.TestCase):

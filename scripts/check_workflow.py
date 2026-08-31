@@ -78,6 +78,67 @@ def validate_research_ledgers(root: Path, documents: dict[str, Any]) -> None:
             errors.append(f"sessions metric[{index}]: duplicate session {session_id!r}")
         else:
             metric_ids.add(session_id)
+
+    # Some callers use a deliberately partial synthetic document to test the
+    # ledger parser. A real WorkflowStore document always includes issues.json;
+    # reconcile full canonical documents deterministically here.
+    if "issues.json" in documents:
+        stages = documents["stages.json"].get("stages", [])
+        stage_ids = {
+            stage.get("id")
+            for stage in stages
+            if isinstance(stage, dict) and isinstance(stage.get("id"), str)
+        }
+        issue_stages: dict[str, list[str]] = {}
+        for stage_index, stage in enumerate(stages):
+            stage_id = stage.get("id")
+            for issue_id in stage.get("issue_ids", []):
+                issue_stages.setdefault(issue_id, []).append(stage_id)
+                if len(issue_stages[issue_id]) > 1:
+                    errors.append(
+                        f"stages[{stage_index}].issue_ids: issue {issue_id!r} is mapped to multiple stages "
+                        + repr(issue_stages[issue_id])
+                    )
+
+        for index, metric in enumerate(session_records):
+            session_id = metric.get("session_id")
+            session = issued.get(session_id)
+            if session is None:
+                continue
+            metric_issue = metric.get("issue_id")
+            issued_issue = session.get("issue_id")
+            if metric_issue != issued_issue:
+                errors.append(
+                    f"sessions metric[{index}].issue_id: expected {issued_issue!r}, got {metric_issue!r}"
+                )
+            metric_stage = metric.get("stage_id")
+            if not isinstance(metric_stage, str) or metric_stage not in stage_ids:
+                errors.append(
+                    f"sessions metric[{index}].stage_id: unknown stage {metric_stage!r}"
+                )
+            expected_stages = issue_stages.get(issued_issue, [])
+            if len(expected_stages) == 1 and metric_stage != expected_stages[0]:
+                errors.append(
+                    f"sessions metric[{index}].stage_id: expected {expected_stages[0]!r} "
+                    f"for issue {issued_issue!r}, got {metric_stage!r}"
+                )
+            elif len(expected_stages) == 0:
+                errors.append(
+                    f"sessions metric[{index}]: issued issue {issued_issue!r} has no stage mapping"
+                )
+
+        for stage_index, stage in enumerate(stages):
+            issue_ids = set(stage.get("issue_ids", []))
+            actual = sum(
+                1
+                for session in issued.values()
+                if session.get("issue_id") in issue_ids and session.get("role") != "coordinator"
+            )
+            recorded = stage.get("subagents_issued")
+            if recorded != actual:
+                errors.append(
+                    f"stages[{stage_index}].subagents_issued: expected {actual}, got {recorded!r}"
+                )
     for session_id, record in issued.items():
         if record.get("status") in {"finished", "failed", "archived"} and session_id not in metric_ids:
             errors.append(f"terminal session {session_id!r} has no research metric")

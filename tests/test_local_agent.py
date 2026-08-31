@@ -115,14 +115,17 @@ def codex_events(final_message: str = "done") -> str:
 
 
 class FakeRunner:
-    def __init__(self, stdout: str, returncode: int = 0):
+    def __init__(self, stdout: str, returncode: int = 0, stderr: str = ""):
         self.stdout = stdout
         self.returncode = returncode
+        self.stderr = stderr
         self.calls: list[tuple[list[str], Path, str | None]] = []
 
     def __call__(self, command: list[str], *, cwd: Path, prompt: str | None) -> subprocess.CompletedProcess[str]:
         self.calls.append((list(command), cwd, prompt))
-        return subprocess.CompletedProcess(command, self.returncode, stdout=self.stdout, stderr="")
+        return subprocess.CompletedProcess(
+            command, self.returncode, stdout=self.stdout, stderr=self.stderr
+        )
 
 
 class InspectingRunner(FakeRunner):
@@ -397,8 +400,13 @@ class RuntimeTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         self.runtime = self.root / ".workflow-runtime"
+        self.environment = mock.patch.dict(
+            os.environ, {"CODEX_HOME": str(self.root / "codex-home")}
+        )
+        self.environment.start()
 
     def tearDown(self) -> None:
+        self.environment.stop()
         self.temporary.cleanup()
 
     def test_exec_uses_argv_stdin_and_extracts_lineage_and_usage(self) -> None:
@@ -516,23 +524,28 @@ class RuntimeTests(unittest.TestCase):
             "residual_risk": "none",
         }
         runner = FakeRunner(codex_events(json.dumps(review)))
-        envelope = local_agent.run_review(
-            alias="i001-reviewer-a01-review",
-            prompt="caller request",
-            cwd=repo,
-            runtime_dir=self.runtime,
-            target_kind="base",
-            target_value="main",
-            base_sha=base,
-            head_sha=head,
-            model_provider="OpenAI",
-            provider_name="OpenAI",
-            provider_base_url="https://api.finite-dimensional.space",
-            wire_api="responses",
-            requires_openai_auth=True,
-            runner=runner,
-            codex_capability=capability(native=False),
-        )
+        persistence_probe = mock.Mock(wraps=local_agent._probe_codex_persistence)
+        with mock.patch.object(
+            local_agent, "_probe_codex_persistence", persistence_probe
+        ):
+            envelope = local_agent.run_review(
+                alias="i001-reviewer-a01-review",
+                prompt="caller request",
+                cwd=repo,
+                runtime_dir=self.runtime,
+                target_kind="base",
+                target_value="main",
+                base_sha=base,
+                head_sha=head,
+                model_provider="OpenAI",
+                provider_name="OpenAI",
+                provider_base_url="https://api.finite-dimensional.space",
+                wire_api="responses",
+                requires_openai_auth=True,
+                runner=runner,
+                codex_capability=capability(native=False),
+            )
+        persistence_probe.assert_called_once_with()
         command = runner.calls[0][0]
         self.assertIn("read-only", command)
         self.assertIn("--ask-for-approval", command)
@@ -541,6 +554,8 @@ class RuntimeTests(unittest.TestCase):
         self.assertTrue(envelope["read_only"])
         self.assertEqual(THREAD_ID, envelope["external_id"])
         self.assertEqual("finished", envelope["status"])
+        self.assertEqual("available", envelope["host_persistence_probe"]["status"])
+        self.assertTrue(envelope["host_persistence_probe"]["private_probe"])
         self.assertEqual("generic-exec-frozen-evidence", envelope["execution_mode"])
         self.assertEqual(
             {
@@ -563,6 +578,170 @@ class RuntimeTests(unittest.TestCase):
         )
         parsed = json.loads(Path(envelope["review_path"]).read_text(encoding="utf-8"))
         self.assertEqual("approve", parsed["verdict"])
+
+    def test_review_persistence_failure_is_local_structured_and_precedes_evidence(self) -> None:
+        runner = FakeRunner(codex_events())
+        secret = "must-not-be-recorded-from-persistence-error"
+        with mock.patch.object(
+            local_agent.tempfile,
+            "mkdtemp",
+            side_effect=PermissionError(13, secret),
+        ):
+            envelope = local_agent.run_review(
+                alias="i012-reviewer-a01-persistence",
+                prompt="untrusted repository evidence",
+                cwd=self.root,
+                runtime_dir=self.runtime,
+                target_kind="uncommitted",
+                target_value=None,
+                runner=runner,
+                codex_capability=capability(native=False),
+            )
+        self.assertEqual("failed", envelope["status"])
+        self.assertEqual(
+            "outer-host-codex-persistence-unwritable",
+            envelope["failure_classification"],
+        )
+        self.assertFalse(envelope["repository_evidence_prepared"])
+        self.assertFalse(envelope["repository_evidence_transmitted"])
+        self.assertEqual("read-only", envelope["nested_sandbox"])
+        self.assertEqual([], runner.calls)
+        self.assertFalse((self.runtime / "review-harnesses").exists())
+        self.assertFalse((Path(envelope["result_path"]).parent / "prompt.md").exists())
+        self.assertNotIn(secret, json.dumps(envelope))
+        self.assertEqual(0, envelope["stdout_bytes"])
+        self.assertEqual(local_agent._sha256_bytes(b""), envelope["stderr_sha256"])
+
+    def test_review_cli_preflight_precedes_packet_and_context_loading(self) -> None:
+        parser = local_agent.build_parser()
+        arguments = parser.parse_args(
+            [
+                "--repo-root",
+                str(self.root),
+                "review",
+                "--issue",
+                "QPBT-012",
+                "--attempt",
+                "3",
+                "--slug",
+                "preflight-order",
+                "--task-file",
+                "must-not-be-read.md",
+                "--context-file",
+                "must-not-be-read-either.md",
+                "--uncommitted",
+            ]
+        )
+        failed_probe = {
+            "status": "failed",
+            "classification": "outer-host-codex-persistence-unwritable",
+            "root_source": "CODEX_HOME",
+            "private_probe": True,
+            "cleanup_complete": True,
+            "error_type": "PermissionError",
+            "errno": 13,
+        }
+        with mock.patch.object(
+            local_agent, "_probe_codex_persistence", return_value=failed_probe
+        ), mock.patch.object(local_agent, "_packet_from_arguments") as packet:
+            envelope = local_agent.run_cli(arguments)
+        packet.assert_not_called()
+        self.assertEqual("failed", envelope["status"])
+        self.assertFalse(envelope["repository_evidence_prepared"])
+        self.assertFalse((self.runtime / "review-harnesses").exists())
+
+    def test_review_cli_success_probes_exactly_once_before_packet_loading(self) -> None:
+        parser = local_agent.build_parser()
+        arguments = parser.parse_args(
+            [
+                "--repo-root",
+                str(self.root),
+                "review",
+                "--issue",
+                "QPBT-012",
+                "--attempt",
+                "4",
+                "--slug",
+                "single-preflight",
+                "--task-file",
+                "task.md",
+                "--context-file",
+                "context.md",
+                "--uncommitted",
+            ]
+        )
+        available_probe = {
+            "status": "available",
+            "classification": "codex-persistence-writable",
+            "root_source": "CODEX_HOME",
+            "private_probe": True,
+            "cleanup_complete": True,
+            "error_type": None,
+            "errno": None,
+        }
+        second_probe_failure = {
+            **available_probe,
+            "status": "failed",
+            "classification": "outer-host-codex-persistence-unwritable",
+            "error_type": "PermissionError",
+            "errno": 13,
+        }
+        remaining_probe_results = [available_probe, second_probe_failure]
+        call_order: list[str] = []
+
+        def probe() -> dict[str, object]:
+            call_order.append("probe")
+            return remaining_probe_results.pop(0)
+
+        def packet(*_args: object, **_kwargs: object) -> tuple[str, str, Path]:
+            call_order.append("packet")
+            return "i012-reviewer-a04-single-preflight", "review", self.root
+
+        def post_success(**kwargs: object) -> dict[str, object]:
+            call_order.append("post-success")
+            self.assertEqual(available_probe, kwargs["persistence_probe"])
+            return {"status": "finished"}
+
+        with mock.patch.object(
+            local_agent, "_probe_codex_persistence", side_effect=probe
+        ) as probe_mock, mock.patch.object(
+            local_agent, "_packet_from_arguments", side_effect=packet
+        ), mock.patch.object(
+            local_agent, "_run_review_after_persistence_probe", side_effect=post_success
+        ):
+            result = local_agent.run_cli(arguments)
+
+        self.assertEqual("finished", result["status"])
+        self.assertEqual(1, probe_mock.call_count)
+        self.assertEqual(["probe", "packet", "post-success"], call_order)
+        self.assertEqual([second_probe_failure], remaining_probe_results)
+
+    def test_ordinary_review_failure_records_bounded_output_evidence(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        head = commit_change(repo)
+        stdout = codex_events(json.dumps({"verdict": "approve", "findings": []}))
+        stderr = "ordinary provider failure\n"
+        runner = FakeRunner(stdout, returncode=1, stderr=stderr)
+        envelope = local_agent.run_review(
+            alias="i012-reviewer-a02-output-evidence",
+            prompt="review",
+            cwd=repo,
+            runtime_dir=self.runtime,
+            target_kind="base",
+            target_value="main",
+            base_sha=base,
+            head_sha=head,
+            runner=runner,
+            codex_capability=capability(native=False),
+        )
+        self.assertEqual("failed", envelope["status"])
+        self.assertFalse(envelope["timed_out"])
+        self.assertEqual(len(stdout.encode("utf-8")), envelope["stdout_bytes"])
+        self.assertEqual(local_agent._sha256_text(stdout), envelope["stdout_sha256"])
+        self.assertEqual(len(stderr.encode("utf-8")), envelope["stderr_bytes"])
+        self.assertEqual(local_agent._sha256_text(stderr), envelope["stderr_sha256"])
+        self.assertEqual(0, envelope["partial_stdout_bytes"])
+        self.assertEqual(0, envelope["partial_stderr_bytes"])
 
     def test_review_transport_overrides_precede_exec_and_retain_isolation(self) -> None:
         repo, head = initialize_review_repo(self.root)
@@ -1108,10 +1287,15 @@ class RuntimeTests(unittest.TestCase):
             "_packet_from_arguments",
             return_value=("i001-reviewer-a13-bootstrap-freeze", "prompt", self.root),
         ), mock.patch.object(
-            local_agent, "run_review", return_value={"status": "dry_run"}
-        ) as run_review:
+            local_agent,
+            "_run_review_after_persistence_probe",
+            return_value={"status": "dry_run"},
+        ) as post_success:
             local_agent.run_cli(arguments)
-        self.assertEqual("f" * 64, run_review.call_args.kwargs["bootstrap_snapshot_digest"])
+        self.assertEqual(
+            "f" * 64,
+            post_success.call_args.kwargs["bootstrap_snapshot_digest"],
+        )
 
     @mock.patch("local_agent._subprocess_run")
     def test_codex_capability_probe_fails_closed_on_selector_prompt_conflict(

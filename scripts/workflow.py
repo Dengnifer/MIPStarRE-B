@@ -1332,6 +1332,8 @@ def validate_event_log(
             if not isinstance(payload, dict):
                 continue
             session_id = payload.get("session_id")
+            # Schema-v1 issuance originally used payload.id. Keep that narrow
+            # append-only-history fallback; all new lifecycle writers use session_id.
             if session_id is None and event_value.get("event") == "session.issued":
                 session_id = payload.get("id")
             if session_id is None:
@@ -1885,10 +1887,14 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             _transition_record(arguments.kind, record, arguments.status)
             return record
 
+        event_payload = {"kind": arguments.kind, "status": arguments.status}
+        event_payload[
+            "session_id" if arguments.kind == "issued-session" else "id"
+        ] = arguments.id
         return store.mutate(
             filename,
             "record.transitioned",
-            {"kind": arguments.kind, "id": arguments.id, "status": arguments.status},
+            event_payload,
             transition_record,
         )
     if arguments.command == "issue-session":
@@ -1908,7 +1914,7 @@ def run_cli(arguments: argparse.Namespace) -> Any:
         return store.mutate(
             "sessions.json",
             "session.issued",
-            {"id": arguments.id},
+            {"session_id": arguments.id},
             issue_planned,
         )
     raise WorkflowError(f"unsupported command {arguments.command!r}")
