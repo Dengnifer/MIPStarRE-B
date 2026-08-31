@@ -768,6 +768,55 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual(1, sum(item["builds"] for item in metrics))
         self.assertEqual(1, sum(item["lock_waited"] for item in metrics))
 
+    def test_default_runtime_skips_prunable_unresolvable_worktree(self) -> None:
+        stale = self.issue_worktree("stale-loop")
+        shutil.rmtree(stale)
+        stale.symlink_to(stale)
+
+        records = cache_module.git_worktrees(self.repo)
+        self.assertTrue(next(record for record in records if record.path == stale).prunable)
+        self.assertEqual(
+            self.repo.resolve() / ".workflow-runtime",
+            cache_module.default_runtime_dir(self.repo),
+        )
+
+    def test_default_runtime_resolution_errors_fail_closed(self) -> None:
+        class BrokenPath:
+            def __init__(self, error: BaseException):
+                self.error = error
+
+            def resolve(self, *, strict: bool = False) -> Path:
+                raise self.error
+
+        for error in (RuntimeError("symlink loop"), PermissionError("denied")):
+            with self.subTest(error=type(error).__name__):
+                records = [
+                    cache_module.WorktreeRecord(
+                        path=BrokenPath(error),
+                        head=self.commit,
+                        bare=False,
+                        prunable=False,
+                    )
+                ]
+                with mock.patch.object(cache_module, "git_worktrees", return_value=records):
+                    with self.assertRaisesRegex(cache_module.CacheError, "pass --runtime-dir"):
+                        cache_module.default_runtime_dir(self.repo)
+
+    def test_cli_default_runtime_resolution_failures_are_concise(self) -> None:
+        missing = self.base / "missing-repository"
+        loop = self.base / "repository-loop"
+        loop.symlink_to(loop)
+        for repo_root in (missing, loop):
+            with self.subTest(repo_root=repo_root.name):
+                stderr = io.StringIO()
+                with redirect_stderr(stderr):
+                    result = cache_module.main(
+                        ["--repo-root", str(repo_root), "status"]
+                    )
+                self.assertEqual(2, result)
+                self.assertTrue(stderr.getvalue().startswith("error: "))
+                self.assertIn("pass --runtime-dir explicitly", stderr.getvalue())
+
     def test_cli_runtime_default_and_explicit_override(self) -> None:
         parser = cache_module.build_parser()
         with mock.patch.object(cache_module, "HotMainCache") as constructor:

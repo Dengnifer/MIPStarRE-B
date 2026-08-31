@@ -19,8 +19,9 @@ local cache under `.workflow-runtime/cache/main/`.
 When `--runtime-dir` is omitted, the cache command derives this runtime root
 from the primary non-bare Git worktree (`.workflow-runtime` beneath the root
 reported by `git worktree list --porcelain`). Linked issue worktrees therefore
-share one lock and one published snapshot for a cache key. If no primary
-worktree can be identified, the command fails closed and asks for an explicit
+share one lock and one published snapshot for a cache key. Prunable or
+unresolvable registered entries are ignored; if the repository root or primary
+worktree cannot be resolved, the command fails closed and asks for an explicit
 runtime directory. An explicit `--runtime-dir` keeps its existing semantics:
 absolute paths remain absolute and relative paths resolve beneath the supplied
 `--repo-root`.

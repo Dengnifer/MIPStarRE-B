@@ -530,15 +530,21 @@ def default_runtime_dir(repo_root: Path) -> Path:
     path semantics.
     """
 
-    resolved_root = repo_root.resolve(strict=True)
+    try:
+        resolved_root = repo_root.resolve(strict=True)
+    except (OSError, RuntimeError) as error:
+        raise CacheError(
+            "could not resolve the repository root for the default runtime directory; "
+            "pass --runtime-dir explicitly"
+        ) from error
     records = git_worktrees(resolved_root)
     candidates: list[Path] = []
     for record in records:
-        if record.bare:
+        if record.bare or record.prunable:
             continue
         try:
             candidate = record.path.resolve(strict=True)
-        except FileNotFoundError:
+        except (OSError, RuntimeError):
             continue
         metadata = candidate / ".git"
         if metadata.is_dir() and not metadata.is_symlink():
@@ -1423,8 +1429,17 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
-    repo_root = Path(arguments.repo_root).resolve()
-    project_dir = _resolve(repo_root, arguments.project_dir).resolve()
+    try:
+        repo_root = Path(arguments.repo_root).resolve()
+    except (OSError, RuntimeError) as error:
+        raise CacheError(
+            "could not resolve the repository root for the cache command; "
+            "pass --runtime-dir explicitly"
+        ) from error
+    try:
+        project_dir = _resolve(repo_root, arguments.project_dir).resolve()
+    except (OSError, RuntimeError) as error:
+        raise CacheError(f"could not resolve the project directory: {error}") from error
     runtime_dir = (
         default_runtime_dir(repo_root)
         if arguments.runtime_dir is None
