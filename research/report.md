@@ -23,10 +23,35 @@ retained only locally.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 60 terminal sessions plus 1 retained issued attempt; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local immutable review approved; endpoint-dependent transport gate remains |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed; QPBT-023 tracks the newly found leaf-contract gap |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 266 total issued attempts (265 non-coordinator); 134 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; approved source/blueprint ranges integrated at `65315213`; repair, cache-readiness, and contract lanes were recycled at the measured ceiling |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 269 total issued attempts (268 non-coordinator); 137 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; approved source/blueprint ranges integrated at `65315213`; repair, cache-readiness, and contract lanes were recycled at the measured ceiling |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
+
+## Schedule estimates
+
+The snapshot below was taken at 2026-08-31 21:54 +08. Ranges are wall-clock
+forecasts with the root coordinator plus three safe worker lanes, not token or
+person-hour estimates. The lanes are allocated to one critical-path writer,
+one fresh source/fidelity reviewer, and one independent API/cache or disjoint
+leaf task. Same-file and dependency-ordered proofs stay sequential; the
+hot-main build remains a singleton.
+
+| Stage | Measured elapsed at snapshot | Estimated remaining wall time | Dominant assumption |
+| --- | ---: | ---: | --- |
+| 1. Workflow skeleton | 15 h 53 min (complete) | 0 | Acceptance and independent review are complete. |
+| 2. Source split | 20 h 20 min | 2-6 h after gate disposition | Offline materialization and verification pass; if the endpoint-specific review remains mandatory, completion is externally unbounded. |
+| 3. Lean blueprint | 18 h 9 min | 2-5 working days | Freeze and independently review the F01/F03/F04 callable contracts and record the self-dual-basis gap. |
+| 4A. Minimal skeleton | 18 h 9 min | 6-16 weeks | The cache closes promptly and a source-faithful self-dual normal basis boundary is found or formalized. |
+| 4B. Complete skeleton | not started | 4-10 weeks | All 48 blueprint declarations receive reviewed signatures; tracked `sorry` is allowed but no assumptions hide proof debt. |
+| 4C. Proofs | not started | 18-48 months | External theorem boundaries are admissible where declared and the rigidity/LDT dependencies do not require foundational redevelopment. |
+| 5. Final audit | not started | 3-8 weeks | Statements remain stable and full build/declaration synchronization does not expose late source gaps. |
+
+Stage 4C dominates the uncertainty. If the Shoup/Lenstra/Wang construction or
+every cited rigidity and soundness result must be formalized from first
+principles, Stage 4A can exceed 16 weeks and Stage 4C can exceed 48 months.
+More worker lanes improve scouting, review, and disjoint leaf throughput, but
+do not divide that mathematical critical path linearly.
 
 ## Baseline observations
 
@@ -239,6 +264,20 @@ reviewer approved the exact six-path commit with no findings after reproducing
 the same focused and aggregate gates plus a strict historical-event replay.
 `LPR-003` is approved; integration remains deferred until after the requested
 blueprint milestone commit so it does not consume the second `main` commit.
+
+The canonical pinned source was subsequently materialized offline from
+`/tmp/2001.04383v3-source.tar` after all concurrent source readers finished.
+Contract validation and strict archive inspection passed for the 233,859-byte
+archive with SHA-256
+`d645cd51dd26cae59195e61aeeb5c886a254ef4adf15da7e5657ad90c7ec2174`.
+Publication took 0.413552 seconds (0.50 seconds including process overhead) and
+verification took 0.12 seconds. The result contains 39 files, 34 section
+slices, and 646 labels; inventory SHA-256 is
+`04548808c30c476e9b2b7cb2f728a6d0c348a6706a8ed1bc9fb9945f20a124f4`
+and `sections/READY` SHA-256 is
+`4d6a33759051b17428b3928d529d18e10da82e3bc09c75fbe429df324612b360`.
+The materialized paper bytes remain ignored runtime evidence rather than
+author-owned Git content.
 
 ## Stage 3 preflight observations
 
@@ -760,8 +799,8 @@ ceiling.
 
 ### Current parallel dispatch snapshot
 
-At the latest coordinator checkpoint the ledger contains 266 issued attempts
-(265 non-coordinator), including 134 Stage-4A attempts. The root plus three
+At the latest coordinator checkpoint the ledger contains 269 issued attempts
+(268 non-coordinator), including 137 Stage-4A attempts. The root plus three
 worker threads are the measured four-node collaboration ceiling. The latest
 wave admitted three independent read-only audits concurrently by recycling
 completed worker threads: a QPBT-013 leaf-contract audit, a QPBT-017 cache-
@@ -888,14 +927,30 @@ The live dispatch probe recorded `active_non_coordinator: 3` and
 --capacity 3`, while the host exposed 128 CPUs. This separates service
 capacity from host CPU capacity: a fourth worker is not admitted, and extra
 builders would still serialize on the per-key hot-main lock. At the current
-checkpoint the ledger has 266 issued attempts (265 non-coordinator), including
-134 Stage-4A attempts; token usage remains unavailable and is recorded as
+checkpoint the ledger has 269 issued attempts (268 non-coordinator), including
+137 Stage-4A attempts; token usage remains unavailable and is recorded as
 `null`. One provisional-identity launch was cancelled and replaced with an
 exactly identified session, preserving auditable provenance rather than
 leaving an unverifiable parallel result.
 
 The fresh immutable review then approved the corrected QPBT-021 head and
-resolved the changelog-count finding. The cache key is still a miss and the
-warm/seed gate remains deferred because the authenticated runtime inputs and
-required environment are not yet available; no additional independent ready
-issue is currently admitted.
+resolved the changelog-count finding. A subsequent three-lane read-only wave
+audited integration, authenticated post-integration cache inputs, and the Lean
+frontier concurrently. It found one deterministic additive changelog conflict,
+verified all required local archives for exactly one later singleton warm, and
+confirmed that QPBT-023 still blocks a source-faithful Lean writer. The three
+scouts reported approximately 10, 18, and 30 minutes of work respectively;
+their coordinator lifecycle windows also record the later ingestion delay.
+No scout invoked network, Lean, Lake, a cache action, or a canonical build.
+
+### Repository publication topology (2026-08-31)
+
+The standalone private `Dengnifer/MIPStarRE-B` repository now receives this
+repository's full history directly. Local `main` tracks `github/main` at
+`367ed6904d096e841a3849010395296a52be30c8`; the preserved
+`from-monorepo` branch is the same commit and therefore contains no unique
+history. GitHub rejected deleting it because it remains the server default.
+The repository-scoped deploy key authenticates Git transport, but the local
+GitHub CLI has no API login, so changing the server default branch and future
+GitHub issue/PR writes require owner-provided API authentication. No umbrella
+repository or sibling-track state was modified.

@@ -3278,7 +3278,7 @@
     {
       "id": "LPR-012",
       "title": "feat(cache): replay pinned local mathlib source on exact base",
-      "status": "draft",
+      "status": "approved",
       "issue_ids": [
         "QPBT-021"
       ],
@@ -3288,7 +3288,8 @@
       "head_sha": "6303aab63eeed144fe176969ca7c87f5a852b967",
       "implementer_session_ids": [
         "i021-orchestrator-a04-pr012-bind",
-        "i021-orchestrator-a06-changelog-count"
+        "i021-orchestrator-a06-changelog-count",
+        "i021-orchestrator-a05-changelog-count"
       ],
       "checks": [
         {
@@ -3457,7 +3458,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T11:47:00Z",
-      "updated_at": "2026-08-31T12:33:07.507240Z",
+      "updated_at": "2026-08-31T13:13:27.525865Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
