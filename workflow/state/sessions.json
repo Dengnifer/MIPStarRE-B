@@ -11029,6 +11029,154 @@
         "canonical_edits": false
       },
       "notes": "Read-only scout established serialized second-commit order and identified no concurrent writable integration wave; parallelism is safe in preflight/review lanes only until current-main commits are reconciled."
+    },
+    {
+      "id": "i000-auditor-a33-cache-parallel",
+      "name": "i000-auditor-a33-cache-parallel",
+      "role": "auditor",
+      "issue_id": "QPBT-000",
+      "attempt": 33,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "external_id": "/root/qpbt020_review_a27#logical:i000-auditor-a33-cache-parallel",
+      "read_only": true,
+      "base_revision": "e2446272a3cc904a612d7e0e5003074ef4a680ad",
+      "base_revision_reason": "Read-only cache-parallelism audit on the current merged main snapshot",
+      "worktree": "/home/drx/MIPStarRE-auto",
+      "owned_paths": [],
+      "validation_command": "read-only inspect hot-main cache locking, artifact publication, and safe opportunities for parallel analysis; no edits, builds, or network",
+      "result_envelope_path": "workflow/reviews/stage-04a-cache-parallel.md",
+      "started_at": "2026-08-31T09:18:15.914802Z",
+      "ended_at": "2026-08-31T09:22:32.845123Z",
+      "elapsed_seconds": 256.93,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/stage-04a-cache-parallel.md",
+      "requested_model": "gpt-5.6-sol",
+      "status": "archived",
+      "outcome": "cache-parallelism-audit-complete-no-change",
+      "checks": {
+        "hot_cache_tests": {
+          "passed": 28,
+          "failed": 0
+        },
+        "status_probe": "miss",
+        "dry_run_probe": "would_build",
+        "network": 0,
+        "lean_builds": 0,
+        "lake_builds": 0,
+        "builds": 0,
+        "canonical_edits": false,
+        "protocol_change_recommended": false
+      },
+      "notes": "Cache singleton, immutable publication, and private seeding support bounded parallel analysis; EXDEV and pinned mathlib retrieval remain existing blockers QPBT-018/QPBT-021.",
+      "timing_quality": "agent-reported-approximate"
+    },
+    {
+      "id": "i000-auditor-a35-cli-capacity",
+      "name": "i000-auditor-a35-cli-capacity",
+      "role": "auditor",
+      "issue_id": "QPBT-000",
+      "attempt": 35,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "external_id": "/root/qpbt022_review_a26#logical:i000-auditor-a35-cli-capacity",
+      "read_only": true,
+      "base_revision": "e2446272a3cc904a612d7e0e5003074ef4a680ad",
+      "base_revision_reason": "Read-only local Codex capacity audit on the current merged main snapshot",
+      "worktree": "/home/drx/MIPStarRE-auto",
+      "owned_paths": [],
+      "validation_command": "read-only measure collaboration and local Codex CLI concurrency limits and safe fan-out protocol; no edits, builds, or network",
+      "result_envelope_path": "workflow/reviews/stage-04a-cli-capacity.md",
+      "started_at": "2026-08-31T09:18:16.982719Z",
+      "ended_at": "2026-08-31T09:22:34.622751Z",
+      "elapsed_seconds": 257.64,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/stage-04a-cli-capacity.md",
+      "requested_model": "gpt-5.6-sol",
+      "status": "archived",
+      "outcome": "cli-capacity-audit-complete-no-change",
+      "checks": {
+        "codex_cli_version": "codex-cli 0.151.0",
+        "observed_collaboration_nodes": 4,
+        "observed_active_non_coordinator": 3,
+        "dispatch_capacity_history": [
+          3,
+          4
+        ],
+        "hidden_child_multiplier": false,
+        "network": 0,
+        "lean_builds": 0,
+        "lake_builds": 0,
+        "canonical_edits": false,
+        "protocol_change_recommended": false
+      },
+      "notes": "No CLI concurrency option or worker pool is exposed; recycle completed physical threads under fresh logical leases when INC-041 recurs.",
+      "timing_quality": "agent-reported-approximate"
+    },
+    {
+      "id": "i000-scout-a34-frontier-postmerge",
+      "name": "i000-scout-a34-frontier-postmerge",
+      "role": "scout",
+      "issue_id": "QPBT-000",
+      "attempt": 34,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "external_id": "/root/qpbt021_scout_a29#logical:i000-scout-a34-frontier-postmerge",
+      "read_only": true,
+      "base_revision": "e2446272a3cc904a612d7e0e5003074ef4a680ad",
+      "base_revision_reason": "Read-only post-merge frontier audit on the current main snapshot",
+      "worktree": "/home/drx/MIPStarRE-auto",
+      "owned_paths": [],
+      "validation_command": "read-only inspect source split, blueprint, and approved PR queue after QPBT-020 merge; identify independent next lanes and exact gates; no edits, builds, or network",
+      "result_envelope_path": "workflow/reviews/stage-04a-postmerge-frontier.md",
+      "started_at": "2026-08-31T09:18:16.447848Z",
+      "ended_at": "2026-08-31T09:22:33.737890Z",
+      "elapsed_seconds": 257.29,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/stage-04a-postmerge-frontier.md",
+      "requested_model": "gpt-5.6-sol",
+      "status": "archived",
+      "outcome": "postmerge-frontier-scout-complete",
+      "checks": {
+        "base_sha": "e2446272a3cc904a612d7e0e5003074ef4a680ad",
+        "safe_order": [
+          "LPR-001",
+          "LPR-002",
+          "LPR-004"
+        ],
+        "parallel_wave": [
+          "QPBT-013",
+          "QPBT-017"
+        ],
+        "network": 0,
+        "lean_builds": 0,
+        "lake_builds": 0,
+        "cache_builds": 0,
+        "canonical_edits": false
+      },
+      "notes": "Post-QPBT-020 queue remains dependency constrained; source and blueprint payload are still isolated in approved worktrees.",
+      "timing_quality": "agent-reported-approximate"
     }
   ]
 }

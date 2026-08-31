@@ -23,7 +23,7 @@ retained only locally.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 57 terminal sessions plus 1 retained issued attempt; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local immutable review approved; endpoint-dependent transport gate remains |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 233 total issued attempts (232 non-coordinator); 104 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; four read-only dispatch audits ran in parallel, and an orphaned issued lease was explicitly recovered |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 236 total issued attempts (235 non-coordinator); 107 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; three read-only post-merge audits ran concurrently, and an orphaned issued lease was explicitly recovered |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
@@ -760,15 +760,20 @@ ceiling.
 
 ### Current parallel dispatch snapshot
 
-At the latest coordinator checkpoint the ledger contains 233 issued attempts
-(232 non-coordinator), including 104 Stage-4A attempts. The root plus three
-worker threads are the measured four-slot collaboration ceiling. The latest
-parallel wave comprised an integration-compatibility audit, a source/blueprint
-frontier scout, a Codex-session transport scout, and an approved-PR queue scout;
-all four reports are archived. There is currently no active non-coordinator
-lease. A stale QPBT-010 endpoint reviewer lease was verified process-free and
-clean, then explicitly failed and archived under `INC-042`, releasing one
-admission slot.
+At the latest coordinator checkpoint the ledger contains 236 issued attempts
+(235 non-coordinator), including 107 Stage-4A attempts. The root plus three
+worker threads are the measured four-node collaboration ceiling. The latest
+post-merge wave admitted three independent read-only audits concurrently:
+hot-main cache behavior, source/blueprint frontier, and Codex CLI capacity.
+All three reports are archived, no protocol change was justified, and there is
+currently no active non-coordinator lease. A stale QPBT-010 endpoint reviewer
+lease was verified process-free and clean, then explicitly failed and archived
+under `INC-042`, releasing one admission slot.
+
+The post-merge evidence wave passed the full checker (187 tests in 53.704 s)
+after the three leases were archived. The cache probe remains a miss, so the
+next build still has one elected builder; additional workers would only add
+read-only analysis or review capacity, not shorten that build.
 
 The coordinator interruption at 2026-08-31 07:30 UTC terminated two earlier
 QPBT-020 workers before they could publish evidence. `INC-040` records the
@@ -796,6 +801,10 @@ in an isolated configuration before nested review execution. The probe is
 bounded and fail-closed; only mocked parser evidence exists so far, and no
 model/network child was launched by the API scouts.
 
+The cache audit confirms that the singleton builder and private seeding locks
+already permit safe bounded fan-out; the CLI audit found no exposed worker
+multiplier. The practical speed-up is therefore three independent analysis or
+review lanes around one serialized hot-main build, not competing Lake builds.
 The remaining unapproved gates are QPBT-021 (changes requested after its
 aggregate baseline timeout, `INC-038`) and QPBT-018 (draft, awaiting the
 singleton cache gate). QPBT-020's nine recorded findings are resolved by the
