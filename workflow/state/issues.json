@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 26,
+  "next_sequence": 27,
   "issues": [
     {
       "id": "QPBT-000",
@@ -408,7 +408,47 @@
         "research/metrics/incidents.jsonl#INC-002"
       ],
       "created_at": "2026-08-30T10:00:00+08:00",
-      "updated_at": "2026-08-30T18:07:28.046432Z"
+      "updated_at": "2026-08-31T21:25:06.006983Z",
+      "endpoint_review_authorization": {
+        "authorized_at": "2026-08-31T21:12:28.754578826Z",
+        "authority": "direct user instruction",
+        "user_statement": "use the gpt 5.6 sol provided by endpoint https://api.finite-dimensional.space",
+        "endpoint_origin": "https://api.finite-dimensional.space",
+        "model": "gpt-5.6-sol",
+        "wire_api": "responses",
+        "evidence_scope": {
+          "pr_id": "LPR-001",
+          "base_sha": "77aa1a4ac947c1632ea57262d29d2753ba163c8a",
+          "head_sha": "e93d949d06af2a7f4407d198a37aad315deac6aa",
+          "tree_sha": "b518e346719a7d208604ba4c0b2db2b215fb77a2",
+          "paths": [
+            "scripts/reference_transport.py",
+            "tests/test_reference_transport.py",
+            "workflow/reviews/qpbt-010-reference-transport.md"
+          ]
+        },
+        "credentials_recorded": false,
+        "rationale": "The user selected this endpoint/model for local reviewer agents in the QPBT workflow; A08 independently verified the exact immutable evidence scope and host-capable retry requirements.",
+        "execution_policy_disposition": {
+          "status": "insufficient-for-host-execution",
+          "recorded_at": "2026-08-31T21:24:44.553466886Z",
+          "reason": "Host execution policy requires explicit authorization to send the contents of the three named private repository files, not only endpoint/model selection.",
+          "required_user_scope": {
+            "endpoint_origin": "https://api.finite-dimensional.space",
+            "model": "gpt-5.6-sol",
+            "base_sha": "77aa1a4ac947c1632ea57262d29d2753ba163c8a",
+            "head_sha": "e93d949d06af2a7f4407d198a37aad315deac6aa",
+            "tree_sha": "b518e346719a7d208604ba4c0b2db2b215fb77a2",
+            "file_contents": [
+              "scripts/reference_transport.py",
+              "tests/test_reference_transport.py",
+              "workflow/reviews/qpbt-010-reference-transport.md"
+            ]
+          },
+          "endpoint_requests": 0,
+          "repository_evidence_transmitted": false
+        }
+      }
     },
     {
       "id": "QPBT-011",
@@ -1085,6 +1125,41 @@
         "proofwidgets_build_present": true,
         "matching_failure_envelopes": 0
       }
+    },
+    {
+      "id": "QPBT-026",
+      "title": "Require exact disclosure authorization before external reviewer dispatch",
+      "kind": "workflow",
+      "execution_category": "preflight",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [],
+      "labels": [
+        "workflow",
+        "security",
+        "external-review",
+        "authorization",
+        "protocol-debt"
+      ],
+      "acceptance_gates": [
+        "A canonical authorization record binds endpoint origin, model, wire API, immutable base/head/tree identity, and the exact private file paths whose contents may be transmitted while excluding credentials and unrelated contents",
+        "External reviewer dispatch refuses before lease issuance when any destination, model, revision, path, or content-scope field is absent or mismatched",
+        "Focused regressions cover endpoint/model-only authorization, revision drift, path drift, credential exclusion, and one exact-scope success case",
+        "The review protocol and changelog record the smallest-sufficient preflight change with INC-045 evidence",
+        "A fresh independent immutable reviewer approves the changed head"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-045",
+        "workflow/reviews/qpbt-010-endpoint-review-a06.md",
+        "workflow/reviews/qpbt-010-endpoint-review-a08.md",
+        "workflow/reviews/qpbt-010-endpoint-retry-a08.md",
+        "protocols/review.md"
+      ],
+      "created_at": "2026-09-01T05:30:00+08:00",
+      "updated_at": "2026-09-01T05:30:00+08:00",
+      "blocked_reason": null,
+      "unblock_condition": "Assign one orchestrator and implement the exact authorization preflight with focused regressions, changelog evidence, and a fresh independent immutable review."
     }
   ]
 }

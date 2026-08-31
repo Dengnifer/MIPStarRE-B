@@ -995,3 +995,45 @@ The repository-scoped deploy key authenticates Git transport, but the local
 GitHub CLI has no API login, so changing the server default branch and future
 GitHub issue/PR writes require owner-provided API authentication. No umbrella
 repository or sibling-track state was modified.
+
+### Stage 2/3 integrated-gate checkpoint (2026-09-01)
+
+The exact integrated snapshot `fcd1aa928ac0263f83de37143dc8dc5f4d937210`
+(tree `140075ba9f7681683ee80212b115e4b8841e2452`) now has a terminal
+combined source/blueprint acceptance report at
+`workflow/reviews/stage-02-03-postintegration-acceptance-fcd1aa9.md`. A fresh
+disposable checkout passed the pinned-source, split-manifest, materialization,
+blueprint, graph, forced-PDF, aggregate, compile, workflow-validation, and
+diff-hygiene gates. The aggregate was `312/312` in `183.638` seconds; source
+transport and source tests were `49/49` each; blueprint tests were `26/26`.
+Materialization published 39 files and 646 labels with inventory
+`04548808c30c476e9b2b7cb2f728a6d0c348a6706a8ed1bc9fb9945f20a124f4`.
+
+The first strict gate attempt stopped before publication because its runtime
+directory was outside the repository; the corrected fresh checkout used the
+ignored repository-local runtime and passed. This is retained as a runbook
+incident in the acceptance report. The three read-only audit lanes for this
+wave ran concurrently, issued under the four-worker ceiling, and took
+coordinator-observed windows of `1012.903`, `1013.134`, and `1013.409` seconds;
+their agent-reported work was `606`, `534`, and `659.198603` seconds. No
+per-session collaboration tokens were exposed, so all three token fields are
+`null` rather than estimates.
+
+The endpoint reviewer attempt remains failed before launch: the host policy
+did not accept endpoint/model selection as authorization to transmit the exact
+contents of three private files. No endpoint request, repository evidence
+transmission, or model usage occurred. This is the third occurrence of the
+same preflight class, so `INC-045` and independent follow-up issue `QPBT-026`
+were opened. The project will not route around that boundary. Stage 2 and
+Stage 3 therefore remain open pending the explicit exact-scope authorization
+and the legal leaf-first closure order recorded by A09.
+
+At the current goal checkpoint, the service reports `21,096,888` cumulative
+tokens and `54,027` seconds, without a stage allocation. The next wall-clock
+forecast assumes three safe non-coordinator lanes, one source/review lane, one
+disjoint protocol lane, and no duplicate main compilation: Stage 2 closure is
+approximately 30-60 minutes after authorization; QPBT-026 is 1-3 working days
+including independent review; the callable-contract portion of Stage 3 is
+2-5 working days; and Stage 4A remains estimated at 6-16 weeks before proof
+work, subject to QPBT-023's mathematical boundary. These are forecasts, not
+token or person-hour claims.
