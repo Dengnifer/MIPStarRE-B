@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 6,
+  "next_sequence": 15,
   "pull_requests": [
     {
       "id": "LPR-001",
@@ -3589,6 +3589,132 @@
       ],
       "requested_external_review": false,
       "unexecuted_gate": "Faithful guarded fast-forward to c0de090 plus post-integration Python gates and exactly one authenticated singleton warm/status-ready/deep-inventory result remain required."
+    },
+    {
+      "id": "LPR-014",
+      "title": "fix(cache): separate package source from Lake build output",
+      "status": "approved",
+      "issue_ids": [
+        "QPBT-024"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-024-postbuild-a01",
+      "base_sha": "38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe",
+      "head_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+      "implementer_session_ids": [
+        "i024-integrator-a04-pr014-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-024-focused-materializer-9c9b495",
+          "name": "exact-head package materializer focused tests",
+          "command": "python3 -m unittest discover -s tests -p test_lake_package_materialization.py -v",
+          "status": "passed",
+          "base_sha": "38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe",
+          "head_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+          "completed_at": "2026-08-31T16:17:36.334716Z",
+          "result_path": "workflow/reviews/qpbt-024-source-projection-a01.md"
+        },
+        {
+          "id": "check-qpbt-024-focused-hot-cache-9c9b495",
+          "name": "exact-head hot-main cache focused tests",
+          "command": "python3 -m unittest discover -s tests -p test_hot_main_cache.py -v",
+          "status": "passed",
+          "base_sha": "38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe",
+          "head_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+          "completed_at": "2026-08-31T16:17:36.334716Z",
+          "result_path": "workflow/reviews/qpbt-024-source-projection-a01.md"
+        },
+        {
+          "id": "check-qpbt-024-full-serial-9c9b495",
+          "name": "exact-head full serial unit tests",
+          "command": "python3 -m unittest discover -s tests -p test_*.py -v",
+          "status": "passed",
+          "base_sha": "38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe",
+          "head_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+          "completed_at": "2026-08-31T16:17:36.334716Z",
+          "result_path": "workflow/reviews/qpbt-024-source-projection-a01.md"
+        },
+        {
+          "id": "check-qpbt-024-workflow-checker-9c9b495",
+          "name": "exact-head aggregate workflow checker",
+          "command": "python3 scripts/check_workflow.py",
+          "status": "passed",
+          "base_sha": "38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe",
+          "head_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+          "completed_at": "2026-08-31T16:17:36.334716Z",
+          "result_path": "workflow/reviews/qpbt-024-source-projection-a01.md"
+        },
+        {
+          "id": "check-qpbt-024-compileall-9c9b495",
+          "name": "exact-head Python compile check",
+          "command": "python3 -m compileall -q scripts tests",
+          "status": "passed",
+          "base_sha": "38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe",
+          "head_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+          "completed_at": "2026-08-31T16:17:36.334716Z",
+          "result_path": "workflow/reviews/qpbt-024-source-projection-a01.md"
+        },
+        {
+          "id": "check-qpbt-024-workflow-validate-9c9b495",
+          "name": "exact-head workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe",
+          "head_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+          "completed_at": "2026-08-31T16:17:36.334716Z",
+          "result_path": "workflow/reviews/qpbt-024-source-projection-a01.md"
+        },
+        {
+          "id": "check-qpbt-024-diff-hygiene-9c9b495",
+          "name": "exact-head SHA-bound diff hygiene",
+          "command": "git diff --check 38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe..9c9b49548fabdd6b01916787d7dc17a4bca36513",
+          "status": "passed",
+          "base_sha": "38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe",
+          "head_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+          "completed_at": "2026-08-31T16:17:36.334716Z",
+          "result_path": "workflow/reviews/qpbt-024-source-projection-a01.md"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-024-pr014-a07",
+          "reviewer_session_id": "i024-reviewer-a07-pr014-immutable",
+          "verdict": "approve",
+          "base_sha": "38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe",
+          "head_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+          "started_at": "2026-08-31T16:33:06.353139Z",
+          "completed_at": "2026-08-31T16:49:57.685944Z",
+          "result_path": "workflow/reviews/qpbt-024-review-a07-pr014.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "c71a8dee299ca7437b20f1d9874d82dab2da10cfdfcd605fd3476f76ce625141",
+          "acceptance_commands": 7
+        }
+      ],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-08-31T16:23:57.076075Z",
+      "updated_at": "2026-08-31T16:54:48.751400Z",
+      "changed_paths": [
+        "scripts/materialize_lake_packages.py",
+        "tests/test_hot_main_cache.py",
+        "tests/test_lake_package_materialization.py"
+      ],
+      "motivation": "Allow the authenticated hot-main build to retain normal package-local .lake/build artifacts without weakening package-source drift detection.",
+      "description": "Keep full archive identity and both verifier gates, but compare installed package source through an exact validated .lake/build projection while the READY inventory binds all generated artifacts.",
+      "testing": "python3 -m unittest discover -s tests -p test_lake_package_materialization.py -v; python3 -m unittest discover -s tests -p test_hot_main_cache.py -v; python3 -m unittest discover -s tests -p test_*.py -v; python3 scripts/check_workflow.py; python3 -m compileall -q scripts tests; python3 scripts/workflow.py validate; git diff --check 38dc1b9be719ce6b9e3eb9b57ecabc40b9a624fe..9c9b49548fabdd6b01916787d7dc17a4bca36513",
+      "addresses": "QPBT-024",
+      "provenance_session_ids": [
+        "i024-orchestrator-a01-source-projection",
+        "i024-scout-a02-regression-matrix",
+        "i024-scout-a03-protocol-scope"
+      ],
+      "requested_external_review": false,
+      "unexecuted_gate": "Exact guarded fast-forward followed by exactly one authenticated changed-hypothesis main warm, status-ready check, and verified deep inventory remain required.",
+      "implementer_binding_rationale": "The original writer predates LPR-014 and has immutable pr_id null. A04 is the no-edit adopter and sole writable session bound to LPR-014, so it is the formal implementer_session_id; the original writer and child scouts remain provenance.",
+      "review_evidence_correction": "A05's retained no-blocker conclusion is accepted, but its no-Git-HEAD rationale is superseded by A07: the path package can resolve the enclosing project HEAD; that non-pinned revision yields a failed Reservoir request, curl -f leaves no barrel output, and Lake writes the trace only after successful download."
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 23,
+  "next_sequence": 26,
   "issues": [
     {
       "id": "QPBT-000",
@@ -159,12 +159,32 @@
         "blueprint/src/chapter/",
         "workflow/reviews/qpbt-018-plausible-drift-a15.md",
         "workflow/reviews/qpbt-018-hotcache-verify-order-a16.md",
-        "research/metrics/incidents.jsonl#INC-044"
+        "research/metrics/incidents.jsonl#INC-044",
+        "workflow/reviews/qpbt-024-postintegration-warm-failure-9b6.md",
+        "workflow/reviews/qpbt-024-sidecar-synthesis-a14.md",
+        "workflow/reviews/qpbt-024-repair-topology-a17.md",
+        "workflow/state/issues.json#QPBT-025"
       ],
       "created_at": "2026-08-30T09:31:33+08:00",
-      "updated_at": "2026-08-31T15:49:37.298941Z",
-      "blocked_reason": "The exact c0de090 authenticated warm completed all 8,992 Lean jobs but failed closed when post-build package verification hashed 169 normal plausible artifacts under .lake/build as package source; QPBT-024 owns the bounded verifier repair, and QPBT-003 remains incomplete.",
-      "unblock_condition": "Complete QPBT-003 and QPBT-024; for QPBT-024 require exact focused and aggregate gates, fresh immutable approval, physical integration, and one successful changed-hypothesis authenticated main warm with verified READY and deep inventory evidence."
+      "updated_at": "2026-08-31T18:11:24.410692Z",
+      "blocked_reason": "QPBT-003 remains incomplete. The cache acceptance path remains represented by QPBT-024, whose child QPBT-025 now owns the exact recipe-v5 proofwidgets sidecar-removal repair after the failed 9b6 warm.",
+      "unblock_condition": "Complete QPBT-003 and close QPBT-024 only after QPBT-025 receives immutable approval, guarded integration, and one successful recipe-v5 warm with verified status/READY/deep inventory; never retry 9c9b495/9b6ccb7 unchanged.",
+      "last_cache_failure_evidence": {
+        "main_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+        "cache_key": "9b6ccb722e8943a7790b94f839edca0b6bed53f720284ea2a3f6762a9fba1f36",
+        "result": "failed",
+        "stage": "post-build-package-verification",
+        "package": "proofwidgets",
+        "build_jobs": 8992,
+        "status": "miss",
+        "publication": false,
+        "report_path": "workflow/reviews/qpbt-024-postintegration-warm-failure-9b6.md",
+        "report_sha256": "91d387011912d3c202a9fee0bbbe632a00eb4f756ab32fb68ff28521312b5310",
+        "failure_json_sha256": "a97fa0f97189d1e704808d1ea5e0aa209d269d915b6c5b293b7e117f9d536c48",
+        "build_log_sha256": "ed0f4d6e2f05f52e175723aac2d69b60230b50962c706c67098d81c665e1fe45",
+        "metric_line_sha256": "9ce27db86209c0e33b0b80f79d641d72a123ef74b105970d0c37e75be7aa7689",
+        "unchanged_retry_allowed": false
+      }
     },
     {
       "id": "QPBT-005",
@@ -775,7 +795,7 @@
       "title": "Distinguish authenticated package source from Lake build output",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "ready",
+      "status": "review",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-001"
@@ -795,17 +815,108 @@
         "A fresh independent immutable reviewer approves the changed head",
         "After integration, exactly one changed-hypothesis authenticated main warm succeeds and publishes a status-ready cache with a verified deep inventory"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i024-orchestrator-a01-source-projection",
       "source_refs": [
         "workflow/reviews/qpbt-018-plausible-drift-a15.md",
         "workflow/reviews/qpbt-018-hotcache-verify-order-a16.md",
         "workflow/reviews/qpbt-018-failure-disposition-a17.md",
         "research/metrics/incidents.jsonl#INC-044",
         "workflow/reviews/qpbt-018-review-a13-pr013.md",
-        "workflow/state/prs.json#LPR-005/F-LPR005-001"
+        "workflow/state/prs.json#LPR-005/F-LPR005-001",
+        "workflow/reviews/qpbt-024-postintegration-warm-failure-9b6.md",
+        "workflow/reviews/qpbt-024-proofwidgets-sidecar-a11.md",
+        "workflow/reviews/qpbt-024-sidecar-security-a12.md",
+        "workflow/reviews/qpbt-024-protocol-evolution-a13.md",
+        "workflow/reviews/qpbt-024-sidecar-synthesis-a14.md",
+        "workflow/reviews/qpbt-024-sidecar-hooks-a15.md",
+        "workflow/reviews/qpbt-024-sidecar-tests-a16.md",
+        "workflow/reviews/qpbt-024-repair-topology-a17.md",
+        "workflow/state/issues.json#QPBT-025"
       ],
       "created_at": "2026-08-31T15:48:51.289733Z",
-      "updated_at": "2026-08-31T15:49:21.145832Z"
+      "updated_at": "2026-08-31T18:11:03.929348Z",
+      "last_cache_failure_evidence": {
+        "main_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
+        "cache_key": "9b6ccb722e8943a7790b94f839edca0b6bed53f720284ea2a3f6762a9fba1f36",
+        "result": "failed",
+        "stage": "post-build-package-verification",
+        "package": "proofwidgets",
+        "build_jobs": 8992,
+        "status": "miss",
+        "publication": false,
+        "report_path": "workflow/reviews/qpbt-024-postintegration-warm-failure-9b6.md",
+        "report_sha256": "91d387011912d3c202a9fee0bbbe632a00eb4f756ab32fb68ff28521312b5310",
+        "failure_json_sha256": "a97fa0f97189d1e704808d1ea5e0aa209d269d915b6c5b293b7e117f9d536c48",
+        "build_log_sha256": "ed0f4d6e2f05f52e175723aac2d69b60230b50962c706c67098d81c665e1fe45",
+        "metric_line_sha256": "9ce27db86209c0e33b0b80f79d641d72a123ef74b105970d0c37e75be7aa7689",
+        "unchanged_retry_allowed": false
+      },
+      "child_issue_id": "QPBT-025",
+      "blocked_reason": "LPR-014 is physically present on main but its changed-hypothesis warm failed closed at proofwidgets. QPBT-025 owns the independently adjudicated exact sidecar-removal repair.",
+      "unblock_condition": "Complete QPBT-025 through immutable LPR-015 approval, guarded integration, and exactly one successful recipe-v5 authenticated warm with status/READY/deep-inventory evidence; never retry the old 9b6 key unchanged.",
+      "sidecar_repair_decision": {
+        "adjudication_report": "workflow/reviews/qpbt-024-sidecar-synthesis-a14.md",
+        "adjudication_sha256": "bd0d1a613db912bd45e64c4db435135fba547c73c35db496a540603b6f187407",
+        "child_issue_id": "QPBT-025",
+        "design": "exact-revision validate and descriptor-relative remove",
+        "canonical_flag": "--remove-validated-generated-sidecars",
+        "recipe_version": 5,
+        "writer_paths": [
+          "scripts/materialize_lake_packages.py",
+          "scripts/hot_main_cache.py",
+          "tests/test_lake_package_materialization.py",
+          "tests/test_hot_main_cache.py"
+        ],
+        "pin_schema_change": false,
+        "protocol_revision": false,
+        "unchanged_retry_allowed": false
+      }
+    },
+    {
+      "id": "QPBT-025",
+      "title": "Remove trusted ProofWidgets hash sidecar before cache publication",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "ready",
+      "parent_id": "QPBT-024",
+      "dependency_ids": [
+        "QPBT-001"
+      ],
+      "labels": [
+        "workflow",
+        "cache",
+        "package-authentication",
+        "proofwidgets",
+        "sidecar",
+        "acceptance-blocker",
+        "safety"
+      ],
+      "acceptance_gates": [
+        "An internal exact package-and-revision contract authenticates the proofwidgets target and proves the generated sidecar absent from the pinned archive without changing the pin schema",
+        "Bare verify remains read-only, while the non-parameterized --remove-validated-generated-sidecars mode validates the exact target and sidecar through bound no-follow descriptors, removes only that entry, and then runs both unprojected source-tree comparisons",
+        "Malformed, unsafe, multiply linked, substituted, archive-owned, undeclared, sibling, nested, or wrong-revision hash paths and every other source/config/manifest drift fail closed without publishing READY",
+        "The canonical package verifier argv carries the explicit flag at both existing call sites, the recipe advances from version 4 to 5 without a new phase or recipe schema, and the cache key changes",
+        "Successful snapshots and deep-verified private seeds omit the trusted sidecar while retaining and inventory-binding valid package-local .lake/build output",
+        "The A14/A16 omission-sensitive materializer and hot-cache regression matrix, focused suites, full serial aggregate, workflow checker and validation, compile checks, and SHA-bound diff hygiene pass on one exact candidate",
+        "A fresh independent immutable reviewer approves the exact candidate head",
+        "After guarded integration, exactly one newly authorized authenticated recipe-v5 main warm succeeds, status and READY bind the manifest, and deep inventory verification passes; the failed 9b6 key is never retried unchanged"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-024-postintegration-warm-failure-9b6.md",
+        "workflow/reviews/qpbt-024-proofwidgets-sidecar-a11.md",
+        "workflow/reviews/qpbt-024-sidecar-security-a12.md",
+        "workflow/reviews/qpbt-024-protocol-evolution-a13.md",
+        "workflow/reviews/qpbt-024-sidecar-synthesis-a14.md",
+        "workflow/reviews/qpbt-024-sidecar-hooks-a15.md",
+        "workflow/reviews/qpbt-024-sidecar-tests-a16.md",
+        "workflow/reviews/qpbt-024-repair-topology-a17.md",
+        "research/metrics/incidents.jsonl#INC-044"
+      ],
+      "created_at": "2026-08-31T18:09:28.513040Z",
+      "updated_at": "2026-08-31T18:09:28.513040Z",
+      "blocked_reason": null,
+      "unblock_condition": "Implement and independently review the exact four-file recipe-v5 sidecar-removal repair, integrate it from a dedicated worktree, and complete exactly one successful changed-hypothesis warm with status/READY/deep-inventory evidence."
     }
   ]
 }
