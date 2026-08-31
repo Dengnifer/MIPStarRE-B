@@ -178,3 +178,7 @@ or review state that cannot be tied to an immutable SHA or bootstrap manifest.
 
 - Added issued-session launch leases with locked authority checks, exactly-once
   terminal envelope imports, and explicit idempotent interruption recovery.
+- Remediated the initial candidate after pre-review: governed exec and review
+  now bind complete authority, all post-claim failures terminate the lease,
+  imports and recovery are byte-idempotent under the real WorkflowStore, and
+  archive retries cannot silently invoke Codex again.

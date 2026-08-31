@@ -89,6 +89,11 @@ registered worktree, ownership claims, and read-only mode, then records
 imported once using its canonical digest; identical retries are harmless and a
 conflicting retry is rejected. Parent interruption is recovered by recording a
 failed session with an explicit reason. Recovery never invokes the child again.
+Governed `run` and `review` calls pass `--session-id` plus the complete packet
+authority; both modes use the lease. Omitting `--session-id` is retained only
+for explicitly ungoverned local experiments and does not mutate workflow state.
+Archive retries return the existing matching envelope without invoking Codex;
+conflicting archive identities fail closed.
 
 ## Session lifecycle
 

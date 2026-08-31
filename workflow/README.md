@@ -21,6 +21,9 @@ Launches of issued sessions are lease-bound: authority is checked under the
 WorkflowStore lock, the session is marked running before child invocation, and
 terminal evidence is imported exactly once. Interrupted sessions are explicitly
 failed and are never silently relaunched.
+The `run` and `review` commands accept `--session-id` to select this governed
+path. Calls without it are explicitly ungoverned compatibility operations and
+cannot update canonical session state.
 
 ## Commands
 

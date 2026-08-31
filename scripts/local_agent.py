@@ -130,19 +130,60 @@ def _session_store(workflow_root: Path) -> workflow_state.WorkflowStore:
     )
 
 
-def claim_issued_session(
-    *, session_id: str, workflow_root: Path, cwd: Path, base_revision: str | None,
-    owned_paths: Sequence[str], read_only: bool,
+def _session_transaction(
+    workflow_root: Path, session_id: str, operation: Any,
 ) -> dict[str, Any]:
-    """Atomically validate authority and transition one issued session to running."""
+    """Apply one lifecycle mutation with exact state/event rollback."""
     store = _session_store(workflow_root)
-    requested_paths = list(owned_paths)
-    def mutate(document: dict[str, Any]) -> dict[str, Any]:
-        record = next((item for item in document["issued"] if item.get("id") == session_id), None)
+    with store._lock(exclusive=True):
+        documents = store.load()
+        workflow_state.validate_documents(documents)
+        workflow_state.validate_event_log(store.events_path, documents)
+        record = next(
+            (item for item in documents["sessions.json"]["issued"] if item.get("id") == session_id),
+            None,
+        )
         if record is None:
             raise AgentError(f"unknown issued session {session_id!r}")
+        changed, event, payload = operation(record)
+        if not changed:
+            return dict(record)
+        workflow_state.validate_documents(documents)
+        sessions_path = store.state_dir / "sessions.json"
+        sessions_bytes = sessions_path.read_bytes()
+        events_existed = store.events_path.exists()
+        events_offset = store.events_path.stat().st_size if events_existed else 0
+        events_bytes = store.events_path.read_bytes() if events_existed else None
+        try:
+            workflow_state.atomic_write_json(sessions_path, documents["sessions.json"])
+            store.append_event(event, payload, lock_held=True)
+            workflow_state.validate_event_log(store.events_path, documents)
+        except Exception:
+            store._restore_dispatch_transaction(
+                sessions_path=sessions_path, sessions_bytes=sessions_bytes,
+                events_existed=events_existed, events_offset=events_offset,
+                events_bytes=events_bytes,
+            )
+            raise
+        return dict(record)
+
+
+def claim_issued_session(
+    *, session_id: str, workflow_root: Path, alias: str, cwd: Path,
+    base_revision: str | None, owned_paths: Sequence[str], read_only: bool,
+    role: str, issue_id: str, parent_session_id: str | None,
+) -> dict[str, Any]:
+    """Atomically validate authority and transition one issued session to running."""
+    requested_paths = list(owned_paths)
+    def mutate(record: dict[str, Any]) -> tuple[bool, str, dict[str, Any]]:
         if record.get("status") != "issued":
             raise AgentError(f"session {session_id!r} is not issued (status={record.get('status')!r})")
+        expected = {
+            "name": alias, "role": role, "issue_id": issue_id,
+            "parent_session_id": parent_session_id,
+        }
+        if any(record.get(key) != value for key, value in expected.items()):
+            raise AgentError("launch identity does not match issued authority")
         if Path(record["worktree"]).resolve() != cwd.resolve():
             raise AgentError("launch cwd does not match issued worktree")
         if record.get("base_revision") != base_revision:
@@ -150,63 +191,95 @@ def claim_issued_session(
         if record.get("owned_paths") != requested_paths or record.get("read_only") != read_only:
             raise AgentError("launch ownership or read-only claim does not match issued authority")
         workflow_state._transition_record("issued-session", record, "running")
-        record["started_at"] = workflow_state.utc_now()
-        return dict(record)
-    return store.mutate("sessions.json", "session.running", {"session_id": session_id}, mutate)
+        return True, "record.transitioned", {
+            "kind": "issued-session", "session_id": session_id, "status": "running"
+        }
+    return _session_transaction(workflow_root, session_id, mutate)
 
 
 def import_session_result(
     *, session_id: str, workflow_root: Path, envelope: Mapping[str, Any], outcome_path: str | None = None,
 ) -> dict[str, Any]:
     """Import a terminal envelope exactly once; identical retries are idempotent."""
-    required = {"external_id", "status", "started_at", "ended_at", "elapsed_seconds"}
+    required = {"external_id", "status", "started_at", "ended_at", "elapsed_seconds", "token_usage"}
     if not required.issubset(envelope):
         raise AgentError("session envelope is missing lifecycle fields")
     if envelope["status"] not in {"finished", "failed"}:
         raise AgentError("session envelope status must be finished or failed")
-    digest = _sha256_text(json.dumps(dict(envelope), sort_keys=True, separators=(",", ":")))
-    store = _session_store(workflow_root)
-    def mutate(document: dict[str, Any]) -> dict[str, Any]:
-        record = next((item for item in document["issued"] if item.get("id") == session_id), None)
-        if record is None:
-            raise AgentError(f"unknown issued session {session_id!r}")
+    if not isinstance(envelope["external_id"], str) or not envelope["external_id"].strip():
+        raise AgentError("terminal external_id must be non-empty")
+    elapsed = envelope["elapsed_seconds"]
+    if not isinstance(elapsed, (int, float)) or isinstance(elapsed, bool) or not math.isfinite(elapsed) or elapsed < 0:
+        raise AgentError("terminal elapsed_seconds must be finite and non-negative")
+    try:
+        start_value = dt.datetime.fromisoformat(str(envelope["started_at"]).replace("Z", "+00:00"))
+        end_value = dt.datetime.fromisoformat(str(envelope["ended_at"]).replace("Z", "+00:00"))
+    except (TypeError, ValueError) as error:
+        raise AgentError("terminal timestamps must be ISO-8601") from error
+    if start_value.tzinfo is None or end_value.tzinfo is None:
+        raise AgentError("terminal timestamps must include a timezone")
+    if end_value < start_value:
+        raise AgentError("terminal ended_at precedes started_at")
+    if not isinstance(outcome_path, str) or not outcome_path.strip():
+        raise AgentError("terminal outcome path must be non-empty")
+    token_usage = envelope["token_usage"]
+    token_errors: list[str] = []
+    workflow_state._validate_token_usage(token_usage, "token_usage", token_errors)
+    if token_errors:
+        raise AgentError("invalid terminal token usage: " + "; ".join(token_errors))
+    provenance = {"envelope": dict(envelope), "outcome_path": outcome_path}
+    digest = _sha256_text(json.dumps(provenance, sort_keys=True, separators=(",", ":")))
+    def mutate(record: dict[str, Any]) -> tuple[bool, str, dict[str, Any]]:
         prior = record.get("result_digest")
         if prior is not None:
             if prior != digest:
                 raise AgentError("conflicting terminal import for issued session")
-            return dict(record)
-        if record.get("status") not in {"running", "issued"}:
+            return False, "", {}
+        if record.get("status") != "running":
             raise AgentError("issued session is already terminal without an import digest")
-        if record.get("status") == "issued":
-            workflow_state._transition_record("issued-session", record, "running")
+        if envelope["started_at"] != record.get("started_at"):
+            raise AgentError("terminal envelope does not preserve the claimed start time")
         workflow_state._transition_record("issued-session", record, envelope["status"])
-        for field in ("external_id", "started_at", "ended_at", "elapsed_seconds"):
+        for field in ("external_id", "ended_at", "elapsed_seconds"):
             record[field] = envelope[field]
-        if "token_usage" in envelope:
-            record["token_usage"] = envelope["token_usage"]
+        record["token_usage"] = token_usage
+        record["timing_quality"] = "runtime-measured"
         record["outcome_path"] = outcome_path
         record["result_digest"] = digest
-        return dict(record)
-    return store.mutate("sessions.json", "session.result_imported", {"session_id": session_id, "digest": digest}, mutate)
+        return True, "record.transitioned", {
+            "kind": "issued-session", "session_id": session_id,
+            "status": envelope["status"], "result_digest": digest,
+        }
+    return _session_transaction(workflow_root, session_id, mutate)
 
 
 def recover_interrupted_session(*, session_id: str, workflow_root: Path, reason: str) -> dict[str, Any]:
     """Mark a claimed session failed after interruption; never relaunches it."""
     if not reason.strip():
         raise AgentError("interruption reason cannot be empty")
-    store = _session_store(workflow_root)
-    def mutate(document: dict[str, Any]) -> dict[str, Any]:
-        record = next((item for item in document["issued"] if item.get("id") == session_id), None)
-        if record is None:
-            raise AgentError(f"unknown issued session {session_id!r}")
-        if record.get("status") in {"finished", "failed", "archived"}:
-            return dict(record)
+    def mutate(record: dict[str, Any]) -> tuple[bool, str, dict[str, Any]]:
+        if record.get("recovery_digest") is not None:
+            if record.get("interruption_reason") != reason:
+                raise AgentError("conflicting interruption recovery reason")
+            return False, "", {}
+        if record.get("status") != "running":
+            raise AgentError("only a claimed running session can be recovered")
         workflow_state._transition_record("issued-session", record, "failed")
         record["interruption_reason"] = reason
         record["ended_at"] = workflow_state.utc_now()
+        started = dt.datetime.fromisoformat(record["started_at"].replace("Z", "+00:00"))
+        ended = dt.datetime.fromisoformat(record["ended_at"].replace("Z", "+00:00"))
+        record["elapsed_seconds"] = round(max(0.0, (ended - started).total_seconds()), 6)
+        record["timing_quality"] = "runtime-measured"
+        record["token_usage"] = {"input": None, "output": None, "total": None,
+                                 "availability_reason": "session interrupted before terminal import"}
         record["outcome_path"] = None
-        return dict(record)
-    return store.mutate("sessions.json", "session.interrupted", {"session_id": session_id, "reason": reason}, mutate)
+        record["recovery_digest"] = _sha256_text(reason)
+        return True, "record.transitioned", {
+            "kind": "issued-session", "session_id": session_id, "status": "failed",
+            "interruption_reason": reason, "recovery_digest": record["recovery_digest"],
+        }
+    return _session_transaction(workflow_root, session_id, mutate)
 
 
 def validate_review_transport_profile(
@@ -1842,7 +1915,7 @@ def _base_envelope(
     }
 
 
-def run_exec(
+def _run_exec_unbound(
     *,
     alias: str,
     prompt: str,
@@ -1854,10 +1927,7 @@ def run_exec(
     timeout_seconds: float | int = DEFAULT_CODEX_TIMEOUT_SECONDS,
     dry_run: bool = False,
     runner: Any = _subprocess_run,
-    session_id: str | None = None,
-    workflow_root: Path | None = None,
-    base_revision: str | None = None,
-    owned_paths: Sequence[str] = (),
+    started_at_override: str | None = None,
 ) -> dict[str, Any]:
     timeout = _validated_timeout_seconds(timeout_seconds)
     command = [
@@ -1889,17 +1959,9 @@ def run_exec(
             "timed_out": False,
         }
 
-    if session_id is not None:
-        if workflow_root is None:
-            raise AgentError("bound launch requires workflow_root")
-        claim_issued_session(
-            session_id=session_id, workflow_root=workflow_root, cwd=cwd,
-            base_revision=base_revision, owned_paths=owned_paths, read_only=False,
-        )
-
     output_dir = _prepare_output_directory(runtime_dir, alias)
     _atomic_write(output_dir / "prompt.md", prompt)
-    started_at = utc_now()
+    started_at = started_at_override or utc_now()
     started = time.monotonic()
     timeout_error: AgentProcessTimeout | None = None
     try:
@@ -1964,17 +2026,51 @@ def run_exec(
         ),
     }
     _atomic_write_json(output_dir / "result.json", envelope)
-    if session_id is not None and workflow_root is not None:
-        import_session_result(
-            session_id=session_id,
-            workflow_root=workflow_root,
-            envelope={**envelope, "token_usage": metadata.get("token_usage")},
-            outcome_path=str(output_dir / "result.json"),
-        )
     return envelope
 
 
-def run_review(
+def run_exec(
+    *, alias: str, prompt: str, cwd: Path, runtime_dir: Path,
+    model: str | None = None, sandbox: str = "workspace-write",
+    approval_policy: str = "never", timeout_seconds: float | int = DEFAULT_CODEX_TIMEOUT_SECONDS,
+    dry_run: bool = False, runner: Any = _subprocess_run,
+    session_id: str | None = None, workflow_root: Path | None = None,
+    base_revision: str | None = None, owned_paths: Sequence[str] = (),
+    role: str | None = None, issue_id: str | None = None,
+    parent_session_id: str | None = None,
+) -> dict[str, Any]:
+    """Run Codex, optionally under an issued-session lease."""
+    arguments = dict(
+        alias=alias, prompt=prompt, cwd=cwd, runtime_dir=runtime_dir, model=model,
+        sandbox=sandbox, approval_policy=approval_policy, timeout_seconds=timeout_seconds,
+        dry_run=dry_run, runner=runner,
+    )
+    if session_id is None or dry_run:
+        return _run_exec_unbound(**arguments)
+    if workflow_root is None or role is None or issue_id is None:
+        raise AgentError("bound launch requires workflow root, role, and issue authority")
+    claimed = claim_issued_session(
+        session_id=session_id, workflow_root=workflow_root, alias=alias, cwd=cwd,
+        base_revision=base_revision, owned_paths=owned_paths,
+        read_only=sandbox == "read-only",
+        role=role, issue_id=issue_id, parent_session_id=parent_session_id,
+    )
+    try:
+        envelope = _run_exec_unbound(**arguments, started_at_override=claimed["started_at"])
+        import_session_result(
+            session_id=session_id, workflow_root=workflow_root, envelope=envelope,
+            outcome_path=str(runtime_dir / "runs" / alias / "result.json"),
+        )
+        return envelope
+    except BaseException as error:
+        recover_interrupted_session(
+            session_id=session_id, workflow_root=workflow_root,
+            reason=f"post-claim launch failure: {type(error).__name__}: {error}",
+        )
+        raise
+
+
+def _run_review_unbound(
     *,
     alias: str,
     prompt: str,
@@ -2037,6 +2133,58 @@ def run_review(
         transport_profile=transport_profile,
         persistence_probe=persistence_probe,
     )
+
+
+def run_review(
+    *, alias: str, prompt: str, cwd: Path, runtime_dir: Path,
+    target_kind: str, target_value: str | None, base_sha: str | None = None,
+    head_sha: str | None = None, model: str | None = None,
+    model_provider: str | None = None, provider_name: str | None = None,
+    provider_base_url: str | None = None, wire_api: str | None = None,
+    requires_openai_auth: bool | None = None, bootstrap_snapshot_digest: str | None = None,
+    timeout_seconds: float | int = DEFAULT_CODEX_TIMEOUT_SECONDS, dry_run: bool = False,
+    runner: Any = _subprocess_run, codex_capability: Mapping[str, Any] | None = None,
+    session_id: str | None = None, workflow_root: Path | None = None,
+    owned_paths: Sequence[str] = (), issue_id: str | None = None,
+    parent_session_id: str | None = None,
+) -> dict[str, Any]:
+    arguments = dict(
+        alias=alias, prompt=prompt, cwd=cwd, runtime_dir=runtime_dir,
+        target_kind=target_kind, target_value=target_value, base_sha=base_sha,
+        head_sha=head_sha, model=model, model_provider=model_provider,
+        provider_name=provider_name, provider_base_url=provider_base_url,
+        wire_api=wire_api, requires_openai_auth=requires_openai_auth,
+        bootstrap_snapshot_digest=bootstrap_snapshot_digest,
+        timeout_seconds=timeout_seconds, dry_run=dry_run, runner=runner,
+        codex_capability=codex_capability,
+    )
+    if session_id is None or dry_run:
+        return _run_review_unbound(**arguments)
+    if workflow_root is None or issue_id is None:
+        raise AgentError("bound review requires workflow root and issue authority")
+    claimed = claim_issued_session(
+        session_id=session_id, workflow_root=workflow_root, alias=alias, cwd=cwd,
+        base_revision=base_sha, owned_paths=owned_paths, read_only=True,
+        role="reviewer", issue_id=issue_id, parent_session_id=parent_session_id,
+    )
+    try:
+        envelope = _run_review_unbound(**arguments)
+        envelope["started_at"] = claimed["started_at"]
+        outcome = envelope.get("result_path")
+        if not isinstance(outcome, str):
+            outcome = str(runtime_dir / "runs" / alias / "result.json")
+        _atomic_write_json(Path(outcome), envelope)
+        import_session_result(
+            session_id=session_id, workflow_root=workflow_root,
+            envelope=envelope, outcome_path=outcome,
+        )
+        return envelope
+    except BaseException as error:
+        recover_interrupted_session(
+            session_id=session_id, workflow_root=workflow_root,
+            reason=f"post-claim review failure: {type(error).__name__}: {error}",
+        )
+        raise
 
 
 def _run_review_after_persistence_probe(
@@ -2430,8 +2578,14 @@ def run_archive(
     safe_name = alias or f"archive-{hashlib.sha256(external_id.encode('utf-8')).hexdigest()[:16]}"
     output_dir = runtime_dir / "archives" / safe_name
     if output_dir.exists():
-        suffix = hashlib.sha256(f"{external_id}-{time.monotonic_ns()}".encode("utf-8")).hexdigest()[:8]
-        output_dir = runtime_dir / "archives" / f"{safe_name}-{suffix}"
+        result_path = output_dir / "result.json"
+        try:
+            prior = json.loads(result_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise AgentError(f"existing archive result is incomplete: {error}") from error
+        if prior.get("external_id") != external_id:
+            raise AgentError("existing archive result conflicts with external id")
+        return prior
     output_dir.mkdir(parents=True)
     started_at = utc_now()
     started = time.monotonic()
@@ -2647,8 +2801,33 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             workflow_root=repo_root,
             base_revision=arguments.base_sha,
             owned_paths=arguments.owned_path,
+            role=arguments.role,
+            issue_id=arguments.issue,
+            parent_session_id=arguments.parent_session_id,
         )
     if arguments.command == "review":
+        if arguments.session_id is not None:
+            alias, prompt, cwd = _packet_from_arguments(arguments, repo_root, reviewer=True)
+            if arguments.uncommitted:
+                target_kind, target_value = "uncommitted", None
+            elif arguments.commit:
+                target_kind, target_value = "commit", arguments.commit
+            else:
+                target_kind, target_value = "base", arguments.base or "main"
+            return run_review(
+                alias=alias, prompt=prompt, cwd=cwd, runtime_dir=runtime_dir,
+                target_kind=target_kind, target_value=target_value,
+                base_sha=arguments.base_sha, head_sha=arguments.head_sha,
+                model=arguments.model, model_provider=arguments.model_provider,
+                provider_name=arguments.provider_name,
+                provider_base_url=arguments.provider_base_url, wire_api=arguments.wire_api,
+                requires_openai_auth=arguments.provider_requires_openai_auth,
+                bootstrap_snapshot_digest=arguments.bootstrap_snapshot_digest,
+                timeout_seconds=arguments.timeout_seconds, dry_run=arguments.dry_run,
+                session_id=arguments.session_id, workflow_root=repo_root,
+                owned_paths=arguments.owned_path, issue_id=arguments.issue,
+                parent_session_id=arguments.parent_session_id,
+            )
         timeout = _validated_timeout_seconds(arguments.timeout_seconds)
         transport_profile = validate_review_transport_profile(
             model_provider=arguments.model_provider,
