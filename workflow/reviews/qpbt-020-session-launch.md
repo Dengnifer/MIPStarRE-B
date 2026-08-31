@@ -304,3 +304,21 @@ worktree revalidation are all covered by the frozen implementation and focused
 regressions. Residual risk is limited to an unavoidable filesystem-component
 replacement between checks and subsequent OS operations; the governed boundary
 fails closed when that replacement is observable.
+
+## Post-merge integration gate
+
+The coordinator integrated the complete candidate history in a clean temporary
+worktree rooted at the canonical checkpoint. The resulting merge commit is
+`4bfdd120bda296691569fc2743a94454eca9b723` (tree
+`baf5e879cc24a20b29617f8b5f862a06ecc55889`), with candidate head
+`e0bab14a1489e1b7344dfef63061f515ca0db0b2` as the second parent. The merge
+preserved all five candidate paths and did not cherry-pick a partial fixer
+range.
+
+Post-merge gates in that worktree passed: 50/50 local-agent tests, 59/59
+workflow tests, 187/187 aggregate tests, `scripts/check_workflow.py
+--skip-tests`, `compileall`, `workflow.py validate`, and `git diff --check`.
+No Lean/Lake build was run for this Python-only change. The hot-main cache
+probe for the new main SHA reported `miss`; a singleton warm/build is deferred
+until the next canonical snapshot so that state reconciliation does not create
+duplicate compilation.

@@ -2283,7 +2283,7 @@
     {
       "id": "LPR-009",
       "title": "feat(workflow): bind local launches to issued sessions",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-020"
       ],
@@ -2731,10 +2731,10 @@
           "line": 2851
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "4bfdd120bda296691569fc2743a94454eca9b723",
+      "merged_at": "2026-08-31T09:12:05.879848Z",
       "created_at": "2026-08-31T05:11:53.862342Z",
-      "updated_at": "2026-08-31T08:35:25.551495Z",
+      "updated_at": "2026-08-31T09:12:05.879848Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",

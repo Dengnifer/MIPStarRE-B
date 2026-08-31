@@ -23,7 +23,7 @@ retained only locally.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 57 terminal sessions plus 1 retained issued attempt; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local immutable review approved; endpoint-dependent transport gate remains |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 233 total issued attempts (232 non-coordinator); 104 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 is freshly approved pending clean integration; four read-only dispatch audits ran in parallel, and an orphaned issued lease was explicitly recovered |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 233 total issued attempts (232 non-coordinator); 104 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; four read-only dispatch audits ran in parallel, and an orphaned issued lease was explicitly recovered |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
@@ -799,7 +799,9 @@ model/network child was launched by the API scouts.
 The remaining unapproved gates are QPBT-021 (changes requested after its
 aggregate baseline timeout, `INC-038`) and QPBT-018 (draft, awaiting the
 singleton cache gate). QPBT-020's nine recorded findings are resolved by the
-fresh immutable approval, and QPBT-022 is merged; `INC-039` remains historical
-evidence for the repaired cache resolver. These gates remain queued for their
-explicit repair or cache prerequisites rather than being hidden by a passing
-focused suite.
+fresh immutable approval and its candidate is merged at `4bfdd120`; QPBT-022
+is also merged. The QPBT-020 post-merge Python/checker/compile/validation gates
+pass, while the hot-main cache is a miss and the full Lake build remains
+pending. `INC-039` remains historical evidence for the repaired cache resolver.
+These gates remain queued for their explicit repair or cache prerequisites
+rather than being hidden by a passing focused suite.
