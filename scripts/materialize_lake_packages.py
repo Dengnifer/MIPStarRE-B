@@ -821,6 +821,8 @@ def inspect_archive_bytes(
             raise MaterializationError("tar member count exceeds hard bound")
         if relative == ".gitmodules":
             raise MaterializationError("package may contain gitlinks; .gitmodules is forbidden")
+        if relative == ".lake/build" or relative.startswith(".lake/build/"):
+            raise MaterializationError("package archive contains generated .lake/build output")
         if kind == b"5":
             if size or link_name or mode != CANONICAL_ARCHIVE_DIRECTORY_MODE:
                 raise MaterializationError("directory metadata differs from canonical Git archive")
@@ -983,6 +985,68 @@ def compute_tree_sha(
         )
     tree = _run_git([*prefix, "write-tree"], scratch)
     return _full_sha1(tree, "computed Git tree")
+
+
+def _validate_generated_build_tree(source: Path) -> bool:
+    lake = source / ".lake"
+    try:
+        lake_mode = lake.stat(follow_symlinks=False).st_mode
+    except FileNotFoundError:
+        return False
+    if not stat.S_ISDIR(lake_mode):
+        raise MaterializationError("package .lake generated boundary is not a real directory")
+    build = lake / "build"
+    try:
+        build_mode = build.stat(follow_symlinks=False).st_mode
+    except FileNotFoundError:
+        return False
+    if not stat.S_ISDIR(build_mode):
+        raise MaterializationError("package .lake/build generated boundary is not a real directory")
+    for directory, names, files in os.walk(build, followlinks=False):
+        base = Path(directory)
+        for name in [*names, *files]:
+            path = base / name
+            metadata = path.stat(follow_symlinks=False)
+            mode = metadata.st_mode
+            if stat.S_ISLNK(mode):
+                raise MaterializationError(f"package .lake/build contains a symlink: {path}")
+            if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode)):
+                raise MaterializationError(f"package .lake/build contains a special file: {path}")
+            if stat.S_ISREG(mode) and metadata.st_nlink != 1:
+                raise MaterializationError(
+                    f"package .lake/build contains a multiply-linked regular file: {path}"
+                )
+    return True
+
+
+def compute_source_tree_sha(
+    source: Path, scratch: Path, gitlinks: Sequence[Mapping[str, str]]
+) -> str:
+    has_generated_build = _validate_generated_build_tree(source)
+    scratch.mkdir(parents=True)
+    bare = scratch / "tree.git"
+    _run_git(["init", "--bare", "--quiet", str(bare)], scratch)
+    prefix = [
+        f"--git-dir={bare}", f"--work-tree={source}",
+        "-c", "core.autocrlf=false", "-c", "core.filemode=true",
+        "-c", "core.symlinks=true",
+    ]
+    _run_git([*prefix, "add", "--all", "--force"], scratch)
+    if has_generated_build:
+        _run_git([*prefix, "rm", "-r", "--cached", "--ignore-unmatch", "--", ".lake/build"], scratch)
+    for gitlink in _gitlinks(list(gitlinks), "Git tree gitlinks"):
+        placeholder = source / gitlink["path"]
+        if placeholder.is_symlink() or not placeholder.is_dir() or any(placeholder.iterdir()):
+            raise MaterializationError(f"Gitlink placeholder is missing or nonempty: {gitlink['path']}")
+        _run_git(
+            [
+                *prefix, "update-index", "--add", "--cacheinfo",
+                gitlink["mode"], gitlink["sha"], gitlink["path"],
+            ],
+            scratch,
+        )
+    tree = _run_git([*prefix, "write-tree"], scratch)
+    return _full_sha1(tree, "computed source Git tree")
 
 
 def _materialize_archive_bytes(
@@ -1878,10 +1942,12 @@ def verify(repo_root: Path, pin_path: Path) -> dict[str, Any]:
                 if source.is_symlink() or not source.is_dir():
                     raise MaterializationError(f"materialized package is unavailable: {package['name']}")
                 _scan_tree(source)
-                archive_tree = compute_tree_sha(source, scratch_root / f"{package['name']}-archive", [])
+                archive_tree = compute_source_tree_sha(
+                    source, scratch_root / f"{package['name']}-archive", []
+                )
                 if archive_tree != package["output"]["archive_tree_sha"]:
                     raise MaterializationError(f"materialized archive tree differs for {package['name']}")
-                tree = compute_tree_sha(
+                tree = compute_source_tree_sha(
                     source, scratch_root / package["name"], package["output"]["gitlinks"]
                 )
                 if tree != package["output"]["tree_sha"]:

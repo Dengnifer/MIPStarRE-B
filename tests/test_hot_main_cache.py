@@ -228,6 +228,9 @@ def fake_success(project: Path, command: list[str] | tuple[str, ...], log_path: 
         package = project / ".lake" / "packages" / "mathlib"
         package.mkdir(parents=True, exist_ok=True)
         (package / "marker").write_text("dependency\n", encoding="utf-8")
+        generated = project / ".lake" / "packages" / "fixture" / ".lake" / "build"
+        generated.mkdir(parents=True, exist_ok=True)
+        (generated / "Fixture.olean").write_text("compiled-package\n", encoding="utf-8")
     elif list(command) == ["fake", "build"]:
         build = project / ".lake" / "build"
         build.mkdir(parents=True, exist_ok=True)
@@ -604,6 +607,13 @@ class HotMainCacheTests(unittest.TestCase):
             return fake_success(project, command, log_path)
 
         self.assertEqual("built", manager.warm(_test_command_callback=callback)["result"])
+        self.assertEqual(
+            "compiled-package\n",
+            (
+                manager.snapshot_dir
+                / ".lake/packages/fixture/.lake/build/Fixture.olean"
+            ).read_text(encoding="utf-8"),
+        )
         self.assertEqual(
             [
                 ["fake", "package-materialize"],

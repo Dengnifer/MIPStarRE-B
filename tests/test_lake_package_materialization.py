@@ -358,6 +358,117 @@ class LakePackageMaterializationTests(unittest.TestCase):
         with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
             source.verify(self.root, self.pin_path)
 
+    def test_verify_projects_only_validated_generated_build_output(self) -> None:
+        self._materialize()
+        package_root = self.root / ".lake/packages/plausible"
+        build = package_root / ".lake/build"
+        lean_output = build / "lib/lean/Plausible.olean"
+        ir_output = build / "ir/Plausible.c"
+        lean_output.parent.mkdir(parents=True)
+        ir_output.parent.mkdir(parents=True)
+        lean_output.write_bytes(b"olean")
+        ir_output.write_bytes(b"generated C")
+        lean_output.chmod(0o600)
+        self.assertEqual("verified", source.verify(self.root, self.pin_path)["status"])
+
+        source_file = package_root / "src/source.txt"
+        source_file.write_text("tampered\n")
+        with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+            source.verify(self.root, self.pin_path)
+        source_file.write_text("plausible\n")
+
+        config = package_root / "lakefile.toml"
+        config.write_text("name = \"tampered\"\n")
+        with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+            source.verify(self.root, self.pin_path)
+        config.write_text("name = \"plausible\"\n")
+
+        manifest = package_root / "lake-manifest.json"
+        manifest.write_text('{"tampered": true}\n')
+        with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+            source.verify(self.root, self.pin_path)
+        manifest.write_text("{}\n")
+
+        exact_scope_drifts = (
+            (package_root / ".lake/not-build/metadata", package_root / ".lake/not-build"),
+            (package_root / ".lake/build-sibling/output", package_root / ".lake/build-sibling"),
+            (package_root / "src/.lake/build/output", package_root / "src/.lake"),
+        )
+        for drift, cleanup in exact_scope_drifts:
+            with self.subTest(drift=drift.relative_to(package_root)):
+                drift.parent.mkdir(parents=True)
+                drift.write_text("drift\n")
+                with self.assertRaisesRegex(source.MaterializationError, "tree differs"):
+                    source.verify(self.root, self.pin_path)
+                shutil.rmtree(cleanup)
+        self.assertEqual("verified", source.verify(self.root, self.pin_path)["status"])
+
+    def test_verify_rejects_malformed_generated_build_boundaries(self) -> None:
+        self._materialize()
+        package_root = self.root / ".lake/packages/plausible"
+        lake = package_root / ".lake"
+        lake.mkdir()
+        build = lake / "build"
+        outside = Path(self.temporary.name) / "generated-outside"
+        outside.mkdir()
+
+        build.symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(source.MaterializationError, "not a real directory"):
+            source.verify(self.root, self.pin_path)
+        build.unlink()
+
+        build.write_text("not a directory\n")
+        with self.assertRaisesRegex(source.MaterializationError, "not a real directory"):
+            source.verify(self.root, self.pin_path)
+        build.unlink()
+
+        os.mkfifo(build)
+        with self.assertRaisesRegex(source.MaterializationError, "special file|not a real directory"):
+            source.verify(self.root, self.pin_path)
+        build.unlink()
+
+        build.mkdir()
+        (build / "link").symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(source.MaterializationError, "contains a symlink"):
+            source.verify(self.root, self.pin_path)
+        (build / "link").unlink()
+
+        os.mkfifo(build / "fifo")
+        with self.assertRaisesRegex(source.MaterializationError, "special file"):
+            source.verify(self.root, self.pin_path)
+        (build / "fifo").unlink()
+
+        first = build / "first"
+        first.write_text("generated\n")
+        os.link(first, build / "second")
+        with self.assertRaisesRegex(source.MaterializationError, "multiply-linked"):
+            source.verify(self.root, self.pin_path)
+        shutil.rmtree(lake)
+
+        lake.symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(source.MaterializationError, "not a real directory"):
+            source.verify(self.root, self.pin_path)
+        lake.unlink()
+
+        lake.write_text("not a directory\n")
+        with self.assertRaisesRegex(source.MaterializationError, "not a real directory"):
+            source.verify(self.root, self.pin_path)
+
+    def test_archive_generated_build_output_is_rejected(self) -> None:
+        package = copy.deepcopy(self.packages[0])
+        prefix = package["archive"]["exact_prefix"]
+        compressed, raw = make_archive(
+            package,
+            extra=[
+                (prefix + ".lake/", b"5", b"", 0o775, ""),
+                (prefix + ".lake/build/", b"5", b"", 0o775, ""),
+                (prefix + ".lake/build/output", b"0", b"generated", 0o664, ""),
+            ],
+        )
+        package["archive"]["tar_bytes"] = len(raw)
+        with self.assertRaisesRegex(source.MaterializationError, "generated .lake/build"):
+            source.inspect_archive_bytes(compressed, package)
+
     def test_manifest_semantic_tampering_fails_after_checksum_is_rebound(self) -> None:
         document = copy.deepcopy(self.root_manifest)
         document["packages"][1]["rev"] = "0" * 40
@@ -520,8 +631,15 @@ class LakePackageMaterializationTests(unittest.TestCase):
             extracted = root / "source"
             source._write_entries(extracted, entries)
             first = source.compute_tree_sha(extracted, root / "first", [gitlink])
+            generated = extracted / ".lake/build/output"
+            generated.parent.mkdir(parents=True)
+            generated.write_text("generated\n")
+            self.assertEqual(
+                first,
+                source.compute_source_tree_sha(extracted, root / "projected", [gitlink]),
+            )
             changed = dict(gitlink, sha="b" * 40)
-            second = source.compute_tree_sha(extracted, root / "second", [changed])
+            second = source.compute_source_tree_sha(extracted, root / "second", [changed])
             self.assertNotEqual(first, second)
 
         unpinned = copy.deepcopy(package)
