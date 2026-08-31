@@ -54,6 +54,16 @@ path. Cache cleanup is explicit and outside ordinary agent runs.
 
 ## Validation ladder
 
+The canonical focused Python validation command is:
+
+```text
+python3 tests/test_check_workflow.py
+```
+
+Run that exact argv when validating workflow-ledger changes. The `tests/`
+directory is intentionally not imported as a package; use a direct test path
+or unittest discovery rather than a `tests.test_*` module name.
+
 During proof work:
 
 1. Search source and Mathlib.
