@@ -21,9 +21,9 @@ retained only locally.
 | Stage | Status | Start | End | Sessions issued | Token data | Key output |
 | --- | --- | --- | --- | ---: | --- | --- |
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
-| 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 57 terminal sessions plus 1 retained issued attempt; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local immutable review approved; endpoint-dependent transport gate remains |
+| 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 60 terminal sessions plus 1 retained issued attempt; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local immutable review approved; endpoint-dependent transport gate remains |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed; QPBT-023 tracks the newly found leaf-contract gap |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 245 total issued attempts (244 non-coordinator); 116 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; approved source/blueprint ranges integrated at `65315213`; three recycled-thread audits ran concurrently on the measured ceiling |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 266 total issued attempts (265 non-coordinator); 134 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-020 merged at `4bfdd120`; approved source/blueprint ranges integrated at `65315213`; repair, cache-readiness, and contract lanes were recycled at the measured ceiling |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
@@ -760,8 +760,8 @@ ceiling.
 
 ### Current parallel dispatch snapshot
 
-At the latest coordinator checkpoint the ledger contains 245 issued attempts
-(244 non-coordinator), including 116 Stage-4A attempts. The root plus three
+At the latest coordinator checkpoint the ledger contains 266 issued attempts
+(265 non-coordinator), including 134 Stage-4A attempts. The root plus three
 worker threads are the measured four-node collaboration ceiling. The latest
 wave admitted three independent read-only audits concurrently by recycling
 completed worker threads: a QPBT-013 leaf-contract audit, a QPBT-017 cache-
@@ -832,12 +832,70 @@ The QPBT-013 audit additionally found that its leaf writer cannot be admitted
 until exact callable signatures and the self-dual-normal-basis obligation are
 recorded; the QPBT-004 audit found no repair lane and requires a fresh
 current-head review plus authenticated archive inputs before the cache gate.
-The remaining unapproved gates are QPBT-021 (changes requested after its
-aggregate baseline timeout, `INC-038`) and QPBT-018 (draft, awaiting the
-singleton cache gate). QPBT-020's nine recorded findings are resolved by the
+The remaining unapproved gates are QPBT-021 (fresh review approved after its
+rebase cleared the aggregate baseline timeout, `INC-038`, with cache/integration
+still pending) and QPBT-018 (draft, awaiting the singleton cache gate).
+QPBT-020's nine recorded findings are resolved by the
 fresh immutable approval and its candidate is merged at `4bfdd120`; QPBT-022
 is also merged. The QPBT-020 post-merge Python/checker/compile/validation gates
 pass, while the hot-main cache is a miss and the full Lake build remains
 pending. `INC-039` remains historical evidence for the repaired cache resolver.
 These gates remain queued for their explicit repair or cache prerequisites
 rather than being hidden by a passing focused suite.
+
+### Capacity-3 review wave (2026-08-31)
+
+After the QPBT-021 rebase, the coordinator archived the repair orchestrator
+and two read-only scouts, then atomically dispatched two fresh reviewers and a
+third cache-input scout. The active wave therefore uses all three available
+non-coordinator lanes concurrently: an immutable QPBT-021 review, an
+endpoint-backed QPBT-010 review, and a QPBT-018 input audit. The root remains
+the fourth collaboration node and the only canonical-state writer.
+
+The prior repaired QPBT-021 head is `63d1e9e9807412008f7174199fdcd1ca11787890`
+(tree `204ca4af35939f989c85828da97012cea8879fb9`, parent current main). Its
+42 focused tests, 299-test serial aggregate, workflow checker, compileall,
+validation, and corrected SHA-bound diff check passed before review. The
+endpoint lane uses the user-authorized `gpt-5.6-sol` profile at
+`https://api.finite-dimensional.space` and the base-target contract; it is
+separate from the cache review, so neither lane duplicates a build. The third
+scout is read-only and has no cache/build authority.
+
+This was the practical speed-up boundary for that wave: three independent analysis or
+review lanes around one serialized hot-main cache builder. More workers would
+not shorten a single Lake build and would either queue behind the singleton
+lock or violate the measured collaboration-service ceiling. Completed physical
+threads are recycled into fresh logical session IDs to avoid the service's
+completed-thread limit while preserving provenance. At the prior checkpoint the
+ledger has 259 issued attempts (258 non-coordinator); the two endpoint retries
+are recorded as blocked before transmission by host persistence and
+external-evidence policy, and the exact-base QPBT-021 review requires a replay
+onto immutable base `7669f70`. Token counts remain null with an explicit
+backend-unavailable reason.
+
+### Current capacity wave (2026-08-31)
+
+The coordinator then reused the three physical worker lanes for an exact-base
+QPBT-021 repair, two independent read-only frontier scouts, and a fresh PR
+review in succession. The repair corrected one false `37/37` changelog claim
+to the measured `42/42` result and preserved the exact five-path range at head
+`6303aab63eeed144fe176969ca7c87f5a852b967`. The cache-readiness scout and the
+QPBT-023 contract scout ran concurrently with the repair/review transitions;
+both reported no-go blockers without starting a build or network operation.
+
+The live dispatch probe recorded `active_non_coordinator: 3` and
+`available_capacity: 0` under `python3 scripts/workflow.py dispatch
+--capacity 3`, while the host exposed 128 CPUs. This separates service
+capacity from host CPU capacity: a fourth worker is not admitted, and extra
+builders would still serialize on the per-key hot-main lock. At the current
+checkpoint the ledger has 266 issued attempts (265 non-coordinator), including
+134 Stage-4A attempts; token usage remains unavailable and is recorded as
+`null`. One provisional-identity launch was cancelled and replaced with an
+exactly identified session, preserving auditable provenance rather than
+leaving an unverifiable parallel result.
+
+The fresh immutable review then approved the corrected QPBT-021 head and
+resolved the changelog-count finding. The cache key is still a miss and the
+warm/seed gate remains deferred because the authenticated runtime inputs and
+required environment are not yet available; no additional independent ready
+issue is currently admitted.

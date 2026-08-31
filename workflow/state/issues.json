@@ -672,7 +672,7 @@
       "title": "Supply a local pinned mathlib source for the hot cache",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "review",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-001"
@@ -690,14 +690,14 @@
         "Focused regressions prove missing or mismatched local mathlib input fails closed and a valid input avoids GitHub transport",
         "A fresh independent immutable reviewer approves the changed head"
       ],
-      "owner_session_id": "i021-integrator-a05-pr-bind",
+      "owner_session_id": "i021-orchestrator-a04-pr012-bind",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-036",
         "references/mathlib-lake-manifest.json",
         "workflow/reviews/qpbt-021-local-mathlib.md"
       ],
       "created_at": "2026-08-31T03:15:00Z",
-      "updated_at": "2026-08-31T06:48:00.599302Z"
+      "updated_at": "2026-08-31T11:49:14.095991Z"
     },
     {
       "id": "QPBT-022",

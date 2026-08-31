@@ -2022,13 +2022,25 @@
           "completed_at": "2026-08-31T02:15:06Z",
           "result_path": "workflow/reviews/qpbt-018-review-a02-blocked.md",
           "finding_ids": []
+        },
+        {
+          "id": "review-qpbt-018-a03-immutable",
+          "reviewer_session_id": "i018-reviewer-a03-clone-fallback",
+          "verdict": "approve",
+          "formal_pr_review": true,
+          "base_sha": "687e182c7ad41520c226a59160c084ab53ad6f38",
+          "head_sha": "e21c9cda11803f7564a500c005fd55882530538d",
+          "started_at": "2026-08-31T11:34:21.003970Z",
+          "completed_at": "2026-08-31T11:38:41.608647Z",
+          "result_path": "workflow/reviews/qpbt-018-review-a03.md",
+          "finding_ids": []
         }
       ],
       "findings": [],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T01:49:30Z",
-      "updated_at": "2026-08-31T02:47:20.939137Z",
+      "updated_at": "2026-08-31T11:39:05.293772Z",
       "changed_paths": [
         "scripts/hot_main_cache.py",
         "tests/test_hot_main_cache.py"
@@ -2752,16 +2764,17 @@
     {
       "id": "LPR-010",
       "title": "feat(cache): supply pinned local mathlib source",
-      "status": "changes_requested",
+      "status": "closed",
       "issue_ids": [
         "QPBT-021"
       ],
       "base": "main",
       "head": "issue/qpbt-021-local-mathlib-a04",
       "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
-      "head_sha": "2b161993ed258ee8f0bd99d591fcabdcb47ffe43",
+      "head_sha": "63d1e9e9807412008f7174199fdcd1ca11787890",
       "implementer_session_ids": [
-        "i021-integrator-a05-pr-bind"
+        "i021-integrator-a05-pr-bind",
+        "i021-orchestrator-a02-local-mathlib-rebase"
       ],
       "checks": [
         {
@@ -2833,6 +2846,66 @@
           "head_sha": "2b161993ed258ee8f0bd99d591fcabdcb47ffe43",
           "completed_at": "2026-08-31T05:46:00Z",
           "result_path": "workflow/reviews/qpbt-021-local-mathlib.md"
+        },
+        {
+          "id": "check-qpbt-021-focused-63d1",
+          "name": "rebased immutable-head hot-cache focused tests",
+          "command": "python3 -m unittest discover -s tests -p 'test_hot_main_cache.py' -v",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "63d1e9e9807412008f7174199fdcd1ca11787890",
+          "completed_at": "2026-08-31T11:02:00Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a02.md"
+        },
+        {
+          "id": "check-qpbt-021-aggregate-63d1",
+          "name": "rebased immutable-head aggregate tests",
+          "command": "python3 -m unittest discover -s tests -v",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "63d1e9e9807412008f7174199fdcd1ca11787890",
+          "completed_at": "2026-08-31T11:02:00Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a02.md"
+        },
+        {
+          "id": "check-qpbt-021-checker-63d1",
+          "name": "rebased workflow checker",
+          "command": "python3 scripts/check_workflow.py",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "63d1e9e9807412008f7174199fdcd1ca11787890",
+          "completed_at": "2026-08-31T11:02:00Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a02.md"
+        },
+        {
+          "id": "check-qpbt-021-compile-63d1",
+          "name": "rebased Python compileall",
+          "command": "python3 -m compileall -q scripts tests",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "63d1e9e9807412008f7174199fdcd1ca11787890",
+          "completed_at": "2026-08-31T11:02:00Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a02.md"
+        },
+        {
+          "id": "check-qpbt-021-validate-63d1",
+          "name": "rebased workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "63d1e9e9807412008f7174199fdcd1ca11787890",
+          "completed_at": "2026-08-31T11:02:00Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a02.md"
+        },
+        {
+          "id": "check-qpbt-021-diff-63d1",
+          "name": "rebased immutable diff hygiene",
+          "command": "git diff --check 7669f70be786a53ba1a0a92c1d347f5fe7544681..63d1e9e9807412008f7174199fdcd1ca11787890",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "63d1e9e9807412008f7174199fdcd1ca11787890",
+          "completed_at": "2026-08-31T11:02:00Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a02.md"
         }
       ],
       "reviews": [
@@ -2849,6 +2922,20 @@
             "F-LPR010-A06-001",
             "F-LPR010-A06-002"
           ]
+        },
+        {
+          "id": "review-qpbt-021-a07-exact-base",
+          "reviewer_session_id": "i021-reviewer-a07-cache-repair-exact-base",
+          "verdict": "request_changes",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "63d1e9e9807412008f7174199fdcd1ca11787890",
+          "started_at": "2026-08-31T11:28:00.686837Z",
+          "completed_at": "2026-08-31T11:30:28.606376Z",
+          "result_path": "workflow/reviews/qpbt-021-review-a07-cache-repair-exact-base.md",
+          "finding_ids": [
+            "F-LPR010-A07-001",
+            "F-LPR010-A07-002"
+          ]
         }
       ],
       "findings": [
@@ -2858,10 +2945,10 @@
           "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
           "head_sha": "2b161993ed258ee8f0bd99d591fcabdcb47ffe43",
           "severity": "blocker",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "The exact 299-test serial aggregate passed on immutable head 63d1e9e, including tests/test_local_agent.py:500; this review binds base 7669 and head 63d1.",
+          "resolved_by_review_id": "review-qpbt-021-a07-exact-base",
           "summary": "Required serial aggregate gate fails an unchanged process-timeout test on candidate and clean base.",
           "path": "tests/test_local_agent.py",
           "line": 500
@@ -2879,12 +2966,40 @@
           "summary": "An earlier malformed diff-check command was recorded as passed despite exit 128; corrected binding passes.",
           "path": "workflow/state/prs.json",
           "line": 1
+        },
+        {
+          "id": "F-LPR010-A07-001",
+          "introduced_review_id": "review-qpbt-021-a07-exact-base",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "63d1e9e9807412008f7174199fdcd1ca11787890",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Candidate parent is 7526e586 rather than the immutable PR base 7669f70, so the declared base-to-head range contains unrelated files and cannot establish the five-path PR scope.",
+          "path": "workflow/state/prs.json",
+          "line": 1
+        },
+        {
+          "id": "F-LPR010-A07-002",
+          "introduced_review_id": "review-qpbt-021-a07-exact-base",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "63d1e9e9807412008f7174199fdcd1ca11787890",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "The exact SHA-bound diff check for the declared base fails on unrelated historical files, so diff hygiene is not satisfied for this immutable head.",
+          "path": "workflow/reviews/stage-04a-cli-capacity.md",
+          "line": 3
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T05:45:00Z",
-      "updated_at": "2026-08-31T06:48:16.587607Z",
+      "updated_at": "2026-08-31T11:48:50.346340Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -2899,7 +3014,8 @@
       "provenance_session_ids": [
         "i021-integrator-a04-main-rebase"
       ],
-      "requested_external_review": false
+      "requested_external_review": false,
+      "closure_reason": "Superseded by LPR-012 after exact-base replay; immutable findings remain historical evidence"
     },
     {
       "id": "LPR-011",
@@ -3158,6 +3274,208 @@
         "i022-orchestrator-a01-shared-runtime"
       ],
       "requested_external_review": false
+    },
+    {
+      "id": "LPR-012",
+      "title": "feat(cache): replay pinned local mathlib source on exact base",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-021"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-021-local-mathlib-a05",
+      "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+      "head_sha": "6303aab63eeed144fe176969ca7c87f5a852b967",
+      "implementer_session_ids": [
+        "i021-orchestrator-a04-pr012-bind",
+        "i021-orchestrator-a06-changelog-count"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-021-focused-c37431",
+          "name": "exact-base hot-cache focused tests",
+          "command": "python3 -m unittest discover -s tests -p 'test_hot_main_cache.py' -v",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "c37431ec44c3d1f281a31c1a2125ace3ca590716",
+          "completed_at": "2026-08-31T11:46:24.215490Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a03.md"
+        },
+        {
+          "id": "check-qpbt-021-aggregate-c37431",
+          "name": "exact-base aggregate tests",
+          "command": "python3 -m unittest discover -s tests -v",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "c37431ec44c3d1f281a31c1a2125ace3ca590716",
+          "completed_at": "2026-08-31T11:46:24.215490Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a03.md"
+        },
+        {
+          "id": "check-qpbt-021-checker-c37431",
+          "name": "exact-base workflow checker",
+          "command": "python3 scripts/check_workflow.py",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "c37431ec44c3d1f281a31c1a2125ace3ca590716",
+          "completed_at": "2026-08-31T11:46:24.215490Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a03.md"
+        },
+        {
+          "id": "check-qpbt-021-compile-c37431",
+          "name": "exact-base Python compileall",
+          "command": "python3 -m compileall -q scripts tests",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "c37431ec44c3d1f281a31c1a2125ace3ca590716",
+          "completed_at": "2026-08-31T11:46:24.215490Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a03.md"
+        },
+        {
+          "id": "check-qpbt-021-validate-c37431",
+          "name": "exact-base workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "c37431ec44c3d1f281a31c1a2125ace3ca590716",
+          "completed_at": "2026-08-31T11:46:24.215490Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a03.md"
+        },
+        {
+          "id": "check-qpbt-021-diff-c37431",
+          "name": "exact-base diff hygiene",
+          "command": "git diff --check 7669f70be786a53ba1a0a92c1d347f5fe7544681..c37431ec44c3d1f281a31c1a2125ace3ca590716",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "c37431ec44c3d1f281a31c1a2125ace3ca590716",
+          "completed_at": "2026-08-31T11:46:24.215490Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a03.md"
+        },
+        {
+          "id": "check-qpbt-021-focused-6303aa",
+          "name": "exact-base hot-cache focused tests",
+          "command": "python3 -m unittest discover -s tests -p 'test_hot_main_cache.py' -v",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "6303aab63eeed144fe176969ca7c87f5a852b967",
+          "completed_at": "2026-08-31T12:10:11Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a06.md"
+        },
+        {
+          "id": "check-qpbt-021-aggregate-6303aa",
+          "name": "exact-base aggregate tests",
+          "command": "python3 -m unittest discover -s tests -v",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "6303aab63eeed144fe176969ca7c87f5a852b967",
+          "completed_at": "2026-08-31T12:10:11Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a06.md"
+        },
+        {
+          "id": "check-qpbt-021-checker-6303aa",
+          "name": "exact-base workflow checker",
+          "command": "python3 scripts/check_workflow.py",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "6303aab63eeed144fe176969ca7c87f5a852b967",
+          "completed_at": "2026-08-31T12:10:11Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a06.md"
+        },
+        {
+          "id": "check-qpbt-021-compile-6303aa",
+          "name": "exact-base Python compileall",
+          "command": "python3 -m compileall -q scripts tests",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "6303aab63eeed144fe176969ca7c87f5a852b967",
+          "completed_at": "2026-08-31T12:10:11Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a06.md"
+        },
+        {
+          "id": "check-qpbt-021-validate-6303aa",
+          "name": "exact-base workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "6303aab63eeed144fe176969ca7c87f5a852b967",
+          "completed_at": "2026-08-31T12:10:11Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a06.md"
+        },
+        {
+          "id": "check-qpbt-021-diff-6303aa",
+          "name": "exact-base diff hygiene",
+          "command": "git diff --check 7669f70be786a53ba1a0a92c1d347f5fe7544681..6303aab63eeed144fe176969ca7c87f5a852b967",
+          "status": "passed",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "6303aab63eeed144fe176969ca7c87f5a852b967",
+          "completed_at": "2026-08-31T12:10:11Z",
+          "result_path": "workflow/reviews/qpbt-021-repair-a06.md"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-021-a08-pr012-immutable",
+          "reviewer_session_id": "i021-reviewer-a08-pr012-immutable",
+          "verdict": "request_changes",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "c37431ec44c3d1f281a31c1a2125ace3ca590716",
+          "started_at": "2026-08-31T11:50:00.822556Z",
+          "completed_at": "2026-08-31T11:58:41.470154Z",
+          "result_path": "workflow/reviews/qpbt-021-pr012-review-a08.md",
+          "finding_ids": [
+            "F-LPR012-A08-001"
+          ]
+        },
+        {
+          "id": "review-qpbt-021-a09-pr012-immutable",
+          "reviewer_session_id": "i021-reviewer-a09-pr012-immutable",
+          "verdict": "approve",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "6303aab63eeed144fe176969ca7c87f5a852b967",
+          "started_at": "2026-08-31T12:15:31.933280Z",
+          "completed_at": "2026-08-31T12:29:31.180975Z",
+          "result_path": "workflow/reviews/qpbt-021-pr012-review-a09.md",
+          "finding_ids": []
+        }
+      ],
+      "findings": [
+        {
+          "id": "F-LPR012-A08-001",
+          "introduced_review_id": "review-qpbt-021-a08-pr012-immutable",
+          "base_sha": "7669f70be786a53ba1a0a92c1d347f5fe7544681",
+          "head_sha": "c37431ec44c3d1f281a31c1a2125ace3ca590716",
+          "severity": "blocker",
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Fresh immutable review i021-reviewer-a09-pr012-immutable verified the corrected 42/42 changelog evidence and all exact-base gates on changed head 6303aab63eeed144fe176969ca7c87f5a852b967.",
+          "resolved_by_review_id": "review-qpbt-021-a09-pr012-immutable",
+          "summary": "The changelog claims 37/37 focused hot-cache tests although the candidate defines and runs 42 tests; review evidence must state the exact 42/42 result before approval.",
+          "path": "protocols/CHANGELOG.md",
+          "line": 23
+        }
+      ],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-08-31T11:47:00Z",
+      "updated_at": "2026-08-31T12:33:07.507240Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/orchestration.md",
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "workflow/README.md"
+      ],
+      "motivation": "Preserve the QPBT-021 local Mathlib implementation as an exact-base candidate after immutable LPR-010 evidence exposed a stale parent.",
+      "description": "Replay the complete authenticated local pinned Mathlib cache implementation onto immutable base 7669 while retaining LPR-011 runtime behavior and singleton locking.",
+      "testing": "python3 -m unittest discover -s tests -p 'test_hot_main_cache.py' -v; python3 -m unittest discover -s tests -v; python3 scripts/check_workflow.py; python3 -m compileall -q scripts tests; python3 scripts/workflow.py validate; git diff --check 7669f70be786a53ba1a0a92c1d347f5fe7544681..6303aab63eeed144fe176969ca7c87f5a852b967",
+      "addresses": "QPBT-021",
+      "requested_external_review": false,
+      "supersedes_pr_id": "LPR-010",
+      "provenance_session_ids": [
+        "i021-orchestrator-a03-rebase-pr-base",
+        "i021-orchestrator-a04-pr012-bind",
+        "i021-orchestrator-a06-changelog-count"
+      ]
     }
   ]
 }
