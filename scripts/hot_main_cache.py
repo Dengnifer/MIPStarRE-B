@@ -518,6 +518,45 @@ def git_worktrees(repo_root: Path) -> list[WorktreeRecord]:
     return records
 
 
+def default_runtime_dir(repo_root: Path) -> Path:
+    """Return the runtime directory shared by all linked worktrees.
+
+    The command-line default used to be resolved beneath the checkout that
+    contained the script. Linked issue worktrees therefore received distinct
+    lock files and could rebuild one main snapshot independently. Git's
+    porcelain worktree list identifies the primary worktree (the only normal
+    worktree with a real ``.git`` directory); use that root for the omitted
+    runtime argument. Callers that supply ``--runtime-dir`` keep their explicit
+    path semantics.
+    """
+
+    resolved_root = repo_root.resolve(strict=True)
+    records = git_worktrees(resolved_root)
+    candidates: list[Path] = []
+    for record in records:
+        if record.bare:
+            continue
+        try:
+            candidate = record.path.resolve(strict=True)
+        except FileNotFoundError:
+            continue
+        metadata = candidate / ".git"
+        if metadata.is_dir() and not metadata.is_symlink():
+            candidates.append(candidate)
+    if not candidates:
+        raise CacheError(
+            "could not identify a primary Git worktree for the default runtime directory; "
+            "pass --runtime-dir explicitly"
+        )
+    # Porcelain lists the primary worktree first. Prefer the caller when it is
+    # itself primary, otherwise retain that deterministic ordering.
+    if resolved_root in candidates:
+        primary = resolved_root
+    else:
+        primary = candidates[0]
+    return primary / ".workflow-runtime"
+
+
 def git_resolved_path(repo_root: Path, argument: str) -> Path:
     command = ["git", "-C", str(repo_root), "rev-parse", argument]
     try:
@@ -1362,7 +1401,11 @@ def build_parser() -> argparse.ArgumentParser:
     default_root = Path(__file__).resolve().parents[1]
     parser.add_argument("--repo-root", default=str(default_root))
     parser.add_argument("--project-dir", default=".", help="Lake project root, relative to repository")
-    parser.add_argument("--runtime-dir", default=".workflow-runtime")
+    parser.add_argument(
+        "--runtime-dir",
+        default=None,
+        help="runtime/cache root (omitted: .workflow-runtime under the primary Git worktree)",
+    )
     parser.add_argument("--main-ref", default="main")
     parser.add_argument("--main-commit", help="full SHA override, useful for detached/offline operation")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -1382,10 +1425,15 @@ def build_parser() -> argparse.ArgumentParser:
 def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
     repo_root = Path(arguments.repo_root).resolve()
     project_dir = _resolve(repo_root, arguments.project_dir).resolve()
+    runtime_dir = (
+        default_runtime_dir(repo_root)
+        if arguments.runtime_dir is None
+        else _resolve(repo_root, arguments.runtime_dir)
+    )
     cache = HotMainCache(
         repo_root,
         project_dir,
-        _resolve(repo_root, arguments.runtime_dir),
+        runtime_dir,
         main_ref=arguments.main_ref,
         main_commit=arguments.main_commit,
     )

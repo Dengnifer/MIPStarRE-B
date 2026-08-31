@@ -1,5 +1,16 @@
 # Protocol Changelog
 
+## 0.1.6 candidate (QPBT-022) - 2026-08-31
+
+The hot-main cache now derives its omitted runtime root from the primary
+non-bare Git worktree. Linked issue worktrees consequently contend on one
+filesystem lock and cannot duplicate a build for the same cache key. An
+explicit `--runtime-dir` retains its prior absolute/relative path semantics;
+the default fails closed when a primary worktree cannot be identified. A
+two-process linked-worktree regression exercises the election and records one
+build with one waiter. Canonical revision state and independent review remain
+with QPBT-022 integration.
+
 ## 0.1.5 - 2026-08-31
 
 QPBT-019 adds a locked, capacity-aware dispatch boundary for local session

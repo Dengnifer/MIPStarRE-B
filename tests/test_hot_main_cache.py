@@ -178,6 +178,35 @@ def contention_worker(repo: str, runtime: str, counter: str) -> None:
     )
 
 
+def linked_worktree_contention_worker(worktree: str, counter: str) -> None:
+    """Warm from a linked checkout using its omitted-runtime default."""
+
+    project = Path(worktree)
+    runtime = cache_module.default_runtime_dir(project)
+    manager = cache_module.HotMainCache(
+        project,
+        project,
+        runtime,
+        _test_recipe=TEST_RECIPE,
+    )
+
+    def callback(
+        callback_project: Path,
+        command: list[str] | tuple[str, ...],
+        log_path: Path,
+    ) -> int:
+        if list(command) == ["fake", "build"]:
+            with Path(counter).open("a+", encoding="utf-8") as stream:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
+                stream.write("build\n")
+                stream.flush()
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+            time.sleep(0.25)
+        return fake_success(callback_project, command, log_path)
+
+    manager.warm(_test_command_callback=callback)
+
+
 class HotMainCacheTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
@@ -704,6 +733,82 @@ class HotMainCacheTests(unittest.TestCase):
         ]
         self.assertEqual(1, sum(item["builds"] for item in metrics))
         self.assertEqual(1, sum(item["lock_waited"] for item in metrics))
+
+    def test_linked_worktrees_share_omitted_runtime_and_builder_lock(self) -> None:
+        first = self.issue_worktree("linked-first")
+        second = self.issue_worktree("linked-second")
+        first_runtime = cache_module.default_runtime_dir(first)
+        second_runtime = cache_module.default_runtime_dir(second)
+        self.assertEqual(first_runtime, second_runtime)
+        self.assertEqual(self.repo.resolve() / ".workflow-runtime", first_runtime)
+
+        counter = self.base / "linked-build-count.txt"
+        context = multiprocessing.get_context("fork")
+        first_process = context.Process(
+            target=linked_worktree_contention_worker,
+            args=(str(first), str(counter)),
+        )
+        second_process = context.Process(
+            target=linked_worktree_contention_worker,
+            args=(str(second), str(counter)),
+        )
+        first_process.start()
+        second_process.start()
+        first_process.join(10)
+        second_process.join(10)
+        self.assertEqual(0, first_process.exitcode)
+        self.assertEqual(0, second_process.exitcode)
+        self.assertEqual(["build"], counter.read_text(encoding="utf-8").splitlines())
+        metrics = [
+            json.loads(line)
+            for line in (first_runtime / "metrics" / "hot-main.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
+        self.assertEqual(1, sum(item["builds"] for item in metrics))
+        self.assertEqual(1, sum(item["lock_waited"] for item in metrics))
+
+    def test_cli_runtime_default_and_explicit_override(self) -> None:
+        parser = cache_module.build_parser()
+        with mock.patch.object(cache_module, "HotMainCache") as constructor:
+            constructor.return_value.status.return_value = {}
+
+            cache_module.run_cli(
+                parser.parse_args(["--repo-root", str(self.repo), "status"])
+            )
+            self.assertEqual(
+                self.repo.resolve() / ".workflow-runtime",
+                constructor.call_args.args[2],
+            )
+
+            constructor.reset_mock()
+            cache_module.run_cli(
+                parser.parse_args(
+                    [
+                        "--repo-root",
+                        str(self.repo),
+                        "--runtime-dir",
+                        "custom-runtime",
+                        "status",
+                    ]
+                )
+            )
+            self.assertEqual(self.repo.resolve() / "custom-runtime", constructor.call_args.args[2])
+
+            constructor.reset_mock()
+            absolute_runtime = self.base / "absolute-runtime"
+            cache_module.run_cli(
+                parser.parse_args(
+                    [
+                        "--repo-root",
+                        str(self.repo),
+                        "--runtime-dir",
+                        str(absolute_runtime),
+                        "status",
+                    ]
+                )
+            )
+            self.assertEqual(absolute_runtime, constructor.call_args.args[2])
 
 
 if __name__ == "__main__":
