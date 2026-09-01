@@ -1109,7 +1109,7 @@ isolation issues QPBT-028/029/030 remain open, but they do not waive or reopen a
 written acceptance gate and no longer block the Lean frontier.
 
 QPBT-004 and QPBT-023 were dispatched in parallel from immutable base
-`942f9438b991ece8942815db16c019b92d9cdd8e`. QPBT-004 owns the one authorized
+`942f9438b991ece8942815db16c019b92d9cdd8e`. QPBT-004 owned the one authorized
 cache action: an exact-base singleton warm for key
 `4a5d9cf4d7de3d89c9bf7805d59f5c1739b39fd56d66b19b2454941da8873807`.
 The singleton warm completed successfully in `1039.829438` seconds, including
@@ -1120,25 +1120,35 @@ source-fidelity scout was imported and archived, after which the pinned-API
 elaboration scout received its own private seed from the same key in
 `227.927544` seconds with a cache hit and zero builds.
 
-This wave uses the measured four-session ceiling exactly: root coordinator,
-two issue orchestrators, and one nested scout. The first code-writing wave is
-already specified as two independent issue worktrees owning only
+QPBT-004 then passed its independent closure gate. A37 reconciled all three
+written gates in `1841.188722064` agent-measured seconds (`2184.485` seconds
+coordinator-measured) without changing a project byte. Fresh A38 authenticated
+the exact integrated report, pins, provenance, cache publication, seed, and
+counter disposition and approved with zero findings in `339.8932082`
+agent-measured seconds (`516.256` seconds coordinator-measured). QPBT-004 was
+closed at commit `edfd6865b2b0445458ff767d60804daba891dbd9`.
+
+The live topology continues to use the measured four-session ceiling exactly:
+root coordinator, the QPBT-023 orchestrator and its nested API scout, and a
+fresh immutable LPR-018 security reviewer in the independent Stage 2 lane. The
+first code-writing wave is specified as two independent issue worktrees owning only
 `MIPStarRE/QPBT/Basic/Field.lean` and
 `MIPStarRE/QPBT/Basic/Approximation.lean`. They will be issued together after
-QPBT-004 and QPBT-023 pass review and close. A02 found five material gaps in the
+QPBT-023 passes review and closes. A02 found five material gaps in the
 earlier callable proposal, including finite numeric distance versus indexed
 Big-O relations and missing local tensor/isometry adapters. The updated
 forecast from the 16:34 +08 checkpoint is 4-8 hours, with an 8-12 hour residual
 case if immutable review requires an API/source redesign. This is a wall-clock
 forecast, not a token or person-hour estimate.
 
-The ledger now contains 358 issued sessions including the long-lived root:
-354 terminal metrics, three active non-coordinator sessions, and the root.
-QPBT-023's API scout is active. Collaboration token usage remains
+The ledger now contains 360 issued sessions including the long-lived root:
+356 terminal metrics, three active non-coordinator sessions, and the root.
+QPBT-023's API scout and the LPR-018 reviewer are active. Collaboration token usage remains
 unavailable and is recorded as JSON `null`; no per-session estimate is made.
 Separately, QPBT-028 produced partial fail-closed candidate `7e7fe07e` and
-LPR-018 is ready for a fresh immutable security review, but that review is
-deferred behind the Lean critical lane while all worker slots are occupied.
+LPR-018 is undergoing a fresh immutable security review. That work does not
+delay the two-session QPBT-023 critical lane and performs no Lean or cache
+action.
 
 The first A03 seed attempt used a standalone detached clone and failed closed
 before copying because the cache protocol accepts only worktrees registered by
@@ -1149,3 +1159,21 @@ third-occurrence threshold for a protocol issue. A03 subsequently materialized
 the exact pinned upstream source locally from the authenticated archive because
 the cache seed intentionally carries build artifacts rather than an authored
 ignored source checkout. No network request or second build occurred.
+
+The API probes also established a proof-stage boundary before writer dispatch.
+The pinned library supports the concrete finite field, trace, normal-basis, and
+trace-dual components, but exposes no theorem giving one basis that is
+simultaneously normal and trace-self-dual for every odd extension degree. The
+minimal skeleton will therefore retain the source-faithful
+`fieldDataOfOddExponent` signature as an explicit G16-tracked `sorry`, rather
+than accept a caller-supplied witness or conflate a noncomputable choice with
+the paper's uniform deterministic algorithm. This requires amending QPBT-013's
+blanket no-`sorry` gate to permit only the declared G16 and main-theorem holes;
+both remain forbidden in the proof-complete stage. The Approximation child has
+no corresponding blocker and remains independently dispatchable.
+
+At this checkpoint the goal service reports `22,197,508` cumulative tokens and
+`62,887` seconds. It still carries the lifecycle status `blocked` from the prior
+user interruption even though this turn is actively progressing the same
+objective. Those aggregate service counters have no reliable per-stage split;
+per-session collaboration usage remains unavailable and is not estimated.
