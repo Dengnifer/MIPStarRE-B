@@ -1072,6 +1072,16 @@ class HotMainCacheTests(unittest.TestCase):
             with self.assertRaisesRegex(cache_module.CacheError, "git emitted diagnostics"):
                 cache_module.git_source_changes(self.repo)
 
+    def test_git_source_changes_does_not_execute_fsmonitor_hook(self) -> None:
+        marker = self.base / "fsmonitor-status-executed"
+        hook = self.base / "fsmonitor-status-hook"
+        hook.write_text(f"#!/bin/sh\ntouch {marker}\n", encoding="ascii")
+        hook.chmod(0o755)
+        run_git(self.repo, "config", "core.fsmonitor", str(hook))
+
+        self.assertEqual([], cache_module.git_source_changes(self.repo))
+        self.assertFalse(marker.exists())
+
     def test_full_warm_rejects_exit_zero_git_warning_without_ready(self) -> None:
         authored = self.repo / "MIPStarRE" / "QPBT"
         authored.mkdir()
