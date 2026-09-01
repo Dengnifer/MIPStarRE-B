@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 17,
+  "next_sequence": 22,
   "pull_requests": [
     {
       "id": "LPR-001",
@@ -5492,6 +5492,72 @@
         "binding_report_sha256": "829f7df2955f553d3117b359b870d1489e2868a4993a5c7608fe97c940a6c0d1",
         "validation": "28/28 blueprint tests; source/default checker; workflow/checker; diff-check passed"
       }
+    },
+    {
+      "id": "LPR-020",
+      "title": "feat(QPBT/Basic): add finite-field leaf declarations",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-031"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-031-field-a01",
+      "base_sha": "259c73a368ef7403b4e36e190c9bf940497b300f",
+      "head_sha": "f5ed1cb3e10831b0230f7c28eeef4d94d0335b88",
+      "implementer_session_ids": [],
+      "checks": [],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-01T12:00:00Z",
+      "updated_at": "2026-09-01T12:00:00Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Basic/Field.lean",
+        "workflow/reviews/qpbt-031-field-skeleton-a01.md"
+      ],
+      "motivation": "Land the F01 finite-field declarations from the frozen QPBT leaf contract.",
+      "description": "Add the finite-field boundary, trace/coordinate helpers, and multiplication-matrix theorem with only the blueprint-authorized G16 field-construction sorry.",
+      "testing": "Scoped Lean check, blueprint declaration synchronization, proof-debt scan, and diff/worktree hygiene passed; full project build remains a review gate.",
+      "addresses": "QPBT-031",
+      "provenance_session_ids": [
+        "i031-orchestrator-a01-field-skeleton"
+      ],
+      "requested_external_review": false,
+      "unexecuted_gate": "Independent local immutable review, PR binding, and guarded integration are pending."
+    },
+    {
+      "id": "LPR-021",
+      "title": "feat(QPBT/Basic): add finite POVM family boundary",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-032"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-032-approximation-a01",
+      "base_sha": "259c73a368ef7403b4e36e190c9bf940497b300f",
+      "head_sha": "00b74473b04a72b57c7c7b9ebdfd9ad7ef17a99f",
+      "implementer_session_ids": [],
+      "checks": [],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-01T12:00:01Z",
+      "updated_at": "2026-09-01T12:00:01Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "workflow/reviews/qpbt-032-approximation-skeleton-a01.md"
+      ],
+      "motivation": "Land the F03 finite POVM family boundary from the frozen QPBT leaf contract.",
+      "description": "Add measurement-family and projectivity predicates plus the delegated postprocess definition and empty-fiber theorem, preserving the paper outcome-fiber sum.",
+      "testing": "Scoped Lean check, target and full Lake build, blueprint declaration/source checks, and diff/worktree hygiene passed.",
+      "addresses": "QPBT-032",
+      "provenance_session_ids": [
+        "i032-orchestrator-a01-approximation-skeleton"
+      ],
+      "requested_external_review": false,
+      "unexecuted_gate": "Independent local immutable review, PR binding, and guarded integration are pending."
     }
   ]
 }

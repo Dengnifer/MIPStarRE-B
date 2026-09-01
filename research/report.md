@@ -29,14 +29,14 @@ availability reasons rather than receiving estimates.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 112 terminal attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | source and blueprint acceptance chain closed; LPR-018 has three confirmed findings and supplemental QPBT-028/029/030 isolation work continues off the Lean critical path |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 40 issued attempts, 39 terminal and 1 active; peak concurrency 3 | collaboration usage unavailable | source and API audits archived; expanded-scope QPBT-023 contract continuation active |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 175 terminal attempts; peak concurrency 4 | collaboration usage unavailable | QPBT-004 and the exact-base hot cache are complete; first two disjoint Lean files are queued only behind QPBT-023 |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 179 issued attempts: 177 terminal and 2 active reviewers; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean candidates are complete and under parallel immutable review |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
 
 ## Schedule estimates
 
-The snapshot below was updated at 2026-09-01 17:29 +08. Ranges are wall-clock
+The snapshot below was updated at 2026-09-01 20:10 +08. Ranges are wall-clock
 forecasts with the root coordinator plus three safe worker lanes, not token or
 person-hour estimates. The lanes are allocated to one critical-path writer,
 one fresh source/fidelity reviewer, and one independent API/cache or disjoint
@@ -48,7 +48,7 @@ hot-main build remains a singleton.
 | 1. Workflow skeleton | 15 h 53 min (complete) | 0 | Acceptance and independent review are complete. |
 | 2. Source split | 39 h 56 min | 1-3 working weeks on an independent lane | QPBT-029 must complete exact capture/projection and QPBT-030 must build and test pinned reviewer/broker isolation; the explicit supplemental-review disposition means this no longer delays Lean dispatch. |
 | 3. Lean blueprint | 37 h 44 min | 1-3 hours; 4-8 hours if review exposes a redesign | Regenerate the now-frozen 51-node contract, pass deterministic gates, and obtain two parallel immutable reviews. Source and API scouting are complete. |
-| 4A. Minimal skeleton | 37 h 44 min | first authored-file dispatch in 1-3 hours; full stage 6-16 weeks | The exact-base cache and QPBT-004 are complete. Once QPBT-023 closes, `Field.lean` and `Approximation.lean` start together in disjoint worktrees. The self-dual-normal-basis theorem dominates completion risk. |
+| 4A. Minimal skeleton | 40 h 25 min | first two candidates are in review; full stage 6-16 weeks | QPBT-023 closed, the singleton cache warm took 11 min 11 s, and `Field.lean` plus `Approximation.lean` were authored concurrently. The self-dual-normal-basis theorem remains the dominant completion risk. |
 | 4B. Complete skeleton | not started | 4-10 weeks | All 48 blueprint declarations receive reviewed signatures; tracked `sorry` is allowed but no assumptions hide proof debt. |
 | 4C. Proofs | not started | 18-48 months | External theorem boundaries are admissible where declared and the rigidity/LDT dependencies do not require foundational redevelopment. |
 | 5. Final audit | not started | 3-8 weeks | Statements remain stable and full build/declaration synchronization does not expose late source gaps. |
@@ -1189,3 +1189,37 @@ At this checkpoint the goal service reports `22,197,508` cumulative tokens and
 user interruption even though this turn is actively progressing the same
 objective. Those aggregate service counters have no reliable per-stage split;
 per-session collaboration usage remains unavailable and is not estimated.
+
+### First Lean implementation wave (2026-09-01)
+
+QPBT-023 closed before any authored Lean declaration was dispatched. Root then
+ran one authenticated current-main warm for exact snapshot
+`259c73a368ef7403b4e36e190c9bf940497b300f`. Cache key
+`d71a99abea8f7ebf5bda5194dfef088b06f526230caf5ccbca34d62d5b4267b9`
+was published after `671.374626` seconds, including `561.174118` build seconds,
+zero lock wait, and one build of 8,992 jobs. Two preliminary invocations omitted
+required local archive inputs and failed before an accepted warm; they are
+retained together as `INC-052`. No second builder was allowed.
+
+The first two writers were issued atomically and ran concurrently in disjoint
+worktrees. Their private cache seeds were hits and took `67.078540` and
+`67.092063` seconds. QPBT-031 produced the exact F01 field candidate
+`f5ed1cb3e10831b0230f7c28eeef4d94d0335b88`; the agent reported approximately
+eight minutes of authorship, while its `1757.466`-second coordinator window also
+includes dispatch and delayed result ingestion. Its scoped Lean and declaration
+checks passed, and its sole proof debt is the blueprint-authorized G16 `sorry`
+at `fieldDataOfOddExponent`. QPBT-032 produced the exact F03 measurement
+candidate `00b74473b04a72b57c7c7b9ebdfd9ad7ef17a99f`; its scoped and target checks
+passed and a private full build of all 8,992 jobs completed in `6.02` seconds.
+No proof debt or forbidden LDT import was introduced. The collaboration backend
+did not expose either writer's token usage, so both metrics record JSON `null`
+with an availability reason.
+
+Independent local reviewers were then issued together for LPR-020 and LPR-021.
+Fresh detached review worktrees authenticated the immutable two-path manifests;
+because ignored upstream sources and `.lake` artifacts are not present in a
+detached checkout, compile validation was authorized read-only against each
+corresponding clean, exact-head private seeded worktree after byte-for-byte
+manifest equality. This avoided two redundant multi-gigabyte seeds while
+preserving distinct reviewer identity, immutable candidate authority, and the
+single-builder rule.
