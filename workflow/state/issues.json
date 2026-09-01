@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 27,
+  "next_sequence": 31,
   "issues": [
     {
       "id": "QPBT-000",
@@ -1362,6 +1362,88 @@
       "updated_at": "2026-09-01T07:14:53.988178Z",
       "blocked_reason": null,
       "unblock_condition": "Assign one isolated orchestrator to implement and independently review version-2 content authorization plus OS isolation without contacting an endpoint."
+    },
+    {
+      "id": "QPBT-029",
+      "title": "Build one-time exact-content review plan and immutable projection coordinator",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "blocked",
+      "parent_id": "QPBT-028",
+      "dependency_ids": [
+        "QPBT-026",
+        "QPBT-027"
+      ],
+      "labels": [
+        "workflow",
+        "security",
+        "external-review",
+        "authorization",
+        "content-manifest",
+        "projection",
+        "protocol-debt"
+      ],
+      "acceptance_gates": [
+        "Structural version-2 authorization validation completes before any task or context content read",
+        "Repository-confined no-follow task and context capture plus direct Git-object-ID capture each read authorized bytes exactly once",
+        "Every A10 authority, request, final prompt, Git endpoint, derived patch, and manifest record byte-matches the separately authorized exact manifest",
+        "The immutable projection contains no source objects, refs, remotes, alternates, live symlinks, host paths, credentials, unrelated content, or unmanifested bytes",
+        "An immediate pre-spawn inventory and digest recheck defeats target, input, projection, prompt, and TOCTOU drift",
+        "Bound and unbound review use one coordinator with lease claim after every disclosure and isolation gate",
+        "The complete A10 channel and adversarial drift, exclusion, replay, and TOCTOU matrix passes",
+        "A fresh independent immutable security review approves the exact candidate"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-028-channel-matrix-a02.md",
+        "workflow/reviews/qpbt-026-scope-token-design-a10.md",
+        "scripts/local_agent.py",
+        "tests/test_local_agent.py",
+        "protocols/review.md"
+      ],
+      "created_at": "2026-09-01T07:31:55.784891Z",
+      "updated_at": "2026-09-01T07:32:59.430924Z",
+      "blocked_reason": "The active QPBT-028 A01 orchestrator owns the overlapping review protocol and local-agent files while producing the fail-closed v2/isolation handoff.",
+      "unblock_condition": "Finish and independently review the A01 handoff, integrate or disposition it, then assign exactly one QPBT-029 orchestrator in a new worktree."
+    },
+    {
+      "id": "QPBT-030",
+      "title": "Deploy digest-pinned Docker reviewer and single-connection credential broker",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-028",
+      "dependency_ids": [
+        "QPBT-029"
+      ],
+      "labels": [
+        "workflow",
+        "security",
+        "external-review",
+        "isolation",
+        "docker",
+        "credential-broker",
+        "infrastructure"
+      ],
+      "acceptance_gates": [
+        "Reviewer and broker images use exact authorized immutable digests with reviewed seccomp, AppArmor, launch-argv, runtime, and network identities",
+        "The credential-free reviewer sees only the sealed projection on an attested internal network and never receives the endpoint credential",
+        "The broker pins the exact endpoint origin and wire API, leases exactly one Codex transport stream, and denies descendant or second connections",
+        "A real offline Docker integration gate denies an unmanifested host sentinel, host proc and file descriptors, ambient environment and credentials, Docker socket, DNS, and direct network egress without contacting an endpoint",
+        "Missing or mismatched image, policy, network, broker lease, sentinel, projection, or capability evidence fails before command construction, lease claim, reviewer launch, or endpoint request",
+        "The exact projection manifest is rebound and rechecked immediately before isolated launch",
+        "A fresh independent immutable security review approves the mechanism and real sentinel evidence"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-028-os-isolation-a03.md",
+        "workflow/reviews/qpbt-028-channel-matrix-a02.md",
+        "protocols/review.md"
+      ],
+      "created_at": "2026-09-01T07:31:55.784891Z",
+      "updated_at": "2026-09-01T07:31:55.784891Z",
+      "blocked_reason": "The exact-content coordinator is a required dependency, and the host currently has no digest-pinned reviewer or broker images, attested internal network, or single-connection broker.",
+      "unblock_condition": "Complete QPBT-029, then assign one infrastructure orchestrator to build and independently review the pinned two-container boundary and offline sentinel gate without endpoint contact."
     }
   ]
 }
