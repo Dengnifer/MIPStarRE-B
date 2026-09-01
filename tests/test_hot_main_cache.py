@@ -777,6 +777,39 @@ class HotMainCacheTests(unittest.TestCase):
         )
         self.assertTrue(manager.is_ready(deep=True))
 
+    def test_full_warm_accepts_exact_same_stem_authored_tree(self) -> None:
+        authored = self.repo / "MIPStarRE" / "QPBT"
+        (authored / "Game").mkdir(parents=True)
+        (authored / "Game.lean").write_text(
+            "namespace QPBT\ndef game := true\nend QPBT\n",
+            encoding="utf-8",
+        )
+        (authored / "Game" / "Types.lean").write_text(
+            "namespace QPBT.Game\ndef types := true\nend QPBT.Game\n",
+            encoding="utf-8",
+        )
+        run_git(self.repo, "add", "MIPStarRE/QPBT")
+        run_git(self.repo, "commit", "-m", "add exact same-stem tree")
+        manager = self.manager(
+            runtime=self.base / "runtime-authored-same-stem",
+            recipe=PRESERVING_TEST_RECIPE,
+        )
+
+        committed = cache_module.authored_contract_facts(manager.identity.source_contract)
+        on_disk = cache_module.authored_tree_facts_on_disk(self.repo)
+        self.assertEqual(committed, on_disk)
+        self.assertEqual(2, on_disk["authored_qpbt_files"])
+        built = manager.warm(
+            _test_command_callback=fake_preserving_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        self.assertEqual("built", built["result"])
+        self.assertEqual(
+            list(cache_module.AUTHORED_QPBT_CHECK_PHASES),
+            built["authored_qpbt_verification"]["phases"],
+        )
+        self.assertTrue(manager.is_ready(deep=True))
+
     def test_canonical_recipe_v7_and_version_only_keying_are_deterministic(self) -> None:
         self.assertEqual(7, cache_module.CANONICAL_BUILD_RECIPE.version)
         self.assertEqual(
@@ -950,6 +983,68 @@ class HotMainCacheTests(unittest.TestCase):
                 self.assertTrue(target.is_symlink())
                 self.assertEqual("unchanged\n", sentinel.read_text(encoding="utf-8"))
 
+    def _assert_full_warm_rejects_directory_substitution(self, case: str) -> None:
+        authored = self.repo / "MIPStarRE" / "QPBT"
+        authored.mkdir()
+        target = authored
+        suffix = ("MIPStarRE", "QPBT")
+        if case == "nested":
+            target = authored / "Nested"
+            target.mkdir()
+            suffix = (*suffix, "Nested")
+        (target / "Owned.lean").write_text("def owned := true\n", encoding="utf-8")
+        run_git(self.repo, "add", "MIPStarRE/QPBT")
+        run_git(self.repo, "commit", "-m", f"add {case} substitution fixture")
+        manager = self.manager(
+            runtime=self.base / f"runtime-authored-substitution-{case}",
+            recipe=PRESERVING_TEST_RECIPE,
+        )
+        external = self.base / f"external-authored-substitution-{case}"
+        external.mkdir()
+        sentinel = external / "sentinel"
+        sentinel.write_text("unchanged\n", encoding="utf-8")
+        original_scandir = os.scandir
+        swapped = False
+
+        def swap_after_bind(path: os.PathLike[str] | str | int):
+            nonlocal swapped
+            current: Path | None = None
+            if isinstance(path, int):
+                try:
+                    current = Path(os.readlink(f"/proc/self/fd/{path}"))
+                except OSError:
+                    current = None
+            if (
+                not swapped
+                and current is not None
+                and tuple(current.parts[-len(suffix) :]) == suffix
+            ):
+                swapped = True
+                bound = current.with_name(f"{current.name}-bound")
+                current.rename(bound)
+                current.symlink_to(external, target_is_directory=True)
+            return original_scandir(path)
+
+        with mock.patch.object(cache_module.os, "scandir", side_effect=swap_after_bind):
+            with self.assertRaisesRegex(cache_module.CacheError, "before_materialization"):
+                manager.warm(
+                    _test_command_callback=fake_preserving_success,
+                    _test_source_verifier=fake_source_verifier,
+                )
+        self.assertTrue(swapped)
+        self.assertEqual("unchanged\n", sentinel.read_text(encoding="utf-8"))
+        self.assertFalse(manager.snapshot_dir.exists())
+        self.assertEqual([], list(manager.runtime_dir.rglob("READY")))
+        failures = list((manager.runtime_dir / "cache" / "failures").iterdir())
+        self.assertEqual(1, len(failures))
+        self.assertFalse((failures[0] / "READY").exists())
+
+    def test_full_warm_rejects_root_directory_substitution_without_ready(self) -> None:
+        self._assert_full_warm_rejects_directory_substitution("root")
+
+    def test_full_warm_rejects_nested_directory_substitution_without_ready(self) -> None:
+        self._assert_full_warm_rejects_directory_substitution("nested")
+
     def test_authored_inventory_rejects_hard_linked_file(self) -> None:
         project = self.base / "hard-link-helper" / "project"
         authored = project / "MIPStarRE" / "QPBT"
@@ -976,6 +1071,54 @@ class HotMainCacheTests(unittest.TestCase):
         with mock.patch.object(cache_module.subprocess, "run", return_value=completed):
             with self.assertRaisesRegex(cache_module.CacheError, "git emitted diagnostics"):
                 cache_module.git_source_changes(self.repo)
+
+    def test_full_warm_rejects_exit_zero_git_warning_without_ready(self) -> None:
+        authored = self.repo / "MIPStarRE" / "QPBT"
+        authored.mkdir()
+        (authored / "Owned.lean").write_text("def owned := true\n", encoding="utf-8")
+        run_git(self.repo, "add", "MIPStarRE/QPBT/Owned.lean")
+        run_git(self.repo, "commit", "-m", "add authored source")
+        manager = self.manager(
+            runtime=self.base / "runtime-authored-git-warning",
+            recipe=PRESERVING_TEST_RECIPE,
+        )
+        warning = (
+            "warning: could not open directory "
+            "'MIPStarRE/QPBT/Hidden/': Permission denied\n"
+        )
+        original_run = subprocess.run
+        injected = False
+
+        def warn_on_cleanliness(command, *args, **kwargs):
+            nonlocal injected
+            result = original_run(command, *args, **kwargs)
+            if (
+                not injected
+                and isinstance(command, (list, tuple))
+                and "status" in command
+                and "--porcelain=v1" in command
+            ):
+                injected = True
+                return subprocess.CompletedProcess(
+                    args=result.args,
+                    returncode=0,
+                    stdout=result.stdout,
+                    stderr=warning,
+                )
+            return result
+
+        with mock.patch.object(cache_module.subprocess, "run", side_effect=warn_on_cleanliness):
+            with self.assertRaisesRegex(cache_module.CacheError, "git emitted diagnostics"):
+                manager.warm(
+                    _test_command_callback=fake_preserving_success,
+                    _test_source_verifier=fake_source_verifier,
+                )
+        self.assertTrue(injected)
+        self.assertFalse(manager.snapshot_dir.exists())
+        self.assertEqual([], list(manager.runtime_dir.rglob("READY")))
+        failures = list((manager.runtime_dir / "cache" / "failures").iterdir())
+        self.assertEqual(1, len(failures))
+        self.assertFalse((failures[0] / "READY").exists())
 
     def test_full_warm_rejects_hard_linked_authored_file_without_ready(self) -> None:
         authored = self.repo / "MIPStarRE" / "QPBT"

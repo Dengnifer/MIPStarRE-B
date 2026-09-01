@@ -764,6 +764,7 @@ def authored_tree_facts_on_disk(project_dir: Path) -> dict[str, Any]:
             os.close(foundation.descriptor)
         os.close(project.descriptor)
 
+    records.sort(key=lambda item: item[0])
     digest = hashlib.sha256()
     for relative, size, file_digest in records:
         digest.update(f"{relative}\0{size}\0{file_digest}\n".encode("utf-8"))
