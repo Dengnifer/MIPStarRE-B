@@ -6014,7 +6014,7 @@
     {
       "id": "LPR-023",
       "title": "feat(blueprint): freeze QPBT-014 callable contracts",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-035"
       ],
@@ -6270,6 +6270,37 @@
           "manifest_sha256": "39edc25942ba55981a952685cf65695e3734631ac7abaa683179383603331bcd",
           "report_sha256": "aa5681300a77f661fd467dfa6fe1e9bde5b0ea4ed6fe79800d80f01e68eda013",
           "result": "A04 repaired A02-001 through A02-008; F06A faithful boundary; candidate awaits fresh immutable review"
+        },
+        {
+          "id": "check-qpbt-035-integration-a13",
+          "name": "QPBT-035 guarded blueprint integration",
+          "command": "32 blueprint tests; default/pinned/reference checks; deterministic generation twice; compileall; workflow/checker/diff; exact 16-path authentication",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "14b1363c9de8e7cd16c7c545333fcc8f7631a65c",
+          "completed_at": "2026-09-01T21:40:00.000000Z",
+          "result_path": "workflow/reviews/qpbt-035-guarded-integration-a13.md",
+          "candidate_sha": "9cd85aaf809b4cfce64f7159ce3f92929b388270",
+          "candidate_tree": "29c2275a5770332d07d0080e5389f917c36b9074",
+          "integration_tree": "50677d510bcdcfd4c066a12440803aa8627d5d6e",
+          "parent_shas": [
+            "3bb7d1e151cba5c78ac32d698bb1b764347b5fd0",
+            "9cd85aaf809b4cfce64f7159ce3f92929b388270"
+          ],
+          "path_manifest_sha256": "f46174ba7e1e9f5144399466edb4671f10320711db66c53dab33f217ad63eb80",
+          "selected_tree_manifest_sha256": "4dc09f6b5d9279e26ff5fd5dee289e26e858f5cfe93d6430ffa03392c0631da3",
+          "candidate_report_sha256": "aa5681300a77f661fd467dfa6fe1e9bde5b0ea4ed6fe79800d80f01e68eda013",
+          "review_report_sha256": "bd3ac5acd186b311da4c03e7feb00a8c58decf0aa550b2ec016ec1589041caa2",
+          "integration_report_sha256": "a5f16c8e10e69b3a0fe61034e581a41e69a59803e84c624ceb7d93f5b44e2db9",
+          "canonical_base_sha": "3bb7d1e151cba5c78ac32d698bb1b764347b5fd0",
+          "blueprint_tests": "32/32",
+          "default_pinned": "54 nodes",
+          "reference_inventory": "39 files/646 labels",
+          "generation": "idempotent twice",
+          "compileall": "passed",
+          "workflow_validate": "passed",
+          "checker": "passed",
+          "diff_check": "passed"
         }
       ],
       "reviews": [
@@ -6422,10 +6453,10 @@
           "confirmation_review_ids": []
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "14b1363c9de8e7cd16c7c545333fcc8f7631a65c",
+      "merged_at": "2026-09-01T21:46:45.404147Z",
       "created_at": "2026-09-01T13:51:43.737636Z",
-      "updated_at": "2026-09-01T19:18:19.249077Z",
+      "updated_at": "2026-09-01T21:46:45.404147Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.dot",
@@ -6448,11 +6479,12 @@
         "workflow/reviews/qpbt-035-q014-contract-a04.md",
         "workflow/reviews/qpbt-035-q014-contract-a07.md",
         "workflow/reviews/qpbt-048-executable-cl-contract-a01.md",
-        "workflow/reviews/qpbt-048-generated-sync-a03.md"
+        "workflow/reviews/qpbt-048-generated-sync-a03.md",
+        "workflow/reviews/qpbt-035-guarded-integration-a13.md"
       ],
       "motivation": "Resolve the QPBT-014 preflight blockers and freeze an elaborated, source-faithful callable surface before four independent Lean writers begin.",
       "description": "Publish exact F02/F05/F06/F07/G01 signatures, imports, writer lanes, source boundaries, and deterministic generated metadata without adding public bridge assumptions.",
-      "testing": "A04 changed head 9cd85aa: 32/32 blueprint tests, default/pinned 54-node checks, 39-file/646-label source authentication, 336/336 aggregate, workflow/checker/compile/diff gates passed; one bounded Lake probe timed out during an isolated network clone and was cleaned. Fresh immutable mathematical/API review remains required.",
+      "testing": "A13 guarded integration: 32/32 blueprint tests; default/pinned 54-node checks; 39-file/646-label reference authentication; generation byte-idempotent twice; compileall, workflow validation, checker, and diff gates passed; canonical two-parent merge 14b1363 with exact 16-path lease and explicit worker-base drift recorded.",
       "addresses": "QPBT-035",
       "provenance_session_ids": [
         "i035-orchestrator-a01-q014-contract",
@@ -6469,10 +6501,11 @@
         "i048-scout-a02-executable-cl-source",
         "i048-integrator-a03-generated-sync",
         "i048-scout-a05-runtime-api",
-        "i048-orchestrator-a04-source-fidelity-repair"
+        "i048-orchestrator-a04-source-fidelity-repair",
+        "i035-integrator-a13-guarded-integration"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Obtain a fresh independent immutable mathematical/API review of exact changed head 9cd85aaf809b4cfce64f7159ce3f92929b388270 against F-LPR023-003 through F-LPR023-005, then guarded integration with source/report preservation."
+      "unexecuted_gate": null
     },
     {
       "id": "LPR-024",
