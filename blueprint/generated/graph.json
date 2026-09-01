@@ -1230,7 +1230,7 @@
       "transitive_definitions": []
     },
     {
-      "boundary_hypotheses": "Natural m,d and the field data of F01; injectivity and linearity are proof obligations, not structure fields.",
+      "boundary_hypotheses": "Natural k,m and the concrete F01 field type only. No FieldData or chosen basis is required; interpolation, the evaluation formula, linearity, and injectivity are proved facts rather than structure fields or assumptions.",
       "chapter": "02",
       "consumers": [
         "A01-INDICATOR",
@@ -1239,18 +1239,58 @@
         "G02-GAME",
         "K03B-LOW-DEGREE-COMPLEXITY"
       ],
-      "encoding": "Polynomials use Fin m variables and a per-variable degree bound; codewords and indicators use finite function types.",
+      "encoding": "BooleanPoint m = Fin m -> ZMod 2 indexes codeword coordinates; FieldPoint k m = Fin m -> GaloisField 2 k is the evaluation domain. indicatorPolynomial y is the source product of X_i or 1-X_i factors, indicatorVector x is indexed by Boolean y, and lowDegreeEncode is a linear map into MvPolynomial.restrictDegree with bound one.",
       "fidelity": "exact",
       "gap_ids": [],
       "id": "F02-CODE",
-      "integrity": null,
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.RingTheory.MvPolynomial.Basic",
+          "MIPStarRE.QPBT.Basic.Field"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Basic/Polynomial.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "MvPolynomial.restrictDegree",
+          "MvPolynomial.eval",
+          "MvPolynomial.X",
+          "MvPolynomial.C"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F02-SIGNATURES -->",
+          "end_marker": "<!-- END F02-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a02.md",
+          "sha256": "4468d05a235d7ccaa2eb9b355da4e2687bbd2c0bb6444046ce24d276c6c8006e"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Basic/Polynomial.lean"
+        ],
+        "writer_lane": "polynomial"
+      },
+      "integrity": {
+        "lean_assumptions": "BooleanPoint m, FieldPoint k m, and the concrete GaloisField 2 k; no basis data.",
+        "lean_conclusion": "The individually degree-one polynomial subtype, the same evaluation and interpolation equations, a linear-map encoding, and injectivity derived from interpolation.",
+        "paper_assumptions": "A Boolean coordinate y in {0,1}^m, a field evaluation point x in F_q^m, and data a indexed by Boolean points.",
+        "paper_conclusion": "The indicator product, low-degree evaluation formula, Boolean interpolation g_a(y)=a_y, and linearity.",
+        "verdict": "exact"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Basic.Polynomial",
         "names": [
+          "MIPStarRE.QPBT.BooleanPoint",
+          "MIPStarRE.QPBT.FieldPoint",
           "MIPStarRE.QPBT.IndividualDegreePolynomial",
+          "MIPStarRE.QPBT.booleanPointToField",
+          "MIPStarRE.QPBT.evalIndividualDegreePolynomial",
+          "MIPStarRE.QPBT.indicatorPolynomial",
+          "MIPStarRE.QPBT.indicatorVector",
           "MIPStarRE.QPBT.lowDegreeEncode",
-          "MIPStarRE.QPBT.indicatorVector"
+          "MIPStarRE.QPBT.indicatorPolynomial_eval_boolean",
+          "MIPStarRE.QPBT.lowDegreeEncode_eval",
+          "MIPStarRE.QPBT.lowDegreeEncode_eval_boolean",
+          "MIPStarRE.QPBT.lowDegreeEncode_injective"
         ]
       },
       "prerequisites": [
@@ -1269,7 +1309,7 @@
         ],
         "path": "references/2001.04383v3/sections/dependencies/low-degree-code.tex"
       },
-      "statement": "Define individual-degree polynomials, evaluation, the linear low-degree encoding, and the one-hot indicator vector indexed by field points.",
+      "statement": "Define individual-degree polynomials, evaluation at field points, the linear low-degree encoding of data indexed by Boolean points, and the indicator vector evaluated at an arbitrary field point; prove Boolean interpolation and injectivity.",
       "status": "not-started",
       "title": "Individual-degree polynomials and indicator encoding",
       "transitive_definitions": [
@@ -1824,7 +1864,7 @@
       ]
     },
     {
-      "boundary_hypotheses": "Characteristic two and a self-dual basis where invoked. Cross-basis commutation is available only when the proved phase is one.",
+      "boundary_hypotheses": "Characteristic two only. The source's self-dual basis, EPR identities, and qudit-to-qubit conversion are confined to F10. Cross-basis commutation is available only after proving that the displayed negative trace phase is one.",
       "chapter": "02",
       "consumers": [
         "A05-EXPANDED",
@@ -1832,21 +1872,67 @@
         "F10-PAULI-BINARY",
         "G02-GAME"
       ],
-      "encoding": "Qudit registers are finite functions; phases are additive characters induced by field trace; tensor powers use finite product carriers.",
+      "encoding": "Operators are Complex matrices indexed by the concrete field; tensor registers use Fin n -> GaloisField 2 k. Phases are ZMod.stdAddChar applied to fieldTrace, and Fourier inversion uses the explicit inverse field-cardinality normalization. F05 uses the integrated raw Op/Measurement API and not the unfinished BinaryObservable surface.",
       "fidelity": "repaired-internal",
       "gap_ids": [
         "G09"
       ],
       "id": "F05-PAULI",
-      "integrity": null,
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Analysis.Fourier.FiniteAbelian.Orthogonality",
+          "Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar",
+          "MIPStarRE.QPBT.Basic.Field",
+          "MIPStarRE.QPBT.Basic.Approximation"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Basic/Pauli.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "ZMod.stdAddChar",
+          "AddChar.expect_eq_ite",
+          "MIPStarRE.QPBT.fieldTrace",
+          "MIPStarRE.Quantum.Op",
+          "MIPStarRE.Quantum.Measurement"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F05-SIGNATURES -->",
+          "end_marker": "<!-- END F05-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a02.md",
+          "sha256": "2046e1a3784f6bf10a1a7c71b279bd41d5c27ed3424e20797cf7c5bba95b4aa7"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Basic/Pauli.lean"
+        ],
+        "writer_lane": "pauli"
+      },
+      "integrity": {
+        "lean_assumptions": "Concrete GaloisField 2 k with derived finite instances and the qualified raw finite matrix/measurement API.",
+        "lean_conclusion": "The same core equations with X*Z = psi(-trace(a*b)) \u2022 (Z*X); false arbitrary cross-basis commutation is absent and F10 owns binary conversion.",
+        "paper_assumptions": "A characteristic-two finite field for core Pauli algebra; the selected basis is used only by the later binary conversion.",
+        "paper_conclusion": "Generalized Pauli matrices, product laws, projector Fourier/inversion equations, and the single/multi-register twisted phase.",
+        "verdict": "documented mismatch"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Basic.Pauli",
         "names": [
+          "MIPStarRE.QPBT.PauliBasis",
           "MIPStarRE.QPBT.pauliX",
           "MIPStarRE.QPBT.pauliZ",
+          "MIPStarRE.QPBT.pauliObservable",
           "MIPStarRE.QPBT.pauliProjector",
-          "MIPStarRE.QPBT.pauli_twistedCommutation"
+          "MIPStarRE.QPBT.pauli_mul",
+          "MIPStarRE.QPBT.pauli_sq",
+          "MIPStarRE.QPBT.pauli_twistedCommutation",
+          "MIPStarRE.QPBT.pauliObservable_eq_sum_projectors",
+          "MIPStarRE.QPBT.pauliProjector_eq_expect_observables",
+          "MIPStarRE.QPBT.fieldDotProduct",
+          "MIPStarRE.QPBT.pauliTensor",
+          "MIPStarRE.QPBT.pauliTensorProjector",
+          "MIPStarRE.QPBT.pauliTensor_twistedCommutation",
+          "MIPStarRE.QPBT.pauliTensor_eq_sum_projectors",
+          "MIPStarRE.QPBT.pauliTensorProjector_eq_expect_observables"
         ]
       },
       "prerequisites": [
@@ -1857,16 +1943,16 @@
       "source": {
         "generated_lines": [
           1,
-          214
+          110
         ],
         "label": "sec:generalized-pauli",
         "original_lines": [
           1949,
-          2162
+          2058
         ],
         "path": "references/2001.04383v3/sections/dependencies/pauli.tex"
       },
-      "statement": "Define generalized Pauli X/Z operators and projectors, Fourier inversion, EPR identities, and the exact trace-valued twisted commutation phase.",
+      "statement": "Define single- and multi-register generalized Pauli X/Z operators and projectors, their product laws and Fourier inversion, and the exact trace-valued twisted commutation phase; defer EPR and qudit-to-qubit conversion to F10.",
       "status": "paper-gap",
       "title": "Generalized Pauli and Fourier algebra",
       "transitive_definitions": [
@@ -1875,23 +1961,64 @@
       ]
     },
     {
-      "boundary_hypotheses": "All spaces and randomness are finite; efficiency claims are deferred to K03-K04.",
+      "boundary_hypotheses": "All spaces and randomness are finite. F01 FieldData is consumed only for the source downsizing equivalence and remains owned by F01. Raw Turing strings, executable sampler interfaces, and efficiency claims are deferred to K03-K04.",
       "chapter": "02",
       "consumers": [
         "F07-TYPED"
       ],
-      "encoding": "Finite vector spaces use coordinate functions and samplers return explicit finite PMFs.",
+      "encoding": "The certificate is indexed by the current coordinate register, level, and realized function. Level zero certifies only the zero map; a successor partitions the register into disjoint complementary head/tail sets, applies a supported linear head map, and selects a recursively certified tail function by an element of the head-map range. Samplers map one uniform ambient vector to an explicit pair PMF.",
       "fidelity": "exact",
       "gap_ids": [],
       "id": "F06-CL",
-      "integrity": null,
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Probability.Distributions.Uniform",
+          "MIPStarRE.QPBT.Basic.Field"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Game/Types.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "PMF.uniformOfFintype",
+          "PMF.map",
+          "MIPStarRE.QPBT.FieldData.coordinates",
+          "GaloisField.equivZmodP"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F06-SIGNATURES -->",
+          "end_marker": "<!-- END F06-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a02.md",
+          "sha256": "4ff1a12c51563b66f5671077c74b5c951905a8be7c30cae3e122a5932ab5505b"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Game/Types.lean"
+        ],
+        "writer_lane": "types"
+      },
+      "integrity": {
+        "lean_assumptions": "Concrete characteristic-two field vectors, finite coordinate registers, and the recursive certificate; F01 FieldData only at downsize.",
+        "lean_conclusion": "The same mathematical operations and normalized PMF pushforward, without claiming the paper's executable complexity layer.",
+        "paper_assumptions": "A finite coordinate field space and recursively selected complementary register subspaces; a selected basis only for downsizing.",
+        "paper_conclusion": "CL functions/distributions, level raising, direct sum, downsizing, and sampler distribution.",
+        "verdict": "faithful boundary"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Game.Types",
         "names": [
+          "MIPStarRE.QPBT.FieldVector",
+          "MIPStarRE.QPBT.restrictVector",
+          "MIPStarRE.QPBT.ConditionallyLinearCertificate",
           "MIPStarRE.QPBT.ConditionallyLinearMap",
+          "MIPStarRE.QPBT.ConditionallyLinearMap.raiseLevel",
+          "MIPStarRE.QPBT.ConditionallyLinearMap.directSum",
+          "MIPStarRE.QPBT.downsizeVector",
+          "MIPStarRE.QPBT.ConditionallyLinearMap.downsize",
           "MIPStarRE.QPBT.CLSampler",
-          "MIPStarRE.QPBT.CLSampler.sample"
+          "MIPStarRE.QPBT.CLSampler.sample",
+          "MIPStarRE.QPBT.CLSampler.directSum",
+          "MIPStarRE.QPBT.CLSampler.downsize",
+          "MIPStarRE.QPBT.CLSampler.sample_downsize"
         ]
       },
       "prerequisites": [
@@ -1910,7 +2037,7 @@
         ],
         "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex"
       },
-      "statement": "Define conditionally-linear maps, their finite distributions, direct sums, downsizing, and executable conditionally-linear samplers.",
+      "statement": "Define recursively certified conditionally-linear maps, their finite distributions, level raising, direct sums, and basis-mediated downsizing, together with mathematical conditionally-linear samplers.",
       "status": "not-started",
       "title": "Conditionally-linear maps and samplers",
       "transitive_definitions": [
@@ -1918,25 +2045,62 @@
       ]
     },
     {
-      "boundary_hypotheses": "Finite type graph and finite fibers; detyping equivalences are proved, not coerced definitionally.",
+      "boundary_hypotheses": "Finite type graph and finite dependent fibers. The mathematical typed game consumer is G02; raw-string parsing, executable detyping, and complexity are explicitly deferred to K03-K04 rather than represented by a BitVec codec here.",
       "chapter": "02",
       "consumers": [
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
         "G02-GAME"
       ],
-      "encoding": "Use dependent sums for heterogeneous carriers and a finite edge PMF including self-loops.",
+      "encoding": "TypeGraph stores a nonempty symmetric Finset of ordered endpoints: a loop occurs once and each non-loop occurs in both orientations. Its uniform PMF therefore has the paper denominator 2m-k. Typed questions use Sigma fibers, and TypedDecider is total over every type pair without erasing question or answer fibers.",
       "fidelity": "exact",
       "gap_ids": [],
       "id": "F07-TYPED",
-      "integrity": null,
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Probability.Distributions.Uniform",
+          "MIPStarRE.QPBT.Basic.Field"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Game/Types.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "PMF.uniformOfFinset",
+          "PMF.uniformOfFinset_apply",
+          "PMF.map",
+          "Sigma"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F07-SIGNATURES -->",
+          "end_marker": "<!-- END F07-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a02.md",
+          "sha256": "4244dfbf6843f9641be2813b74f83046b93d41954f620a1309a9fedb0333b523"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Game/Types.lean"
+        ],
+        "writer_lane": "types"
+      },
+      "integrity": {
+        "lean_assumptions": "A nonempty symmetric ordered-edge support, certified field-vector maps, sigma questions, and dependent answer fibers.",
+        "lean_conclusion": "A uniform ordered-edge PMF preserving loop/orientation weight, its callable type marginal, and a total dependent finite decider; raw executable encodings are deferred.",
+        "paper_assumptions": "A finite type set, an undirected graph that may contain self-loops, typed CL families, and type-indexed verifier data.",
+        "paper_conclusion": "The graph distribution and typed sampler/decider semantics.",
+        "verdict": "faithful boundary"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Game.Types",
         "names": [
           "MIPStarRE.QPBT.TypeGraph",
+          "MIPStarRE.QPBT.TypeGraph.distribution",
+          "MIPStarRE.QPBT.TypeGraph.distribution_apply",
+          "MIPStarRE.QPBT.TypedQuestion",
           "MIPStarRE.QPBT.TypedSampler",
-          "MIPStarRE.QPBT.TypedDecider"
+          "MIPStarRE.QPBT.TypedSampler.sample",
+          "MIPStarRE.QPBT.TypedSampler.sample_types",
+          "MIPStarRE.QPBT.TypedDecider",
+          "MIPStarRE.QPBT.TypedDecider.accepts"
         ]
       },
       "prerequisites": [
@@ -2120,6 +2284,29 @@
       "fidelity": "exact",
       "gap_ids": [],
       "id": "G01-PARAMETERS",
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "MIPStarRE.QPBT.Basic.Field"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Game/Parameters.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "Odd",
+          "Dvd.dvd",
+          "Nat.pow"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN G01-SIGNATURES -->",
+          "end_marker": "<!-- END G01-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a02.md",
+          "sha256": "587cb393eff88db0291303da834e483e13f44eda8c2c286e2ab48721120386cb"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Game/Parameters.lean"
+        ],
+        "writer_lane": "parameters"
+      },
       "integrity": {
         "lean_assumptions": "A project-owned Parameters value.",
         "lean_conclusion": "Parameters.Admissible is exactly the existential odd-exponent equality and Nat divisibility conjunction.",
@@ -3135,7 +3322,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "686874d7f8594af2d28c1b1866e95da7d084dc3274bf2a4cdd0811ce5c3727b0",
+  "source_sha256": "ae58a7dbc39833c0c42df3f2f016ca005f5bb8e0896a78ea9b9be526773bbd17",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",

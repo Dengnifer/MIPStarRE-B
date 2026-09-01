@@ -419,6 +419,16 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertIn(r"\BlueprintField{Owned Lean file}", rendered)
         self.assertIn(r"\BlueprintField{Signature manifest}", rendered)
 
+        self.assertEqual(
+            {"field", "approximation", "polynomial", "pauli", "types", "parameters"},
+            check.IMPLEMENTATION_WRITER_LANES,
+        )
+        for writer_lane in sorted(check.IMPLEMENTATION_WRITER_LANES):
+            with self.subTest(writer_lane=writer_lane):
+                admitted = copy.deepcopy(good)
+                admitted["nodes"][0]["implementation_contract"]["writer_lane"] = writer_lane
+                self.assertEqual([], self.errors(nodes=admitted))
+
         for field, value, phrase in (
             ("writer_lane", "unknown", "invalid implementation writer lane"),
             ("owned_file", "../Field.lean", "invalid implementation owned file"),

@@ -52,6 +52,9 @@ IMPLEMENTATION_CONTRACT_KEYS = {
     "writer_lane", "owned_file", "imports", "signature_manifest", "reused_api",
     "validation_commands", "allowed_minimal_sorries", "proof_complete_sorry_count",
 }
+IMPLEMENTATION_WRITER_LANES = {
+    "field", "approximation", "polynomial", "pauli", "types", "parameters",
+}
 SIGNATURE_MANIFEST_KEYS = {"path", "begin_marker", "end_marker", "sha256"}
 EXPECTED_TARGETS = {
     "completeness": "G03-COMPLETENESS",
@@ -171,7 +174,7 @@ def _implementation_contract_errors(node: dict[str, Any],
     if not isinstance(contract, dict) or set(contract) != IMPLEMENTATION_CONTRACT_KEYS:
         return [f"{node_id}: implementation_contract has incorrect schema"]
     errors: list[str] = []
-    if contract["writer_lane"] not in {"field", "approximation"}:
+    if contract["writer_lane"] not in IMPLEMENTATION_WRITER_LANES:
         errors.append(f"{node_id}: invalid implementation writer lane")
     owned_file = contract["owned_file"]
     if not isinstance(owned_file, str):

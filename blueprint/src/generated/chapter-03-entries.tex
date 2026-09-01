@@ -24,6 +24,13 @@
 \BlueprintField{Encoding}{Define a project-owned Parameters structure for q,m,d and Parameters.Admissible params := Exists fun k : Nat => Odd k /\textbackslash{} params.q = 2\textasciicircum{}k /\textbackslash{} Dvd.dvd params.m params.q. This is not an alias of LDT.Parameters.}
 \BlueprintField{Boundary hypotheses}{The witness k, Odd k, exact equality q=2\textasciicircum{}k, and Nat divisibility Dvd.dvd m q are explicit. Positivity and characteristic-two field data are derived rather than added as caller assumptions.}
 \BlueprintField{Status}{not-started; exact; gaps none}
+\BlueprintField{Writer lane}{parameters}
+\BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Game/Parameters.lean}}
+\BlueprintField{Exact imports}{\seqsplit{MIPStarRE.QPBT.Basic.Field}}
+\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-035-q014-contract-a02.md [587cb393eff88db0291303da834e483e13f44eda8c2c286e2ab48721120386cb]}}
+\BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Game/Parameters.lean}}
+\BlueprintField{Allowed minimal sorries}{none}
+\BlueprintField{Proof-complete sorries}{0}
 \BlueprintField{Paper assumptions}{A tuple (q,m,d).}
 \BlueprintField{Lean assumptions}{A project-owned Parameters value.}
 \BlueprintField{Paper conclusion}{Admissible means q=2\textasciicircum{}k for an odd k and m divides q.}

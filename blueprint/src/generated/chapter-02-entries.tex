@@ -26,17 +26,29 @@
 \end{BlueprintNode}
 
 \begin{BlueprintNode}{F02-CODE}{Individual-degree polynomials and indicator encoding}
-
+\begingroup\fontsize{8}{8.5}\selectfont\setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{0pt}\setlength{\partopsep}{0pt}
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/low-degree-code.tex:1-94 [original 1729-1822], label sec:ld-encoding}}
-\BlueprintField{Statement}{Define individual-degree polynomials, evaluation, the linear low-degree encoding, and the one-hot indicator vector indexed by field points.}
-\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Polynomial}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.IndividualDegreePolynomial},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.lowDegreeEncode},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.indicatorVector}}
+\BlueprintField{Statement}{Define individual-degree polynomials, evaluation at field points, the linear low-degree encoding of data indexed by Boolean points, and the indicator vector evaluated at an arbitrary field point; prove Boolean interpolation and injectivity.}
+\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Polynomial}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.BooleanPoint},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.FieldPoint},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.IndividualDegreePolynomial},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.booleanPointToField},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.evalIndividualDegreePolynomial},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.indicatorPolynomial},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.indicatorVector},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.lowDegreeEncode},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.indicatorPolynomial\_eval\_boolean},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.lowDegreeEncode\_eval},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.lowDegreeEncode\_eval\_boolean},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.lowDegreeEncode\_injective}}
 \BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD}}
 \BlueprintField{Prerequisites}{\seqsplit{F01-FIELD}}
 \BlueprintField{Consumers}{\seqsplit{A01-INDICATOR, E04-TENSOR-CODE, F09-LDT-GAME, G02-GAME, K03B-LOW-DEGREE-COMPLEXITY}}
-\BlueprintField{Encoding}{Polynomials use Fin m variables and a per-variable degree bound; codewords and indicators use finite function types.}
-\BlueprintField{Boundary hypotheses}{Natural m,d and the field data of F01; injectivity and linearity are proof obligations, not structure fields.}
+\BlueprintField{Encoding}{BooleanPoint m = Fin m -> ZMod 2 indexes codeword coordinates; FieldPoint k m = Fin m -> GaloisField 2 k is the evaluation domain. indicatorPolynomial y is the source product of X\_i or 1-X\_i factors, indicatorVector x is indexed by Boolean y, and lowDegreeEncode is a linear map into MvPolynomial.restrictDegree with bound one.}
+\BlueprintField{Boundary hypotheses}{Natural k,m and the concrete F01 field type only. No FieldData or chosen basis is required; interpolation, the evaluation formula, linearity, and injectivity are proved facts rather than structure fields or assumptions.}
 \BlueprintField{Status}{not-started; exact; gaps none}
-
+\BlueprintField{Writer lane}{polynomial}
+\BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Basic/Polynomial.lean}}
+\BlueprintField{Exact imports}{\seqsplit{Mathlib.RingTheory.MvPolynomial.Basic, MIPStarRE.QPBT.Basic.Field}}
+\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-035-q014-contract-a02.md [4468d05a235d7ccaa2eb9b355da4e2687bbd2c0bb6444046ce24d276c6c8006e]}}
+\BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Basic/Polynomial.lean}}
+\BlueprintField{Allowed minimal sorries}{none}
+\BlueprintField{Proof-complete sorries}{0}
+\BlueprintField{Paper assumptions}{A Boolean coordinate y in \{0,1\}\textasciicircum{}m, a field evaluation point x in F\_q\textasciicircum{}m, and data a indexed by Boolean points.}
+\BlueprintField{Lean assumptions}{BooleanPoint m, FieldPoint k m, and the concrete GaloisField 2 k; no basis data.}
+\BlueprintField{Paper conclusion}{The indicator product, low-degree evaluation formula, Boolean interpolation g\_a(y)=a\_y, and linearity.}
+\BlueprintField{Lean conclusion}{The individually degree-one polynomial subtype, the same evaluation and interpolation equations, a linear-map encoding, and injectivity derived from interpolation.}
+\BlueprintField{Integrity verdict}{exact}
+\endgroup
 \end{BlueprintNode}
 
 \begin{BlueprintNode}{F03-MEASUREMENT}{Finite measurements and postprocessing}
@@ -174,45 +186,81 @@
 \end{BlueprintNode}
 
 \begin{BlueprintNode}{F05-PAULI}{Generalized Pauli and Fourier algebra}
-
-\BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/pauli.tex:1-214 [original 1949-2162], label sec:generalized-pauli}}
-\BlueprintField{Statement}{Define generalized Pauli X/Z operators and projectors, Fourier inversion, EPR identities, and the exact trace-valued twisted commutation phase.}
-\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Pauli}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliX},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliZ},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliProjector},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauli\_twistedCommutation}}
+\begingroup\fontsize{8}{8.5}\selectfont\setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{0pt}\setlength{\partopsep}{0pt}
+\BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/pauli.tex:1-110 [original 1949-2058], label sec:generalized-pauli}}
+\BlueprintField{Statement}{Define single- and multi-register generalized Pauli X/Z operators and projectors, their product laws and Fourier inversion, and the exact trace-valued twisted commutation phase; defer EPR and qudit-to-qubit conversion to F10.}
+\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Pauli}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.PauliBasis},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliX},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliZ},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliObservable},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliProjector},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauli\_mul},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauli\_sq},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauli\_twistedCommutation},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliObservable\_eq\_sum\_projectors},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliProjector\_eq\_expect\_observables},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.fieldDotProduct},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliTensor},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliTensorProjector},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliTensor\_twistedCommutation},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliTensor\_eq\_sum\_projectors},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliTensorProjector\_eq\_expect\_observables}}
 \BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F03-MEASUREMENT}}
 \BlueprintField{Prerequisites}{\seqsplit{F01-FIELD, F03-MEASUREMENT}}
 \BlueprintField{Consumers}{\seqsplit{A05-EXPANDED, A13-EXACT-PAULI, F10-PAULI-BINARY, G02-GAME}}
-\BlueprintField{Encoding}{Qudit registers are finite functions; phases are additive characters induced by field trace; tensor powers use finite product carriers.}
-\BlueprintField{Boundary hypotheses}{Characteristic two and a self-dual basis where invoked. Cross-basis commutation is available only when the proved phase is one.}
+\BlueprintField{Encoding}{Operators are Complex matrices indexed by the concrete field; tensor registers use Fin n -> GaloisField 2 k. Phases are ZMod.stdAddChar applied to fieldTrace, and Fourier inversion uses the explicit inverse field-cardinality normalization. F05 uses the integrated raw Op/Measurement API and not the unfinished BinaryObservable surface.}
+\BlueprintField{Boundary hypotheses}{Characteristic two only. The source's self-dual basis, EPR identities, and qudit-to-qubit conversion are confined to F10. Cross-basis commutation is available only after proving that the displayed negative trace phase is one.}
 \BlueprintField{Status}{paper-gap; repaired-internal; gaps G09}
-
+\BlueprintField{Writer lane}{pauli}
+\BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Basic/Pauli.lean}}
+\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Fourier.FiniteAbelian.Orthogonality, Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar, MIPStarRE.QPBT.Basic.Field, MIPStarRE.QPBT.Basic.Approximation}}
+\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-035-q014-contract-a02.md [2046e1a3784f6bf10a1a7c71b279bd41d5c27ed3424e20797cf7c5bba95b4aa7]}}
+\BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Basic/Pauli.lean}}
+\BlueprintField{Allowed minimal sorries}{none}
+\BlueprintField{Proof-complete sorries}{0}
+\BlueprintField{Paper assumptions}{A characteristic-two finite field for core Pauli algebra; the selected basis is used only by the later binary conversion.}
+\BlueprintField{Lean assumptions}{Concrete GaloisField 2 k with derived finite instances and the qualified raw finite matrix/measurement API.}
+\BlueprintField{Paper conclusion}{Generalized Pauli matrices, product laws, projector Fourier/inversion equations, and the single/multi-register twisted phase.}
+\BlueprintField{Lean conclusion}{The same core equations with X*Z = psi(-trace(a*b)) • (Z*X); false arbitrary cross-basis commutation is absent and F10 owns binary conversion.}
+\BlueprintField{Integrity verdict}{documented mismatch}
+\endgroup
 \end{BlueprintNode}
 
 \begin{BlueprintNode}{F06-CL}{Conditionally-linear maps and samplers}
-
+\begingroup\fontsize{8}{8.5}\selectfont\setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{0pt}\setlength{\partopsep}{0pt}
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/conditionally-linear.tex:1-715 [original 2163-2877], label sec:linear}}
-\BlueprintField{Statement}{Define conditionally-linear maps, their finite distributions, direct sums, downsizing, and executable conditionally-linear samplers.}
-\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Types}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.ConditionallyLinearMap},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.CLSampler},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.CLSampler.sample}}
+\BlueprintField{Statement}{Define recursively certified conditionally-linear maps, their finite distributions, level raising, direct sums, and basis-mediated downsizing, together with mathematical conditionally-linear samplers.}
+\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Types}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.FieldVector},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.restrictVector},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.ConditionallyLinearCertificate},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.ConditionallyLinearMap},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.ConditionallyLinearMap.raiseLevel},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.ConditionallyLinearMap.directSum},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.downsizeVector},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.ConditionallyLinearMap.downsize},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.CLSampler},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.CLSampler.sample},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.CLSampler.directSum},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.CLSampler.downsize},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.CLSampler.sample\_downsize}}
 \BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD}}
 \BlueprintField{Prerequisites}{\seqsplit{F01-FIELD}}
 \BlueprintField{Consumers}{\seqsplit{F07-TYPED}}
-\BlueprintField{Encoding}{Finite vector spaces use coordinate functions and samplers return explicit finite PMFs.}
-\BlueprintField{Boundary hypotheses}{All spaces and randomness are finite; efficiency claims are deferred to K03-K04.}
+\BlueprintField{Encoding}{The certificate is indexed by the current coordinate register, level, and realized function. Level zero certifies only the zero map; a successor partitions the register into disjoint complementary head/tail sets, applies a supported linear head map, and selects a recursively certified tail function by an element of the head-map range. Samplers map one uniform ambient vector to an explicit pair PMF.}
+\BlueprintField{Boundary hypotheses}{All spaces and randomness are finite. F01 FieldData is consumed only for the source downsizing equivalence and remains owned by F01. Raw Turing strings, executable sampler interfaces, and efficiency claims are deferred to K03-K04.}
 \BlueprintField{Status}{not-started; exact; gaps none}
-
+\BlueprintField{Writer lane}{types}
+\BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Game/Types.lean}}
+\BlueprintField{Exact imports}{\seqsplit{Mathlib.Probability.Distributions.Uniform, MIPStarRE.QPBT.Basic.Field}}
+\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-035-q014-contract-a02.md [4ff1a12c51563b66f5671077c74b5c951905a8be7c30cae3e122a5932ab5505b]}}
+\BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Game/Types.lean}}
+\BlueprintField{Allowed minimal sorries}{none}
+\BlueprintField{Proof-complete sorries}{0}
+\BlueprintField{Paper assumptions}{A finite coordinate field space and recursively selected complementary register subspaces; a selected basis only for downsizing.}
+\BlueprintField{Lean assumptions}{Concrete characteristic-two field vectors, finite coordinate registers, and the recursive certificate; F01 FieldData only at downsize.}
+\BlueprintField{Paper conclusion}{CL functions/distributions, level raising, direct sum, downsizing, and sampler distribution.}
+\BlueprintField{Lean conclusion}{The same mathematical operations and normalized PMF pushforward, without claiming the paper's executable complexity layer.}
+\BlueprintField{Integrity verdict}{faithful boundary}
+\endgroup
 \end{BlueprintNode}
 
 \begin{BlueprintNode}{F07-TYPED}{Typed samplers, deciders, and graph distributions}
-
+\begingroup\fontsize{8}{8.5}\selectfont\setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{0pt}\setlength{\partopsep}{0pt}
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/types.tex:1-582 [original 3567-4148], label sec:types}}
 \BlueprintField{Statement}{Define type graphs, heterogeneous typed questions/answers, typed samplers and deciders, and their graph-distribution semantics.}
-\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Types}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypeGraph},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypedSampler},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypedDecider}}
+\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Types}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypeGraph},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypeGraph.distribution},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypeGraph.distribution\_apply},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypedQuestion},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypedSampler},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypedSampler.sample},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypedSampler.sample\_types},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypedDecider},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.TypedDecider.accepts}}
 \BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F06-CL}}
 \BlueprintField{Prerequisites}{\seqsplit{F06-CL}}
 \BlueprintField{Consumers}{\seqsplit{F08-MAGIC-GAME, F09-LDT-GAME, G02-GAME}}
-\BlueprintField{Encoding}{Use dependent sums for heterogeneous carriers and a finite edge PMF including self-loops.}
-\BlueprintField{Boundary hypotheses}{Finite type graph and finite fibers; detyping equivalences are proved, not coerced definitionally.}
+\BlueprintField{Encoding}{TypeGraph stores a nonempty symmetric Finset of ordered endpoints: a loop occurs once and each non-loop occurs in both orientations. Its uniform PMF therefore has the paper denominator 2m-k. Typed questions use Sigma fibers, and TypedDecider is total over every type pair without erasing question or answer fibers.}
+\BlueprintField{Boundary hypotheses}{Finite type graph and finite dependent fibers. The mathematical typed game consumer is G02; raw-string parsing, executable detyping, and complexity are explicitly deferred to K03-K04 rather than represented by a BitVec codec here.}
 \BlueprintField{Status}{not-started; exact; gaps none}
-
+\BlueprintField{Writer lane}{types}
+\BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Game/Types.lean}}
+\BlueprintField{Exact imports}{\seqsplit{Mathlib.Probability.Distributions.Uniform, MIPStarRE.QPBT.Basic.Field}}
+\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-035-q014-contract-a02.md [4244dfbf6843f9641be2813b74f83046b93d41954f620a1309a9fedb0333b523]}}
+\BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Game/Types.lean}}
+\BlueprintField{Allowed minimal sorries}{none}
+\BlueprintField{Proof-complete sorries}{0}
+\BlueprintField{Paper assumptions}{A finite type set, an undirected graph that may contain self-loops, typed CL families, and type-indexed verifier data.}
+\BlueprintField{Lean assumptions}{A nonempty symmetric ordered-edge support, certified field-vector maps, sigma questions, and dependent answer fibers.}
+\BlueprintField{Paper conclusion}{The graph distribution and typed sampler/decider semantics.}
+\BlueprintField{Lean conclusion}{A uniform ordered-edge PMF preserving loop/orientation weight, its callable type marginal, and a total dependent finite decider; raw executable encodings are deferred.}
+\BlueprintField{Integrity verdict}{faithful boundary}
+\endgroup
 \end{BlueprintNode}
 
 \begin{BlueprintNode}{F08-MAGIC-GAME}{Magic Square game and perfect construction}
