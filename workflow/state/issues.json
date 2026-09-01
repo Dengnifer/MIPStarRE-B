@@ -169,7 +169,7 @@
       "id": "QPBT-004",
       "title": "Establish the Lean project and reusable quantum foundations",
       "kind": "formalization",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-003",
@@ -185,7 +185,7 @@
         "Reusable imported foundations have provenance",
         "The empty project build and local cache gate pass"
       ],
-      "owner_session_id": "i004-orchestrator-a37-foundation-closure",
+      "owner_session_id": null,
       "source_refs": [
         "blueprint/src/chapter/",
         "workflow/reviews/qpbt-018-plausible-drift-a15.md",
@@ -197,7 +197,7 @@
         "workflow/state/issues.json#QPBT-025"
       ],
       "created_at": "2026-08-30T09:31:33+08:00",
-      "updated_at": "2026-09-01T08:38:53.806475Z",
+      "updated_at": "2026-09-01T08:51:10.198549Z",
       "blocked_reason": null,
       "unblock_condition": null,
       "last_cache_failure_evidence": {
@@ -271,6 +271,26 @@
         "trusted_target_present": true,
         "proofwidgets_build_present": true,
         "matching_failure_envelopes": 0
+      },
+      "completion_evidence": {
+        "written_gates": "3/3 passed",
+        "orchestrator_report": "workflow/reviews/qpbt-004-foundation-closure-a37.md",
+        "orchestrator_report_sha256": "8a4d94a2cf257ab36547542cae60c3019d5fe410e37cf6b1a84b293dff121fe2",
+        "review_report": "workflow/reviews/qpbt-004-foundation-review-a38.md",
+        "review_report_sha256": "c1c75bf53b215861e8746eec357cd593edcb309b31360e680b0d2565c0ba7eab",
+        "review_verdict": "approve",
+        "review_findings": 0,
+        "review_target": "1c3742b02c08883572d2baf00e96fe8b019b6b6e",
+        "lean_version": "4.32.0",
+        "mathlib_revision": "81a5d257c8e410db227a6665ed08f64fea08e997",
+        "upstream_commit": "507e81220d95266ff3d589d125b2f87c7300a9fb",
+        "cache_key": "4a5d9cf4d7de3d89c9bf7805d59f5c1739b39fd56d66b19b2454941da8873807",
+        "warm_result": "built",
+        "build_jobs": 8992,
+        "private_seed": true,
+        "direct_typecheck": "passed",
+        "project_byte_changes": 0,
+        "root_counter_fix_commit": "743051546a52128cf910157d3e57e42e726ccbad"
       }
     },
     {
