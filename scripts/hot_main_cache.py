@@ -37,6 +37,13 @@ SCHEMA_VERSION = 3
 BUILD_RECIPE_SCHEMA_VERSION = 3
 ARTIFACT_INVENTORY_SCHEMA_VERSION = 1
 SOURCE_EVIDENCE_SCHEMA_VERSION = 1
+AUTHORED_QPBT_CHECK_PHASES = (
+    "before_materialization",
+    "after_materialization",
+    "after_dependency_retrieval",
+    "after_build",
+    "before_publication",
+)
 FICLONE = 0x40049409
 REFLINK_FALLBACK_ERRNOS = {
     errno.EXDEV,
@@ -204,12 +211,13 @@ class BuildRecipe:
 
 CANONICAL_BUILD_RECIPE = BuildRecipe(
     recipe_id="qpbt-hot-main",
-    version=5,
+    version=6,
     dependency_command=("lake", LAKE_OVERRIDE_ARGUMENT, "exe", "cache", "get"),
     build_command=("lake", LAKE_OVERRIDE_ARGUMENT, "build"),
     materialize_command=(
         "python3", "scripts/materialize_mipstarre.py", "materialize",
         "--archive-env", "MIPSTARRE_ARCHIVE",
+        "--replace-existing",
     ),
     package_materialize_command=(
         "python3", "scripts/materialize_lake_packages.py", "materialize",
@@ -441,6 +449,112 @@ def authored_tree_facts_at_commit(
         "authored_qpbt_files": len(records),
         "authored_qpbt_bytes": sum(len(payload) for _, payload in records),
         "authored_qpbt_sha256": digest.hexdigest(),
+    }
+
+
+def _authored_file_facts(path: Path) -> tuple[int, str]:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise CacheError(f"could not safely open authored QPBT source: {path}") from error
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise CacheError(f"authored QPBT source must be a regular file: {path}")
+        digest = hashlib.sha256()
+        total = 0
+        while True:
+            block = os.read(descriptor, 1024 * 1024)
+            if not block:
+                break
+            digest.update(block)
+            total += len(block)
+        after = os.fstat(descriptor)
+        identity = lambda value: (
+            value.st_dev,
+            value.st_ino,
+            value.st_size,
+            value.st_mtime_ns,
+        )
+        if identity(before) != identity(after) or total != before.st_size:
+            raise CacheError(f"authored QPBT source changed while read: {path}")
+        return total, digest.hexdigest()
+    finally:
+        os.close(descriptor)
+
+
+def authored_tree_facts_on_disk(project_dir: Path) -> dict[str, Any]:
+    """Inventory the reserved authored tree without following links."""
+
+    foundation = project_dir / "MIPStarRE"
+    try:
+        foundation_mode = foundation.stat(follow_symlinks=False).st_mode
+    except FileNotFoundError:
+        return {
+            "authored_qpbt_files": 0,
+            "authored_qpbt_bytes": 0,
+            "authored_qpbt_sha256": hashlib.sha256().hexdigest(),
+        }
+    except OSError as error:
+        raise CacheError(f"could not inspect authored QPBT parent: {foundation}") from error
+    if stat.S_ISLNK(foundation_mode) or not stat.S_ISDIR(foundation_mode):
+        raise CacheError("authored QPBT parent must be a real directory")
+
+    root = foundation / "QPBT"
+    try:
+        root_mode = root.stat(follow_symlinks=False).st_mode
+    except FileNotFoundError:
+        return {
+            "authored_qpbt_files": 0,
+            "authored_qpbt_bytes": 0,
+            "authored_qpbt_sha256": hashlib.sha256().hexdigest(),
+        }
+    except OSError as error:
+        raise CacheError(f"could not inspect authored QPBT tree: {root}") from error
+    if stat.S_ISLNK(root_mode) or not stat.S_ISDIR(root_mode):
+        raise CacheError("authored QPBT path must be a real directory")
+
+    records: list[tuple[str, int, str]] = []
+    for directory, dir_names, file_names in os.walk(root, followlinks=False):
+        base = Path(directory)
+        dir_names.sort()
+        file_names.sort()
+        for name in dir_names:
+            path = base / name
+            mode = path.stat(follow_symlinks=False).st_mode
+            if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
+                raise CacheError(f"unsafe authored QPBT directory: {path}")
+        for name in file_names:
+            path = base / name
+            size, digest = _authored_file_facts(path)
+            records.append((path.relative_to(root).as_posix(), size, digest))
+
+    digest = hashlib.sha256()
+    for relative, size, file_digest in records:
+        digest.update(f"{relative}\0{size}\0{file_digest}\n".encode("utf-8"))
+    return {
+        "authored_qpbt_files": len(records),
+        "authored_qpbt_bytes": sum(size for _, size, _ in records),
+        "authored_qpbt_sha256": digest.hexdigest(),
+    }
+
+
+def authored_contract_facts(source_contract: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        key: source_contract[key]
+        for key in (
+            "authored_qpbt_files",
+            "authored_qpbt_bytes",
+            "authored_qpbt_sha256",
+        )
+    }
+
+
+def authored_verification_record(source_contract: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "inventory": authored_contract_facts(source_contract),
+        "phases": list(AUTHORED_QPBT_CHECK_PHASES),
     }
 
 
@@ -1814,6 +1928,13 @@ class HotMainCache:
             and isinstance(self.identity.source_contract, dict)
             else manifest.get("source_evidence") is None
         )
+        authored_verification_ready = (
+            manifest.get("authored_qpbt_verification")
+            == authored_verification_record(self.identity.source_contract)
+            if self.recipe.materialize_command
+            and isinstance(self.identity.source_contract, dict)
+            else manifest.get("authored_qpbt_verification") is None
+        )
         mathlib_evidence_ready = (
             validate_mathlib_evidence(manifest.get("mathlib_source"))
             if self._requires_mathlib_source()
@@ -1828,6 +1949,7 @@ class HotMainCache:
             and manifest.get("source_contract") == self.identity.source_contract
             and isinstance(manifest.get("artifact_inventory"), dict)
             and source_evidence_ready
+            and authored_verification_ready
             and mathlib_evidence_ready
         )
         if not shallow_ready or not deep:
@@ -1975,6 +2097,30 @@ class HotMainCache:
             raise CacheError("foundation source verifier differs from exact committed provenance")
         return raw_evidence
 
+    def _verify_authored_qpbt_inventory(
+        self,
+        detached_project: Path,
+        phase: str,
+    ) -> dict[str, Any] | None:
+        if not self.recipe.materialize_command:
+            return None
+        if phase not in AUTHORED_QPBT_CHECK_PHASES:
+            raise CacheError(f"unknown authored QPBT verification phase: {phase}")
+        if not isinstance(self.identity.source_contract, dict):
+            raise CacheError("materializing cache identity omits the authored QPBT contract")
+        expected = authored_contract_facts(self.identity.source_contract)
+        try:
+            observed = authored_tree_facts_on_disk(detached_project)
+        except CacheError as error:
+            raise CacheError(
+                f"authored QPBT inventory could not be verified at {phase}: {error}"
+            ) from error
+        if observed != expected:
+            raise CacheError(
+                f"authored QPBT inventory differs from the exact main commit at {phase}"
+            )
+        return observed
+
     def warm(
         self,
         *,
@@ -2051,6 +2197,12 @@ class HotMainCache:
                 return result
 
             build_started = time.monotonic()
+            authored_verification = (
+                authored_verification_record(self.identity.source_contract)
+                if self.recipe.materialize_command
+                and isinstance(self.identity.source_contract, dict)
+                else None
+            )
             metric_base = {
                 "action": "warm",
                 "cache_hit": 0,
@@ -2065,6 +2217,7 @@ class HotMainCache:
                 "dependency_command": list(dependency_command),
                 "command": list(command),
                 "mathlib_source_required": self._requires_mathlib_source(),
+                "authored_qpbt_verification": authored_verification,
             }
             test_callback = _test_command_callback
 
@@ -2097,6 +2250,9 @@ class HotMainCache:
                 detached_project = checkout / project_relative
                 if hash_inputs(detached_project, self.recipe) != self.identity.inputs:
                     raise CacheError("detached clone metadata does not match the main cache identity")
+                self._verify_authored_qpbt_inventory(
+                    detached_project, "before_materialization"
+                )
 
                 materialize_seconds = 0.0
                 if materialize_command:
@@ -2107,6 +2263,9 @@ class HotMainCache:
                         raise CacheError(
                             f"foundation materialization command failed with exit code {return_code}"
                         )
+                self._verify_authored_qpbt_inventory(
+                    detached_project, "after_materialization"
+                )
 
                 package_materialize_seconds = 0.0
                 package_verify_seconds = 0.0
@@ -2138,12 +2297,16 @@ class HotMainCache:
                 dependency_seconds = time.monotonic() - dependency_started
                 if return_code not in (None, 0):
                     raise CacheError(f"dependency cache command failed with exit code {return_code}")
+                self._verify_authored_qpbt_inventory(
+                    detached_project, "after_dependency_retrieval"
+                )
 
                 compilation_started = time.monotonic()
                 return_code = invoke(detached_project, command, log_path)
                 compilation_seconds = time.monotonic() - compilation_started
                 if return_code not in (None, 0):
                     raise CacheError(f"build command failed with exit code {return_code}")
+                self._verify_authored_qpbt_inventory(detached_project, "after_build")
                 if package_verify_command:
                     package_verify_started = time.monotonic()
                     return_code = invoke(detached_project, package_verify_command, log_path)
@@ -2169,6 +2332,9 @@ class HotMainCache:
                 source_build = source_lake / "build"
                 if not source_build.is_dir() or source_build.is_symlink():
                     raise CacheError(f"build succeeded but produced no real directory at {source_build}")
+                self._verify_authored_qpbt_inventory(
+                    detached_project, "before_publication"
+                )
 
                 # An archive source is only a staging input; never publish it
                 # alongside the immutable .lake artifact tree.
@@ -2198,6 +2364,7 @@ class HotMainCache:
                     "log_path": str(self.snapshot_dir / "build.log"),
                     "artifact_inventory": inventory,
                     "source_evidence": source_evidence,
+                    "authored_qpbt_verification": authored_verification,
                     "mathlib_source": (
                         mathlib_binding.evidence if mathlib_binding is not None else None
                     ),

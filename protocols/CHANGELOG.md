@@ -1,5 +1,32 @@
 # Protocol Changelog
 
+## 0.1.10 candidate (QPBT-045) - 2026-09-02
+
+INC-060 is the second occurrence of
+`integrated-source-materializer-replace-existing-omission`. The recipe-v5 warm
+for exact main `a648a7d6d2d24489e393e39c4d1cc7b7f1292ec8`, cache key
+`3d5cb99499071dc935470d5c4dc0cd236bedd1baf867a720041648cbec9d9793`,
+authenticated two authored QPBT files (5,319 bytes; inventory SHA-256
+`0578da860a522b58b69c2c16df366c7eee3abd97c425900401e4e83c992803ed`)
+but omitted `--replace-existing`. The materializer rejected the existing
+output before dependency retrieval or Lean compilation. Its retained
+`failure.json` and `build.log` are under the matching key in
+`.workflow-runtime/cache/failures/`.
+
+QPBT-045 bumps the deterministic canonical recipe to v6 and adds the existing
+authenticated replacement flag. The materializer remains the sole owner of
+atomic upstream replacement and reserved-tree copying; the cache now also
+binds and rechecks the exact authored path-and-byte inventory before
+materialization, after materialization, after dependency retrieval, after the
+build, and immediately before publication. Any missing, added, altered,
+untracked, generated, linked, or unsafe QPBT source fails closed with no
+`READY`. Focused regressions reproduce the v5 nonzero-tree failure, cover zero
+and nonzero authored trees, delegate upstream replacement and exact
+preservation to the existing materializer contract, inject drift at every
+boundary, and prove version-only key determinism. Focused and aggregate gates
+plus a fresh immutable review are required before integration; only then may a
+single lock-elected current-main warm publish recipe v6.
+
 ## 0.1.9 candidate (QPBT-034) - 2026-09-01
 
 INC-053 records three `agent thread limit reached` rejections after the local

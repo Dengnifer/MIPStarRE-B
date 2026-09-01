@@ -31,7 +31,8 @@ The cache key contains:
 - the local `main` commit SHA;
 - SHA-256 of `lean-toolchain`;
 - SHA-256 of `lakefile.toml`; and
-- SHA-256 of `lake-manifest.json`; and
+- SHA-256 of `lake-manifest.json` and every versioned source/materializer pin;
+- the commit-bound path-and-byte inventory of `MIPStarRE/QPBT/`; and
 - the identifier, version, and exact argv of the canonical dependency and
   build recipe.
 
@@ -41,6 +42,18 @@ Mathlib cache retrieval when needed, and runs the full build. It writes the
 manifest and metrics only after success, then atomically renames staging to the
 published key. Waiters re-check the manifest after the lock is released and
 report a cache hit instead of compiling.
+
+Canonical recipe v6 invokes the authenticated MIPStarRE materializer with
+`--replace-existing`. The materializer refreshes the pinned upstream tree while
+copying the reserved committed `MIPStarRE/QPBT/` subtree byte-for-byte through
+its atomic transaction. The cache independently compares that authored
+path-and-byte inventory with the exact main commit before materialization,
+after materialization, after dependency retrieval, after the build, and
+immediately before publication. A missing, added, altered, untracked,
+generated, linked, or otherwise unsafe authored source fails the elected warm;
+failed staging never contains or publishes `READY`. The manifest records the
+verified inventory and all five boundaries. Do not retry an older recipe-v5
+failure after authored QPBT sources exist.
 
 Publication also records a content-addressed inventory of the entire `.lake`
 tree. The `READY` marker binds the manifest bytes. Cheap status and warm-hit
