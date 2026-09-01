@@ -1884,7 +1884,7 @@
         "Run blueprint unit, source-root, default declaration, generated-diff, and workflow checks; record statement-integrity tables and exact source hashes",
         "Obtain a fresh independent immutable mathematical/API review before guarded integration"
       ],
-      "owner_session_id": "i035-orchestrator-a04-q014-contract-fixes",
+      "owner_session_id": "i035-orchestrator-a07-source-contract-repair",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md",
         "blueprint/metadata/nodes.json#F02-CODE",
@@ -1912,7 +1912,7 @@
         "blueprint/src/generated/chapter-03-entries.tex"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T14:22:48.574097Z",
+      "updated_at": "2026-09-01T14:54:59.062367Z",
       "blocked_reason": null,
       "unblock_condition": null
     },

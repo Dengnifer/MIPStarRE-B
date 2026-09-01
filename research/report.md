@@ -29,14 +29,14 @@ availability reasons rather than receiving estimates.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 112 terminal attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | source and blueprint acceptance chain closed; LPR-018 has three confirmed findings and supplemental QPBT-028/029/030 isolation work continues off the Lean critical path |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 40 issued attempts, 39 terminal and 1 active; peak concurrency 3 | collaboration usage unavailable | source and API audits archived; expanded-scope QPBT-023 contract continuation active |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 193 issued attempts: 192 terminal and 1 active session; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files and the live-admission repair are merged and post-integration clean; the callable-contract repair runs on its reviewed head |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 196 issued attempts: 195 terminal and 1 active session; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files and live-admission repair are merged; two parallel contract scouts are archived and the source-completeness repair is active |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
 
 ## Schedule estimates
 
-The snapshot below was updated at 2026-09-01 22:31 +08. Ranges are wall-clock
+The snapshot below was updated at 2026-09-01 22:55 +08. Ranges are wall-clock
 forecasts with the root coordinator plus three safe worker lanes, not token or
 person-hour estimates. The lanes are allocated to one critical-path writer,
 one fresh source/fidelity reviewer, and one independent API/cache or disjoint
@@ -47,8 +47,8 @@ hot-main build remains a singleton.
 | --- | ---: | ---: | --- |
 | 1. Workflow skeleton | 15 h 53 min (complete) | 0 | Acceptance and independent review are complete. |
 | 2. Source split | 44 h 26 min | 1-3 working weeks on an independent lane | QPBT-029 must complete exact capture/projection and QPBT-030 must build and test pinned reviewer/broker isolation; the explicit supplemental-review disposition means this no longer delays Lean dispatch. |
-| 3. Lean blueprint | 42 h 46 min | 1-3 hours for the active three-finding contract repair, then one fresh resolution review | The first immutable review found two high contract omissions and one medium metadata overclaim; A04 is repairing exactly those findings on the reviewed head. |
-| 4A. Minimal skeleton | 42 h 46 min | writers can start in about 1-3 hours if the changed-head review is clean; next four-file wave remains 17-41 active hours (about 1-4 calendar days); full stage 6-16 weeks | `Field.lean` and `Approximation.lean` are merged and combined-build clean. QPBT-035 gates three parallel Lean writers until its exact contract repair and review complete; the self-dual-normal-basis theorem remains the dominant full-stage risk. |
+| 3. Lean blueprint | 43 h 10 min | 1-3 hours for the active source-completeness repair and one fresh resolution review | A05 found that A04's first detyping split omitted typed downsizing, typed verifier/game data, and generic game/value/PCC/entanglement ownership; A07 is repairing that exact scope while preserving the independently accepted F06 theorem. |
+| 4A. Minimal skeleton | 43 h 10 min | writers can start in about 1-3 hours if the A07 changed-head review is clean; next four-file wave remains 17-41 active hours (about 1-4 calendar days); full stage 6-16 weeks | `Field.lean` and `Approximation.lean` are merged and combined-build clean. QPBT-035 gates three parallel Lean writers until its source-complete contract and review finish; the self-dual-normal-basis theorem remains the dominant full-stage risk. |
 | 4B. Complete skeleton | not started | 4-10 weeks | All 48 blueprint declarations receive reviewed signatures; tracked `sorry` is allowed but no assumptions hide proof debt. |
 | 4C. Proofs | not started | 18-48 months | External theorem boundaries are admissible where declared and the rigidity/LDT dependencies do not require foundational redevelopment. |
 | 5. Final audit | not started | 3-8 weeks | Statements remain stable and full build/declaration synchronization does not expose late source gaps. |
@@ -1311,6 +1311,21 @@ froze the exact F02/F05/F06/F07/G01 contracts at
 Lean signature probes elaborated. The fresh read-only mathematical/API review
 then requested three changes: source detyping had been assigned to complexity
 nodes that do not own it; F06 omitted the direct-sum product-distribution
-theorem; and F07 overclaimed finite dependent families. A04 is now repairing
-exactly those findings in the same authenticated worktree. Per-session token
-usage remains JSON `null` because the collaboration backend does not expose it.
+theorem; and F07 overclaimed finite dependent families. A04 repaired those
+three findings at changed head `3f2630a7631a0164b6ef4aca1fd081ba264beeb2`
+in `991.648` coordinator-measured seconds (`678.148105209` agent-measured),
+with 29/29 blueprint tests and one exact F06 signature probe passing.
+
+Two independent scouts ran in parallel before formal re-review. A06 accepted
+the F06 `PMF.bind`/`PMF.map` plus two-`Fin.append` signature unchanged after
+three passing probes: it preserves independent component seeds, shared
+Alice/Bob randomness within each component, and output order. A05 found that
+the A04 detyping repair remained source-incomplete: F07 omitted typed sampler
+downsizing; F07A began at generated line 225 instead of the typed verifier/game
+definitions at 197; and no node owned the generic game value, PCC, Schmidt-rank,
+or entanglement-requirement interfaces. Their coordinator/agent windows were
+`836.348`/`665.419` and `752.592`/`626.638696588` seconds, respectively. A07
+is now repairing only those authenticated omissions in the same clean issue
+worktree. No target/full build or cache action is duplicated before the
+contract head is accepted. Per-session token usage remains JSON `null` because
+the collaboration backend does not expose it.
