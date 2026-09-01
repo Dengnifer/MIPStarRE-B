@@ -126,7 +126,9 @@
         "workflow/reviews/qpbt-026-final-activation-a26.md",
         "workflow/reviews/qpbt-026-final-activation-a27-authority.json",
         "workflow/reviews/qpbt-026-final-activation-a27-validation-root.md",
-        "workflow/reviews/qpbt-026-final-activation-a27.md"
+        "workflow/reviews/qpbt-026-final-activation-a27.md",
+        "workflow/reviews/qpbt-028-channel-matrix-a02.md",
+        "workflow/reviews/qpbt-028-os-isolation-a03.md"
       ],
       "incident_ids": [
         "INC-021",
