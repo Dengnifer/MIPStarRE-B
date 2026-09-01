@@ -54,6 +54,39 @@ isolation. Production entry points reject before task/context reads, persistence
 or capability probes, evidence preparation, lease claim, command construction,
 or runner invocation. Uncommitted targets also remain non-launchable.
 
+Version 2 is a distinct exact-key schema. Its structural validator compares the
+declared transport profile, model, committed target kind, immutable base/head/tree,
+the reviewed isolation-policy digest, and a canonical sorted content manifest.
+Every Git entry records sorted channels, revision role, normalized path, object
+type, mode, object identity, inert representation, byte size, SHA-256, and
+projected evidence path. Logical entries record sorted channels, a host-path-free
+logical identity, byte size, and SHA-256; derived entries additionally require a
+sorted nonempty list of input digests as provenance. The canonical manifest
+digest covers every authorization field except the digest field itself. Unknown,
+missing, duplicate, unsorted, malformed, credential-like, or mismatched fields
+fail before probes, output, lease, command construction, or runner invocation.
+
+Structural schema validation does not prove that the declared entries are
+complete or match source, projection, request, authority, or prompt bytes, and
+therefore does not authorize a launch. Production additionally
+requires one-time no-follow capture from the validated object/input identities,
+exact projection and prompt reconstruction from only those captured bytes, an
+immediate pre-spawn inventory recheck, and an independently reviewed isolation
+capability. Until that coordinator exists, even an exact version-2 record fails
+closed without contacting an endpoint.
+
+The local isolation probe uses Landlock in a disposable child and demonstrates
+that an allowlisted projection remains readable while a randomized unmanifested
+host sentinel is denied to the child and its descendants. This host cannot create
+a private network namespace, so the complete capability is unavailable: a
+reviewer process and its model-directed descendants would not yet have a proven
+single-destination egress boundary. A future production boundary must use a
+digest-pinned, credential-free reviewer container plus a separate credential
+broker whose one leased transport connection is the only network path. Missing
+images, policy digests, internal network, broker lease, second-connection denial,
+or sentinel proof fails closed. An asserted Boolean, a fake test runner, or
+filesystem isolation without descendant egress isolation is never sufficient.
+
 Path screening distinguishes private containers from ordinary public
 certificate material: `.pem`, `.key`, `.p12`, `.pfx`, `.jks`, `.keystore`, and
 `.kdbx` fail closed, while `.crt` and `.cer` are not rejected merely by

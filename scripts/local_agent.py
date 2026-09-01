@@ -28,6 +28,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from urllib.parse import urlsplit
 
 import bootstrap_manifest
+import review_isolation
 import workflow as workflow_state
 
 
@@ -44,7 +45,7 @@ UUID_RE = re.compile(
 FULL_GIT_OID_RE = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 REVIEW_PROVIDER_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 DISCLOSURE_AUTH_SCHEMA_VERSION = 1
-DISCLOSURE_AUTH_KEYS = {
+DISCLOSURE_AUTH_V1_KEYS = {
     "schema_version",
     "authorized",
     "endpoint_origin",
@@ -56,6 +57,27 @@ DISCLOSURE_AUTH_KEYS = {
     "private_file_paths",
     "exclude_credentials",
     "exclude_unrelated_contents",
+}
+DISCLOSURE_AUTH_V2_SCHEMA_VERSION = 2
+DISCLOSURE_AUTH_V2_KEYS = {
+    "schema_version", "authorized", "endpoint_origin", "model", "model_provider",
+    "provider_name", "wire_api", "requires_openai_auth", "target_kind", "base_sha",
+    "head_sha", "tree_sha", "entries", "manifest_sha256", "isolation_policy_sha256",
+    "exclude_credentials", "exclude_unrelated_contents", "exclude_source_repository",
+}
+DISCLOSURE_ENTRY_KEYS = {
+    "kind", "channels", "revision_role", "path", "object_type", "mode", "object_id",
+    "representation", "size", "sha256", "evidence_path",
+}
+DISCLOSURE_LOGICAL_ENTRY_KEYS = {"kind", "channels", "logical_source_id", "size", "sha256"}
+DISCLOSURE_DERIVED_ENTRY_KEYS = {
+    "kind", "channels", "logical_source_id", "size", "sha256", "provenance_sha256s",
+}
+DISCLOSURE_ENTRY_KINDS = {"git", "logical", "derived"}
+DISCLOSURE_CHANNELS = {
+    "prompt-authority", "untrusted-request", "outbound-prompt", "committed-evidence",
+    "derived-patch", "harness-manifest", "prompt-path-metadata", "child-environment",
+    "capability-probe", "persistence-probe", "transport-command", "tool-output",
 }
 DISCLOSURE_FORBIDDEN_BASENAME_RE = re.compile(
     r"(?:^|[._-])(?:api[_-]?keys?|credentials?|passwords?|secrets?|tokens?)(?:$|[._-])"
@@ -659,7 +681,12 @@ def _load_disclosure_authorization(path: Path) -> dict[str, Any]:
         raise AgentError(f"disclosure authorization is not valid JSON: {error}") from error
     if not isinstance(value, Mapping):
         raise AgentError("disclosure authorization must be a JSON object")
-    if set(value) != DISCLOSURE_AUTH_KEYS:
+    expected = (
+        DISCLOSURE_AUTH_V1_KEYS
+        if value.get("schema_version") == DISCLOSURE_AUTH_SCHEMA_VERSION
+        else DISCLOSURE_AUTH_V2_KEYS
+    )
+    if set(value) != expected:
         raise AgentError("disclosure authorization has unexpected or missing fields")
     return dict(value)
 
@@ -674,9 +701,12 @@ def validate_review_disclosure_authorization(
 
     if authorization is None:
         raise AgentError("external review requires an explicit disclosure authorization record")
-    if set(authorization) != DISCLOSURE_AUTH_KEYS:
+    if set(authorization) != DISCLOSURE_AUTH_V1_KEYS:
         raise AgentError("disclosure authorization has unexpected or missing fields")
-    if authorization.get("schema_version") != DISCLOSURE_AUTH_SCHEMA_VERSION:
+    if (
+        authorization.get("schema_version") != DISCLOSURE_AUTH_SCHEMA_VERSION
+        or isinstance(authorization.get("schema_version"), bool)
+    ):
         raise AgentError("unsupported disclosure authorization schema version")
     if authorization.get("authorized") is not True:
         raise AgentError("disclosure authorization is not explicitly authorized")
@@ -708,6 +738,136 @@ def validate_review_disclosure_authorization(
         raise AgentError("disclosure authorization private file paths include credentials")
     if normalized_authorized_paths != expected_paths:
         raise AgentError("disclosure authorization private file scope does not match")
+
+
+def _canonical_manifest_sha256(authorization: Mapping[str, Any]) -> str:
+    payload = {key: value for key, value in authorization.items() if key != "manifest_sha256"}
+    encoded = json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    ).encode("ascii")
+    return _sha256_bytes(encoded)
+
+
+def _validate_sha256(value: Any, *, label: str) -> str:
+    if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        raise AgentError(f"disclosure authorization {label} is not a SHA-256")
+    return value
+
+
+def validate_review_disclosure_authorization_v2_structure(
+    authorization: Mapping[str, Any] | None,
+    *, transport_profile: Mapping[str, Any], model: str | None,
+    target_kind: str, base_sha: str, head_sha: str, tree_sha: str,
+) -> list[dict[str, Any]]:
+    """Validate v2 structure without claiming that supplied records match source bytes."""
+
+    if authorization is None:
+        raise AgentError("external review requires an explicit disclosure authorization record")
+    if set(authorization) != DISCLOSURE_AUTH_V2_KEYS:
+        raise AgentError("version-2 disclosure authorization has unexpected or missing fields")
+    exact = {
+        "schema_version": DISCLOSURE_AUTH_V2_SCHEMA_VERSION,
+        "authorized": True,
+        "endpoint_origin": transport_profile["base_url"],
+        "model": model,
+        "model_provider": transport_profile["model_provider"],
+        "provider_name": transport_profile["provider_name"],
+        "wire_api": transport_profile["wire_api"],
+        "requires_openai_auth": transport_profile["requires_openai_auth"],
+        "target_kind": target_kind,
+        "base_sha": base_sha,
+        "head_sha": head_sha,
+        "tree_sha": tree_sha,
+        "isolation_policy_sha256": review_isolation.POLICY_SHA256,
+        "exclude_credentials": True,
+        "exclude_unrelated_contents": True,
+        "exclude_source_repository": True,
+    }
+    for field, expected in exact.items():
+        if authorization.get(field) != expected:
+            raise AgentError(f"version-2 disclosure authorization {field} does not match")
+    if target_kind not in {"base", "commit"}:
+        raise AgentError("version-2 disclosure authorization requires a committed target")
+    for field in ("base_sha", "head_sha", "tree_sha"):
+        if FULL_GIT_OID_RE.fullmatch(str(authorization[field])) is None:
+            raise AgentError(f"version-2 disclosure authorization {field} is invalid")
+    entries = authorization.get("entries")
+    if not isinstance(entries, list):
+        raise AgentError("version-2 disclosure authorization entries are invalid")
+    normalized: list[dict[str, Any]] = []
+    identities: list[tuple[Any, ...]] = []
+    for raw in entries:
+        if not isinstance(raw, Mapping):
+            raise AgentError("version-2 disclosure authorization entry is not an object")
+        kind = raw.get("kind")
+        expected_keys = (
+            DISCLOSURE_ENTRY_KEYS
+            if kind == "git"
+            else DISCLOSURE_DERIVED_ENTRY_KEYS if kind == "derived" else DISCLOSURE_LOGICAL_ENTRY_KEYS
+        )
+        if kind not in DISCLOSURE_ENTRY_KINDS or set(raw) != expected_keys:
+            raise AgentError("version-2 disclosure authorization entry has an invalid schema")
+        channels = raw.get("channels")
+        if (
+            not isinstance(channels, list) or not channels
+            or channels != sorted(set(channels))
+            or any(channel not in DISCLOSURE_CHANNELS for channel in channels)
+        ):
+            raise AgentError("version-2 disclosure authorization entry channels are invalid")
+        size = raw.get("size")
+        if not isinstance(size, int) or isinstance(size, bool) or size < 0:
+            raise AgentError("version-2 disclosure authorization entry size is invalid")
+        _validate_sha256(raw.get("sha256"), label="entry digest")
+        item = dict(raw)
+        if kind == "git":
+            path = _normalize_disclosure_path(raw.get("path"))
+            if _is_forbidden_disclosure_path(path):
+                raise AgentError("version-2 disclosure authorization includes credentials")
+            if raw.get("revision_role") not in {"base", "head"}:
+                raise AgentError("version-2 disclosure authorization revision role is invalid")
+            if raw.get("object_type") not in {"blob", "commit"}:
+                raise AgentError("version-2 disclosure authorization object type is invalid")
+            mode = raw.get("mode")
+            if mode not in {"100644", "100755", "120000", "160000"}:
+                raise AgentError("version-2 disclosure authorization Git mode is invalid")
+            object_id = raw.get("object_id")
+            if not isinstance(object_id, str) or FULL_GIT_OID_RE.fullmatch(object_id) is None:
+                raise AgentError("version-2 disclosure authorization object identity is invalid")
+            if raw.get("representation") not in {"inert-object-bytes", "inert-gitlink-oid"}:
+                raise AgentError("version-2 disclosure authorization representation is invalid")
+            evidence_path = _normalize_disclosure_path(raw.get("evidence_path"))
+            if not evidence_path.startswith(f"evidence/{raw['revision_role']}/"):
+                raise AgentError("version-2 disclosure authorization evidence path is invalid")
+            identity = (kind, path, raw["revision_role"], raw["object_type"], mode, object_id, tuple(channels))
+        else:
+            logical_id = raw.get("logical_source_id")
+            if (
+                not isinstance(logical_id, str) or not logical_id
+                or logical_id.startswith("/") or ".." in PurePosixPath(logical_id).parts
+                or "\\" in logical_id or "\0" in logical_id
+            ):
+                raise AgentError("version-2 disclosure authorization logical source is invalid")
+            if _is_forbidden_disclosure_path(logical_id):
+                raise AgentError("version-2 disclosure authorization includes credentials")
+            if kind == "derived":
+                provenance = raw.get("provenance_sha256s")
+                if (
+                    not isinstance(provenance, list) or not provenance
+                    or provenance != sorted(set(provenance))
+                ):
+                    raise AgentError("version-2 derived provenance is invalid")
+                for digest in provenance:
+                    _validate_sha256(digest, label="derived provenance digest")
+            identity = (kind, logical_id, tuple(channels))
+        identities.append(identity)
+        normalized.append(item)
+    if identities != sorted(identities) or len(identities) != len(set(identities)):
+        raise AgentError("version-2 disclosure authorization entries must be sorted and unique")
+    if not any("outbound-prompt" in item["channels"] for item in normalized):
+        raise AgentError("version-2 disclosure authorization omits the outbound prompt")
+    if authorization.get("manifest_sha256") != _canonical_manifest_sha256(authorization):
+        raise AgentError("version-2 disclosure authorization manifest digest does not match")
+    return normalized
 
 
 def _normalize_disclosure_path(path: Any) -> str:
@@ -846,10 +1006,14 @@ def _preflight_external_disclosure(
     transport_profile: Mapping[str, Any] | None,
     authorization: Mapping[str, Any] | None,
 ) -> None:
-    """Validate legacy v1 fields, then fail closed at the production boundary.
+    """Validate authorization and the real isolation capability before effects.
 
     Version 1 binds changed path names but not the exact prompt, Git objects, or
     transitive host read surface. It therefore cannot authorize a launch.
+    Version 2 declares content identities but cannot authorize a launch until a
+    one-time coordinator compares them with captured bytes. It also fails closed
+    unless the complete filesystem, credential, and descendant-egress boundary
+    is demonstrably available.
     """
 
     if transport_profile is None:
@@ -858,13 +1022,35 @@ def _preflight_external_disclosure(
         cwd=cwd, target_kind=target_kind, target_value=target_value,
         base_sha=base_sha, head_sha=head_sha,
     )
-    validate_review_disclosure_authorization(
+    if (
+        not isinstance(authorization, Mapping)
+        or authorization.get("schema_version") != DISCLOSURE_AUTH_V2_SCHEMA_VERSION
+    ):
+        validate_review_disclosure_authorization(
+            authorization,
+            endpoint_origin=str(transport_profile["base_url"]), model=model,
+            wire_api=str(transport_profile["wire_api"]), base_sha=resolved_base,
+            head_sha=resolved_head, tree_sha=tree_sha, private_file_paths=paths,
+        )
+        raise AgentError(PRODUCTION_REVIEW_ISOLATION_ERROR)
+    validate_review_disclosure_authorization_v2_structure(
         authorization,
-        endpoint_origin=str(transport_profile["base_url"]), model=model,
-        wire_api=str(transport_profile["wire_api"]), base_sha=resolved_base,
-        head_sha=resolved_head, tree_sha=tree_sha, private_file_paths=paths,
+        transport_profile=transport_profile,
+        model=model,
+        target_kind=target_kind,
+        base_sha=resolved_base,
+        head_sha=resolved_head,
+        tree_sha=tree_sha,
     )
-    raise AgentError(PRODUCTION_REVIEW_ISOLATION_ERROR)
+    try:
+        review_isolation.require_production_isolation(
+            review_isolation.probe_production_isolation()
+        )
+    except review_isolation.IsolationError as error:
+        raise AgentError(str(error)) from error
+    raise AgentError(
+        "production review requires the independently reviewed one-time projection coordinator"
+    )
 
 
 def validate_bootstrap_review_phase(

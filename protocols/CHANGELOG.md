@@ -1,5 +1,31 @@
 # Protocol Changelog
 
+## 0.1.9 candidate (QPBT-028) - 2026-09-01
+
+QPBT-028 introduces structural validation for a separate exact-key version-2
+disclosure authorization. It binds the declared provider profile, model, committed base/head/tree, exact
+isolation policy, canonical sorted Git/logical/derived content records, and a
+digest over the entire non-secret authorization. Git records include channel,
+revision role, path, mode, type, object identity, inert representation, size,
+SHA-256, and projection path; logical records bind their declared channel, logical
+identity, size, and digest, while derived records require input-digest provenance.
+It does not yet compare those declarations to captured source/projection/prompt bytes.
+Credential-like paths, malformed or unsorted records,
+unknown fields, stale destinations/targets/policies, and digest drift fail before
+review side effects.
+
+The candidate also adds an actual Landlock child probe that proves an authorized
+projection readable and an unmanifested host sentinel denied under a scrubbed
+environment. It separately probes descendant network-namespace enforcement and
+requires both results. On the current host, Landlock succeeds but private network
+namespace creation is denied, so production remains fail-closed. Read-only scouts
+found that the smallest complete deployment is a digest-pinned credential-free
+reviewer container plus a separate single-connection credential broker. Those
+images, policies, network, broker lease, one-time captured projection coordinator,
+and fresh immutable security review are still required before any endpoint use.
+No endpoint, network, credential, Codex CLI, Lean, Lake, or GitHub action was used
+to implement or test this candidate.
+
 ## 0.1.8 candidate (QPBT-027) - 2026-09-01
 
 The QPBT-026 A15 critical-path audit

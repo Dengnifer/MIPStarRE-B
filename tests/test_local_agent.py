@@ -1369,6 +1369,7 @@ class RuntimeTests(unittest.TestCase):
         self.assertFalse((self.runtime / "review-harnesses").exists())
 
         for field, value in (
+            ("schema_version", True),
             ("endpoint_origin", "https://elsewhere.invalid"),
             ("model", "other-model"),
             ("wire_api", "chat"),
@@ -1382,18 +1383,11 @@ class RuntimeTests(unittest.TestCase):
                 with self.assertRaises(local_agent.AgentError):
                     local_agent.run_review(
                         alias=f"i026-reviewer-a01-mismatch-{field.replace('_', '-')}",
-                        prompt="review",
-                        cwd=repo,
-                        runtime_dir=self.runtime,
-                        target_kind="base",
-                        target_value="main",
-                        base_sha=base,
-                        head_sha=head,
-                        model="gpt-5.6-sol",
-                        disclosure_authorization=candidate,
-                        **profile,
-                        runner=FakeRunner(""),
-                        codex_capability=capability(native=False),
+                        prompt="review", cwd=repo, runtime_dir=self.runtime,
+                        target_kind="base", target_value="main", base_sha=base,
+                        head_sha=head, model="gpt-5.6-sol",
+                        disclosure_authorization=candidate, **profile,
+                        runner=FakeRunner(""), codex_capability=capability(native=False),
                     )
 
         runner = FakeRunner("")
@@ -1407,6 +1401,140 @@ class RuntimeTests(unittest.TestCase):
             )
         self.assertEqual([], runner.calls)
         self.assertFalse((self.runtime / "review-harnesses").exists())
+
+    def test_v2_authorization_structure_binds_declared_fields_and_policy(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        head = commit_change(repo)
+        tree = git(repo, "rev-parse", f"{head}^{{tree}}")
+        profile = {
+            "model_provider": "OpenAI",
+            "provider_name": "Finite Dimensional Space",
+            "base_url": "https://api.finite-dimensional.space",
+            "wire_api": "responses",
+            "requires_openai_auth": True,
+        }
+        prompt = b"exact request"
+        entry = {
+            "kind": "logical",
+            "channels": ["outbound-prompt", "untrusted-request"],
+            "logical_source_id": "request:inline",
+            "size": len(prompt),
+            "sha256": local_agent._sha256_bytes(prompt),
+        }
+        authorization = {
+            "schema_version": 2,
+            "authorized": True,
+            "endpoint_origin": profile["base_url"],
+            "model": "gpt-5.6-sol",
+            "model_provider": profile["model_provider"],
+            "provider_name": profile["provider_name"],
+            "wire_api": profile["wire_api"],
+            "requires_openai_auth": True,
+            "target_kind": "base",
+            "base_sha": base,
+            "head_sha": head,
+            "tree_sha": tree,
+            "entries": [entry],
+            "manifest_sha256": "0" * 64,
+            "isolation_policy_sha256": local_agent.review_isolation.POLICY_SHA256,
+            "exclude_credentials": True,
+            "exclude_unrelated_contents": True,
+            "exclude_source_repository": True,
+        }
+        authorization["manifest_sha256"] = local_agent._canonical_manifest_sha256(authorization)
+        self.assertEqual(
+            [entry],
+            local_agent.validate_review_disclosure_authorization_v2_structure(
+                authorization,
+                transport_profile=profile,
+                model="gpt-5.6-sol",
+                target_kind="base",
+                base_sha=base,
+                head_sha=head,
+                tree_sha=tree,
+            ),
+        )
+        for mutation in (
+            {"model": "other"},
+            {"isolation_policy_sha256": "0" * 64},
+            {"entries": [{**entry, "sha256": "not-a-digest"}]},
+            {"entries": [{**entry, "logical_source_id": ".ssh/config"}]},
+        ):
+            candidate = {**authorization, **mutation}
+            if "manifest_sha256" not in mutation:
+                candidate["manifest_sha256"] = local_agent._canonical_manifest_sha256(candidate)
+            with self.subTest(mutation=mutation), self.assertRaises(local_agent.AgentError):
+                local_agent.validate_review_disclosure_authorization_v2_structure(
+                    candidate,
+                    transport_profile=profile,
+                    model="gpt-5.6-sol",
+                    target_kind="base",
+                    base_sha=base,
+                    head_sha=head,
+                    tree_sha=tree,
+                )
+
+    def test_v2_production_fails_before_side_effects_when_complete_isolation_is_unavailable(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        head = commit_change(repo)
+        tree = git(repo, "rev-parse", f"{head}^{{tree}}")
+        profile = {
+            "model_provider": "OpenAI", "provider_name": "OpenAI",
+            "base_url": "https://api.finite-dimensional.space", "wire_api": "responses",
+            "requires_openai_auth": True,
+        }
+        entry = {
+            "kind": "logical", "channels": ["outbound-prompt"],
+            "logical_source_id": "prompt:trusted-review-packet", "size": 6,
+            "sha256": local_agent._sha256_bytes(b"review"),
+        }
+        authorization = {
+            "schema_version": 2, "authorized": True,
+            "endpoint_origin": profile["base_url"], "model": "gpt-5.6-sol",
+            "model_provider": profile["model_provider"], "provider_name": profile["provider_name"],
+            "wire_api": "responses", "requires_openai_auth": True, "target_kind": "base",
+            "base_sha": base, "head_sha": head, "tree_sha": tree, "entries": [entry],
+            "manifest_sha256": "0" * 64,
+            "isolation_policy_sha256": local_agent.review_isolation.POLICY_SHA256,
+            "exclude_credentials": True, "exclude_unrelated_contents": True,
+            "exclude_source_repository": True,
+        }
+        authorization["manifest_sha256"] = local_agent._canonical_manifest_sha256(authorization)
+        unavailable = {
+            "schema_version": 1,
+            "policy_id": local_agent.review_isolation.POLICY_ID,
+            "policy_sha256": local_agent.review_isolation.POLICY_SHA256,
+            "filesystem_enforced": True, "sentinel_denied": True,
+            "environment_mode": "exact-clearenv",
+            "minimal_environment_credential_names_present": False,
+            "descendant_network_egress_denied": False, "available": False,
+            "filesystem_probe_returncode": 0,
+            "filesystem_probe_stderr_sha256": local_agent._sha256_bytes(b""),
+            "network_probe_evidence": local_agent._sha256_bytes(b"unavailable"),
+        }
+        runner = FakeRunner("")
+        with mock.patch.object(
+            local_agent.review_isolation, "probe_production_isolation", return_value=unavailable
+        ), mock.patch.object(local_agent, "_probe_codex_persistence") as persistence, \
+             mock.patch.object(local_agent, "inspect_codex_review_capability") as capability_probe, \
+             mock.patch.object(local_agent, "_prepare_committed_harness") as harness, \
+             mock.patch.object(local_agent, "_prepare_output_directory") as output, \
+             mock.patch.object(local_agent, "_review_transport_config_arguments") as command, \
+             self.assertRaisesRegex(local_agent.AgentError, "isolation is unavailable"):
+            local_agent.run_review(
+                alias="i028-reviewer-a01-v2-isolation", prompt="review", cwd=repo,
+                runtime_dir=self.runtime, target_kind="base", target_value="main",
+                base_sha=base, head_sha=head, model="gpt-5.6-sol",
+                model_provider=profile["model_provider"], provider_name=profile["provider_name"],
+                provider_base_url=profile["base_url"], wire_api="responses",
+                requires_openai_auth=True, disclosure_authorization=authorization, runner=runner,
+            )
+        persistence.assert_not_called()
+        capability_probe.assert_not_called()
+        harness.assert_not_called()
+        output.assert_not_called()
+        command.assert_not_called()
+        self.assertEqual([], runner.calls)
 
     def test_missing_profile_fails_before_unbound_or_bound_side_effects(self) -> None:
         repo, base = initialize_review_repo(self.root)
