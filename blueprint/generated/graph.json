@@ -1351,6 +1351,7 @@
         "F04-DISTANCE",
         "F04-DISTANCE-LAWS",
         "F05-PAULI",
+        "F07A-DETYPING",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME"
       ],
@@ -1966,7 +1967,7 @@
       "consumers": [
         "F07-TYPED"
       ],
-      "encoding": "The certificate is indexed by the current coordinate register, level, and realized function. Level zero certifies only the zero map; a successor partitions the register into disjoint complementary head/tail sets, applies a supported linear head map, and selects a recursively certified tail function by an element of the head-map range. Samplers map one uniform ambient vector to an explicit pair PMF.",
+      "encoding": "The certificate is indexed by the current coordinate register, level, and realized function. Level zero certifies only the zero map; a successor partitions the register into disjoint complementary head/tail sets, applies a supported linear head map, and selects a recursively certified tail function by an element of the head-map range. Samplers map one uniform ambient vector to an explicit pair PMF. CLSampler.sample_directSum identifies the summed sampler with the independent product PMF after reindexing both left/right outputs by Fin.append.",
       "fidelity": "exact",
       "gap_ids": [],
       "id": "F06-CL",
@@ -1980,15 +1981,17 @@
         "proof_complete_sorry_count": 0,
         "reused_api": [
           "PMF.uniformOfFintype",
+          "PMF.bind",
           "PMF.map",
+          "Fin.append",
           "MIPStarRE.QPBT.FieldData.coordinates",
           "GaloisField.equivZmodP"
         ],
         "signature_manifest": {
-          "begin_marker": "<!-- BEGIN F06-SIGNATURES -->",
-          "end_marker": "<!-- END F06-SIGNATURES -->",
-          "path": "workflow/reviews/qpbt-035-q014-contract-a02.md",
-          "sha256": "4ff1a12c51563b66f5671077c74b5c951905a8be7c30cae3e122a5932ab5505b"
+          "begin_marker": "<!-- BEGIN F06-A04-SIGNATURES -->",
+          "end_marker": "<!-- END F06-A04-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a04.md",
+          "sha256": "120d85e82d04ef226509ff6ff2b0f70776b65db537ba76a74c8307312b203461"
         },
         "validation_commands": [
           "lake env lean MIPStarRE/QPBT/Game/Types.lean"
@@ -1996,10 +1999,10 @@
         "writer_lane": "types"
       },
       "integrity": {
-        "lean_assumptions": "Concrete characteristic-two field vectors, finite coordinate registers, and the recursive certificate; F01 FieldData only at downsize.",
-        "lean_conclusion": "The same mathematical operations and normalized PMF pushforward, without claiming the paper's executable complexity layer.",
-        "paper_assumptions": "A finite coordinate field space and recursively selected complementary register subspaces; a selected basis only for downsizing.",
-        "paper_conclusion": "CL functions/distributions, level raising, direct sum, downsizing, and sampler distribution.",
+        "lean_assumptions": "Concrete characteristic-two field vectors, finite coordinate registers, and the recursive certificate; independent component PMFs combined by bind/map; F01 FieldData only at downsize.",
+        "lean_conclusion": "The same mathematical operations, including an exact PMF equality after Fin.append reindexing, and normalized downsize pushforward, without claiming the paper's executable complexity layer.",
+        "paper_assumptions": "A finite coordinate field space and recursively selected complementary register subspaces; independent uniform coordinates across direct-sum factors; a selected basis only for downsizing.",
+        "paper_conclusion": "CL functions/distributions, level raising, direct sum with product distribution, downsizing, and sampler distribution.",
         "verdict": "faithful boundary"
       },
       "kind": "definition",
@@ -2017,6 +2020,7 @@
           "MIPStarRE.QPBT.CLSampler",
           "MIPStarRE.QPBT.CLSampler.sample",
           "MIPStarRE.QPBT.CLSampler.directSum",
+          "MIPStarRE.QPBT.CLSampler.sample_directSum",
           "MIPStarRE.QPBT.CLSampler.downsize",
           "MIPStarRE.QPBT.CLSampler.sample_downsize"
         ]
@@ -2045,9 +2049,10 @@
       ]
     },
     {
-      "boundary_hypotheses": "Finite type graph and finite dependent fibers. The mathematical typed game consumer is G02; raw-string parsing, executable detyping, and complexity are explicitly deferred to K03-K04 rather than represented by a BitVec codec here.",
+      "boundary_hypotheses": "The type index and ordered-edge support are finite. TypedSampler uses the constant finite FieldVector carrier; TypedQuestion and TypedDecider permit arbitrary dependent fibers without claiming pointwise finiteness. G02 supplies the pointwise finite question/answer families required by the mathematical game consumer. The source graph-simulation and detyping development is owned separately by F07A-DETYPING.",
       "chapter": "02",
       "consumers": [
+        "F07A-DETYPING",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
         "G02-GAME"
@@ -2082,10 +2087,10 @@
         "writer_lane": "types"
       },
       "integrity": {
-        "lean_assumptions": "A nonempty symmetric ordered-edge support, certified field-vector maps, sigma questions, and dependent answer fibers.",
-        "lean_conclusion": "A uniform ordered-edge PMF preserving loop/orientation weight, its callable type marginal, and a total dependent finite decider; raw executable encodings are deferred.",
+        "lean_assumptions": "A nonempty symmetric ordered-edge support, certified maps with a constant finite FieldVector question-content carrier, and generic sigma/dependent families without pointwise finiteness assumptions.",
+        "lean_conclusion": "A uniform ordered-edge PMF preserving loop/orientation weight, its callable type marginal, and a total dependent decider. G02 owns consumer finiteness and F07A owns detyping.",
         "paper_assumptions": "A finite type set, an undirected graph that may contain self-loops, typed CL families, and type-indexed verifier data.",
-        "paper_conclusion": "The graph distribution and typed sampler/decider semantics.",
+        "paper_conclusion": "The graph distribution and typed sampler/decider semantics, followed by the separately owned detyping development.",
         "verdict": "faithful boundary"
       },
       "kind": "definition",
@@ -2125,6 +2130,64 @@
       "transitive_definitions": [
         "F01-FIELD",
         "F06-CL"
+      ]
+    },
+    {
+      "boundary_hypotheses": "This node owns both the mathematical detyping obligations and their executable/cost clauses. No part is assigned to K03 or K04. Its implementation may depend on the established generic measurement/game semantics and the F07 typed interfaces, but may not replace any conclusion by a caller-supplied obligation.",
+      "chapter": "02",
+      "consumers": [],
+      "encoding": "The first five callable names own the neighbor/vertex encodings, graph CL sampler, rejection event, and graph-distribution simulation needed by detyping. The final five respectively own types.tex Definitions detyped-CL, detyped samplers, detyped deciders, detyped verifiers, and Lemma detyping-verifiers. The final theorem retains all five paper conclusions, including the 16^|Type| error loss and the level increase by two; a follow-up contract must freeze their exact elaborated signatures before implementation.",
+      "fidelity": "exact",
+      "gap_ids": [],
+      "id": "F07A-DETYPING",
+      "integrity": {
+        "lean_assumptions": "F07 typed interfaces, the graph CL sampler and rejection simulation owned in this node, plus the established finite quantum measurement/game semantics; exact executable representation and cost data must be frozen by the follow-up contract.",
+        "lean_conclusion": "The supporting graph simulation and the same five detyping definitions/theorem remain explicit obligations of this node; none is erased or delegated to the unrelated QPBT complexity nodes.",
+        "paper_assumptions": "A finite type set and type graph, typed CL sampler and total typed decider, and the associated typed verifier/game semantics.",
+        "paper_conclusion": "Graph-distribution simulation; canonical detyped CL functions, sampler, decider, and verifier; value-one completeness; soundness and entanglement transfer with error factor 16^|Type|; level plus two, dimension, complexity, and efficient-description bounds.",
+        "verdict": "faithful boundary"
+      },
+      "kind": "lemma",
+      "lean": {
+        "module": "MIPStarRE.QPBT.Game.Detyping",
+        "names": [
+          "MIPStarRE.QPBT.TypeGraph.neighborIndicator",
+          "MIPStarRE.QPBT.TypeGraph.vertexEncoding",
+          "MIPStarRE.QPBT.TypeGraph.clSampler",
+          "MIPStarRE.QPBT.TypeGraph.simulationEvent",
+          "MIPStarRE.QPBT.TypeGraph.simulatesDistribution",
+          "MIPStarRE.QPBT.detypeCL",
+          "MIPStarRE.QPBT.TypedSampler.detype",
+          "MIPStarRE.QPBT.TypedDecider.detype",
+          "MIPStarRE.QPBT.TypedVerifier.detype",
+          "MIPStarRE.QPBT.detypingVerifier"
+        ]
+      },
+      "prerequisites": [
+        "F03-MEASUREMENT",
+        "F07-TYPED"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          225,
+          579
+        ],
+        "label": "sec:graph-dist",
+        "original_lines": [
+          3791,
+          4145
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/types.tex"
+      },
+      "statement": "Define the graph CL sampler and rejection event, prove that conditioning simulates the graph distribution, define detyped CL functions, samplers, deciders, and verifiers, then prove the paper's completeness, soundness, entanglement, sampler-level/dimension, complexity, and efficient-description relations.",
+      "status": "not-started",
+      "title": "Graph simulation and typed-verifier detyping",
+      "transitive_definitions": [
+        "F01-FIELD",
+        "F03-MEASUREMENT",
+        "F06-CL",
+        "F07-TYPED"
       ]
     },
     {
@@ -3322,7 +3385,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "ae58a7dbc39833c0c42df3f2f016ca005f5bb8e0896a78ea9b9be526773bbd17",
+  "source_sha256": "efaf6b51842d28a6072b44367452bc9ab82fee3f009c084c02d9cd17fba6af10",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
@@ -3345,6 +3408,7 @@
     "F05-PAULI",
     "F06-CL",
     "F07-TYPED",
+    "F07A-DETYPING",
     "F08-MAGIC-GAME",
     "F09-LDT-GAME",
     "E04-TENSOR-CODE",

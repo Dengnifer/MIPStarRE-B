@@ -309,6 +309,52 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertNotIn("sampler", complexity["statement"].lower())
         self.assertNotIn("question/answer", complexity["statement"].lower())
 
+    def test_direct_sum_detyping_and_finiteness_contracts_are_exact(self) -> None:
+        by_id = {node["id"]: node for node in self.nodes["nodes"]}
+
+        f06 = by_id["F06-CL"]
+        self.assertIn("MIPStarRE.QPBT.CLSampler.sample_directSum", f06["lean"]["names"])
+
+        f07 = by_id["F07-TYPED"]
+        self.assertNotIn("finite dependent fibers", f07["boundary_hypotheses"].lower())
+        self.assertNotIn("finite decider", f07["integrity"]["lean_conclusion"].lower())
+        self.assertIn("G02", f07["boundary_hypotheses"])
+
+        detyping = by_id[check.DETYPING_OWNER_ID]
+        self.assertEqual(check.DETYPING_SOURCE_RANGE,
+                         detyping["source"]["generated_lines"])
+        self.assertEqual(check.DETYPING_PREREQUISITES, detyping["prerequisites"])
+        self.assertEqual(check.DETYPING_LEAN_NAMES, detyping["lean"]["names"])
+        self.assertFalse(any(dependency.startswith(("K03", "K04"))
+                             for dependency in detyping["prerequisites"]))
+
+        for mutation, phrase in (
+            ("missing_theorem", "direct-sum product-distribution theorem"),
+            ("missing_owner", "missing exact detyping owner"),
+            ("wrong_source", "detyping source range must remain exact"),
+            ("wrong_dependencies", "detyping prerequisites must remain exact"),
+            ("wrong_names", "detyping callable names must remain exact"),
+            ("finite_fibers", "generic dependent fibers must not be claimed finite"),
+        ):
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(self.nodes)
+                bad_by_id = {node["id"]: node for node in bad["nodes"]}
+                if mutation == "missing_theorem":
+                    bad_by_id["F06-CL"]["lean"]["names"].remove(
+                        "MIPStarRE.QPBT.CLSampler.sample_directSum"
+                    )
+                elif mutation == "missing_owner":
+                    bad["nodes"].remove(bad_by_id[check.DETYPING_OWNER_ID])
+                elif mutation == "wrong_source":
+                    bad_by_id[check.DETYPING_OWNER_ID]["source"]["generated_lines"] = [360, 579]
+                elif mutation == "wrong_dependencies":
+                    bad_by_id[check.DETYPING_OWNER_ID]["prerequisites"] = ["F07-TYPED"]
+                elif mutation == "wrong_names":
+                    bad_by_id[check.DETYPING_OWNER_ID]["lean"]["names"].pop()
+                else:
+                    bad_by_id["F07-TYPED"]["boundary_hypotheses"] += " Finite dependent fibers."
+                self.assertTrue(any(phrase in error for error in self.errors(nodes=bad)))
+
     def test_lean_api_compatibility_contract_is_explicit(self) -> None:
         by_id = {node["id"]: node for node in self.nodes["nodes"]}
 

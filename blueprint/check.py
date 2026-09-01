@@ -56,6 +56,21 @@ IMPLEMENTATION_WRITER_LANES = {
     "field", "approximation", "polynomial", "pauli", "types", "parameters",
 }
 SIGNATURE_MANIFEST_KEYS = {"path", "begin_marker", "end_marker", "sha256"}
+DETYPING_OWNER_ID = "F07A-DETYPING"
+DETYPING_SOURCE_RANGE = [225, 579]
+DETYPING_PREREQUISITES = ["F03-MEASUREMENT", "F07-TYPED"]
+DETYPING_LEAN_NAMES = [
+    "MIPStarRE.QPBT.TypeGraph.neighborIndicator",
+    "MIPStarRE.QPBT.TypeGraph.vertexEncoding",
+    "MIPStarRE.QPBT.TypeGraph.clSampler",
+    "MIPStarRE.QPBT.TypeGraph.simulationEvent",
+    "MIPStarRE.QPBT.TypeGraph.simulatesDistribution",
+    "MIPStarRE.QPBT.detypeCL",
+    "MIPStarRE.QPBT.TypedSampler.detype",
+    "MIPStarRE.QPBT.TypedDecider.detype",
+    "MIPStarRE.QPBT.TypedVerifier.detype",
+    "MIPStarRE.QPBT.detypingVerifier",
+]
 EXPECTED_TARGETS = {
     "completeness": "G03-COMPLETENESS",
     "soundness": "S01-SOUNDNESS",
@@ -402,6 +417,27 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
 
     prerequisites = {node["id"]: set(node["prerequisites"]) for node in nodes}
     nodes_by_id = {node["id"]: node for node in nodes}
+    detyping = nodes_by_id.get(DETYPING_OWNER_ID)
+    if detyping is None:
+        errors.append(f"missing exact detyping owner {DETYPING_OWNER_ID}")
+    else:
+        if detyping["source"].get("generated_lines") != DETYPING_SOURCE_RANGE:
+            errors.append(f"{DETYPING_OWNER_ID}: detyping source range must remain exact")
+        if detyping["prerequisites"] != DETYPING_PREREQUISITES:
+            errors.append(f"{DETYPING_OWNER_ID}: detyping prerequisites must remain exact")
+        if detyping["lean"].get("names") != DETYPING_LEAN_NAMES:
+            errors.append(f"{DETYPING_OWNER_ID}: detyping callable names must remain exact")
+    f06 = nodes_by_id.get("F06-CL", {})
+    if "MIPStarRE.QPBT.CLSampler.sample_directSum" not in f06.get("lean", {}).get("names", []):
+        errors.append("F06-CL: direct-sum product-distribution theorem must remain callable")
+    f07 = nodes_by_id.get("F07-TYPED", {})
+    f07_claims = " ".join(str(f07.get(field, "")) for field in (
+        "statement", "encoding", "boundary_hypotheses"
+    )).lower()
+    if "finite dependent fibers" in f07_claims or "finite decider" in f07_claims:
+        errors.append("F07-TYPED: generic dependent fibers must not be claimed finite")
+    if "g02" not in str(f07.get("boundary_hypotheses", "")).lower():
+        errors.append("F07-TYPED: consumer finiteness must remain assigned to G02")
     for node in nodes:
         expected = definition_ancestor_ids(node["id"], nodes_by_id, prerequisites)
         if node["transitive_definitions"] != expected:

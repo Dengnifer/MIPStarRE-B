@@ -31,6 +31,7 @@ digraph QPBT {
   "F05-PAULI" [label="F05-PAULI\nGeneralized Pauli and Fourier algebra", style=filled, fillcolor="#fce5cd"];
   "F06-CL" [label="F06-CL\nConditionally-linear maps and samplers", style=filled, fillcolor="#d9ead3"];
   "F07-TYPED" [label="F07-TYPED\nTyped samplers, deciders, and graph distributions", style=filled, fillcolor="#d9ead3"];
+  "F07A-DETYPING" [label="F07A-DETYPING\nGraph simulation and typed-verifier detyping", style=filled, fillcolor="#d9ead3"];
   "F08-MAGIC-GAME" [label="F08-MAGIC-GAME\nMagic Square game and perfect construction", style=filled, fillcolor="#d9ead3"];
   "F09-LDT-GAME" [label="F09-LDT-GAME\nSimultaneous individual low-degree game", style=filled, fillcolor="#cfe2f3"];
   "F10-PAULI-BINARY" [label="F10-PAULI-BINARY\nQudit-to-qubit Pauli conversion", style=filled, fillcolor="#fce5cd"];
@@ -99,6 +100,8 @@ digraph QPBT {
   "F03-MEASUREMENT" -> "F05-PAULI";
   "F01-FIELD" -> "F06-CL";
   "F06-CL" -> "F07-TYPED";
+  "F03-MEASUREMENT" -> "F07A-DETYPING";
+  "F07-TYPED" -> "F07A-DETYPING";
   "F03-MEASUREMENT" -> "F08-MAGIC-GAME";
   "F07-TYPED" -> "F08-MAGIC-GAME";
   "F02-CODE" -> "F09-LDT-GAME";
