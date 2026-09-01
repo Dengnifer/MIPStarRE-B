@@ -22965,6 +22965,93 @@
         "repository_edits": 0,
         "nested_agents": 0
       }
+    },
+    {
+      "id": "i052-orchestrator-a03-release-contract-repair",
+      "name": "i052-orchestrator-a03-release-contract-repair",
+      "backend": "codex-collaboration",
+      "role": "orchestrator",
+      "status": "running",
+      "issue_id": "QPBT-052",
+      "pr_id": null,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/repair052_bootstrap",
+      "attempt": 1,
+      "read_only": false,
+      "base_revision": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+      "base_revision_reason": "Exact immutable QPBT-049 A03 reviewed repair head; repair starts from the finding-bearing candidate.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-052-release-contract-repair-a03",
+      "owned_paths": [
+        "scripts/workflow.py",
+        "scripts/local_agent.py",
+        "tests/test_workflow.py",
+        "tests/test_local_agent.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md",
+        "workflow/reviews/qpbt-052-release-contract-repair-a03.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-049, QPBT-052, LPR-025, and immutable A03 report. Repair legacy compatibility, shared transaction validation, and strict event-sequence chronology; add focused regressions; run local-agent/workflow suites, compileall, checker, diff, and report exact candidate hashes. Do not touch canonical state/metrics, Lean/Lake/build/cache/network/GitHub/credentials or nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-052-release-contract-repair-a03.md",
+      "candidate_head_sha": null,
+      "candidate_tree": null,
+      "candidate_parent_sha": null,
+      "candidate_manifest_sha256": null,
+      "candidate_report_sha256": null,
+      "review_scope": "Discharge F-LPR025-A03-001 through A03-003 without weakening the post-confirmation lease or changing historical source claims.",
+      "started_at": "2026-09-01T20:49:25.643729Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null
+    },
+    {
+      "id": "i050-integrator-a03-guarded-integration",
+      "name": "i050-integrator-a03-guarded-integration",
+      "backend": "codex-collaboration",
+      "role": "integrator",
+      "status": "running",
+      "issue_id": "QPBT-050",
+      "pr_id": null,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/integrator050_bootstrap",
+      "attempt": 3,
+      "read_only": false,
+      "base_revision": "d4a9c589c0e26cd85dc355a428d80cadd5d0225e",
+      "base_revision_reason": "Current canonical main checkpoint after A03 review disposition; integration must preserve the approved candidate blobs over this first parent.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-050-guarded-integration-a03",
+      "owned_paths": [
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "workflow/reviews/qpbt-050-fsmonitor-hardening-a01.md",
+        "workflow/reviews/qpbt-050-fsmonitor-repair-a02.md",
+        "workflow/reviews/qpbt-050-review-a03.md",
+        "workflow/reviews/qpbt-050-guarded-integration-a03.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-050, LPR-026, A03 approval, and exact candidate history. Guardedly integrate approved candidate c70267e onto current main d4a9c58 while preserving candidate blobs and canonical workflow state; authenticate parents/tree/path manifest. Run 62+ hot-cache tests, compileall, workflow/checker/diff gates and no production warm/cache/network/GitHub/credentials/Lean/Lake/nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-050-guarded-integration-a03.md",
+      "candidate_head_sha": "c70267e3d65aeb3c47b4680ab53693c5b9ead6fa",
+      "candidate_tree": "1c1be2d9c9e7c790842fab47077055f929826c06",
+      "candidate_parent_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
+      "candidate_manifest_sha256": "a3358d0d5ce28b5569eaaff61872f9f231c47d693c0df31996ef732e2b8319da",
+      "candidate_report_sha256": "8bfefa83a421eb2a7c8bfb49dbbae20ccae04eaae720d0d29249c42bf88c82fd",
+      "review_scope": "Preserve the approved LPR-026 candidate exactly while integrating only its four changed paths onto current canonical main.",
+      "started_at": "2026-09-01T20:58:18.094921Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null
     }
   ]
 }

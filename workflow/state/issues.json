@@ -2659,6 +2659,57 @@
       "updated_at": "2026-09-01T19:00:00Z",
       "blocked_reason": "Depends on QPBT-045 completion and the overlapping QPBT-050 Git-diagnostics hardening.",
       "unblock_condition": "QPBT-045 and QPBT-050 are done; then assign one orchestrator with an isolated worktree."
+    },
+    {
+      "id": "QPBT-052",
+      "title": "Repair release lifecycle compatibility and transaction ordering",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "in_progress",
+      "parent_id": "QPBT-049",
+      "dependency_ids": [
+        "QPBT-034"
+      ],
+      "labels": [
+        "workflow",
+        "orchestration",
+        "release-lease",
+        "legacy-compatibility",
+        "transaction-atomicity",
+        "chronology",
+        "safety",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Preserve every valid pre-feature collaboration lifecycle in the canonical append-only event log while enforcing a release attestation for newly confirmed collaboration launches.",
+        "Route both local-agent claim and CLI/API transition through one lock-held pre/post event-log validation and rollback boundary; reject malformed release identity, backend scope, duplicate, pre-issuance, reverse chronology, and terminal progression escapes.",
+        "Use event sequence as a strict chronology tie-breaker when timestamps are equal, with regressions for equal-time issuance/release/running permutations.",
+        "Run focused local-agent/workflow suites, full checker, compileall, diff hygiene, and an independent immutable review of the repaired head; do not touch Lean, Lake, build/cache, network, GitHub, credentials, or unrelated paths."
+      ],
+      "owner_session_id": "i052-orchestrator-a03-release-contract-repair",
+      "source_refs": [
+        "workflow/reviews/qpbt-049-review-a03.md#F-LPR025-A03-001",
+        "workflow/reviews/qpbt-049-review-a03.md#F-LPR025-A03-002",
+        "workflow/reviews/qpbt-049-review-a03.md#F-LPR025-A03-003",
+        "scripts/workflow.py",
+        "scripts/local_agent.py",
+        "tests/test_workflow.py",
+        "tests/test_local_agent.py"
+      ],
+      "owned_paths": [
+        "scripts/workflow.py",
+        "scripts/local_agent.py",
+        "tests/test_workflow.py",
+        "tests/test_local_agent.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md",
+        "workflow/reviews/qpbt-052-release-contract-repair-a03.md"
+      ],
+      "created_at": "2026-09-01T20:47:03Z",
+      "updated_at": "2026-09-01T20:49:26.468713Z",
+      "blocked_reason": null,
+      "unblock_condition": "Fresh immutable review of the repaired release contract, then guarded integration.",
+      "repair_round": 3
     }
   ]
 }
