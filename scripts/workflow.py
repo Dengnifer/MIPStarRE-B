@@ -444,7 +444,11 @@ def _validate_pr_evidence(
         and session.get("read_only") is False
         and isinstance(session.get("id"), str)
     }
-    if status in {"ready", "approved", "merged"} and set(implementer_ids) != bound_writable_ids:
+    if (
+        isinstance(status, str)
+        and status in {"ready", "approved", "merged"}
+        and set(implementer_ids) != bound_writable_ids
+    ):
         errors.append(
             f"{location}.implementer_session_ids: must list exactly the writable sessions bound to this PR"
         )
@@ -476,8 +480,9 @@ def _validate_pr_evidence(
         _require_keys(check, check_required, loc, errors)
         for key in ("name", "command", "result_path"):
             _nonempty_string(check.get(key), f"{loc}.{key}", errors)
-        if check.get("status") not in CHECK_STATUSES:
-            errors.append(f"{loc}.status: invalid check status {check.get('status')!r}")
+        check_status = check.get("status")
+        if not isinstance(check_status, str) or check_status not in CHECK_STATUSES:
+            errors.append(f"{loc}.status: invalid check status {check_status!r}")
         _validate_sha(check.get("base_sha"), f"{loc}.base_sha", errors)
         _validate_sha(check.get("head_sha"), f"{loc}.head_sha", errors)
         if isinstance(base_sha, str) and check.get("base_sha") != base_sha:
@@ -521,7 +526,8 @@ def _validate_pr_evidence(
             else:
                 if reviewer.get("role") != "reviewer" or reviewer.get("read_only") is not True:
                     errors.append(f"{loc}.reviewer_session_id: reviewer must be a read-only reviewer session")
-                if reviewer.get("status") not in {"finished", "archived"}:
+                reviewer_status = reviewer.get("status")
+                if not isinstance(reviewer_status, str) or reviewer_status not in {"finished", "archived"}:
                     errors.append(f"{loc}.reviewer_session_id: reviewer session has not finished")
                 if reviewer.get("pr_id") != pr_id:
                     errors.append(f"{loc}.reviewer_session_id: reviewer session is not bound to PR {pr_id!r}")
@@ -531,8 +537,9 @@ def _validate_pr_evidence(
                     errors.append(f"{loc}.reviewer_session_id: reviewer lacks a persistent external identity")
             if reviewer_id in implementer_ids or reviewer_id in owner_ids:
                 errors.append(f"{loc}.reviewer_session_id: reviewer is not independent of implementation")
-        if review.get("verdict") not in REVIEW_VERDICTS:
-            errors.append(f"{loc}.verdict: invalid review verdict {review.get('verdict')!r}")
+        review_verdict = review.get("verdict")
+        if not isinstance(review_verdict, str) or review_verdict not in REVIEW_VERDICTS:
+            errors.append(f"{loc}.verdict: invalid review verdict {review_verdict!r}")
         _validate_sha(review.get("base_sha"), f"{loc}.base_sha", errors)
         _validate_sha(review.get("head_sha"), f"{loc}.head_sha", errors)
         if isinstance(base_sha, str) and review.get("base_sha") != base_sha:
@@ -577,42 +584,55 @@ def _validate_pr_evidence(
     finding_by_id = {
         finding["id"]: finding for finding in findings if isinstance(finding.get("id"), str)
     }
+    review_by_id = {
+        review["id"]: review for review in reviews if isinstance(review.get("id"), str)
+    }
+    finding_confirmation_ids: list[list[str]] = []
     for index, finding in enumerate(findings):
         loc = f"{location}.findings[{index}]"
         _require_keys(finding, finding_required, loc, errors)
+        confirmation_ids = _unique_string_list(
+            finding.get("confirmation_review_ids", []),
+            f"{loc}.confirmation_review_ids",
+            errors,
+        )
+        finding_confirmation_ids.append(confirmation_ids)
         introduced = finding.get("introduced_review_id")
-        if introduced not in review_ids:
+        if not isinstance(introduced, str) or introduced not in review_ids:
             errors.append(f"{loc}.introduced_review_id: unknown review {introduced!r}")
         _validate_sha(finding.get("base_sha"), f"{loc}.base_sha", errors)
         _validate_sha(finding.get("head_sha"), f"{loc}.head_sha", errors)
         if isinstance(base_sha, str) and finding.get("base_sha") != base_sha:
             errors.append(f"{loc}.base_sha: finding is not bound to PR base_sha")
-        if finding.get("severity") not in FINDING_SEVERITIES:
-            errors.append(f"{loc}.severity: invalid finding severity {finding.get('severity')!r}")
+        severity = finding.get("severity")
+        if not isinstance(severity, str) or severity not in FINDING_SEVERITIES:
+            errors.append(f"{loc}.severity: invalid finding severity {severity!r}")
         finding_status = finding.get("status")
         disposition = finding.get("disposition")
-        if finding_status not in FINDING_STATUSES:
+        if not isinstance(finding_status, str) or finding_status not in FINDING_STATUSES:
             errors.append(f"{loc}.status: invalid finding status {finding_status!r}")
-        if disposition not in FINDING_DISPOSITIONS:
+        if not isinstance(disposition, str) or disposition not in FINDING_DISPOSITIONS:
             errors.append(f"{loc}.disposition: invalid finding disposition {disposition!r}")
         evidence = finding.get("disposition_evidence")
         resolved_by = finding.get("resolved_by_review_id")
         if finding_status == "open":
             if disposition != "pending" or evidence is not None or resolved_by is not None:
                 errors.append(f"{loc}: open finding must have pending disposition and no resolution evidence")
+            if confirmation_ids:
+                errors.append(f"{loc}.confirmation_review_ids: open finding cannot be confirmed")
         elif finding_status == "resolved":
-            if disposition not in {"fixed", "rejected"}:
+            if not isinstance(disposition, str) or disposition not in {"fixed", "rejected"}:
                 errors.append(f"{loc}.disposition: resolved finding must be fixed or rejected")
             _nonempty_string(evidence, f"{loc}.disposition_evidence", errors)
-            if resolved_by not in review_ids:
+            if not isinstance(resolved_by, str) or resolved_by not in review_ids:
                 errors.append(f"{loc}.resolved_by_review_id: unknown review {resolved_by!r}")
-        source_review = next((review for review in reviews if review.get("id") == introduced), None)
+        source_review = review_by_id.get(introduced) if isinstance(introduced, str) else None
         if source_review is not None:
             if finding.get("base_sha") != source_review.get("base_sha"):
                 errors.append(f"{loc}.base_sha: differs from introducing review")
             if finding.get("head_sha") != source_review.get("head_sha"):
                 errors.append(f"{loc}.head_sha: differs from introducing review")
-        resolution_review = next((review for review in reviews if review.get("id") == resolved_by), None)
+        resolution_review = review_by_id.get(resolved_by) if isinstance(resolved_by, str) else None
         if finding_status == "resolved" and resolution_review is not None and source_review is not None:
             if resolved_by == introduced:
                 errors.append(f"{loc}.resolved_by_review_id: finding requires a later review round")
@@ -622,6 +642,41 @@ def _validate_pr_evidence(
                 errors.append(f"{loc}.resolved_by_review_id: resolution review is not later than introduction")
             if disposition == "fixed" and resolution_review.get("head_sha") == finding.get("head_sha"):
                 errors.append(f"{loc}.resolved_by_review_id: fixed finding requires a changed head SHA")
+        prior_review_id = resolved_by
+        prior_completed = review_times.get(str(resolved_by))
+        for confirmation_id in confirmation_ids:
+            confirmation_review = review_by_id.get(confirmation_id)
+            if confirmation_review is None:
+                errors.append(
+                    f"{loc}.confirmation_review_ids: unknown review {confirmation_id!r}"
+                )
+                continue
+            if confirmation_id == resolved_by:
+                errors.append(
+                    f"{loc}.confirmation_review_ids: confirmation must differ from the resolution review"
+                )
+            if confirmation_review.get("verdict") != "approve":
+                errors.append(
+                    f"{loc}.confirmation_review_ids: confirmation review {confirmation_id!r} must approve"
+                )
+            confirmed_start = review_starts.get(confirmation_id)
+            confirmed_at = review_times.get(confirmation_id)
+            if (
+                prior_completed is not None
+                and confirmed_start is not None
+                and confirmed_start < prior_completed
+            ):
+                errors.append(
+                    f"{loc}.confirmation_review_ids: review {confirmation_id!r} started before "
+                    f"{prior_review_id!r} completed"
+                )
+            if prior_completed is not None and confirmed_at is not None and confirmed_at <= prior_completed:
+                errors.append(
+                    f"{loc}.confirmation_review_ids: review {confirmation_id!r} is not later than "
+                    f"{prior_review_id!r}"
+                )
+            prior_review_id = confirmation_id
+            prior_completed = confirmed_at
 
     for review in reviews:
         review_id = review.get("id")
@@ -678,18 +733,23 @@ def _validate_pr_evidence(
             errors.append(
                 f"{location}.reviews[{review.get('id')!r}]: review started before checks completed"
             )
-    requires_frozen_head = status in {"ready", "changes_requested", "approved", "merged"}
+    requires_frozen_head = isinstance(status, str) and status in {
+        "ready",
+        "changes_requested",
+        "approved",
+        "merged",
+    }
     if requires_frozen_head:
         _validate_sha(base_sha, f"{location}.base_sha", errors)
         _validate_sha(head_sha, f"{location}.head_sha", errors)
         if base_sha == head_sha:
             errors.append(f"{location}: base_sha and head_sha must differ")
-    if status in {"ready", "approved", "merged"}:
+    if isinstance(status, str) and status in {"ready", "approved", "merged"}:
         if not current_checks:
             errors.append(f"{location}: status {status!r} requires checks for the current base/head")
         elif any(check.get("status") != "passed" for check in current_checks):
             errors.append(f"{location}: all current checks must pass before status {status!r}")
-    if status in {"approved", "merged"}:
+    if isinstance(status, str) and status in {"approved", "merged"}:
         if not implementer_ids:
             errors.append(f"{location}: status {status!r} requires identified implementer sessions")
         latest_review = current_reviews[-1] if current_reviews else None
@@ -697,14 +757,20 @@ def _validate_pr_evidence(
             errors.append(f"{location}: status {status!r} requires a current approving review")
         if any(finding.get("status") != "resolved" for finding in findings):
             errors.append(f"{location}: status {status!r} requires every finding to be resolved")
-        for finding in findings:
+        for index, finding in enumerate(findings):
             if finding.get("status") != "resolved":
                 continue
-            resolution = next(
-                (review for review in reviews if review.get("id") == finding.get("resolved_by_review_id")),
-                None,
+            binding_review_ids = [
+                finding.get("resolved_by_review_id"),
+                *finding_confirmation_ids[index],
+            ]
+            confirmed_on_current_head = any(
+                isinstance(review_id, str)
+                and review_by_id.get(review_id, {}).get("base_sha") == base_sha
+                and review_by_id.get(review_id, {}).get("head_sha") == head_sha
+                for review_id in binding_review_ids
             )
-            if resolution is None or resolution.get("base_sha") != base_sha or resolution.get("head_sha") != head_sha:
+            if not confirmed_on_current_head:
                 errors.append(
                     f"{location}.findings[{finding.get('id')!r}]: resolution is not confirmed on current base/head"
                 )
@@ -906,7 +972,7 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
         for key in ("title", "base", "head"):
             _nonempty_string(pull_request.get(key), f"{loc}.{key}", errors)
         status = pull_request.get("status")
-        if status not in PR_STATUSES:
+        if not isinstance(status, str) or status not in PR_STATUSES:
             errors.append(f"{loc}.status: invalid PR status {status!r}")
         linked_issues = pull_request.get("issue_ids")
         if not isinstance(linked_issues, list) or any(not isinstance(item, str) for item in linked_issues):
@@ -993,18 +1059,19 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
             elif name in issued_names:
                 errors.append(f"sessions.json.issued: duplicate name {name!r}")
             issued_names.add(name)
-        if name in planned_names:
+        if isinstance(name, str) and name in planned_names:
             errors.append(f"sessions.json: name {name!r} appears in both planned and issued")
-        if session.get("status") not in SESSION_STATUSES:
-            errors.append(f"{loc}.status: invalid session status {session.get('status')!r}")
+        session_status = session.get("status")
+        if not isinstance(session_status, str) or session_status not in SESSION_STATUSES:
+            errors.append(f"{loc}.status: invalid session status {session_status!r}")
         session_issue_id = session.get("issue_id")
-        if session_issue_id not in issue_ids:
+        if not isinstance(session_issue_id, str) or session_issue_id not in issue_ids:
             errors.append(f"{loc}.issue_id: unknown issue {session_issue_id!r}")
         pr_id = session.get("pr_id")
-        if pr_id is not None and pr_id not in pr_ids:
+        if pr_id is not None and (not isinstance(pr_id, str) or pr_id not in pr_ids):
             errors.append(f"{loc}.pr_id: unknown PR {pr_id!r}")
         parent = session.get("parent_session_id")
-        if parent is not None and parent not in all_session_ids:
+        if parent is not None and (not isinstance(parent, str) or parent not in all_session_ids):
             errors.append(f"{loc}.parent_session_id: unknown session {parent!r}")
         if parent == session.get("id"):
             errors.append(f"{loc}.parent_session_id: session cannot parent itself")
@@ -1024,7 +1091,7 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
         base_revision = session.get("base_revision")
         if base_revision is None:
             _nonempty_string(session.get("base_revision_reason"), f"{loc}.base_revision_reason", errors)
-            issue = issue_by_id.get(session_issue_id, {})
+            issue = issue_by_id.get(session_issue_id, {}) if isinstance(session_issue_id, str) else {}
             if _issue_execution_category(issue) == "implementation":
                 errors.append(f"{loc}.base_revision: implementation sessions require an immutable Git SHA")
         else:
@@ -1059,21 +1126,20 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
         outcome = session.get("outcome_path")
         if outcome is not None and (not isinstance(outcome, str) or not outcome):
             errors.append(f"{loc}.outcome_path: expected null or a non-empty string")
-        session_status = session.get("status")
         started_at = session.get("started_at")
         ended_at = session.get("ended_at")
         archive_status = session.get("archive_status")
-        if archive_status not in ARCHIVE_STATUSES:
+        if not isinstance(archive_status, str) or archive_status not in ARCHIVE_STATUSES:
             errors.append(f"{loc}.archive_status: invalid archive status {archive_status!r}")
         timing_quality = session.get("timing_quality")
         if timing_quality is not None:
             _nonempty_string(timing_quality, f"{loc}.timing_quality", errors)
-            if timing_quality not in TIMING_QUALITIES:
+            if not isinstance(timing_quality, str) or timing_quality not in TIMING_QUALITIES:
                 errors.append(f"{loc}.timing_quality: unknown timing provenance {timing_quality!r}")
         timing_bounds = session.get("timing_bounds")
         bounded_timing = timing_quality == BOUNDED_TIMING_QUALITY
         if bounded_timing:
-            if session_status not in {"finished", "failed", "archived"}:
+            if not isinstance(session_status, str) or session_status not in {"finished", "failed", "archived"}:
                 errors.append(f"{loc}.timing_quality: bounded timing is only valid for terminal sessions")
             if not isinstance(parent, str) or parent not in issued_by_id:
                 errors.append(f"{loc}.timing_quality: parent-window timing requires an issued parent session")
@@ -1109,7 +1175,7 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
                 errors.append(f"{loc}.started_at: required for running session")
             if ended_at is not None or elapsed is not None:
                 errors.append(f"{loc}: running session cannot have terminal timing")
-        elif session_status in {"finished", "failed", "archived"}:
+        elif isinstance(session_status, str) and session_status in {"finished", "failed", "archived"}:
             if not bounded_timing and (started_at is None or ended_at is None or elapsed is None):
                 errors.append(f"{loc}: terminal session requires started_at, ended_at, and elapsed_seconds")
         start_time = _timestamp_value(started_at)
@@ -1121,14 +1187,24 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
             and end_time is not None
             and isinstance(elapsed, (int, float))
             and not isinstance(elapsed, bool)
-            and timing_quality in {None, "runtime-exact"}
+            and (timing_quality is None or timing_quality == "runtime-exact")
             and abs((end_time - start_time).total_seconds() - elapsed) > 0.01
         ):
             errors.append(f"{loc}.timing_quality: non-exact timing must be labeled approximate or derived")
-        if session_status in ACTIVE_SESSION_STATUSES and archive_status not in {"active", "not_requested"}:
+        if (
+            isinstance(session_status, str)
+            and session_status in ACTIVE_SESSION_STATUSES
+            and (
+                not isinstance(archive_status, str)
+                or archive_status not in {"active", "not_requested"}
+            )
+        ):
             errors.append(f"{loc}.archive_status: active session must be active or not_requested")
         if session_status == "archived":
-            if archive_status not in {"archived", "retired-locally-no-cli-session"}:
+            if (
+                not isinstance(archive_status, str)
+                or archive_status not in {"archived", "retired-locally-no-cli-session"}
+            ):
                 errors.append(f"{loc}.archive_status: archived session lacks completed archive evidence")
             if outcome is None:
                 errors.append(f"{loc}.outcome_path: required for archived session")
@@ -1141,7 +1217,7 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
     _validate_cycle(
         all_session_ids,
         lambda session_id: [session_by_id[session_id]["parent_session_id"]]
-        if session_by_id.get(session_id, {}).get("parent_session_id") is not None
+        if isinstance(session_by_id.get(session_id, {}).get("parent_session_id"), str)
         else [],
         "session parent hierarchy",
         errors,
@@ -1149,7 +1225,12 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
 
     active_writable_claims: list[tuple[str, str, str, tuple[str, ...]]] = []
     for session in issued:
-        if session.get("status") not in ACTIVE_SESSION_STATUSES or session.get("read_only") is not False:
+        session_status = session.get("status")
+        if (
+            not isinstance(session_status, str)
+            or session_status not in ACTIVE_SESSION_STATUSES
+            or session.get("read_only") is not False
+        ):
             continue
         worktree = session.get("worktree")
         owned_paths = session.get("owned_paths")
@@ -1189,6 +1270,7 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
             for session in issued
             if session.get("issue_id") == issue_id
             and session.get("role") == "orchestrator"
+            and isinstance(session.get("status"), str)
             and session.get("status") in ACTIVE_SESSION_STATUSES
         ]
         if len(orchestrators) != 1:
@@ -2385,6 +2467,7 @@ def _require_findings_update(old: Any, new: Any) -> None:
         "disposition",
         "disposition_evidence",
         "resolved_by_review_id",
+        "confirmation_review_ids",
     }
     for index, old_finding in enumerate(old):
         new_finding = new[index]
@@ -2394,27 +2477,119 @@ def _require_findings_update(old: Any, new: Any) -> None:
         new_immutable = {key: value for key, value in new_finding.items() if key not in mutable_resolution_fields}
         if old_immutable != new_immutable:
             raise WorkflowError("PR finding identity and introduction evidence are immutable")
-        if old_finding.get("status") == "resolved" and new_finding != old_finding:
-            raise WorkflowError("resolved PR finding dispositions are immutable")
-        if old_finding.get("status") == "open" and new_finding.get("status") not in {"open", "resolved"}:
-            raise WorkflowError("PR findings may only transition from open to resolved")
+        old_confirmations = old_finding.get("confirmation_review_ids", [])
+        new_confirmations = new_finding.get("confirmation_review_ids", [])
+        if (
+            not isinstance(old_confirmations, list)
+            or not isinstance(new_confirmations, list)
+            or new_confirmations[: len(old_confirmations)] != old_confirmations
+        ):
+            raise WorkflowError("PR finding confirmation_review_ids are append-only")
+        if old_finding.get("status") == "resolved":
+            old_resolution = {
+                key: value for key, value in old_finding.items() if key != "confirmation_review_ids"
+            }
+            new_resolution = {
+                key: value for key, value in new_finding.items() if key != "confirmation_review_ids"
+            }
+            if old_resolution != new_resolution:
+                raise WorkflowError("resolved PR finding dispositions are immutable")
+        if old_finding.get("status") == "open":
+            new_status = new_finding.get("status")
+            if not isinstance(new_status, str) or new_status not in {"open", "resolved"}:
+                raise WorkflowError("PR findings may only transition from open to resolved")
 
 
-def _check_pr_update(record: Mapping[str, Any], assignments: Sequence[tuple[list[str], Any]]) -> None:
-    for keys, value in assignments:
-        field = keys[0]
+def _require_new_finding_confirmations(
+    old_findings: Any, candidate: Mapping[str, Any]
+) -> None:
+    new_findings = candidate.get("findings")
+    reviews = candidate.get("reviews")
+    if (
+        not isinstance(old_findings, list)
+        or not isinstance(new_findings, list)
+        or not isinstance(reviews, list)
+    ):
+        raise WorkflowError("PR confirmation evidence must remain structured lists")
+    review_by_id = {
+        review["id"]: review for review in reviews
+        if isinstance(review, dict) and isinstance(review.get("id"), str)
+    }
+    for index, new_finding in enumerate(new_findings):
+        if not isinstance(new_finding, dict):
+            raise WorkflowError("new PR finding evidence must remain a structured object")
+        old_finding = old_findings[index] if index < len(old_findings) else {}
+        if not isinstance(old_finding, dict):
+            raise WorkflowError("old PR finding evidence must remain a structured object")
+        old_ids = old_finding.get("confirmation_review_ids", [])
+        new_ids = new_finding.get("confirmation_review_ids", [])
+        if not isinstance(old_ids, list) or not isinstance(new_ids, list):
+            raise WorkflowError("PR finding confirmation_review_ids must remain lists")
+        prior_id = old_ids[-1] if old_ids else new_finding.get("resolved_by_review_id")
+        prior = review_by_id.get(prior_id) if isinstance(prior_id, str) else None
+        prior_completed = _timestamp_value(prior.get("completed_at")) if prior is not None else None
+        for confirmation_id in new_ids[len(old_ids) :]:
+            if not isinstance(confirmation_id, str):
+                raise WorkflowError("new PR finding confirmation IDs must be strings")
+            review = review_by_id.get(confirmation_id)
+            if review is None:
+                raise WorkflowError(
+                    f"new PR finding confirmation {confirmation_id!r} is not in the candidate review list"
+                )
+            if confirmation_id == new_finding.get("resolved_by_review_id"):
+                raise WorkflowError("new PR finding confirmation must differ from the resolution review")
+            if new_ids.count(confirmation_id) != 1:
+                raise WorkflowError(f"new PR finding confirmation {confirmation_id!r} is duplicated")
+            if review.get("base_sha") != candidate.get("base_sha"):
+                raise WorkflowError(
+                    f"new PR finding confirmation {confirmation_id!r} has the wrong base SHA"
+                )
+            if review.get("head_sha") != candidate.get("head_sha"):
+                raise WorkflowError(
+                    f"new PR finding confirmation {confirmation_id!r} has the wrong head SHA"
+                )
+            if review.get("verdict") != "approve":
+                raise WorkflowError(f"new PR finding confirmation {confirmation_id!r} must approve")
+            started = _timestamp_value(review.get("started_at"))
+            completed = _timestamp_value(review.get("completed_at"))
+            if started is None or completed is None or completed < started:
+                raise WorkflowError(
+                    f"new PR finding confirmation {confirmation_id!r} has malformed chronology"
+                )
+            if prior_completed is not None and (
+                started < prior_completed or completed <= prior_completed
+            ):
+                raise WorkflowError(f"new PR finding confirmation {confirmation_id!r} is out of order")
+            prior_completed = completed
+
+
+def _check_pr_update(
+    record: Mapping[str, Any], candidate: Mapping[str, Any]
+) -> None:
+    for field, value in candidate.items():
+        if value == record.get(field):
+            continue
         if field in {"checks", "reviews", "implementer_session_ids"}:
-            if len(keys) != 1:
-                raise WorkflowError(f"PR field {field!r} must be replaced as one append-only list")
             _require_append_only(record.get(field), value, field)
         elif field == "findings":
-            if len(keys) != 1:
-                raise WorkflowError("PR findings must be replaced as one disposition-aware list")
             _require_findings_update(record.get("findings"), value)
         elif field == "integration_sha":
             old = record.get(field)
             if old is not None and value != old:
                 raise WorkflowError("PR integration_sha is immutable once recorded")
+    _require_new_finding_confirmations(record.get("findings"), candidate)
+
+
+def _check_pr_assignment_shapes(assignments: Sequence[tuple[list[str], Any]]) -> None:
+    for keys, _ in assignments:
+        field = keys[0]
+        if (
+            field in {"checks", "reviews", "implementer_session_ids"}
+            and len(keys) != 1
+        ):
+            raise WorkflowError(f"PR field {field!r} must be replaced as one append-only list")
+        if field == "findings" and len(keys) != 1:
+            raise WorkflowError("PR findings must be replaced as one disposition-aware list")
 
 
 def _check_session_update(record: Mapping[str, Any], assignments: Sequence[tuple[list[str], Any]]) -> None:
@@ -2760,11 +2935,16 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             if arguments.kind == "pr" and record.get("status") in {"merged", "closed"}:
                 raise WorkflowError("merged or closed PR records cannot be updated")
             if arguments.kind == "pr":
-                _check_pr_update(record, assignments)
-            elif arguments.kind == "issued-session":
+                _check_pr_assignment_shapes(assignments)
+            if arguments.kind == "issued-session":
                 _check_session_update(record, assignments)
+            candidate = copy.deepcopy(record)
             for keys, value in assignments:
-                _set_nested(record, keys, value)
+                _set_nested(candidate, keys, value)
+            if arguments.kind == "pr":
+                _check_pr_update(record, candidate)
+            record.clear()
+            record.update(candidate)
             if (
                 arguments.kind == "pr"
                 and old_head != record.get("head_sha")
