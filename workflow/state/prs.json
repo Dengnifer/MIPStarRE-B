@@ -4080,12 +4080,13 @@
       "base": "main",
       "head": "issue/qpbt-026-disclosure-a01",
       "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
-      "head_sha": "f3f49388f7058a9f9b997798417e4ae08435f523",
+      "head_sha": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
       "implementer_session_ids": [
         "i026-integrator-a02-pr016-bind",
         "i026-fixer-a05-disclosure-preflight",
         "i026-fixer-a11-scope-token-repair",
-        "i026-fixer-a17-offline-isolation"
+        "i026-fixer-a17-offline-isolation",
+        "i026-fixer-a19-capability-schema"
       ],
       "checks": [
         {
@@ -4326,6 +4327,69 @@
           "commit_count": 4,
           "branch": "issue/qpbt-026-disclosure-a01",
           "worktree_clean": true
+        },
+        {
+          "id": "check-qpbt-026-focused-5bf6e08",
+          "name": "A19 exact-head disclosure safety focused tests",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_local_agent.py'",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+          "completed_at": "2026-09-01T04:40:17.386707Z",
+          "result_path": "workflow/reviews/qpbt-026-capability-schema-a19.md",
+          "tests": "63/63",
+          "seconds": 3.952,
+          "fixer_tests": "63/63",
+          "fixer_seconds": 4.066,
+          "fixer_wall_seconds": 4.23
+        },
+        {
+          "id": "check-qpbt-026-compile-5bf6e08",
+          "name": "A19 exact-head Python compile check",
+          "command": "PYTHONPYCACHEPREFIX=/tmp/qpbt-026-root-a19-pycache python3 -m compileall -q scripts/local_agent.py tests/test_local_agent.py",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+          "completed_at": "2026-09-01T04:40:17.386707Z",
+          "result_path": "workflow/reviews/qpbt-026-capability-schema-a19.md",
+          "root_reproduced": true
+        },
+        {
+          "id": "check-qpbt-026-validate-5bf6e08",
+          "name": "A19 exact-head workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+          "completed_at": "2026-09-01T04:40:17.386707Z",
+          "result_path": "workflow/reviews/qpbt-026-capability-schema-a19.md",
+          "valid": true
+        },
+        {
+          "id": "check-qpbt-026-diff-5bf6e08",
+          "name": "A19 SHA-bound diff hygiene and path inventory",
+          "command": "git diff --check ea584e9e894391773e09ddad2ce4d082497c7913..5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+          "completed_at": "2026-09-01T04:40:17.386707Z",
+          "result_path": "workflow/reviews/qpbt-026-capability-schema-a19.md",
+          "changed_paths": 9
+        },
+        {
+          "id": "check-qpbt-026-identity-5bf6e08",
+          "name": "A19 candidate ancestry tree branch and clean-worktree identity",
+          "command": "git rev-parse HEAD HEAD^{tree} HEAD^; git merge-base --is-ancestor BASE HEAD; git rev-list --count BASE..HEAD; git status --porcelain",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+          "completed_at": "2026-09-01T04:40:17.386707Z",
+          "result_path": "workflow/reviews/qpbt-026-capability-schema-a19.md",
+          "tree_sha": "88b1b6076aa8890376cf4f8b56c3da2bd372367d",
+          "direct_fix_parent": "f3f49388f7058a9f9b997798417e4ae08435f523",
+          "commit_count": 5,
+          "branch": "issue/qpbt-026-disclosure-a01",
+          "worktree_clean": true
         }
       ],
       "reviews": [
@@ -4532,7 +4596,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T22:10:00Z",
-      "updated_at": "2026-09-01T04:27:50.119771Z",
+      "updated_at": "2026-09-01T04:44:09.399833Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -4541,21 +4605,146 @@
         "workflow/reviews/qpbt-026-disclosure-preflight-a01.md",
         "workflow/reviews/qpbt-026-disclosure-preflight-a05.md",
         "workflow/reviews/qpbt-026-disclosure-preflight-a11.md",
-        "workflow/reviews/qpbt-026-offline-isolation-a17.md"
+        "workflow/reviews/qpbt-026-offline-isolation-a17.md",
+        "workflow/reviews/qpbt-026-capability-schema-a19.md"
       ],
       "motivation": "INC-045 showed that endpoint/model authorization without an exact private evidence scope cannot safely launch an external reviewer.",
-      "description": "Validate legacy destination, immutable target, and path scope, then fail closed before any production reviewer side effect; keep the offline projected test facility non-launchable, validate injected capability evidence before side effects, and scrub all ambient Git selection from harness and runner environments.",
-      "testing": "62/62 exact-head local-agent tests; Python compileall; workflow validation; SHA-bound eight-path diff hygiene; direct-parent, tree, branch, ancestry, and clean-worktree identity",
+      "description": "Validate legacy destination, immutable target, and path scope, then fail closed before any production reviewer side effect; keep the offline projected test facility non-launchable, validate the complete allowlisted capability schema before side effects, and scrub all ambient Git selection from harness and runner environments.",
+      "testing": "63/63 exact-head local-agent tests; Python compileall; workflow validation; SHA-bound nine-path diff hygiene; direct-parent, tree, branch, ancestry, and clean-worktree identity",
       "addresses": "QPBT-026",
       "provenance_session_ids": [
         "i026-orchestrator-a01-disclosure-preflight",
         "i026-fixer-a05-disclosure-preflight",
         "i026-scout-a10-scope-token-design",
         "i026-fixer-a11-scope-token-repair",
-        "i026-fixer-a17-offline-isolation"
+        "i026-fixer-a17-offline-isolation",
+        "i026-fixer-a19-capability-schema"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "F-LPR016-008 requires a direct-descendant fix and a different fresh immutable reviewer. QPBT-027 must then supply append-only current-head finding reconfirmation before approval. Production external review remains disabled and no endpoint is contacted."
+      "unexecuted_gate": "Fresh immutable A20 review must resolve F-LPR016-008 and reconfirm F-LPR016-001 through F-LPR016-007 at exact head 5bf6e08. QPBT-027 must integrate before approval can append current-head confirmations. Production external review remains disabled and no endpoint is contacted."
+    },
+    {
+      "id": "LPR-017",
+      "title": "fix(review): permit append-only finding reconfirmation",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-027"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-027-finding-reconfirm-a01",
+      "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+      "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+      "implementer_session_ids": [
+        "i027-integrator-a03-pr017-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-027-focused-44ecdce",
+          "name": "exact-head finding reconfirmation focused tests",
+          "command": "python3 tests/test_workflow.py WorkflowValidationTests.test_approved_pr_accepts_append_only_current_head_reconfirmation ...",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+          "completed_at": "2026-09-01T04:30:26.270369Z",
+          "result_path": "workflow/reviews/qpbt-027-finding-reconfirm-a01.md",
+          "tests": "8/8",
+          "seconds": 0.015
+        },
+        {
+          "id": "check-qpbt-027-workflow-44ecdce",
+          "name": "exact-head workflow module tests",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 tests/test_workflow.py",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+          "completed_at": "2026-09-01T04:30:26.270369Z",
+          "result_path": "workflow/reviews/qpbt-027-finding-reconfirm-a01.md",
+          "tests": "67/67",
+          "seconds": 0.488
+        },
+        {
+          "id": "check-qpbt-027-aggregate-44ecdce",
+          "name": "exact-head dependency-free aggregate tests",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py'",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+          "completed_at": "2026-09-01T04:30:26.270369Z",
+          "result_path": "workflow/reviews/qpbt-027-finding-reconfirm-a01.md",
+          "tests": "320/320",
+          "seconds": 177.124
+        },
+        {
+          "id": "check-qpbt-027-compile-44ecdce",
+          "name": "exact-head Python compile check",
+          "command": "PYTHONPYCACHEPREFIX=/tmp/qpbt-027-a01-pycache python3 -m compileall -q scripts/workflow.py tests/test_workflow.py",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+          "completed_at": "2026-09-01T04:30:26.270369Z",
+          "result_path": "workflow/reviews/qpbt-027-finding-reconfirm-a01.md"
+        },
+        {
+          "id": "check-qpbt-027-validate-44ecdce",
+          "name": "exact-head workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+          "completed_at": "2026-09-01T04:30:26.270369Z",
+          "result_path": "workflow/reviews/qpbt-027-finding-reconfirm-a01.md",
+          "valid": true
+        },
+        {
+          "id": "check-qpbt-027-checker-44ecdce",
+          "name": "exact-head aggregate workflow checker",
+          "command": "python3 scripts/check_workflow.py --skip-tests",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+          "completed_at": "2026-09-01T04:30:26.270369Z",
+          "result_path": "workflow/reviews/qpbt-027-finding-reconfirm-a01.md"
+        },
+        {
+          "id": "check-qpbt-027-identity-44ecdce",
+          "name": "exact-head diff ancestry tree path and clean-worktree identity",
+          "command": "git diff --check BASE..HEAD; git rev-parse HEAD HEAD^{tree} HEAD^; git merge-base BASE HEAD; git rev-list --count BASE..HEAD; git diff --name-status --no-renames BASE..HEAD; git status --porcelain",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+          "completed_at": "2026-09-01T04:30:26.270369Z",
+          "result_path": "workflow/reviews/qpbt-027-finding-reconfirm-a01.md",
+          "tree_sha": "03e24c81b284f1b9f2e9bafbbc457e8c5f352e9e",
+          "direct_parent": true,
+          "commit_count": 1,
+          "changed_paths": 5,
+          "worktree_clean": true
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-01T04:34:43.606227Z",
+      "updated_at": "2026-09-01T04:41:43.803005Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/review.md",
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "workflow/reviews/qpbt-027-finding-reconfirm-a01.md"
+      ],
+      "motivation": "Remove the ledger contradiction that made honest approval impossible after a resolved finding's PR head advanced.",
+      "description": "Preserve immutable finding resolutions and append later approving review references that reconfirm them on the exact current base/head, with chronological, same-PR, independent-reviewer and fail-closed malformed-value validation.",
+      "testing": "8/8 focused reconfirmation cases; 67/67 workflow tests; 320/320 dependency-free aggregate tests; compileall; workflow validation/checker; exact diff, ancestry, tree, path, and clean-worktree identity",
+      "addresses": "QPBT-027",
+      "provenance_session_ids": [
+        "i027-orchestrator-a01-finding-reconfirm",
+        "i027-tester-a02-reconfirm-contract",
+        "i027-integrator-a03-pr017-bind"
+      ],
+      "requested_external_review": false,
+      "unexecuted_gate": "Fresh independent immutable reviewer approval of exact base 506ac7a7 and head 44ecdce9 remains required before integration; A03 authenticated and formally adopted the unchanged candidate."
     }
   ]
 }
