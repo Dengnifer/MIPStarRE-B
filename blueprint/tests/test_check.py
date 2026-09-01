@@ -496,7 +496,8 @@ class BlueprintCheckTests(unittest.TestCase):
                     )
                 elif mutation == "fabricated_machine":
                     node["encoding"] = node["encoding"].replace(
-                        "Mathlib Turing.FinTM2", "an axiomatized six-tape machine"
+                        "packSixTapes is an injective administrative encoding only.",
+                        "an axiomatized one-tape machine.",
                     )
                 else:
                     node["integrity"]["paper_conclusion"] = (
@@ -507,6 +508,69 @@ class BlueprintCheckTests(unittest.TestCase):
                 self.assertTrue(any(
                     phrase in error for error in self.errors(nodes=bad)
                 ))
+
+    def test_executable_cl_source_fidelity_repairs_are_fail_closed(self) -> None:
+        node_id = check.EXECUTABLE_CL_OWNER_ID
+        by_id = {node["id"]: node for node in self.nodes["nodes"]}
+        node = by_id[node_id]
+        self.assertIn("0 < n", node["integrity"]["lean_assumptions"])
+        self.assertIn("1 <= level", node["integrity"]["lean_conclusion"])
+        self.assertIn("RuntimeBigO", node["integrity"]["lean_conclusion"])
+        self.assertIn("valid-query finite maximum", node["boundary_hypotheses"])
+        self.assertIn("ignored-tape semantics", node["boundary_hypotheses"])
+        self.assertIn("dependent u/y domains", node["integrity"]["lean_assumptions"])
+        self.assertIn("exact PMF.map pushforward", node["integrity"]["lean_conclusion"])
+
+        mutations = (
+            ("statement", "positive-index", "all-index"),
+            ("encoding", "canonical field codec", "arbitrary caller codec"),
+            ("encoding", "dependent subtypes", "untyped strings"),
+            ("boundary_hypotheses", "valid-query finite maximum", "upper-bound field"),
+            ("boundary_hypotheses", "ignored-tape semantics", "one-tape serialization"),
+            ("integrity.lean_conclusion", "RuntimeBigO", "IsBigO Filter.atTop"),
+            ("integrity.lean_conclusion", "exact PMF.map pushforward", "asymptotic law"),
+        )
+        for field, old, new in mutations:
+            with self.subTest(field=field, old=old):
+                bad = copy.deepcopy(self.nodes)
+                target = next(item for item in bad["nodes"] if item["id"] == node_id)
+                container = target
+                key = field
+                if "." in field:
+                    parent, key = field.split(".", 1)
+                    container = target[parent]
+                self.assertIn(old, container[key])
+                container[key] = container[key].replace(old, new, 1)
+                self.assertTrue(any(
+                    "executable CL semantic contract must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        for name in (
+            "MIPStarRE.QPBT.RuntimeBigO",
+            "MIPStarRE.QPBT.CLQueryDecomposition",
+            "MIPStarRE.QPBT.CLSamplerQuery.tapes",
+            "MIPStarRE.QPBT.ExecutableCLSampler.time_eq_validQueryMax",
+            "MIPStarRE.QPBT.ExecutableCLSampler.sample_downsize",
+        ):
+            with self.subTest(name=name):
+                bad = copy.deepcopy(self.nodes)
+                target = next(item for item in bad["nodes"] if item["id"] == node_id)
+                target["lean"]["names"].remove(name)
+                self.assertTrue(any(
+                    "executable CL callable names must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        no_asymptotics = copy.deepcopy(self.nodes)
+        executable = next(item for item in no_asymptotics["nodes"] if item["id"] == node_id)
+        executable["implementation_contract"]["imports"].append(
+            "Mathlib.Analysis.Asymptotics.Defs"
+        )
+        self.assertTrue(any(
+            "implementation contract must remain exact" in error
+            for error in self.errors(nodes=no_asymptotics)
+        ))
 
     def test_typed_finiteness_and_executable_ownership_wording_is_adversarial(self) -> None:
         finiteness_mutations = (
@@ -588,10 +652,11 @@ class BlueprintCheckTests(unittest.TestCase):
                    if node["id"] == "F06-CL")
         f06["boundary_hypotheses"] = f06["boundary_hypotheses"].replace(
             "F06A-EXECUTABLE-CL alone owns the binary-string representation, six-input "
-            "dimension/marginal/linear/factor query machine, associated sampler "
-            "distribution and step count, executable downsizing transformation, "
-            "dimension s(n) * log q(n), associated downsized maps, and "
-            "O(TIME_S(n) log q(n)) runtime at conditionally-linear.tex:553-712.",
+            "dimension/marginal/linear/factor query machine with explicit ignored tapes, "
+            "associated sampler distribution and step count, valid-query finite maximum "
+            "and global positive-index RuntimeBigO, executable downsizing transformation, "
+            "dimension s(n) * log q(n), associated downsized maps, and O(TIME_S(n) "
+            "log q(n)) runtime at conditionally-linear.tex:553-712.",
             "F07A-DETYPING and QPBT-043 own the generic executable layer instead.",
         )
         self.assertTrue(any(
