@@ -2490,3 +2490,6 @@
 {"schema_version":1,"timestamp":"2026-09-01T08:11:52.954619Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-02","fields":["subagents_issued"]}}
 {"schema_version":1,"timestamp":"2026-09-01T08:11:53.257018Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-03","fields":["subagents_issued"]}}
 {"schema_version":1,"timestamp":"2026-09-01T08:11:53.544091Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
+{"schema_version":1,"timestamp":"2026-09-01T08:22:21.921733Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issued-session","id":"i023-scout-a02-source-integrity","fields":["outcome_path","timing_quality","agent_measured_elapsed_seconds","source_report_sha256","canonical_report_sha256","outcome","checks","notes"]}}
+{"schema_version":1,"timestamp":"2026-09-01T08:22:22.369140Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"finished","session_id":"i023-scout-a02-source-integrity"}}
+{"schema_version":1,"timestamp":"2026-09-01T08:22:59.485593Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"archived","session_id":"i023-scout-a02-source-integrity"}}
