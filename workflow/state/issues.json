@@ -1330,7 +1330,7 @@
       "title": "Enable content-bound OS-isolated production external review",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-026",
@@ -1359,9 +1359,24 @@
         "protocols/review.md"
       ],
       "created_at": "2026-09-01T04:05:01.370018Z",
-      "updated_at": "2026-09-01T07:14:53.988178Z",
+      "updated_at": "2026-09-01T07:47:44.383548Z",
       "blocked_reason": null,
-      "unblock_condition": "Assign one isolated orchestrator to implement and independently review version-2 content authorization plus OS isolation without contacting an endpoint."
+      "unblock_condition": "Assign one isolated orchestrator to implement and independently review version-2 content authorization plus OS isolation without contacting an endpoint.",
+      "current_candidate_evidence": {
+        "status": "partial-fail-closed-slice-awaiting-immutable-review",
+        "pr_id": "LPR-018",
+        "base_sha": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
+        "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e",
+        "tree_sha": "398eaced83f0bfdf7b51364784d1a5211aab2e86",
+        "report_path": "workflow/reviews/qpbt-028-content-isolation-a01.md",
+        "report_sha256": "c756a8842089f385a175c49287a7a58fec51b989731d45ca84ad704371a278e5",
+        "acceptance_complete": false,
+        "production_enabled": false,
+        "followup_issue_ids": [
+          "QPBT-029",
+          "QPBT-030"
+        ]
+      }
     },
     {
       "id": "QPBT-029",
