@@ -1351,7 +1351,6 @@
         "F04-DISTANCE",
         "F04-DISTANCE-LAWS",
         "F05-PAULI",
-        "F07A-DETYPING",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME"
       ],
@@ -1569,7 +1568,8 @@
       "chapter": "02",
       "consumers": [
         "E01-ORTHO",
-        "E02-MAGIC-SQUARE"
+        "E02-MAGIC-SQUARE",
+        "F04A-GAME-SEMANTICS"
       ],
       "encoding": "The finite value is the PMF-weighted off-diagonal sum of real inner products after explicit Alice/Bob local lifts. The paper-facing relation uses IsBigOAtTop; its derived triangle scale is Nat -> Real and is not clamped back to [0,1]. The named Law declaration freezes the theorem statement; its proof is a later node obligation, not a new assumption.",
       "fidelity": "faithful-boundary",
@@ -1865,6 +1865,99 @@
       ]
     },
     {
+      "additional_sources": [
+        {
+          "generated_lines": [
+            62,
+            81
+          ],
+          "label": "def:projective-strategy",
+          "original_lines": [
+            2945,
+            2964
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+        },
+        {
+          "generated_lines": [
+            126,
+            190
+          ],
+          "label": "def:comm-strategy",
+          "original_lines": [
+            3009,
+            3073
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+        }
+      ],
+      "boundary_hypotheses": "Question, answer, and coordinate carriers are explicit finite decidable types. Shared-space predicates use one coordinate type for both players. Canonical Fin dimensions represent arbitrary finite coordinate Hilbert spaces. QPBT-041 must first implement the accepted F04 foundation before QPBT-042 elaborates this node. No executable sampler, machine description, cost model, caller-supplied semantic obligation, placeholder declaration, or public bridge assumption enters this node.",
+      "chapter": "02",
+      "consumers": [
+        "F07A-DETYPING"
+      ],
+      "encoding": "Reuse the accepted PureStrategy and MeasurementConsistentOn declarations. FiniteGame stores a PMF and Bool predicate. FiniteGameStrategy is a one-field game-indexed wrapper, not a second strategy representation. Quantify all finite Hilbert coordinates canonically by Fin dimensions, define game value by real sSup, Schmidt rank by Matrix.rank of the coefficient matrix, and Ent by WithTop Nat sInf so the empty attainable set is infinity.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [],
+      "id": "F04A-GAME-SEMANTICS",
+      "integrity": {
+        "lean_assumptions": "Explicit Fintype/DecidableEq carriers, Mathlib PMF, the reviewed PureStrategy and MeasurementConsistentOn interfaces, and canonical Fin coordinate representatives for the dimension-varying extrema.",
+        "lean_conclusion": "The same formulas, predicates, supremum, matrix rank, and extended-natural minimum, with the game-strategy association represented by a data-free wrapper.",
+        "paper_assumptions": "Finite question and answer alphabets, a question distribution, Boolean decision predicate, normalized finite-dimensional pure tensor strategies with POVMs, and a common local Hilbert space for commuting/consistent/PCC predicates.",
+        "paper_conclusion": "Exact fixed-strategy and game values; projective, symmetric, commuting, consistent, PCC, and SPCC predicates; Schmidt rank; and the minimum rank requirement or infinity.",
+        "verdict": "faithful boundary"
+      },
+      "kind": "definition",
+      "lean": {
+        "module": "MIPStarRE.QPBT.Game.Semantics",
+        "names": [
+          "MIPStarRE.QPBT.FiniteGame",
+          "MIPStarRE.QPBT.FiniteGameStrategy",
+          "MIPStarRE.QPBT.strategyValue",
+          "MIPStarRE.QPBT.StrategyWinsWithProbability",
+          "MIPStarRE.QPBT.FiniteDimensionalGameStrategy",
+          "MIPStarRE.QPBT.FiniteDimensionalGameStrategy.value",
+          "MIPStarRE.QPBT.gameValue",
+          "MIPStarRE.QPBT.ProjectiveStrategy",
+          "MIPStarRE.QPBT.SymmetricGame",
+          "MIPStarRE.QPBT.SymmetricStrategy",
+          "MIPStarRE.QPBT.SupportCommutingStrategy",
+          "MIPStarRE.QPBT.ConsistentStrategy",
+          "MIPStarRE.QPBT.PCCStrategy",
+          "MIPStarRE.QPBT.SPCCStrategy",
+          "MIPStarRE.QPBT.schmidtRank",
+          "MIPStarRE.QPBT.FiniteDimensionalGameStrategy.schmidtRank",
+          "MIPStarRE.QPBT.entanglementRequirement",
+          "MIPStarRE.QPBT.HasValueOnePCCStrategy"
+        ]
+      },
+      "prerequisites": [
+        "F04-CONSISTENCY"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          4,
+          51
+        ],
+        "label": "def:game",
+        "original_lines": [
+          2887,
+          2934
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+      },
+      "statement": "Define finite two-player one-round games; a game-indexed wrapper around the established finite pure tensor strategy; exact strategy and supremal game values; projective, symmetric, support-commuting, consistent, PCC, and SPCC predicates; coefficient-matrix Schmidt rank; and the extended-natural entanglement requirement.",
+      "status": "not-started",
+      "title": "Finite two-player game and quantum strategy semantics",
+      "transitive_definitions": [
+        "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
+        "F04-DISTANCE"
+      ]
+    },
+    {
       "boundary_hypotheses": "Characteristic two only. The source's self-dual basis, EPR identities, and qudit-to-qubit conversion are confined to F10. Cross-basis commutation is available only after proving that the displayed negative trace phase is one.",
       "chapter": "02",
       "consumers": [
@@ -2049,7 +2142,7 @@
       ]
     },
     {
-      "boundary_hypotheses": "The type index and ordered-edge support are finite. TypedSampler uses the constant finite FieldVector carrier; TypedQuestion and TypedDecider permit arbitrary dependent fibers without claiming pointwise finiteness. G02 supplies the pointwise finite question/answer families required by the mathematical game consumer. The source graph-simulation and detyping development is owned separately by F07A-DETYPING.",
+      "boundary_hypotheses": "The type index and ordered-edge support are finite. TypedSampler uses the constant finite FieldVector carrier; TypedQuestion and TypedDecider permit arbitrary dependent fibers without claiming pointwise finiteness. G02 supplies the pointwise finite question/answer families required by the mathematical game consumer. The finite downsizing contract does not claim the source Turing-machine representation or runtime equation. Typed verifier/game, executable typed interfaces, graph simulation, detyping, and all cost clauses are owned by F07A-DETYPING.",
       "chapter": "02",
       "consumers": [
         "F07A-DETYPING",
@@ -2057,8 +2150,8 @@
         "F09-LDT-GAME",
         "G02-GAME"
       ],
-      "encoding": "TypeGraph stores a nonempty symmetric Finset of ordered endpoints: a loop occurs once and each non-loop occurs in both orientations. Its uniform PMF therefore has the paper denominator 2m-k. Typed questions use Sigma fibers, and TypedDecider is total over every type pair without erasing question or answer fibers.",
-      "fidelity": "exact",
+      "encoding": "TypeGraph stores a nonempty symmetric Finset of ordered endpoints: a loop occurs once and each non-loop occurs in both orientations. Its uniform PMF therefore has the paper denominator 2m-k. Typed questions use Sigma fibers, and TypedDecider is total over every type pair without erasing question or answer fibers. TypedSampler.downsize retains the graph and level, downsizes both CL families pointwise, and sample_downsize is the exact PMF pushforward.",
+      "fidelity": "faithful-boundary",
       "gap_ids": [],
       "id": "F07-TYPED",
       "implementation_contract": {
@@ -2073,13 +2166,15 @@
           "PMF.uniformOfFinset",
           "PMF.uniformOfFinset_apply",
           "PMF.map",
-          "Sigma"
+          "Sigma",
+          "MIPStarRE.QPBT.ConditionallyLinearMap.downsize",
+          "MIPStarRE.QPBT.downsizeVector"
         ],
         "signature_manifest": {
-          "begin_marker": "<!-- BEGIN F07-SIGNATURES -->",
-          "end_marker": "<!-- END F07-SIGNATURES -->",
-          "path": "workflow/reviews/qpbt-035-q014-contract-a02.md",
-          "sha256": "4244dfbf6843f9641be2813b74f83046b93d41954f620a1309a9fedb0333b523"
+          "begin_marker": "<!-- BEGIN F07-A07-SIGNATURES -->",
+          "end_marker": "<!-- END F07-A07-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "sha256": "99cfe240da252a94527d50c53d39a9673ee8d673cf6eba9730fb1a7e92df9d46"
         },
         "validation_commands": [
           "lake env lean MIPStarRE/QPBT/Game/Types.lean"
@@ -2087,10 +2182,10 @@
         "writer_lane": "types"
       },
       "integrity": {
-        "lean_assumptions": "A nonempty symmetric ordered-edge support, certified maps with a constant finite FieldVector question-content carrier, and generic sigma/dependent families without pointwise finiteness assumptions.",
-        "lean_conclusion": "A uniform ordered-edge PMF preserving loop/orientation weight, its callable type marginal, and a total dependent decider. G02 owns consumer finiteness and F07A owns detyping.",
-        "paper_assumptions": "A finite type set, an undirected graph that may contain self-loops, typed CL families, and type-indexed verifier data.",
-        "paper_conclusion": "The graph distribution and typed sampler/decider semantics, followed by the separately owned detyping development.",
+        "lean_assumptions": "A nonempty symmetric ordered-edge support, certified maps with a constant finite FieldVector question-content carrier, FieldData only for downsizing, and generic sigma/dependent families without pointwise finiteness assumptions.",
+        "lean_conclusion": "A uniform ordered-edge PMF preserving loop/orientation weight, its callable type marginal, a graph-preserving pointwise downsizing operation with exact PMF pushforward, and a total dependent decider. Executable representation and costs remain explicit F07A obligations.",
+        "paper_assumptions": "A finite type set, an undirected graph that may contain self-loops, typed CL families and executable typed sampler/decider data, with a selected field basis for downsizing.",
+        "paper_conclusion": "Graph distribution, typed sampler distribution, typed downsizing with pointwise downsized CL functions and its field/dimension/runtime relations, and a total typed decider.",
         "verdict": "faithful boundary"
       },
       "kind": "definition",
@@ -2104,6 +2199,8 @@
           "MIPStarRE.QPBT.TypedSampler",
           "MIPStarRE.QPBT.TypedSampler.sample",
           "MIPStarRE.QPBT.TypedSampler.sample_types",
+          "MIPStarRE.QPBT.TypedSampler.downsize",
+          "MIPStarRE.QPBT.TypedSampler.sample_downsize",
           "MIPStarRE.QPBT.TypedDecider",
           "MIPStarRE.QPBT.TypedDecider.accepts"
         ]
@@ -2114,17 +2211,17 @@
       "public": false,
       "source": {
         "generated_lines": [
-          1,
-          582
+          57,
+          195
         ],
-        "label": "sec:types",
+        "label": "def:typed-sampler",
         "original_lines": [
-          3567,
-          4148
+          3623,
+          3761
         ],
         "path": "references/2001.04383v3/sections/dependencies/types.tex"
       },
-      "statement": "Define type graphs, heterogeneous typed questions/answers, typed samplers and deciders, and their graph-distribution semantics.",
+      "statement": "Define type graphs, heterogeneous typed questions/answers, finite typed samplers and deciders, their graph-distribution semantics, and the mathematical typed-sampler downsizing operation and PMF theorem.",
       "status": "not-started",
       "title": "Typed samplers, deciders, and graph distributions",
       "transitive_definitions": [
@@ -2133,59 +2230,73 @@
       ]
     },
     {
-      "boundary_hypotheses": "This node owns both the mathematical detyping obligations and their executable/cost clauses. No part is assigned to K03 or K04. Its implementation may depend on the established generic measurement/game semantics and the F07 typed interfaces, but may not replace any conclusion by a caller-supplied obligation.",
+      "boundary_hypotheses": "The graph is nonempty, as required by the source denominator and soundness weakening. This node depends exactly on the generic finite game/strategy/value/PCC/Schmidt-rank/entanglement semantics and F07 typed interfaces. It owns executable representations and cost clauses but publishes no implementation signature until QPBT-043 binds a concrete machine/cost model. No conclusion may be replaced by a caller-supplied obligation, and no part is owned by K03 or K04.",
       "chapter": "02",
       "consumers": [],
-      "encoding": "The first five callable names own the neighbor/vertex encodings, graph CL sampler, rejection event, and graph-distribution simulation needed by detyping. The final five respectively own types.tex Definitions detyped-CL, detyped samplers, detyped deciders, detyped verifiers, and Lemma detyping-verifiers. The final theorem retains all five paper conclusions, including the 16^|Type| error loss and the level increase by two; a follow-up contract must freeze their exact elaborated signatures before implementation.",
-      "fidelity": "exact",
+      "encoding": "TypedNormalFormVerifier and its game own types.tex:197-220. The graph names separately expose neighbor/vertex encodings, the two-level CL sampler, the rejection event, its exact ordered-edge-cardinality over 16^|Type| probability, and the conditioned type PMF equality. detypeCL and the three detype methods own all four transformations. Separate theorem names retain PCC value-one completeness, the exact 16^|Type| soundness and entanglement loss, level plus two, dimension 4|Type|+s(n), both runtime bounds, and description computability.",
+      "fidelity": "faithful-boundary",
       "gap_ids": [],
       "id": "F07A-DETYPING",
       "integrity": {
-        "lean_assumptions": "F07 typed interfaces, the graph CL sampler and rejection simulation owned in this node, plus the established finite quantum measurement/game semantics; exact executable representation and cost data must be frozen by the follow-up contract.",
-        "lean_conclusion": "The supporting graph simulation and the same five detyping definitions/theorem remain explicit obligations of this node; none is erased or delegated to the unrelated QPBT complexity nodes.",
-        "paper_assumptions": "A finite type set and type graph, typed CL sampler and total typed decider, and the associated typed verifier/game semantics.",
-        "paper_conclusion": "Graph-distribution simulation; canonical detyped CL functions, sampler, decider, and verifier; value-one completeness; soundness and entanglement transfer with error factor 16^|Type|; level plus two, dimension, complexity, and efficient-description bounds.",
+        "lean_assumptions": "F07 finite typed interfaces, F04A generic finite quantum-game semantics, the exact graph-event layer owned here, and an explicit executable representation/cost model to be frozen by QPBT-043.",
+        "lean_conclusion": "Every mathematical and executable clause has a distinct callable owner, exact source range, and exact dependency edge; signatures remain a faithful boundary until the machine/cost layer elaborates.",
+        "paper_assumptions": "A finite nonempty type graph, indexed typed CL sampler and typed decider forming a typed normal-form verifier, finite-game strategies and value, PCC predicates, Schmidt rank, and a machine cost model.",
+        "paper_conclusion": "Exact graph-event probability and conditioned graph law; canonical detyped CL functions, sampler, decider, and verifier; PCC value-one completeness; value and Ent soundness with error factor 16^|Type|; level plus two; dimension 4|Type|+s(n); sampler/decider time and description bounds.",
         "verdict": "faithful boundary"
       },
       "kind": "lemma",
       "lean": {
         "module": "MIPStarRE.QPBT.Game.Detyping",
         "names": [
+          "MIPStarRE.QPBT.TypedNormalFormVerifier",
+          "MIPStarRE.QPBT.TypedNormalFormVerifier.game",
           "MIPStarRE.QPBT.TypeGraph.neighborIndicator",
           "MIPStarRE.QPBT.TypeGraph.vertexEncoding",
-          "MIPStarRE.QPBT.TypeGraph.clSampler",
-          "MIPStarRE.QPBT.TypeGraph.simulationEvent",
-          "MIPStarRE.QPBT.TypeGraph.simulatesDistribution",
+          "MIPStarRE.QPBT.TypeGraph.graphSampler",
+          "MIPStarRE.QPBT.TypeGraph.graphEvent",
+          "MIPStarRE.QPBT.TypeGraph.graphEvent_probability",
+          "MIPStarRE.QPBT.TypeGraph.graphEvent_conditioned_types",
           "MIPStarRE.QPBT.detypeCL",
           "MIPStarRE.QPBT.TypedSampler.detype",
           "MIPStarRE.QPBT.TypedDecider.detype",
-          "MIPStarRE.QPBT.TypedVerifier.detype",
-          "MIPStarRE.QPBT.detypingVerifier"
+          "MIPStarRE.QPBT.TypedNormalFormVerifier.detype",
+          "MIPStarRE.QPBT.detyping_complete",
+          "MIPStarRE.QPBT.detyping_sound",
+          "MIPStarRE.QPBT.detyping_entanglement",
+          "MIPStarRE.QPBT.detyping_level",
+          "MIPStarRE.QPBT.detyping_dimension",
+          "MIPStarRE.QPBT.detyping_sampler_time",
+          "MIPStarRE.QPBT.detyping_decider_time",
+          "MIPStarRE.QPBT.detyping_descriptions_time"
         ]
       },
       "prerequisites": [
-        "F03-MEASUREMENT",
+        "F04A-GAME-SEMANTICS",
         "F07-TYPED"
       ],
       "public": false,
       "source": {
         "generated_lines": [
-          225,
+          197,
           579
         ],
-        "label": "sec:graph-dist",
+        "label": "lem:detyping-verifiers",
         "original_lines": [
-          3791,
+          3763,
           4145
         ],
         "path": "references/2001.04383v3/sections/dependencies/types.tex"
       },
-      "statement": "Define the graph CL sampler and rejection event, prove that conditioning simulates the graph distribution, define detyped CL functions, samplers, deciders, and verifiers, then prove the paper's completeness, soundness, entanglement, sampler-level/dimension, complexity, and efficient-description relations.",
+      "statement": "Define typed normal-form verifiers and their indexed games, the graph CL sampler and rejection event, prove the exact event probability and conditional graph distribution, define detyped CL functions, samplers, deciders, and verifiers, then prove completeness, value and entanglement soundness, level/dimension relations, runtime bounds, and description computability.",
       "status": "not-started",
       "title": "Graph simulation and typed-verifier detyping",
       "transitive_definitions": [
         "F01-FIELD",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
+        "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F06-CL",
         "F07-TYPED"
       ]
@@ -3385,7 +3496,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "efaf6b51842d28a6072b44367452bc9ab82fee3f009c084c02d9cd17fba6af10",
+  "source_sha256": "115fc631c2d8d5607323f5c94ca866ae9c9f89bc513880ce28015d7dc6e61b7e",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
@@ -3405,6 +3516,7 @@
     "E01-ORTHO",
     "E02-MAGIC-SQUARE",
     "F04-DISTANCE-LAWS",
+    "F04A-GAME-SEMANTICS",
     "F05-PAULI",
     "F06-CL",
     "F07-TYPED",

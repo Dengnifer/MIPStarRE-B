@@ -56,21 +56,108 @@ IMPLEMENTATION_WRITER_LANES = {
     "field", "approximation", "polynomial", "pauli", "types", "parameters",
 }
 SIGNATURE_MANIFEST_KEYS = {"path", "begin_marker", "end_marker", "sha256"}
+GAME_SEMANTICS_OWNER_ID = "F04A-GAME-SEMANTICS"
+GAME_SEMANTICS_SOURCE_ANCHORS = [
+    {
+        "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex",
+        "label": "def:game",
+        "generated_lines": [4, 51],
+        "original_lines": [2887, 2934],
+    },
+    {
+        "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex",
+        "label": "def:projective-strategy",
+        "generated_lines": [62, 81],
+        "original_lines": [2945, 2964],
+    },
+    {
+        "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex",
+        "label": "def:comm-strategy",
+        "generated_lines": [126, 190],
+        "original_lines": [3009, 3073],
+    },
+]
+GAME_SEMANTICS_PREREQUISITES = ["F04-CONSISTENCY"]
+GAME_SEMANTICS_LEAN_NAMES = [
+    "MIPStarRE.QPBT.FiniteGame",
+    "MIPStarRE.QPBT.FiniteGameStrategy",
+    "MIPStarRE.QPBT.strategyValue",
+    "MIPStarRE.QPBT.StrategyWinsWithProbability",
+    "MIPStarRE.QPBT.FiniteDimensionalGameStrategy",
+    "MIPStarRE.QPBT.FiniteDimensionalGameStrategy.value",
+    "MIPStarRE.QPBT.gameValue",
+    "MIPStarRE.QPBT.ProjectiveStrategy",
+    "MIPStarRE.QPBT.SymmetricGame",
+    "MIPStarRE.QPBT.SymmetricStrategy",
+    "MIPStarRE.QPBT.SupportCommutingStrategy",
+    "MIPStarRE.QPBT.ConsistentStrategy",
+    "MIPStarRE.QPBT.PCCStrategy",
+    "MIPStarRE.QPBT.SPCCStrategy",
+    "MIPStarRE.QPBT.schmidtRank",
+    "MIPStarRE.QPBT.FiniteDimensionalGameStrategy.schmidtRank",
+    "MIPStarRE.QPBT.entanglementRequirement",
+    "MIPStarRE.QPBT.HasValueOnePCCStrategy",
+]
+TYPED_SOURCE_ANCHOR = {
+    "path": "references/2001.04383v3/sections/dependencies/types.tex",
+    "label": "def:typed-sampler",
+    "generated_lines": [57, 195],
+    "original_lines": [3623, 3761],
+}
+TYPED_LEAN_NAMES = [
+    "MIPStarRE.QPBT.TypeGraph",
+    "MIPStarRE.QPBT.TypeGraph.distribution",
+    "MIPStarRE.QPBT.TypeGraph.distribution_apply",
+    "MIPStarRE.QPBT.TypedQuestion",
+    "MIPStarRE.QPBT.TypedSampler",
+    "MIPStarRE.QPBT.TypedSampler.sample",
+    "MIPStarRE.QPBT.TypedSampler.sample_types",
+    "MIPStarRE.QPBT.TypedSampler.downsize",
+    "MIPStarRE.QPBT.TypedSampler.sample_downsize",
+    "MIPStarRE.QPBT.TypedDecider",
+    "MIPStarRE.QPBT.TypedDecider.accepts",
+]
 DETYPING_OWNER_ID = "F07A-DETYPING"
-DETYPING_SOURCE_RANGE = [225, 579]
-DETYPING_PREREQUISITES = ["F03-MEASUREMENT", "F07-TYPED"]
+DETYPING_SOURCE_ANCHOR = {
+    "path": "references/2001.04383v3/sections/dependencies/types.tex",
+    "label": "lem:detyping-verifiers",
+    "generated_lines": [197, 579],
+    "original_lines": [3763, 4145],
+}
+DETYPING_SOURCE_RANGE = DETYPING_SOURCE_ANCHOR["generated_lines"]
+DETYPING_PREREQUISITES = [GAME_SEMANTICS_OWNER_ID, "F07-TYPED"]
 DETYPING_LEAN_NAMES = [
+    "MIPStarRE.QPBT.TypedNormalFormVerifier",
+    "MIPStarRE.QPBT.TypedNormalFormVerifier.game",
     "MIPStarRE.QPBT.TypeGraph.neighborIndicator",
     "MIPStarRE.QPBT.TypeGraph.vertexEncoding",
-    "MIPStarRE.QPBT.TypeGraph.clSampler",
-    "MIPStarRE.QPBT.TypeGraph.simulationEvent",
-    "MIPStarRE.QPBT.TypeGraph.simulatesDistribution",
+    "MIPStarRE.QPBT.TypeGraph.graphSampler",
+    "MIPStarRE.QPBT.TypeGraph.graphEvent",
+    "MIPStarRE.QPBT.TypeGraph.graphEvent_probability",
+    "MIPStarRE.QPBT.TypeGraph.graphEvent_conditioned_types",
     "MIPStarRE.QPBT.detypeCL",
     "MIPStarRE.QPBT.TypedSampler.detype",
     "MIPStarRE.QPBT.TypedDecider.detype",
-    "MIPStarRE.QPBT.TypedVerifier.detype",
-    "MIPStarRE.QPBT.detypingVerifier",
+    "MIPStarRE.QPBT.TypedNormalFormVerifier.detype",
+    "MIPStarRE.QPBT.detyping_complete",
+    "MIPStarRE.QPBT.detyping_sound",
+    "MIPStarRE.QPBT.detyping_entanglement",
+    "MIPStarRE.QPBT.detyping_level",
+    "MIPStarRE.QPBT.detyping_dimension",
+    "MIPStarRE.QPBT.detyping_sampler_time",
+    "MIPStarRE.QPBT.detyping_decider_time",
+    "MIPStarRE.QPBT.detyping_descriptions_time",
 ]
+NON_DETYPING_COMPLEXITY_CONTRACTS = {
+    "K03-INTRO-COMPLEXITY": {
+        "generated_lines": [73, 84],
+        "lean_names": ["MIPStarRE.QPBT.canonicalParameters_complexity"],
+    },
+    "K04-GAME-COMPLEXITY": {
+        "generated_lines": [85, 127],
+        "lean_names": ["MIPStarRE.QPBT.pauliBasisGame_complexity"],
+    },
+}
 EXPECTED_TARGETS = {
     "completeness": "G03-COMPLETENESS",
     "soundness": "S01-SOUNDNESS",
@@ -417,11 +504,29 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
 
     prerequisites = {node["id"]: set(node["prerequisites"]) for node in nodes}
     nodes_by_id = {node["id"]: node for node in nodes}
+    game_semantics = nodes_by_id.get(GAME_SEMANTICS_OWNER_ID)
+    if game_semantics is None:
+        errors.append(f"missing exact game-semantics owner {GAME_SEMANTICS_OWNER_ID}")
+    else:
+        observed_anchors = [game_semantics.get("source"),
+                            *game_semantics.get("additional_sources", [])]
+        if observed_anchors != GAME_SEMANTICS_SOURCE_ANCHORS:
+            errors.append(
+                f"{GAME_SEMANTICS_OWNER_ID}: game-semantics source ranges must remain exact"
+            )
+        if game_semantics["prerequisites"] != GAME_SEMANTICS_PREREQUISITES:
+            errors.append(
+                f"{GAME_SEMANTICS_OWNER_ID}: game-semantics prerequisites must remain exact"
+            )
+        if game_semantics["lean"].get("names") != GAME_SEMANTICS_LEAN_NAMES:
+            errors.append(
+                f"{GAME_SEMANTICS_OWNER_ID}: game-semantics callable names must remain exact"
+            )
     detyping = nodes_by_id.get(DETYPING_OWNER_ID)
     if detyping is None:
         errors.append(f"missing exact detyping owner {DETYPING_OWNER_ID}")
     else:
-        if detyping["source"].get("generated_lines") != DETYPING_SOURCE_RANGE:
+        if detyping.get("source") != DETYPING_SOURCE_ANCHOR:
             errors.append(f"{DETYPING_OWNER_ID}: detyping source range must remain exact")
         if detyping["prerequisites"] != DETYPING_PREREQUISITES:
             errors.append(f"{DETYPING_OWNER_ID}: detyping prerequisites must remain exact")
@@ -431,6 +536,10 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
     if "MIPStarRE.QPBT.CLSampler.sample_directSum" not in f06.get("lean", {}).get("names", []):
         errors.append("F06-CL: direct-sum product-distribution theorem must remain callable")
     f07 = nodes_by_id.get("F07-TYPED", {})
+    if f07.get("source") != TYPED_SOURCE_ANCHOR:
+        errors.append("F07-TYPED: typed source range must remain exact")
+    if f07.get("lean", {}).get("names") != TYPED_LEAN_NAMES:
+        errors.append("F07-TYPED: typed callable names must remain exact")
     f07_claims = " ".join(str(f07.get(field, "")) for field in (
         "statement", "encoding", "boundary_hypotheses"
     )).lower()
@@ -438,6 +547,17 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
         errors.append("F07-TYPED: generic dependent fibers must not be claimed finite")
     if "g02" not in str(f07.get("boundary_hypotheses", "")).lower():
         errors.append("F07-TYPED: consumer finiteness must remain assigned to G02")
+    for node_id, expected_contract in NON_DETYPING_COMPLEXITY_CONTRACTS.items():
+        node = nodes_by_id.get(node_id, {})
+        if node.get("source", {}).get("generated_lines") != expected_contract["generated_lines"]:
+            errors.append(f"{node_id}: non-detyping source range must remain exact")
+        if node.get("lean", {}).get("names") != expected_contract["lean_names"]:
+            errors.append(f"{node_id}: non-detyping callable ownership must remain exact")
+        ownership_text = " ".join(str(node.get(field, "")) for field in (
+            "statement", "encoding", "boundary_hypotheses"
+        )).lower()
+        if "detyp" in ownership_text:
+            errors.append(f"{node_id}: must not own detyping")
     for node in nodes:
         expected = definition_ancestor_ids(node["id"], nodes_by_id, prerequisites)
         if node["transitive_definitions"] != expected:

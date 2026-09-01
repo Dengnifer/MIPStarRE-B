@@ -316,25 +316,55 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertIn("MIPStarRE.QPBT.CLSampler.sample_directSum", f06["lean"]["names"])
 
         f07 = by_id["F07-TYPED"]
+        self.assertEqual(check.TYPED_SOURCE_ANCHOR, f07["source"])
+        self.assertEqual(check.TYPED_LEAN_NAMES, f07["lean"]["names"])
         self.assertNotIn("finite dependent fibers", f07["boundary_hypotheses"].lower())
         self.assertNotIn("finite decider", f07["integrity"]["lean_conclusion"].lower())
         self.assertIn("G02", f07["boundary_hypotheses"])
 
+        game_semantics = by_id[check.GAME_SEMANTICS_OWNER_ID]
+        self.assertEqual(
+            check.GAME_SEMANTICS_SOURCE_ANCHORS,
+            [game_semantics["source"], *game_semantics["additional_sources"]],
+        )
+        self.assertEqual(check.GAME_SEMANTICS_PREREQUISITES,
+                         game_semantics["prerequisites"])
+        self.assertEqual(check.GAME_SEMANTICS_LEAN_NAMES,
+                         game_semantics["lean"]["names"])
+
         detyping = by_id[check.DETYPING_OWNER_ID]
-        self.assertEqual(check.DETYPING_SOURCE_RANGE,
-                         detyping["source"]["generated_lines"])
+        self.assertEqual(check.DETYPING_SOURCE_ANCHOR, detyping["source"])
         self.assertEqual(check.DETYPING_PREREQUISITES, detyping["prerequisites"])
         self.assertEqual(check.DETYPING_LEAN_NAMES, detyping["lean"]["names"])
         self.assertFalse(any(dependency.startswith(("K03", "K04"))
                              for dependency in detyping["prerequisites"]))
 
+        for node_id, contract in check.NON_DETYPING_COMPLEXITY_CONTRACTS.items():
+            node = by_id[node_id]
+            self.assertEqual(contract["generated_lines"],
+                             node["source"]["generated_lines"])
+            self.assertEqual(contract["lean_names"], node["lean"]["names"])
+            ownership_text = " ".join(
+                str(node[field]) for field in
+                ("statement", "encoding", "boundary_hypotheses")
+            ).lower()
+            self.assertNotIn("detyp", ownership_text)
+
         for mutation, phrase in (
             ("missing_theorem", "direct-sum product-distribution theorem"),
+            ("missing_game_owner", "missing exact game-semantics owner"),
+            ("wrong_game_source", "game-semantics source ranges must remain exact"),
+            ("wrong_game_dependencies", "game-semantics prerequisites must remain exact"),
+            ("wrong_game_names", "game-semantics callable names must remain exact"),
+            ("wrong_typed_source", "typed source range must remain exact"),
+            ("wrong_typed_names", "typed callable names must remain exact"),
             ("missing_owner", "missing exact detyping owner"),
             ("wrong_source", "detyping source range must remain exact"),
             ("wrong_dependencies", "detyping prerequisites must remain exact"),
             ("wrong_names", "detyping callable names must remain exact"),
             ("finite_fibers", "generic dependent fibers must not be claimed finite"),
+            ("k03_detyping", "must not own detyping"),
+            ("k04_names", "non-detyping callable ownership must remain exact"),
         ):
             with self.subTest(mutation=mutation):
                 bad = copy.deepcopy(self.nodes)
@@ -342,6 +372,24 @@ class BlueprintCheckTests(unittest.TestCase):
                 if mutation == "missing_theorem":
                     bad_by_id["F06-CL"]["lean"]["names"].remove(
                         "MIPStarRE.QPBT.CLSampler.sample_directSum"
+                    )
+                elif mutation == "missing_game_owner":
+                    bad["nodes"].remove(bad_by_id[check.GAME_SEMANTICS_OWNER_ID])
+                elif mutation == "wrong_game_source":
+                    bad_by_id[check.GAME_SEMANTICS_OWNER_ID][
+                        "additional_sources"
+                    ][1]["generated_lines"] = [127, 190]
+                elif mutation == "wrong_game_dependencies":
+                    bad_by_id[check.GAME_SEMANTICS_OWNER_ID]["prerequisites"] = [
+                        "F04-DISTANCE"
+                    ]
+                elif mutation == "wrong_game_names":
+                    bad_by_id[check.GAME_SEMANTICS_OWNER_ID]["lean"]["names"].pop()
+                elif mutation == "wrong_typed_source":
+                    bad_by_id["F07-TYPED"]["source"]["generated_lines"] = [57, 194]
+                elif mutation == "wrong_typed_names":
+                    bad_by_id["F07-TYPED"]["lean"]["names"].remove(
+                        "MIPStarRE.QPBT.TypedSampler.sample_downsize"
                     )
                 elif mutation == "missing_owner":
                     bad["nodes"].remove(bad_by_id[check.DETYPING_OWNER_ID])
@@ -351,6 +399,14 @@ class BlueprintCheckTests(unittest.TestCase):
                     bad_by_id[check.DETYPING_OWNER_ID]["prerequisites"] = ["F07-TYPED"]
                 elif mutation == "wrong_names":
                     bad_by_id[check.DETYPING_OWNER_ID]["lean"]["names"].pop()
+                elif mutation == "k03_detyping":
+                    bad_by_id["K03-INTRO-COMPLEXITY"]["statement"] += (
+                        " It also owns detyping."
+                    )
+                elif mutation == "k04_names":
+                    bad_by_id["K04-GAME-COMPLEXITY"]["lean"]["names"] = [
+                        "MIPStarRE.QPBT.detyping_complexity"
+                    ]
                 else:
                     bad_by_id["F07-TYPED"]["boundary_hypotheses"] += " Finite dependent fibers."
                 self.assertTrue(any(phrase in error for error in self.errors(nodes=bad)))

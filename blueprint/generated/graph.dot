@@ -28,10 +28,11 @@ digraph QPBT {
   "F04-CONSISTENCY" [label="F04-CONSISTENCY\nExact and asymptotic POVM consistency", style=filled, fillcolor="#cfe2f3"];
   "F04-DISTANCE" [label="F04-DISTANCE\nFinite strategies, local isometries, and distance values", style=filled, fillcolor="#cfe2f3"];
   "F04-DISTANCE-LAWS" [label="F04-DISTANCE-LAWS\nState-dependent distance triangle and postprocessing laws", style=filled, fillcolor="#d9ead3"];
+  "F04A-GAME-SEMANTICS" [label="F04A-GAME-SEMANTICS\nFinite two-player game and quantum strategy semantics", style=filled, fillcolor="#cfe2f3"];
   "F05-PAULI" [label="F05-PAULI\nGeneralized Pauli and Fourier algebra", style=filled, fillcolor="#fce5cd"];
   "F06-CL" [label="F06-CL\nConditionally-linear maps and samplers", style=filled, fillcolor="#d9ead3"];
-  "F07-TYPED" [label="F07-TYPED\nTyped samplers, deciders, and graph distributions", style=filled, fillcolor="#d9ead3"];
-  "F07A-DETYPING" [label="F07A-DETYPING\nGraph simulation and typed-verifier detyping", style=filled, fillcolor="#d9ead3"];
+  "F07-TYPED" [label="F07-TYPED\nTyped samplers, deciders, and graph distributions", style=filled, fillcolor="#cfe2f3"];
+  "F07A-DETYPING" [label="F07A-DETYPING\nGraph simulation and typed-verifier detyping", style=filled, fillcolor="#cfe2f3"];
   "F08-MAGIC-GAME" [label="F08-MAGIC-GAME\nMagic Square game and perfect construction", style=filled, fillcolor="#d9ead3"];
   "F09-LDT-GAME" [label="F09-LDT-GAME\nSimultaneous individual low-degree game", style=filled, fillcolor="#cfe2f3"];
   "F10-PAULI-BINARY" [label="F10-PAULI-BINARY\nQudit-to-qubit Pauli conversion", style=filled, fillcolor="#fce5cd"];
@@ -96,11 +97,12 @@ digraph QPBT {
   "F03-MEASUREMENT" -> "F04-DISTANCE";
   "F03-MEASUREMENT" -> "F04-DISTANCE-LAWS";
   "F04-ASYMPTOTIC" -> "F04-DISTANCE-LAWS";
+  "F04-CONSISTENCY" -> "F04A-GAME-SEMANTICS";
   "F01-FIELD" -> "F05-PAULI";
   "F03-MEASUREMENT" -> "F05-PAULI";
   "F01-FIELD" -> "F06-CL";
   "F06-CL" -> "F07-TYPED";
-  "F03-MEASUREMENT" -> "F07A-DETYPING";
+  "F04A-GAME-SEMANTICS" -> "F07A-DETYPING";
   "F07-TYPED" -> "F07A-DETYPING";
   "F03-MEASUREMENT" -> "F08-MAGIC-GAME";
   "F07-TYPED" -> "F08-MAGIC-GAME";
