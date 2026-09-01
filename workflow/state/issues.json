@@ -2449,7 +2449,7 @@
       "title": "Freeze the executable conditionally-linear sampler contract",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2508,7 +2508,7 @@
         "blueprint/src/generated/chapter-12-entries.tex"
       ],
       "created_at": "2026-09-01T16:45:00Z",
-      "updated_at": "2026-09-01T17:57:29.595635Z",
+      "updated_at": "2026-09-01T18:29:29.068809Z",
       "blocked_reason": null,
       "unblock_condition": null,
       "ownership_handoff": "A03 closed the INC-063 generated sync at 783ec5f; A04 exclusively owns the complete source-fidelity repair across metadata/checker/tests/all deterministic generated consumers."

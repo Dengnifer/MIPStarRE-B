@@ -1527,3 +1527,21 @@ A07 completed the cache repair at immutable head `39c9ee0d74c929cbd4a1fc98be970f
 A08 independently approved the exact LPR-024 head `39c9ee0d74c929cbd4a1fc98be970f4d6c6c8a16` after `773.188` agent-measured seconds (`1028.288` canonical lifecycle seconds). The reviewer reproduced six adversarial full-warm cases, with 60/60 hot-cache and 11/11 materializer tests, and confirmed all four owned findings. A pre-existing `git_source_changes`/`core.fsmonitor` execution path is recorded as non-blocking residual F-LPR024-005 for separate hardening; no production warm, seed, build, or publication occurred. LPR-024 is approved for one guarded recipe-v7 integration and singleton current-main warm.
 
 A05 completed the independent QPBT-048 runtime/API audit in `867.447` canonical seconds. It supplied elaborated signatures for a global-positive runtime bound, exact finite valid-query step aggregation, six logical tapes with ignored-tape layouts, data-valued dependent CL query indices, and the canonical field-coordinate boundary. Eight bounded Lean probes were run (six final passes and two corrected local diagnostics), with no repository or build actions; token usage is unavailable and recorded as JSON `null`.
+
+A04 then completed the QPBT-048 source-fidelity repair at immutable head
+`9cd85aaf809b4cfce64f7159ce3f92929b388270` (tree
+`29c2275a5770332d07d0080e5389f917c36b9074`) in `1936.793` canonical seconds.
+The candidate addresses all eight A02 contract findings, preserves the two
+paper gaps as explicit boundary notes, and records F06A as a faithful-boundary
+statement. Blueprint, pinned-source, workflow, and one 336/336 aggregate gate
+passed; a bounded Lake clone probe timed out after 30 seconds and was cleaned,
+with no retained build or materialization. A fresh immutable mathematical/API
+review remains the next gate.
+
+A09 guardedly integrated the approved cache candidate with no-ff commit
+`47b0bf444d9f29e82e03e51a6d2c89ff5958e6d5` (tree
+`c0c42f87501a820c5438cd7471dc1835032455cb`) on current main `b06c948`.
+All seven candidate blobs matched; 60/60 hot-cache and 11/11 materializer
+tests, compile/workflow/checker gates, and diff authentication passed in
+`254.19` canonical seconds. The production singleton recipe-v7 warm has not
+run yet; it is the sole remaining admission gate for QPBT-045.

@@ -6021,13 +6021,14 @@
       "base": "main",
       "head": "issue/qpbt-035-q014-contract-a01",
       "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
-      "head_sha": "783ec5f5b0ed876addb3cf6e02bf0fdc2426fa19",
+      "head_sha": "9cd85aaf809b4cfce64f7159ce3f92929b388270",
       "implementer_session_ids": [
         "i035-orchestrator-a04-q014-contract-fixes",
         "i035-orchestrator-a07-source-contract-repair",
         "i035-orchestrator-a12-contract-review-repair",
         "i048-orchestrator-a01-executable-cl-contract",
-        "i048-integrator-a03-generated-sync"
+        "i048-integrator-a03-generated-sync",
+        "i048-orchestrator-a04-source-fidelity-repair"
       ],
       "checks": [
         {
@@ -6253,6 +6254,22 @@
           "manifest_sha256": "443af57c0d65b9345b85290d42d7216cc979777971e00952d030704af78b9794",
           "report_sha256": "8d95d622e13479d1f1f42b0532db6657e6e5437dbb2e7bf2da65c73ca0647c59",
           "result": "INC-063 generated ownership handoff complete; no mathematical/checker bytes changed"
+        },
+        {
+          "id": "check-qpbt-048-a04-source-repair",
+          "name": "QPBT-048 source-fidelity executable CL contract repair",
+          "command": "32 blueprint tests; deterministic 54-node default/pinned checks; 39-file/646-label source authentication; full 336-test aggregate; bounded Lean/API probe; immutable diff/report authentication",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "9cd85aaf809b4cfce64f7159ce3f92929b388270",
+          "completed_at": "2026-09-01T18:29:35.762969Z",
+          "result_path": "workflow/reviews/qpbt-048-source-fidelity-repair-a04.md",
+          "comparison_base_sha": "783ec5f5b0ed876addb3cf6e02bf0fdc2426fa19",
+          "head_tree": "29c2275a5770332d07d0080e5389f917c36b9074",
+          "parent_sha": "783ec5f5b0ed876addb3cf6e02bf0fdc2426fa19",
+          "manifest_sha256": "39edc25942ba55981a952685cf65695e3734631ac7abaa683179383603331bcd",
+          "report_sha256": "aa5681300a77f661fd467dfa6fe1e9bde5b0ea4ed6fe79800d80f01e68eda013",
+          "result": "A04 repaired A02-001 through A02-008; F06A faithful boundary; candidate awaits fresh immutable review"
         }
       ],
       "reviews": [
@@ -6387,7 +6404,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T13:51:43.737636Z",
-      "updated_at": "2026-09-01T17:52:51.435533Z",
+      "updated_at": "2026-09-01T18:30:11.441079Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.dot",
@@ -6414,7 +6431,7 @@
       ],
       "motivation": "Resolve the QPBT-014 preflight blockers and freeze an elaborated, source-faithful callable surface before four independent Lean writers begin.",
       "description": "Publish exact F02/F05/F06/F07/G01 signatures, imports, writer lanes, source boundaries, and deterministic generated metadata without adding public bridge assumptions.",
-      "testing": "Through head 783ec5f: A12 passed 30 blueprint tests and 336 workflow tests; A01 passed 31 blueprint tests, deterministic 54-node checks, 336 workflow tests, source authentication, and a 38-callable Lean probe; A03 proved two-write idempotence and passed 31 tests plus default/pinned checks. A02 independently found six source/API blockers, so review is deferred.",
+      "testing": "A04 changed head 9cd85aa: 32/32 blueprint tests, default/pinned 54-node checks, 39-file/646-label source authentication, 336/336 aggregate, workflow/checker/compile/diff gates passed; one bounded Lake probe timed out during an isolated network clone and was cleaned. Fresh immutable mathematical/API review remains required.",
       "addresses": "QPBT-035",
       "provenance_session_ids": [
         "i035-orchestrator-a01-q014-contract",
@@ -6429,10 +6446,12 @@
         "i035-orchestrator-a12-contract-review-repair",
         "i048-orchestrator-a01-executable-cl-contract",
         "i048-scout-a02-executable-cl-source",
-        "i048-integrator-a03-generated-sync"
+        "i048-integrator-a03-generated-sync",
+        "i048-scout-a05-runtime-api",
+        "i048-orchestrator-a04-source-fidelity-repair"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Repair A02-001 through A02-006 on a changed head: global positive-index RuntimeBigO, exact valid-query time aggregation, explicit six-tape cost semantics, data-valued valid dependent CL decompositions, canonical field-codec coherence, and proved downsize compiler costs. Then rerun changed-head gates and obtain a fresh immutable mathematical/API review resolving F-LPR023-003 through F-LPR023-005."
+      "unexecuted_gate": "Obtain a fresh independent immutable mathematical/API review of exact changed head 9cd85aaf809b4cfce64f7159ce3f92929b388270 against F-LPR023-003 through F-LPR023-005, then guarded integration with source/report preservation."
     },
     {
       "id": "LPR-024",
@@ -6448,7 +6467,8 @@
       "implementer_session_ids": [
         "i045-integrator-a02-pr024-bind",
         "i045-orchestrator-a05-pr024-security-repair",
-        "i045-orchestrator-a07-pr024-review-repair"
+        "i045-orchestrator-a07-pr024-review-repair",
+        "i045-integrator-a09-guarded-merge"
       ],
       "checks": [
         {
@@ -6809,7 +6829,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T16:37:00Z",
-      "updated_at": "2026-09-01T18:21:06.288106Z",
+      "updated_at": "2026-09-01T18:33:46.716189Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -6821,7 +6841,7 @@
       ],
       "motivation": "Unblock all new Lean work by preserving exact committed QPBT sources while refreshing authenticated upstream MIPStarRE content during singleton hot-main cache warm.",
       "description": "Recipe v7 preserves exact authored QPBT sources and hardens admission with descriptor-bound traversal, single-link file identity, fail-closed recursive inspection, and rejection of incomplete Git diagnostics.",
-      "testing": "A08 approved exact head 39c9ee0: 60/60 hot-cache, 11/11 materializer, six adversarial full-warm probes, compileall, workflow/checker/test_check_workflow, and diff hygiene passed; A07's 358/358 aggregate remains the sole aggregate attempt. No real warm or Lean build.",
+      "testing": "A08 approved the candidate; A09 no-ff integration 47b0bf4 preserved all candidate blobs and passed 60/60 hot-cache, 11/11 materializer, compile/workflow/checker/test_check_workflow, and diff gates. No production warm yet.",
       "addresses": "QPBT-045",
       "provenance_session_ids": [
         "i045-orchestrator-a01-hot-main-preservation",
@@ -6829,10 +6849,11 @@
         "i045-reviewer-a04-pr024-postadoption",
         "i045-orchestrator-a05-pr024-security-repair",
         "i045-reviewer-a06-pr024-resolution",
-        "i045-orchestrator-a07-pr024-review-repair"
+        "i045-orchestrator-a07-pr024-review-repair",
+        "i045-integrator-a09-guarded-merge"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Guarded integration followed by exactly one authenticated singleton recipe-v7 current-main warm remains required; F-LPR024-005 is tracked separately as a pre-existing non-blocking residual."
+      "unexecuted_gate": "After the authenticated no-ff integration, run exactly one lock-elected recipe-v7 current-main warm with status/READY/deep-inventory evidence; then record the integration SHA and close QPBT-045."
     }
   ]
 }
