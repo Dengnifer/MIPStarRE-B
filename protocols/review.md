@@ -126,6 +126,23 @@ path/line when available, body, status, and disposition. The implementer may
 mark `fixed` or `rejected` with evidence; only a fresh reviewer confirms
 `resolved`. A changed head invalidates approval.
 
+Resolution evidence is permanent. Once a finding is resolved, its status,
+disposition, disposition evidence, and `resolved_by_review_id` are immutable.
+If the PR head later advances, an approving fresh review may be appended to the
+finding's optional `confirmation_review_ids`; absence of that field means no
+later confirmations. Each confirmation ID is unique, is later than the original
+resolution and every preceding confirmation, and names an existing formal
+review on the same PR whose read-only reviewer is independent and terminal.
+Review lists and per-finding confirmation lists are append-only.
+
+An `approved` or `merged` PR requires every finding to be resolved and requires
+either its original resolution review or an appended confirmation review to
+bind the exact current base/head. A later head therefore preserves all prior
+dispositions and confirmations but invalidates approval until another current
+approving review is appended where needed. A `request_changes` round may be the
+original resolution review for one finding while introducing another; it is not
+an approving reconfirmation.
+
 Verdicts are `approve`, `request_changes`, or `blocked`. Any blocker or
 unresolved correctness finding yields `request_changes`. Reviewer failure,
 timeout, or unavailable evidence yields `blocked`, never implicit approval.

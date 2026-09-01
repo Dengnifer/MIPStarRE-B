@@ -1,5 +1,39 @@
 # Protocol Changelog
 
+## 0.1.8 candidate (QPBT-027) - 2026-09-01
+
+The QPBT-026 A15 critical-path audit
+(`workflow/reviews/qpbt-026-stage2-critical-path-a15.md`, SHA-256
+`266bd04517a5214d5a63c2058b685350268c56707ecafcd96acdccfa5295a17f`)
+exposed a contradictory finding-ledger contract: approval required every
+resolved finding's resolution review to match the current head, while the
+update guard permanently fixed that review ID after the first resolution.
+LPR-016 demonstrates the failure with resolutions on multiple historical heads
+and another required repair head still pending.
+
+QPBT-027 preserves every original finding identity and resolution field and
+adds one backward-compatible, optional `confirmation_review_ids` list. Entries
+are unique, chronological references to fresh independent terminal formal
+reviews on the same PR, and only approving reviews may reconfirm a disposition.
+Both the PR review ledger and each confirmation list remain append-only.
+Approval and merge accept the immutable original resolution when it is current,
+or an appended approving confirmation bound to the exact current base/head;
+historical confirmations never authorize a later head.
+
+Focused regressions cover head advancement after one finding is resolved and a
+later finding is introduced, approval with and without current confirmation,
+duplicate, non-string, unknown, wrong-head, and non-approving confirmations,
+plus immutable resolution fields and confirmation removal/replacement. Existing
+records need no migration because an absent confirmation list is the empty
+history. The independent read-only A02 contract audit found and drove closure
+of malformed-value crashes in this exact confirmation/reviewer/update surface;
+its final 26-case replay had no unexpected result
+(`workflow/reviews/qpbt-027-reconfirm-contract-a02.md`, SHA-256
+`148c9e1596e8bab2fdc5071c4c57dc8f1cc337ce81005be12c2b926bacb9d5e2`).
+Focused tests pass 8/8, the workflow module passes 67/67, and the dependency-free
+aggregate passes 320/320. Fresh immutable PR review remains required before this
+candidate is activated.
+
 ## 0.1.7 candidate (QPBT-021) - 2026-08-31
 
 QPBT-021 makes the pinned Mathlib source a first-class hot-cache input. The

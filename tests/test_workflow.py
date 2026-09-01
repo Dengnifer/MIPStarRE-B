@@ -21,8 +21,13 @@ REVIEW_STARTED = "2026-08-30T00:02:00Z"
 REVIEW_ENDED = "2026-08-30T00:03:00Z"
 REVIEW2_STARTED = "2026-08-30T00:04:00Z"
 REVIEW2_ENDED = "2026-08-30T00:05:00Z"
+CHECKED3 = "2026-08-30T00:06:00Z"
+REVIEW3_STARTED = "2026-08-30T00:07:00Z"
+REVIEW3_ENDED = "2026-08-30T00:08:00Z"
 BASE_SHA = "a" * 40
 HEAD_SHA = "b" * 40
+RESOLUTION_HEAD_SHA = "c" * 40
+ADVANCED_HEAD_SHA = "d" * 40
 
 
 def unavailable_tokens() -> dict[str, object]:
@@ -127,15 +132,21 @@ def planned_session(
     return record
 
 
-def check_evidence(*, head_sha: str = HEAD_SHA, status: str = "passed") -> dict[str, object]:
+def check_evidence(
+    *,
+    check_id: str = "check-full-build",
+    head_sha: str = HEAD_SHA,
+    status: str = "passed",
+    completed_at: str = CHECKED,
+) -> dict[str, object]:
     return {
-        "id": "check-full-build",
+        "id": check_id,
         "name": "full build",
         "command": "lake build",
         "status": status,
         "base_sha": BASE_SHA,
         "head_sha": head_sha,
-        "completed_at": CHECKED,
+        "completed_at": completed_at,
         "result_path": ".workflow-runtime/checks/full-build.log",
     }
 
@@ -247,6 +258,103 @@ def documents() -> dict[str, object]:
             ],
         },
     }
+
+
+def finding_reconfirmation_documents(
+    *,
+    confirmation_ids: list[str] | None = None,
+    confirmation_head_sha: str = ADVANCED_HEAD_SHA,
+    confirmation_verdict: str = "approve",
+) -> dict[str, object]:
+    """Build an approved PR whose finding resolution predates its current head."""
+
+    state = documents()
+    finding = {
+        "id": "F-001",
+        "introduced_review_id": "review-001",
+        "base_sha": BASE_SHA,
+        "head_sha": HEAD_SHA,
+        "severity": "high",
+        "status": "resolved",
+        "disposition": "fixed",
+        "disposition_evidence": "review-002 confirmed the repair",
+        "resolved_by_review_id": "review-002",
+        "confirmation_review_ids": ["review-003"] if confirmation_ids is None else confirmation_ids,
+    }
+    later_finding = {
+        "id": "F-002",
+        "introduced_review_id": "review-002",
+        "base_sha": BASE_SHA,
+        "head_sha": RESOLUTION_HEAD_SHA,
+        "severity": "high",
+        "status": "resolved",
+        "disposition": "fixed",
+        "disposition_evidence": "review-003 confirmed the later repair",
+        "resolved_by_review_id": "review-003",
+    }
+    reviews = [
+        review_evidence(verdict="request_changes", finding_ids=["F-001"]),
+        review_evidence(
+            "i002-reviewer-a02-resolution",
+            review_id="review-002",
+            head_sha=RESOLUTION_HEAD_SHA,
+            verdict="request_changes",
+            finding_ids=["F-002"],
+            started_at=REVIEW2_STARTED,
+            completed_at=REVIEW2_ENDED,
+        ),
+        review_evidence(
+            "i002-reviewer-a03-confirmation",
+            review_id="review-003",
+            head_sha=confirmation_head_sha,
+            verdict=confirmation_verdict,
+            started_at=REVIEW3_STARTED,
+            completed_at=REVIEW3_ENDED,
+        ),
+    ]
+    checks = [
+        check_evidence(),
+        check_evidence(
+            check_id="check-resolution-head",
+            head_sha=RESOLUTION_HEAD_SHA,
+            completed_at="2026-08-30T00:03:30Z",
+        ),
+        check_evidence(
+            check_id="check-current-head",
+            head_sha=ADVANCED_HEAD_SHA,
+            completed_at=CHECKED3,
+        ),
+    ]
+    state["prs.json"]["pull_requests"] = [
+        pull_request(
+            head_sha=ADVANCED_HEAD_SHA,
+            checks=checks,
+            reviews=reviews,
+            findings=[finding, later_finding],
+        )
+    ]
+    add_pr_sessions(state)
+    state["sessions.json"]["issued"].extend(
+        [
+            issued_session(
+                "i002-reviewer-a02-resolution",
+                pr_id="LPR-001",
+                role="reviewer",
+                read_only=True,
+                started_at=REVIEW2_STARTED,
+                ended_at=REVIEW2_ENDED,
+            ),
+            issued_session(
+                "i002-reviewer-a03-confirmation",
+                pr_id="LPR-001",
+                role="reviewer",
+                read_only=True,
+                started_at=REVIEW3_STARTED,
+                ended_at=REVIEW3_ENDED,
+            ),
+        ]
+    )
+    return state
 
 
 class WorkflowValidationTests(unittest.TestCase):
@@ -809,6 +917,189 @@ class WorkflowValidationTests(unittest.TestCase):
         finding["disposition_evidence"] = "second reviewer confirmed the report was inapplicable"
         finding["resolved_by_review_id"] = "review-002"
         workflow.validate_documents(state)
+
+    def test_approved_pr_accepts_append_only_current_head_reconfirmation(self) -> None:
+        state = finding_reconfirmation_documents()
+
+        workflow.validate_documents(state)
+
+    def test_approved_pr_rejects_stale_resolution_without_reconfirmation(self) -> None:
+        state = finding_reconfirmation_documents(confirmation_ids=[])
+
+        with self.assertRaises(workflow.ValidationError) as caught:
+            workflow.validate_documents(state)
+
+        self.assertIn("resolution is not confirmed on current base/head", str(caught.exception))
+
+    def test_finding_reconfirmation_rejects_malformed_or_unknown_review_ids(self) -> None:
+        cases: list[tuple[str, list[object], str]] = [
+            ("duplicate", ["review-003", "review-003"], "duplicate entries"),
+            ("non-string", [3], "expected a list of strings"),
+            ("unknown", ["review-unknown"], "unknown review 'review-unknown'"),
+        ]
+        for name, confirmation_ids, expected in cases:
+            with self.subTest(name=name):
+                state = finding_reconfirmation_documents(
+                    confirmation_ids=confirmation_ids,  # type: ignore[arg-type]
+                )
+                with self.assertRaises(workflow.ValidationError) as caught:
+                    workflow.validate_documents(state)
+                self.assertIn(expected, str(caught.exception))
+
+    def test_finding_reconfirmation_adjacent_malformed_values_report_validation_errors(self) -> None:
+        cases = [
+            ("checks", 2, "status", [], "invalid check status"),
+            ("reviews", 2, "verdict", [], "invalid review verdict"),
+            ("findings", 0, "introduced_review_id", [], "unknown review []"),
+            ("findings", 0, "severity", [], "invalid finding severity"),
+            ("findings", 0, "status", [], "invalid finding status"),
+            ("findings", 0, "disposition", [], "invalid finding disposition"),
+            ("findings", 0, "resolved_by_review_id", [], "unknown review []"),
+        ]
+        for collection, index, field, value, expected in cases:
+            with self.subTest(collection=collection, field=field):
+                state = finding_reconfirmation_documents()
+                state["prs.json"]["pull_requests"][0][collection][index][field] = value
+                with self.assertRaises(workflow.ValidationError) as caught:
+                    workflow.validate_documents(state)
+                self.assertIn(expected, str(caught.exception))
+
+        state = finding_reconfirmation_documents()
+        confirmation_reviewer = next(
+            session
+            for session in state["sessions.json"]["issued"]
+            if session["id"] == "i002-reviewer-a03-confirmation"
+        )
+        confirmation_reviewer["status"] = []
+        with self.assertRaises(workflow.ValidationError) as caught:
+            workflow.validate_documents(state)
+        message = str(caught.exception)
+        self.assertIn("reviewer session has not finished", message)
+        self.assertIn("invalid session status", message)
+
+        for field, value, expected in (
+            ("pr_id", [], "unknown PR []"),
+            ("issue_id", [], "unknown issue []"),
+            ("parent_session_id", [], "unknown session []"),
+            ("archive_status", [], "invalid archive status []"),
+            ("timing_quality", [], "unknown timing provenance []"),
+        ):
+            with self.subTest(reviewer_session_field=field):
+                state = finding_reconfirmation_documents()
+                confirmation_reviewer = next(
+                    session
+                    for session in state["sessions.json"]["issued"]
+                    if session["id"] == "i002-reviewer-a03-confirmation"
+                )
+                confirmation_reviewer[field] = value
+                with self.assertRaises(workflow.ValidationError) as caught:
+                    workflow.validate_documents(state)
+                self.assertIn(expected, str(caught.exception))
+
+        state = finding_reconfirmation_documents()
+        state["prs.json"]["pull_requests"][0]["status"] = []
+        with self.assertRaises(workflow.ValidationError) as caught:
+            workflow.validate_documents(state)
+        self.assertIn("invalid PR status []", str(caught.exception))
+
+    def test_approved_pr_rejects_wrong_head_or_nonapproving_reconfirmation(self) -> None:
+        wrong_head = finding_reconfirmation_documents(
+            confirmation_head_sha=RESOLUTION_HEAD_SHA,
+        )
+        with self.assertRaises(workflow.ValidationError) as caught:
+            workflow.validate_documents(wrong_head)
+        self.assertIn("resolution is not confirmed on current base/head", str(caught.exception))
+
+        nonapproving = finding_reconfirmation_documents(
+            confirmation_verdict="request_changes",
+        )
+        with self.assertRaises(workflow.ValidationError) as caught:
+            workflow.validate_documents(nonapproving)
+        self.assertIn("confirmation review 'review-003' must approve", str(caught.exception))
+
+    def test_finding_reconfirmation_requires_a_fresh_later_review_round(self) -> None:
+        state = finding_reconfirmation_documents()
+        pr = state["prs.json"]["pull_requests"][0]
+        confirmation = pr["reviews"][2]
+        confirmation["started_at"] = "2026-08-30T00:04:30Z"
+        confirmation["completed_at"] = "2026-08-30T00:05:30Z"
+        pr["checks"][2]["completed_at"] = "2026-08-30T00:04:15Z"
+        reviewer_session = next(
+            session
+            for session in state["sessions.json"]["issued"]
+            if session["id"] == "i002-reviewer-a03-confirmation"
+        )
+        reviewer_session["started_at"] = confirmation["started_at"]
+        reviewer_session["ended_at"] = confirmation["completed_at"]
+
+        with self.assertRaises(workflow.ValidationError) as caught:
+            workflow.validate_documents(state)
+
+        self.assertIn("review 'review-003' started before 'review-002' completed", str(caught.exception))
+
+    def test_finding_reconfirmation_requires_independent_same_pr_reviewer(self) -> None:
+        wrong_role = finding_reconfirmation_documents()
+        confirmation_review = wrong_role["prs.json"]["pull_requests"][0]["reviews"][2]
+        confirmation_review["reviewer_session_id"] = "i002-prover-a01-implementation"
+        with self.assertRaises(workflow.ValidationError) as caught:
+            workflow.validate_documents(wrong_role)
+        message = str(caught.exception)
+        self.assertIn("reviewer must be a read-only reviewer session", message)
+        self.assertIn("reviewer is not independent of implementation", message)
+
+        wrong_pr = finding_reconfirmation_documents()
+        confirmation_reviewer = next(
+            session
+            for session in wrong_pr["sessions.json"]["issued"]
+            if session["id"] == "i002-reviewer-a03-confirmation"
+        )
+        confirmation_reviewer["pr_id"] = None
+        with self.assertRaises(workflow.ValidationError) as caught:
+            workflow.validate_documents(wrong_pr)
+        self.assertIn("reviewer session is not bound to PR 'LPR-001'", str(caught.exception))
+
+    def test_finding_confirmation_update_is_append_only_and_preserves_resolution(self) -> None:
+        state = finding_reconfirmation_documents()
+        resolved = state["prs.json"]["pull_requests"][0]["findings"][0]
+        original = copy.deepcopy(resolved)
+        original.pop("confirmation_review_ids")
+        appended = copy.deepcopy(original)
+        appended["confirmation_review_ids"] = ["review-003"]
+
+        workflow._require_findings_update([original], [appended])
+
+        for field, value in (
+            ("id", "F-rewritten"),
+            ("status", "open"),
+            ("disposition", "rejected"),
+            ("disposition_evidence", "rewritten evidence"),
+            ("resolved_by_review_id", "review-003"),
+        ):
+            with self.subTest(mutation=field):
+                mutated = copy.deepcopy(appended)
+                mutated[field] = value
+                with self.assertRaises(workflow.WorkflowError):
+                    workflow._require_findings_update([appended], [mutated])
+
+        removed = copy.deepcopy(appended)
+        removed["confirmation_review_ids"] = []
+        with self.assertRaisesRegex(workflow.WorkflowError, "confirmation_review_ids are append-only"):
+            workflow._require_findings_update([appended], [removed])
+
+        replaced = copy.deepcopy(appended)
+        replaced["confirmation_review_ids"] = ["review-004"]
+        with self.assertRaisesRegex(workflow.WorkflowError, "confirmation_review_ids are append-only"):
+            workflow._require_findings_update([appended], [replaced])
+
+        open_finding = copy.deepcopy(original)
+        open_finding["status"] = "open"
+        open_finding["disposition"] = "pending"
+        open_finding["disposition_evidence"] = None
+        open_finding["resolved_by_review_id"] = None
+        malformed_transition = copy.deepcopy(open_finding)
+        malformed_transition["status"] = []
+        with self.assertRaisesRegex(workflow.WorkflowError, "only transition from open to resolved"):
+            workflow._require_findings_update([open_finding], [malformed_transition])
 
     def test_issued_session_contract_and_lifecycle_are_required(self) -> None:
         state = documents()
