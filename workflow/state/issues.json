@@ -1084,7 +1084,7 @@
       "id": "QPBT-023",
       "title": "Freeze QPBT leaf signatures and self-dual basis obligation",
       "kind": "blueprint",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-003"
@@ -1110,9 +1110,32 @@
         "blueprint/metadata/nodes.json#F04-DISTANCE"
       ],
       "created_at": "2026-08-31T10:13:51Z",
-      "updated_at": "2026-09-01T10:16:53.066830Z",
+      "updated_at": "2026-09-01T10:37:27.414494Z",
       "blocked_reason": null,
-      "unblock_condition": null
+      "unblock_condition": null,
+      "completion_evidence": {
+        "pr_id": "LPR-019",
+        "head_sha": "70fb1f484b0b94522b81082342b528b2fd39b707",
+        "integration_sha": "ce98e39e768e5d99c7201a905c66e785a2936fd5",
+        "integration_tree": "f05867d99d45bcf0283e125cebdda898ef20fbee",
+        "reviews": [
+          "review-qpbt-023-a05-blueprint-contract",
+          "review-qpbt-023-a06-statement-integrity"
+        ],
+        "review_verdict": "approve",
+        "findings": 0,
+        "report_paths": [
+          "workflow/reviews/qpbt-023-leaf-contract-a04.md",
+          "workflow/reviews/qpbt-023-blueprint-contract-a05.md",
+          "workflow/reviews/qpbt-023-statement-integrity-a06.md",
+          "workflow/reviews/qpbt-023-pr019-bind-a07.md"
+        ],
+        "blueprint_tests": "28/28",
+        "source_root_check": "51 nodes/12 chapters",
+        "pdf": "35 pages/160 identifiers",
+        "gap_note": "docs/paper-gaps/self-dual-normal-basis.md",
+        "skeleton_policy": "exactly two declared minimal holes; no public assumption"
+      }
     },
     {
       "id": "QPBT-024",
