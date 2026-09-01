@@ -3968,9 +3968,10 @@
       "base": "main",
       "head": "issue/qpbt-026-disclosure-a01",
       "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
-      "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+      "head_sha": "94c0e630b5f2697f678c400da082f108bde89471",
       "implementer_session_ids": [
-        "i026-integrator-a02-pr016-bind"
+        "i026-integrator-a02-pr016-bind",
+        "i026-fixer-a05-disclosure-preflight"
       ],
       "checks": [
         {
@@ -4025,6 +4026,66 @@
           "completed_at": "2026-08-31T22:09:30Z",
           "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a01.md",
           "tree_sha": "7af3fb789c5a4438482599b25e0d42a2088bbba6",
+          "worktree_clean": true
+        },
+        {
+          "id": "check-qpbt-026-focused-94c0e63",
+          "name": "fixed-head disclosure preflight focused tests",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_local_agent.py'",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "94c0e630b5f2697f678c400da082f108bde89471",
+          "completed_at": "2026-09-01T02:51:25Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a05.md",
+          "tests": "58/58",
+          "seconds": 4.567,
+          "wall_seconds": 4.71
+        },
+        {
+          "id": "check-qpbt-026-compile-94c0e63",
+          "name": "fixed-head Python compile check",
+          "command": "python3 -m compileall -q scripts/local_agent.py tests/test_local_agent.py",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "94c0e630b5f2697f678c400da082f108bde89471",
+          "completed_at": "2026-09-01T02:51:25Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a05.md",
+          "wall_seconds": 0.08
+        },
+        {
+          "id": "check-qpbt-026-validate-94c0e63",
+          "name": "fixed-head workflow validation",
+          "command": "python3 scripts/workflow.py validate --json",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "94c0e630b5f2697f678c400da082f108bde89471",
+          "completed_at": "2026-09-01T02:51:25Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a05.md",
+          "wall_seconds": 0.11
+        },
+        {
+          "id": "check-qpbt-026-diff-94c0e63",
+          "name": "fixed-head SHA-bound diff hygiene and path inventory",
+          "command": "git diff --check ea584e9e894391773e09ddad2ce4d082497c7913..94c0e630b5f2697f678c400da082f108bde89471",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "94c0e630b5f2697f678c400da082f108bde89471",
+          "completed_at": "2026-09-01T02:51:25Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a05.md",
+          "changed_paths": 6
+        },
+        {
+          "id": "check-qpbt-026-identity-94c0e63",
+          "name": "fixed candidate ancestry commit tree and clean worktree identity",
+          "command": "git rev-parse HEAD HEAD^{tree} HEAD^ HEAD^^; git merge-base --is-ancestor BASE HEAD; git rev-list --count BASE..HEAD; git status --short --branch",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "94c0e630b5f2697f678c400da082f108bde89471",
+          "completed_at": "2026-09-01T02:51:25Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a05.md",
+          "tree_sha": "4188a6d959cb145b945c9618789f96cd98165d02",
+          "direct_fix_parent": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "commit_count": 2,
           "worktree_clean": true
         }
       ],
@@ -4126,20 +4187,22 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T22:10:00Z",
-      "updated_at": "2026-09-01T02:24:20.176572Z",
+      "updated_at": "2026-09-01T02:52:25.401859Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
         "scripts/local_agent.py",
         "tests/test_local_agent.py",
-        "workflow/reviews/qpbt-026-disclosure-preflight-a01.md"
+        "workflow/reviews/qpbt-026-disclosure-preflight-a01.md",
+        "workflow/reviews/qpbt-026-disclosure-preflight-a05.md"
       ],
       "motivation": "INC-045 showed that endpoint/model authorization without an exact private evidence scope cannot safely launch an external reviewer.",
       "description": "Require a versioned non-secret authorization record that exactly binds endpoint, model, wire API, immutable revision identity, and private file paths before any external disclosure or session lease.",
       "testing": "exact-head focused local-agent tests; Python compileall; workflow validation; SHA-bound diff hygiene; final commit/tree identity",
       "addresses": "QPBT-026",
       "provenance_session_ids": [
-        "i026-orchestrator-a01-disclosure-preflight"
+        "i026-orchestrator-a01-disclosure-preflight",
+        "i026-fixer-a05-disclosure-preflight"
       ],
       "requested_external_review": false,
       "unexecuted_gate": "A fresh independent immutable local reviewer must approve the exact head before integration; no external endpoint is contacted without explicit file-scope authorization."
