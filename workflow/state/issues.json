@@ -2317,7 +2317,7 @@
       "title": "Preserve authored QPBT sources during hot-main cache warm",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-024"
@@ -2338,7 +2338,7 @@
         "Update the local build protocol and protocol changelog, pass focused and aggregate workflow tests, and obtain a fresh independent immutable review",
         "After guarded integration, warm exact current main once under the filesystem lock with all three authenticated local inputs; record cache key, input hashes, lock wait, materialization/dependency/build durations, inventory, result, and zero duplicate builders"
       ],
-      "owner_session_id": "i045-orchestrator-a01-hot-main-preservation",
+      "owner_session_id": "i045-orchestrator-a05-pr024-security-repair",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-054",
         "research/metrics/incidents.jsonl#INC-060",
@@ -2355,7 +2355,7 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:50:00Z",
-      "updated_at": "2026-09-01T16:40:42.171858Z",
+      "updated_at": "2026-09-01T16:57:25.058036Z",
       "blocked_reason": null,
       "unblock_condition": null
     },

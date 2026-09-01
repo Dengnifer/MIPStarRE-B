@@ -1445,3 +1445,17 @@ issue. QPBT-048 runs as the 206th Stage-04A subagent attempt in parallel with
 the LPR-024 security review. This converts an ambiguous prose deferral into an
 explicit dependency and preserves the rule that Lean implementation cannot
 start from a source-incomplete callable contract.
+
+The first LPR-024 adversarial audit reproduced three source-confinement gaps:
+lexical walking can follow a concurrently replaced root or intermediate
+directory; byte-identical hard-linked authored source can pass a full fake warm
+and publish `READY`; and unreadable generated subtrees can disappear from both
+the inventory and Git cleanliness evidence. Its `647.531`-second coordinator
+window (`460.003182` agent-measured) ran 51/51 hot-cache and 11/11 materializer
+tests plus four targeted probes, with no aggregate or production action. The
+audit is deliberately nonbinding because it started before the concurrently
+launched adopter's append-only check completed. INC-062 records this chronology
+error. Fresh post-adoption A04 is the 207th Stage-04A attempt and formally
+confirms or rejects the old-head findings, while A05 is the 208th attempt and
+repairs the three gaps in parallel. Future adoption checks and formal reviews
+are sequential even when independent implementation work remains parallel.

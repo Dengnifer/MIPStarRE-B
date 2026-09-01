@@ -6311,7 +6311,7 @@
     {
       "id": "LPR-024",
       "title": "fix(cache): preserve authored QPBT sources",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-045"
       ],
@@ -6410,7 +6410,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T16:37:00Z",
-      "updated_at": "2026-09-01T16:48:39.148871Z",
+      "updated_at": "2026-09-01T16:54:22.211694Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
