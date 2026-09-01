@@ -5327,6 +5327,152 @@
       ],
       "requested_external_review": false,
       "unexecuted_gate": "Fresh immutable local security review is required before integration. This PR intentionally does not close QPBT-028; QPBT-029 and QPBT-030 remain required."
+    },
+    {
+      "id": "LPR-019",
+      "title": "feat(QPBT/blueprint): freeze leaf callable contracts",
+      "status": "approved",
+      "issue_ids": [
+        "QPBT-023"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-023-leaf-contract-a01",
+      "base_sha": "942f9438b991ece8942815db16c019b92d9cdd8e",
+      "head_sha": "70fb1f484b0b94522b81082342b528b2fd39b707",
+      "implementer_session_ids": [
+        "i023-integrator-a07-pr019-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-023-blueprint-unit",
+          "name": "QPBT-023 blueprint unit tests",
+          "command": "python3 -m unittest blueprint.tests.test_check",
+          "status": "passed",
+          "base_sha": "942f9438b991ece8942815db16c019b92d9cdd8e",
+          "head_sha": "70fb1f484b0b94522b81082342b528b2fd39b707",
+          "completed_at": "2026-09-01T10:04:55.788350Z",
+          "result_path": "workflow/reviews/qpbt-023-leaf-contract-a04.md"
+        },
+        {
+          "id": "check-qpbt-023-source-root",
+          "name": "QPBT-023 source-root declaration check",
+          "command": "python3 blueprint/check.py --check --source-root /home/drx/MIPStarRE-auto/references/2001.04383v3",
+          "status": "passed",
+          "base_sha": "942f9438b991ece8942815db16c019b92d9cdd8e",
+          "head_sha": "70fb1f484b0b94522b81082342b528b2fd39b707",
+          "completed_at": "2026-09-01T10:04:55.788350Z",
+          "result_path": "workflow/reviews/qpbt-023-leaf-contract-a04.md"
+        },
+        {
+          "id": "check-qpbt-023-blueprint-default",
+          "name": "QPBT-023 blueprint declaration check",
+          "command": "python3 blueprint/check.py --check",
+          "status": "passed",
+          "base_sha": "942f9438b991ece8942815db16c019b92d9cdd8e",
+          "head_sha": "70fb1f484b0b94522b81082342b528b2fd39b707",
+          "completed_at": "2026-09-01T10:04:55.788350Z",
+          "result_path": "workflow/reviews/qpbt-023-leaf-contract-a04.md"
+        },
+        {
+          "id": "check-qpbt-023-workflow",
+          "name": "QPBT-023 workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "942f9438b991ece8942815db16c019b92d9cdd8e",
+          "head_sha": "70fb1f484b0b94522b81082342b528b2fd39b707",
+          "completed_at": "2026-09-01T10:04:55.788350Z",
+          "result_path": "workflow/reviews/qpbt-023-leaf-contract-a04.md"
+        },
+        {
+          "id": "check-qpbt-023-diff",
+          "name": "QPBT-023 candidate diff hygiene",
+          "command": "git diff --check 942f9438b991ece8942815db16c019b92d9cdd8e..70fb1f484b0b94522b81082342b528b2fd39b707",
+          "status": "passed",
+          "base_sha": "942f9438b991ece8942815db16c019b92d9cdd8e",
+          "head_sha": "70fb1f484b0b94522b81082342b528b2fd39b707",
+          "completed_at": "2026-09-01T10:04:55.788350Z",
+          "result_path": "workflow/reviews/qpbt-023-leaf-contract-a04.md"
+        },
+        {
+          "id": "check-qpbt-023-pdf",
+          "name": "QPBT-023 blueprint PDF render",
+          "command": "make -C blueprint pdf",
+          "status": "passed",
+          "base_sha": "942f9438b991ece8942815db16c019b92d9cdd8e",
+          "head_sha": "70fb1f484b0b94522b81082342b528b2fd39b707",
+          "completed_at": "2026-09-01T10:04:55.788350Z",
+          "result_path": "workflow/reviews/qpbt-023-leaf-contract-a04.md"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-023-a05-blueprint-contract",
+          "reviewer_session_id": "i023-reviewer-a05-blueprint-contract",
+          "verdict": "approve",
+          "base_sha": "942f9438b991ece8942815db16c019b92d9cdd8e",
+          "head_sha": "70fb1f484b0b94522b81082342b528b2fd39b707",
+          "started_at": "2026-09-01T10:23:29.903690Z",
+          "completed_at": "2026-09-01T10:23:30.228545Z",
+          "result_path": "workflow/reviews/qpbt-023-blueprint-contract-a05.md",
+          "finding_ids": [],
+          "manifest_sha256": "da448352467433f304f824346e00cc9527d3b0f22cbe2f8d33e8e6a9016804bd",
+          "report_sha256": "9f8770d68bceb4f4a8da150b399c2c8999fd0a8d1e0db671156de391807df1c4",
+          "review_scope": "blueprint-contract"
+        },
+        {
+          "id": "review-qpbt-023-a06-statement-integrity",
+          "reviewer_session_id": "i023-reviewer-a06-statement-integrity",
+          "verdict": "approve",
+          "base_sha": "942f9438b991ece8942815db16c019b92d9cdd8e",
+          "head_sha": "70fb1f484b0b94522b81082342b528b2fd39b707",
+          "started_at": "2026-09-01T10:23:30.886540Z",
+          "completed_at": "2026-09-01T10:23:31.207491Z",
+          "result_path": "workflow/reviews/qpbt-023-statement-integrity-a06.md",
+          "finding_ids": [],
+          "manifest_sha256": "da448352467433f304f824346e00cc9527d3b0f22cbe2f8d33e8e6a9016804bd",
+          "report_sha256": "402137288821e9a283af2e67db57493e4aee020dbbf8dfd1422402ddd2052838",
+          "review_scope": "statement-integrity"
+        }
+      ],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-01T10:10:00Z",
+      "updated_at": "2026-09-01T10:29:28.479296Z",
+      "changed_paths": [
+        "blueprint/README.md",
+        "blueprint/check.py",
+        "blueprint/generated/graph.dot",
+        "blueprint/generated/graph.json",
+        "blueprint/metadata/gaps.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/chapter-03-entries.tex",
+        "blueprint/src/generated/chapter-04-entries.tex",
+        "blueprint/src/generated/chapter-05-entries.tex",
+        "blueprint/src/generated/chapter-06-entries.tex",
+        "blueprint/src/generated/chapter-07-entries.tex",
+        "blueprint/src/generated/chapter-08-entries.tex",
+        "blueprint/src/generated/chapter-09-entries.tex",
+        "blueprint/src/generated/chapter-10-entries.tex",
+        "blueprint/src/generated/chapter-11-entries.tex",
+        "blueprint/src/generated/chapter-12-entries.tex",
+        "blueprint/src/generated/gaps.tex",
+        "blueprint/tests/test_check.py",
+        "docs/paper-gaps/self-dual-normal-basis.md",
+        "workflow/reviews/qpbt-023-leaf-contract-a04.md",
+        "workflow/reviews/qpbt-023-readme-sync-a05.md"
+      ],
+      "motivation": "Freeze source-faithful callable contracts for the QPBT leaf definitions before any Lean writer is dispatched.",
+      "description": "Bind F01 field, F03 measurement, and finite/asymptotic/consistency/law F04 interfaces, record the self-dual-normal-basis paper gap, and synchronize the declared two-hole skeleton policy.",
+      "testing": "28/28 blueprint tests; source-root and default declaration checks; workflow validation; diff hygiene; 35-page PDF with 160 extractable identifiers.",
+      "addresses": "QPBT-023",
+      "provenance_session_ids": [
+        "i023-orchestrator-a04-leaf-contract-continuation",
+        "i023-simplifier-a05-readme-sync"
+      ],
+      "requested_external_review": false,
+      "unexecuted_gate": "Two fresh independent immutable local blueprint reviews against this exact base/head are required before approval and integration."
     }
   ]
 }

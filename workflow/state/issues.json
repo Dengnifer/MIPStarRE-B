@@ -1084,7 +1084,7 @@
       "id": "QPBT-023",
       "title": "Freeze QPBT leaf signatures and self-dual basis obligation",
       "kind": "blueprint",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-003"
@@ -1110,7 +1110,7 @@
         "blueprint/metadata/nodes.json#F04-DISTANCE"
       ],
       "created_at": "2026-08-31T10:13:51Z",
-      "updated_at": "2026-09-01T09:28:56.358798Z",
+      "updated_at": "2026-09-01T10:16:53.066830Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
