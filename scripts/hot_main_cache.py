@@ -855,7 +855,9 @@ def git_blob(repo_root: Path, commit: str, relative_path: Path) -> bytes:
     git_path = relative_path.as_posix()
     command = ["git", "-C", str(repo_root), "show", f"{commit}:{git_path}"]
     try:
-        result = subprocess.run(command, capture_output=True, check=False, shell=False)
+        result = subprocess.run(
+            command, capture_output=True, check=False, shell=False, env=_trusted_git_environment()
+        )
     except OSError as error:
         raise CacheError(f"could not run git: {error}") from error
     if result.returncode != 0:
@@ -885,7 +887,14 @@ def hash_inputs_at_commit(
 def git_commit(repo_root: Path, ref: str) -> str:
     command = ["git", "-C", str(repo_root), "rev-parse", f"{ref}^{{commit}}"]
     try:
-        result = subprocess.run(command, text=True, capture_output=True, check=False, shell=False)
+        result = subprocess.run(
+            command,
+            text=True,
+            capture_output=True,
+            check=False,
+            shell=False,
+            env=_trusted_git_environment(),
+        )
     except OSError as error:
         raise CacheError(f"could not run git: {error}") from error
     if result.returncode != 0:
@@ -912,7 +921,14 @@ def git_source_changes(repo_root: Path) -> list[str]:
         "--ignore-submodules=none",
     ]
     try:
-        result = subprocess.run(command, text=True, capture_output=True, check=False, shell=False)
+        result = subprocess.run(
+            command,
+            text=True,
+            capture_output=True,
+            check=False,
+            shell=False,
+            env=_trusted_git_environment(),
+        )
     except OSError as error:
         raise CacheError(f"could not run git: {error}") from error
     diagnostics = result.stderr.strip()
@@ -940,7 +956,14 @@ def git_worktrees(repo_root: Path) -> list[WorktreeRecord]:
 
     command = ["git", "-C", str(repo_root), "worktree", "list", "--porcelain"]
     try:
-        result = subprocess.run(command, text=True, capture_output=True, check=False, shell=False)
+        result = subprocess.run(
+            command,
+            text=True,
+            capture_output=True,
+            check=False,
+            shell=False,
+            env=_trusted_git_environment(),
+        )
     except OSError as error:
         raise CacheError(f"could not run git: {error}") from error
     if result.returncode != 0:
@@ -1021,7 +1044,14 @@ def default_runtime_dir(repo_root: Path) -> Path:
 def git_resolved_path(repo_root: Path, argument: str) -> Path:
     command = ["git", "-C", str(repo_root), "rev-parse", argument]
     try:
-        result = subprocess.run(command, text=True, capture_output=True, check=False, shell=False)
+        result = subprocess.run(
+            command,
+            text=True,
+            capture_output=True,
+            check=False,
+            shell=False,
+            env=_trusted_git_environment(),
+        )
     except OSError as error:
         raise CacheError(f"could not run git: {error}") from error
     if result.returncode != 0:

@@ -1072,6 +1072,16 @@ class HotMainCacheTests(unittest.TestCase):
             with self.assertRaisesRegex(cache_module.CacheError, "git emitted diagnostics"):
                 cache_module.git_source_changes(self.repo)
 
+    def test_git_source_changes_does_not_execute_fsmonitor_hook(self) -> None:
+        marker = self.base / "fsmonitor-status-executed"
+        hook = self.base / "fsmonitor-status-hook"
+        hook.write_text(f"#!/bin/sh\ntouch {marker}\n", encoding="ascii")
+        hook.chmod(0o755)
+        run_git(self.repo, "config", "core.fsmonitor", str(hook))
+
+        self.assertEqual([], cache_module.git_source_changes(self.repo))
+        self.assertFalse(marker.exists())
+
     def test_full_warm_rejects_exit_zero_git_warning_without_ready(self) -> None:
         authored = self.repo / "MIPStarRE" / "QPBT"
         authored.mkdir()
@@ -2305,6 +2315,24 @@ class HotMainCacheTests(unittest.TestCase):
             shutil.copy2(self.repo / source, stale / source)
         with self.assertRaisesRegex(cache_module.CacheError, "live Git worktree"):
             manager.seed(stale)
+
+    def test_seed_admission_ignores_ambient_git_worktree_and_config(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("ambient-git-target")
+        hostile = {
+            "GIT_WORK_TREE": str(self.base / "unrelated-worktree"),
+            "GIT_DIR": str(self.base / "unrelated-git-dir"),
+            "GIT_CONFIG_GLOBAL": str(self.base / "hostile-global-config"),
+            "GIT_CONFIG_SYSTEM": str(self.base / "hostile-system-config"),
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "core.fsmonitor",
+            "GIT_CONFIG_VALUE_0": "touch hostile-marker",
+            "GIT_CONFIG_PARAMETERS": "'core.fsmonitor=touch hostile-marker'",
+        }
+        with mock.patch.dict(os.environ, hostile, clear=False):
+            result = manager.seed(target)
+        self.assertEqual("seeded", result["result"])
 
     def test_seed_rejects_symlink_component_before_resolution(self) -> None:
         manager = self.manager()
