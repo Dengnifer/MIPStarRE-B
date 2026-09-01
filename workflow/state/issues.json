@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 35,
+  "next_sequence": 41,
   "issues": [
     {
       "id": "QPBT-000",
@@ -714,7 +714,7 @@
     },
     {
       "id": "QPBT-014",
-      "title": "Implement minimal algebra and typed-game interfaces",
+      "title": "Coordinate minimal algebra and typed-game interfaces",
       "kind": "formalization",
       "status": "planned",
       "parent_id": "QPBT-005",
@@ -726,30 +726,30 @@
         "minimal-skeleton",
         "algebra",
         "typed-game",
+        "tracking",
         "exact-ownership"
       ],
       "acceptance_gates": [
-        "Only Basic/Polynomial.lean, Basic/Pauli.lean, Game/Types.lean, and Game/Parameters.lean are owned",
-        "All four files type-check against the frozen QPBT-013 interfaces with acyclic imports",
-        "Polynomial, Pauli, typed game, raw BitVec codec, and FieldData declarations match the blueprint",
-        "No sorry, axiom, or proof-debt constant is introduced",
-        "The scoped Lean build and declaration-integrity checks pass"
+        "Coordinate QPBT-035 through QPBT-040 under disjoint ownership: one reviewed callable-contract freeze, four single-file Lean issues, and one source-free combined validation issue",
+        "The four Lean children own only Basic/Polynomial.lean, Basic/Pauli.lean, Game/Types.lean, and Game/Parameters.lean; F06 precedes F07 within the sole Types owner and no writable paths overlap",
+        "F02, F05/G09, F06, F07, and G01 statements match the reviewed QPBT-035 contract; the orphan raw BitVec codec is deferred to its actual complexity/codec node and FieldData remains owned by integrated F01",
+        "Every child introduces no unauthorized sorry, axiom, constant, public obligation input, or incompatible LDT parameter boundary",
+        "All four local PRs pass scoped checks, private builds, declaration synchronization, independent immutable review, and guarded integration; QPBT-040 alone runs the final combined-snapshot build before this parent closes"
       ],
       "owner_session_id": null,
       "source_refs": [
+        "workflow/reviews/qpbt-033-q014-split-a01.md",
         "blueprint/metadata/nodes.json#F02-CODE",
         "blueprint/metadata/nodes.json#F05-PAULI",
+        "blueprint/metadata/nodes.json#F06-CL",
         "blueprint/metadata/nodes.json#F07-TYPED",
         "blueprint/metadata/nodes.json#G01-PARAMETERS"
       ],
-      "owned_paths": [
-        "MIPStarRE/QPBT/Basic/Polynomial.lean",
-        "MIPStarRE/QPBT/Basic/Pauli.lean",
-        "MIPStarRE/QPBT/Game/Types.lean",
-        "MIPStarRE/QPBT/Game/Parameters.lean"
-      ],
+      "owned_paths": [],
       "created_at": "2026-08-30T23:54:39.078758Z",
-      "updated_at": "2026-08-30T23:54:39.078758Z"
+      "updated_at": "2026-09-01T13:00:57.077995Z",
+      "blocked_reason": "QPBT-035 contract freeze is required before the four Lean writers can dispatch.",
+      "unblock_condition": "QPBT-035 done, then dispatch QPBT-036/QPBT-037/QPBT-038 concurrently and queue QPBT-039."
     },
     {
       "id": "QPBT-015",
@@ -1749,7 +1749,7 @@
       "title": "Preflight the parallel QPBT-014 implementation split",
       "kind": "workflow",
       "execution_category": "preflight",
-      "status": "in_progress",
+      "status": "done",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-004",
@@ -1782,9 +1782,36 @@
       ],
       "owned_paths": [],
       "created_at": "2026-09-01T12:30:00Z",
-      "updated_at": "2026-09-01T12:31:18.279800Z",
+      "updated_at": "2026-09-01T12:58:26.096910Z",
       "blocked_reason": null,
-      "unblock_condition": "Runs independently after QPBT-004 and QPBT-023; its proposal is advisory until root imports and reviews it."
+      "unblock_condition": null,
+      "completion_evidence": {
+        "report_path": "workflow/reviews/qpbt-033-q014-split-a01.md",
+        "report_sha256": "5b6e073865225ef6a8c70a78ce3ad43e2a41d26c1d19b42534e7ef01eb03f55c",
+        "base_sha": "d60a71c945ebf407b4a1c8c322c38181e7d09dfa",
+        "base_tree": "cbd1b48827acb90615f437ebd9d55d3705d7cc70",
+        "source_authentication": "seven pinned local source hashes recorded; no network",
+        "findings": 8,
+        "blocker_findings": 3,
+        "accepted_split": {
+          "contract_freeze": "QPBT-035",
+          "writers": [
+            "QPBT-036",
+            "QPBT-037",
+            "QPBT-038",
+            "QPBT-039"
+          ],
+          "initial_parallel_writers": [
+            "QPBT-036",
+            "QPBT-037",
+            "QPBT-038"
+          ],
+          "singleton_combined_build": "QPBT-040"
+        },
+        "forecast": "17-41 active wall hours; approximately 1-4 calendar days after contract freeze",
+        "root_disposition": "accepted after complete report inspection; blockers assigned to QPBT-035 rather than silently repaired",
+        "zero_actions": "no Lean, build, cache, network, endpoint, GitHub, credentials, or nested agents"
+      }
     },
     {
       "id": "QPBT-034",
@@ -1826,6 +1853,254 @@
       "updated_at": "2026-09-01T12:48:20.629903Z",
       "blocked_reason": null,
       "unblock_condition": null
+    },
+    {
+      "id": "QPBT-035",
+      "title": "Freeze callable contracts for the QPBT-014 Lean split",
+      "kind": "blueprint",
+      "execution_category": "implementation",
+      "status": "ready",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-013",
+        "QPBT-033"
+      ],
+      "labels": [
+        "blueprint",
+        "lean-contract",
+        "statement-integrity",
+        "parallelism",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Resolve QPBT-033 findings 1-3, 5, and 7 before any QPBT-014 Lean writer starts: add F06, remove or reassign the orphan raw BitVec codec and already-discharged FieldData gate, and freeze every callable theorem required by F02/F05/F06/F07/G01",
+        "Publish exact elaborated Lean signatures and direct imports for Polynomial.lean, Pauli.lean, Game/Types.lean, and Game/Parameters.lean, including Boolean-versus-field domains, G09 twisted phase, loop-preserving type graphs, dependent fibers, and the F03/F10 boundary",
+        "Update the 51-node blueprint metadata and deterministic chapter-02/chapter-03/graph outputs without changing paper claims or adding public bridge assumptions",
+        "Run blueprint unit, source-root, default declaration, generated-diff, and workflow checks; record statement-integrity tables and exact source hashes",
+        "Obtain a fresh independent immutable mathematical/API review before guarded integration"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-033-q014-split-a01.md",
+        "blueprint/metadata/nodes.json#F02-CODE",
+        "blueprint/metadata/nodes.json#F05-PAULI",
+        "blueprint/metadata/nodes.json#F06-CL",
+        "blueprint/metadata/nodes.json#F07-TYPED",
+        "blueprint/metadata/nodes.json#G01-PARAMETERS",
+        "docs/paper-gaps/pauli-trace-phase.md#G09",
+        "references/2001.04383v3/sections/dependencies/low-degree-code.tex",
+        "references/2001.04383v3/sections/dependencies/pauli.tex",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex",
+        "references/2001.04383v3/sections/dependencies/types.tex",
+        "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex"
+      ],
+      "owned_paths": [
+        "blueprint/metadata/nodes.json",
+        "blueprint/generated/graph.json",
+        "blueprint/generated/graph.dot",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/chapter-03-entries.tex"
+      ],
+      "created_at": "2026-09-01T12:59:00Z",
+      "updated_at": "2026-09-01T13:00:57.767350Z",
+      "blocked_reason": null,
+      "unblock_condition": "Ready immediately after QPBT-033; no Lean child may dispatch until this contract candidate is independently reviewed and merged."
+    },
+    {
+      "id": "QPBT-037",
+      "title": "feat(QPBT/Basic): implement Pauli algebra and projectors",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-013",
+        "QPBT-035"
+      ],
+      "labels": [
+        "lean",
+        "minimal-skeleton",
+        "pauli",
+        "f05",
+        "g09",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement only MIPStarRE/QPBT/Basic/Pauli.lean from the reviewed QPBT-035 F05/G09 contract",
+        "Match exact matrix-entry, projector, Fourier, multiplication-order, and trace-phase signatures; do not replace twisted commutation by false arbitrary cross-basis commutation",
+        "Use self-dual field data only at source sites that require it and honor the frozen F03/F10 boundary",
+        "Introduce no sorry, axiom, constant, public obligation input, or incompatible LDT parameter import",
+        "Pass scoped Lean, target build, G09/debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-033-q014-split-a01.md#F05--Pauli",
+        "blueprint/metadata/nodes.json#F05-PAULI",
+        "docs/paper-gaps/pauli-trace-phase.md#G09",
+        "references/2001.04383v3/sections/dependencies/pauli.tex:1-214"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Pauli.lean"
+      ],
+      "created_at": "2026-09-01T12:59:00Z",
+      "updated_at": "2026-09-01T12:59:00Z",
+      "blocked_reason": "QPBT-035 callable contract is not yet reviewed and integrated.",
+      "unblock_condition": "QPBT-035 done, plus any explicit F03 completion dependency selected by that contract."
+    },
+    {
+      "id": "QPBT-039",
+      "title": "feat(QPBT/Game): implement admissible parameter boundary",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-013",
+        "QPBT-035"
+      ],
+      "labels": [
+        "lean",
+        "minimal-skeleton",
+        "parameters",
+        "g01",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement only MIPStarRE/QPBT/Game/Parameters.lean from the reviewed QPBT-035 G01 contract",
+        "Use the project-owned Parameters structure and exact existential Odd/equality/Nat-divisibility predicate with unchanged quantifier and conjunction order",
+        "Do not add positivity, a field witness, an LDT alias/coercion, sorry, axiom, constant, or public obligation input",
+        "Pass scoped Lean, target build, owned-scope debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-033-q014-split-a01.md#G01--Parameters",
+        "blueprint/metadata/nodes.json#G01-PARAMETERS",
+        "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex:60-63"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Parameters.lean"
+      ],
+      "created_at": "2026-09-01T12:59:00Z",
+      "updated_at": "2026-09-01T12:59:00Z",
+      "blocked_reason": "QPBT-035 callable contract is not yet reviewed and integrated.",
+      "unblock_condition": "QPBT-035 done."
+    },
+    {
+      "id": "QPBT-036",
+      "title": "feat(QPBT/Basic): implement low-degree polynomial encoding",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-013",
+        "QPBT-035"
+      ],
+      "labels": [
+        "lean",
+        "minimal-skeleton",
+        "polynomial",
+        "f02",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement only MIPStarRE/QPBT/Basic/Polynomial.lean from the reviewed QPBT-035 F02 contract",
+        "Keep Boolean coordinate indices distinct from field evaluation points and implement the source individual-degree indicator product",
+        "Prove Boolean evaluation, linearity, and injectivity with no sorry, axiom, constant, FieldData requirement, or LDT parameter import",
+        "Pass scoped Lean, target build, owned-scope debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-033-q014-split-a01.md#F02--Polynomial",
+        "blueprint/metadata/nodes.json#F02-CODE",
+        "references/2001.04383v3/sections/dependencies/low-degree-code.tex:1-94"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Polynomial.lean"
+      ],
+      "created_at": "2026-09-01T12:59:00Z",
+      "updated_at": "2026-09-01T12:59:00Z",
+      "blocked_reason": "QPBT-035 callable contract is not yet reviewed and integrated.",
+      "unblock_condition": "QPBT-035 done."
+    },
+    {
+      "id": "QPBT-038",
+      "title": "feat(QPBT/Game): implement conditionally-linear and typed interfaces",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-013",
+        "QPBT-035"
+      ],
+      "labels": [
+        "lean",
+        "minimal-skeleton",
+        "conditionally-linear",
+        "typed-game",
+        "f06",
+        "f07",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement only MIPStarRE/QPBT/Game/Types.lean from the reviewed QPBT-035 F06-then-F07 contract",
+        "Encode the source recursive conditionally-linear certificate before typed wrappers; do not replace it with a caller-supplied generic Prop",
+        "Normalize sampler PMFs, preserve type-graph loops and orientation weights, and retain heterogeneous finite fibers as dependent data",
+        "Make no raw-string efficiency claim and introduce no sorry, axiom, constant, or public bridge assumption",
+        "Pass scoped Lean, target build, loop/codec/debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-033-q014-split-a01.md#F06F07--Types",
+        "blueprint/metadata/nodes.json#F06-CL",
+        "blueprint/metadata/nodes.json#F07-TYPED",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:1-715",
+        "references/2001.04383v3/sections/dependencies/types.tex:1-582"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean"
+      ],
+      "created_at": "2026-09-01T12:59:00Z",
+      "updated_at": "2026-09-01T12:59:00Z",
+      "blocked_reason": "QPBT-035 callable contract is not yet reviewed and integrated.",
+      "unblock_condition": "QPBT-035 done."
+    },
+    {
+      "id": "QPBT-040",
+      "title": "Validate the combined QPBT-014 Lean snapshot",
+      "kind": "audit",
+      "execution_category": "preflight",
+      "status": "planned",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-036",
+        "QPBT-037",
+        "QPBT-038",
+        "QPBT-039"
+      ],
+      "labels": [
+        "lean",
+        "integration",
+        "singleton-build",
+        "statement-integrity",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Bind all four approved immutable candidate heads and authenticate their blobs on the current main integration snapshot",
+        "Own no Lean or blueprint source; root alone performs guarded integrations and canonical state changes",
+        "Seed one private integration worktree, run four scoped checks, four target builds, declaration/source synchronization, complete proof-debt and forbidden-assumption scans, and exactly one combined lake build",
+        "Record cache key, hit or miss, lock wait, build count and duration, candidate identity, statement-integrity summary, and independent review disposition"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-033-q014-split-a01.md#QPBT-040--Validate-the-combined-QPBT-014-snapshot-no-PR"
+      ],
+      "owned_paths": [],
+      "created_at": "2026-09-01T12:59:00Z",
+      "updated_at": "2026-09-01T12:59:00Z",
+      "blocked_reason": "All four QPBT-014 Lean child issues must be reviewed and integrated first.",
+      "unblock_condition": "QPBT-036, QPBT-037, QPBT-038, and QPBT-039 done."
     }
   ]
 }
