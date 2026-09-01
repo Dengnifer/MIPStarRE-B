@@ -1818,7 +1818,7 @@
       "title": "Reconcile local dispatch with live collaboration slot admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-019",
       "dependency_ids": [
         "QPBT-019"
@@ -1831,26 +1831,31 @@
       ],
       "acceptance_gates": [
         "Reproduce and record the three agent-thread-limit rejections where the local ledger admitted a third non-coordinator session while only two collaboration workers were active",
-        "Define a live-capacity handshake or conservative fail-closed fallback so workflow dispatch never marks a session issued or running before the backend can create its external thread",
+        "Define a live-capacity handshake or conservative fail-closed fallback so workflow dispatch never marks a codex-collaboration session issued or running before the backend can create its external thread",
         "Preserve atomic issue/session/event state across backend rejection and deterministic retry without fabricating an external_id or losing planned work",
-        "Add focused and aggregate regressions for backend capacity drift, queued retries, and nested-agent slot accounting",
-        "Make the smallest sufficient protocol/tooling change, record it in protocols/CHANGELOG.md, and obtain an independent immutable review"
+        "Preserve the governed codex-cli issue-first null-ID launch lease and prove with an integration regression that the real runner-returned external ID imports without a fabricated prelaunch identity",
+        "Restore exact session/event snapshots and re-raise for BaseException, including KeyboardInterrupt injected at every dispatch publication boundary",
+        "Add focused and aggregate regressions for backend capacity drift, queued retries, nested-agent slot accounting, governed codex-cli compatibility, and interrupt rollback",
+        "Make the smallest sufficient protocol/tooling change, record it in protocols/CHANGELOG.md, resolve F-LPR022-001 and F-LPR022-002 on a changed head, and obtain a fresh immutable review"
       ],
-      "owner_session_id": "i034-orchestrator-a01-live-admission",
+      "owner_session_id": "i034-orchestrator-a03-live-admission-fixes",
       "source_refs": [
         "protocols/orchestration.md:29-57",
         "protocols/CHANGELOG.md:136-161",
         "scripts/workflow.py:1758-1880",
-        "research/metrics/incidents.jsonl#INC-053"
+        "research/metrics/incidents.jsonl#INC-053",
+        "workflow/reviews/qpbt-034-pr022-review-a02.md#F-LPR022-001",
+        "workflow/reviews/qpbt-034-pr022-review-a02.md#F-LPR022-002"
       ],
       "owned_paths": [
         "scripts/workflow.py",
         "tests/test_workflow.py",
+        "tests/test_local_agent.py",
         "protocols/orchestration.md",
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T12:32:00Z",
-      "updated_at": "2026-09-01T13:14:01.603960Z",
+      "updated_at": "2026-09-01T13:31:10.189912Z",
       "blocked_reason": null,
       "unblock_condition": null
     },

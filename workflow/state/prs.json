@@ -5728,7 +5728,7 @@
     {
       "id": "LPR-022",
       "title": "fix(workflow): confirm live collaboration admission",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-034"
       ],
@@ -5799,12 +5799,64 @@
           "result_path": "workflow/reviews/qpbt-034-live-admission-a01.md"
         }
       ],
-      "reviews": [],
-      "findings": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-034-pr022-a02-immutable",
+          "reviewer_session_id": "i034-reviewer-a02-pr022",
+          "verdict": "request_changes",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+          "started_at": "2026-09-01T13:17:27.246082Z",
+          "completed_at": "2026-09-01T13:26:20.864581Z",
+          "result_path": "workflow/reviews/qpbt-034-pr022-review-a02.md",
+          "finding_ids": [
+            "F-LPR022-001",
+            "F-LPR022-002"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "2371d3578022674699566184e2a75fa2f4f934a88a04a7f048b8184f4f9c3b6c",
+          "manifest_sha256": "391986e82113cc8d87aa3dbcd80b0b748c2ac983b33397661dfde3080f77335a",
+          "focused_tests": "76/76",
+          "aggregate_tests": "342/342",
+          "adversarial_replays": 2
+        }
+      ],
+      "findings": [
+        {
+          "id": "F-LPR022-001",
+          "introduced_review_id": "review-qpbt-034-pr022-a02-immutable",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Unconditional launch confirmation blocks the governed codex-cli issue-first null-ID lease before the real external ID exists.",
+          "path": "scripts/workflow.py",
+          "line": 1824,
+          "required_change": "Make confirmation backend-aware for codex-collaboration and add a governed null-ID codex-cli launch/import regression."
+        },
+        {
+          "id": "F-LPR022-002",
+          "introduced_review_id": "review-qpbt-034-pr022-a02-immutable",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+          "severity": "medium",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Dispatch rollback catches Exception rather than BaseException, so KeyboardInterrupt can leave a partially published transaction that still validates.",
+          "path": "scripts/workflow.py",
+          "line": 1918,
+          "required_change": "Restore exact state/event snapshots on BaseException and inject interrupts at each publication boundary."
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T13:15:00Z",
-      "updated_at": "2026-09-01T13:15:00Z",
+      "updated_at": "2026-09-01T13:29:03.116973Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -5820,7 +5872,7 @@
         "i034-orchestrator-a01-live-admission"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Fresh independent immutable local review and formal no-byte-change adoption remain required."
+      "unexecuted_gate": "Resolve F-LPR022-001 and F-LPR022-002 on a changed head, rerun all gates, and obtain a fresh immutable resolution review before formal adoption."
     }
   ]
 }

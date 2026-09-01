@@ -29,7 +29,7 @@ availability reasons rather than receiving estimates.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 112 terminal attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | source and blueprint acceptance chain closed; LPR-018 has three confirmed findings and supplemental QPBT-028/029/030 isolation work continues off the Lean critical path |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 40 issued attempts, 39 terminal and 1 active; peak concurrency 3 | collaboration usage unavailable | source and API audits archived; expanded-scope QPBT-023 contract continuation active |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 188 issued attempts: 186 terminal and 2 active sessions; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files are reviewed, merged, and combined-build clean; the next callable contract is being frozen while the live-admission candidate receives immutable review |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 189 issued attempts: 187 terminal and 2 active sessions; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files are reviewed, merged, and combined-build clean; the next callable contract is being frozen while two admission-review findings are repaired off the Lean critical path |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
@@ -1277,8 +1277,11 @@ The QPBT-034 implementation candidate was committed at
 `1c01622d672514c9b91e61ff4d03b27583a6391f`. Focused workflow regressions
 passed 76/76 in `0.669` seconds, the aggregate suite passed 342/342 in
 `235.925` seconds, and the workflow checker, compile, state, and diff gates all
-passed. LPR-022 is under a fresh immutable local review; the candidate has not
-been activated on main.
+passed. The fresh immutable review requested changes with one high and one
+medium finding: confirmation was incorrectly applied to the governed
+`codex-cli` null-ID lease, and `KeyboardInterrupt` escaped the transaction
+rollback. LPR-022 remains unactivated; A03 is repairing both findings on a
+changed head while QPBT-035 continues independently.
 
 QPBT-035 A01 ran for `887.256` coordinator-measured seconds and stopped before
 contract edits when it found that the closed blueprint validator admitted only
