@@ -2,25 +2,44 @@
 
 ## 2026-09-01
 
-- QPBT-026 A05 closes four pre-integration disclosure findings. Every
-  model-backed review now requires an explicit validated transport profile and
-  exact version-1 authorization before packet loading, persistence probing, or
-  lease claim; inherited/default provider configuration is no longer treated as
-  local. Authorization validation returns only an opaque internal preflight
-  token, and no raw or normalized authorization mapping enters a target, prompt,
-  envelope, persisted result, or log. Commit target and declared-head resolution
-  share one preflight/capture implementation, so drift fails before lease claim.
-  Full normalized repository paths are screened for sensitive directories and
+- QPBT-026 A11 closes the remaining disclosure replay and readable-scope
+  findings by disabling production review dispatch at the boundary that cannot
+  yet prove exact content authorization and OS-enforced read isolation. A
+  matching version-1 changed-path record is now structural validation only and
+  fails before task/context reads, Codex persistence/capability probes, evidence
+  creation, lease claim, or runner invocation. The module-global singleton and
+  independently callable post-probe production helper were removed, leaving no
+  offline/production, cross-target, cross-profile/model, direct-attribute, or
+  duplicate-consumption capability surface. Committed offline tests now use a
+  fresh evidence repository with no source objects or remote, inert base/head
+  endpoint bytes, an exact patch, and path/object/mode/size/SHA-256 records. A
+  complete offline packet projection also binds request, unchanged authority,
+  harness manifest, derived evidence, and final prompt, while explicitly
+  declaring that host isolation is not enforced and external launch is not
+  authorized. This deterministic success reconciles the exact-content test gate
+  without representing the offline harness as a production security boundary.
+
+- QPBT-026 A05 addressed four pre-integration disclosure findings. At that
+  revision, every model-backed review required an explicit transport profile and
+  field-exact version-1 changed-path validation before packet loading,
+  persistence probing, or lease claim; inherited/default provider configuration
+  was no longer treated as local. Authorization validation returned only an
+  opaque internal preflight token, and no raw or normalized authorization
+  mapping entered a target, prompt, envelope, persisted result, or log. Commit
+  target and declared-head resolution shared one preflight/capture
+  implementation, so drift failed before lease claim.
+  Full normalized repository paths were screened for sensitive directories and
   common key, credential, and private certificate/container forms, with rename
   detection disabled so both sides of a rename remain in scope. A library-only
-  offline test mode requires injected runner/capability records, substitutes a
-  non-`codex` executable marker, accepts no transport data, and has no CLI flag.
-  Version-1 authorization remains committed-target-only; uncommitted bootstrap
-  dispatch now fails closed pending a separately reviewed snapshot schema.
+  offline test mode required injected runner/capability records, substituted a
+  non-`codex` executable marker, accepted no transport data, and had no CLI flag.
+  Version-1 authorization remained committed-target-only; uncommitted bootstrap
+  dispatch failed closed pending a separately reviewed snapshot schema.
   Official OpenAI and `https://api.finite-dimensional.space` are standing
   trusted Codex transports, but transport trust grants no content permission:
   every external review still requires its own exact immutable manifest and
-  matching credential-excluding disclosure authorization.
+  matching credential-excluding disclosure authorization. A11 later established
+  that version 1 does not provide that manifest and disabled production dispatch.
   Public `.crt`/`.cer` material and generic `keys`/`auth`/`private`/`certs`
   paths remain allowed; high-signal credential dot-directories, service-account
   artifacts, `.npmrc`, `.pypirc`, and private-container suffixes fail closed.
@@ -243,12 +262,14 @@ or review state that cannot be tied to an immutable SHA or bootstrap manifest.
 
 - QPBT-026: external reviewer dispatch now has a strict opt-in disclosure
   preflight. A version-1 non-secret authorization record binds endpoint origin,
-  model, wire API, immutable base/head/tree, and the exact changed private-file
-  scope while requiring credential and unrelated-content exclusion. The check
+  model, wire API, immutable base/head/tree, and changed private-file path names
+  while requiring credential and unrelated-content exclusion. The check
   runs before packet/evidence preparation, persistence probing, or issued-lease
   claim, and rejects missing, drifted, duplicate, or credential-looking paths.
   This is the smallest protocol response to INC-045 and does not authorize any
   endpoint, model, or repository contents by itself.
+  QPBT-026 A11 subsequently established that this record is not exact content
+  authorization and disabled production dispatch pending enforceable isolation.
 
 - Added issued-session launch leases with locked authority checks, exactly-once
   terminal envelope imports, and explicit idempotent interruption recovery.

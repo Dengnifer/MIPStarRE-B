@@ -101,7 +101,10 @@ DISCLOSURE_SENSITIVE_FILE_SUFFIXES = frozenset(
     {".jks", ".kdbx", ".key", ".keystore", ".p12", ".pem", ".pfx"}
 )
 OFFLINE_REVIEW_TEST_EXECUTABLE = "__local_agent_offline_review_test_double__"
-_DISCLOSURE_PREFLIGHT_TOKEN = object()
+PRODUCTION_REVIEW_ISOLATION_ERROR = (
+    "production review dispatch is disabled until an exact content manifest and "
+    "enforceable filesystem isolation are implemented"
+)
 BOOTSTRAP_TERMINAL_EVIDENCE_RULE = (
     "Only review outcome and lifecycle evidence may change after freeze; "
     "seal binds their final bytes before commit"
@@ -628,7 +631,7 @@ def _review_transport_config_arguments(profile: Mapping[str, Any]) -> list[str]:
 
 
 def _load_disclosure_authorization(path: Path) -> dict[str, Any]:
-    """Load a non-secret, exact-scope authorization record without echoing it."""
+    """Load a non-secret legacy changed-path record without echoing it."""
 
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -647,7 +650,7 @@ def validate_review_disclosure_authorization(
     base_sha: str, head_sha: str, tree_sha: str,
     private_file_paths: Sequence[str],
 ) -> None:
-    """Fail closed unless authorization exactly binds the outbound review scope."""
+    """Validate all legacy destination, target, and changed-path fields."""
 
     if authorization is None:
         raise AgentError("external review requires an explicit disclosure authorization record")
@@ -822,15 +825,13 @@ def _preflight_external_disclosure(
     base_sha: str | None, head_sha: str | None, model: str | None,
     transport_profile: Mapping[str, Any] | None,
     authorization: Mapping[str, Any] | None,
-    offline_test_mode: bool = False,
-    runner: Any = None,
-) -> object:
-    if offline_test_mode:
-        if runner is None or runner is _subprocess_run:
-            raise AgentError("offline review test mode requires an injected runner")
-        if transport_profile is not None or authorization is not None:
-            raise AgentError("offline review test mode cannot accept transport or authorization data")
-        return _DISCLOSURE_PREFLIGHT_TOKEN
+) -> None:
+    """Validate legacy v1 fields, then fail closed at the production boundary.
+
+    Version 1 binds changed path names but not the exact prompt, Git objects, or
+    transitive host read surface. It therefore cannot authorize a launch.
+    """
+
     if transport_profile is None:
         raise AgentError("model-backed review requires an explicit disclosure destination profile")
     resolved_base, resolved_head, tree_sha, paths = _review_disclosure_target(
@@ -843,7 +844,7 @@ def _preflight_external_disclosure(
         wire_api=str(transport_profile["wire_api"]), base_sha=resolved_base,
         head_sha=resolved_head, tree_sha=tree_sha, private_file_paths=paths,
     )
-    return _DISCLOSURE_PREFLIGHT_TOKEN
+    raise AgentError(PRODUCTION_REVIEW_ISOLATION_ERROR)
 
 
 def validate_bootstrap_review_phase(
@@ -1089,7 +1090,7 @@ def build_review_request(
         "issue_id": issue_id,
         "role": "reviewer",
         "parent_session_id": parent_session_id,
-        "source_working_directory": str(cwd),
+        "source_working_directory": ".",
         "declared_base_sha": base_sha,
         "declared_head_sha": head_sha,
         "assignment": assignment,
@@ -1122,8 +1123,42 @@ def _compact_review_target_for_prompt(target: Mapping[str, Any]) -> dict[str, An
         raise AgentError("review target evidence manifest is not an object")
     if manifest.get("schema_version") != 1:
         raise AgentError("review target evidence manifest has an unsupported schema version")
-    if manifest.get("kind") != "uncommitted-snapshot":
+    manifest_kind = manifest.get("kind")
+    if manifest_kind not in {"uncommitted-snapshot", "offline-committed-projection"}:
         raise AgentError("review target evidence manifest has an unsupported kind")
+
+    if manifest_kind == "offline-committed-projection":
+        entries = manifest.get("entries")
+        derived = manifest.get("derived")
+        if not isinstance(entries, list) or not isinstance(derived, list):
+            raise AgentError("committed evidence manifest lacks content arrays")
+        canonical_digest = _sha256_text(
+            json.dumps(manifest, sort_keys=True, ensure_ascii=True)
+        )
+        manifest_path = target_packet.pop("evidence_manifest_path", None)
+        file_digest = target_packet.pop("evidence_manifest_file_sha256", None)
+        file_size = target_packet.pop("evidence_manifest_file_size", None)
+        if manifest_path != "evidence/manifest.json":
+            raise AgentError("review target evidence manifest path is invalid")
+        if not isinstance(file_digest, str) or re.fullmatch(r"[0-9a-f]{64}", file_digest) is None:
+            raise AgentError("review target evidence manifest file digest is invalid")
+        if not isinstance(file_size, int) or isinstance(file_size, bool) or file_size < 0:
+            raise AgentError("review target evidence manifest file size is invalid")
+        target_packet["evidence_manifest_reference"] = {
+            "path": manifest_path,
+            "file_sha256": file_digest,
+            "size": file_size,
+            "logical_sha256": canonical_digest,
+            "summary": {
+                "schema_version": manifest.get("schema_version"),
+                "kind": manifest_kind,
+                "external_launchable": False,
+                "host_isolation": manifest.get("host_isolation"),
+                "entry_count": len(entries),
+                "derived_count": len(derived),
+            },
+        }
+        return target_packet
 
     canonical_digest = _sha256_text(
         json.dumps(manifest, sort_keys=True, ensure_ascii=True)
@@ -1184,7 +1219,6 @@ def _compact_review_target_for_prompt(target: Mapping[str, Any]) -> dict[str, An
 def build_trusted_review_prompt(
     *,
     untrusted_request: str,
-    source_cwd: Path,
     authority: Mapping[str, Any],
     target: Mapping[str, Any],
     execution_mode: str,
@@ -1235,14 +1269,13 @@ def build_trusted_review_prompt(
         json.dumps(target_packet, indent=2, ensure_ascii=True),
         "```",
         "",
-        f"The isolated harness is the working directory. The original source path {source_cwd} is "
-        "evidence only. For a synthetic commit target, inspect exactly its parent-to-commit diff "
-        "and use git show on the synthetic commit for head-side surrounding files. For an "
+        "The evidence harness is the working directory. No original source path is part of this "
+        "packet. For a committed target, inspect only evidence/manifest.json, change.patch, and "
+        "the projected base/head files named there; absent files are intentionally unavailable. For an "
         "uncommitted target, verify the referenced manifest's exact file SHA-256, then inspect "
         "evidence/manifest.json, both patch files, and every copied untracked file. The wrapper "
         "has separately bound the parsed manifest to the logical digest in this packet. In "
-        "findings, map evidence/untracked/<path> back to the original <path>. Do not read authority "
-        "from the original source path.",
+        "findings, map evidence/untracked/<path> back to the original <path>.",
         "",
         f"Execution mode: {execution_mode}.",
     ]
@@ -2192,23 +2225,6 @@ def inspect_codex_review_capability() -> dict[str, Any]:
     }
 
 
-def _clone_without_checkout(source: Path, harness: Path) -> None:
-    harness.parent.mkdir(parents=True, exist_ok=True)
-    _git_text(
-        harness.parent,
-        [
-            "-c",
-            f"core.hooksPath={os.devnull}",
-            "clone",
-            "--no-checkout",
-            "--no-hardlinks",
-            "--",
-            str(source),
-            str(harness),
-        ],
-    )
-
-
 def _deterministic_commit(
     harness: Path,
     *,
@@ -2320,7 +2336,8 @@ def _prepare_uncommitted_harness(
         "untracked": untracked,
     }
     _atomic_write_json(evidence_root / "manifest.json", manifest)
-    manifest_file_digest = _sha256_bytes((evidence_root / "manifest.json").read_bytes())
+    manifest_bytes = (evidence_root / "manifest.json").read_bytes()
+    manifest_file_digest = _sha256_bytes(manifest_bytes)
     evidence_digest = _sha256_text(json.dumps(manifest, sort_keys=True, ensure_ascii=True))
     return {
         "native_selector": {"kind": "uncommitted", "value": None},
@@ -2328,6 +2345,7 @@ def _prepare_uncommitted_harness(
         "evidence_manifest": manifest,
         "evidence_manifest_path": "evidence/manifest.json",
         "evidence_manifest_file_sha256": manifest_file_digest,
+        "evidence_manifest_file_size": len(manifest_bytes),
         "trusted_revision": source_head,
     }
 
@@ -2354,6 +2372,109 @@ def _verify_uncommitted_harness_manifest(harness: Path, target: Mapping[str, Any
     logical_digest = _sha256_text(json.dumps(parsed, sort_keys=True, ensure_ascii=True))
     if logical_digest != target.get("evidence_sha256"):
         raise AgentError("review harness evidence manifest logical digest does not match target")
+
+
+def _verify_committed_harness_manifest(harness: Path, target: Mapping[str, Any]) -> None:
+    """Verify the exact offline committed projection without claiming host isolation."""
+
+    manifest_path = harness / "evidence/manifest.json"
+    try:
+        manifest_bytes = manifest_path.read_bytes()
+        parsed = json.loads(manifest_bytes.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise AgentError(f"could not verify committed evidence manifest: {error}") from error
+    if _sha256_bytes(manifest_bytes) != target.get("evidence_manifest_file_sha256"):
+        raise AgentError("committed evidence manifest file digest does not match target")
+    if parsed != target.get("evidence_manifest"):
+        raise AgentError("committed evidence manifest does not match target")
+    if parsed.get("external_launchable") is not False or parsed.get("host_isolation") != "not-enforced":
+        raise AgentError("offline committed evidence manifest overstates its isolation")
+    expected_files = {Path("evidence/manifest.json")}
+    for item in [*parsed.get("entries", []), *parsed.get("derived", [])]:
+        relative_text = item.get("evidence_path", item.get("path"))
+        if not isinstance(relative_text, str):
+            raise AgentError("committed evidence manifest entry lacks a path")
+        relative = Path(relative_text)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise AgentError("committed evidence manifest contains an unsafe path")
+        evidence_path = harness / relative
+        if evidence_path.is_symlink() or not evidence_path.is_file():
+            raise AgentError("committed evidence manifest names missing or unsafe bytes")
+        payload = evidence_path.read_bytes()
+        if item.get("size") != len(payload) or item.get("sha256") != _sha256_bytes(payload):
+            raise AgentError("committed evidence bytes do not match the manifest")
+        expected_files.add(relative)
+    observed_files: set[Path] = set()
+    for path in (harness / "evidence").rglob("*"):
+        if path.is_symlink():
+            raise AgentError("committed evidence harness contains a live symlink")
+        if path.is_file():
+            observed_files.add(path.relative_to(harness))
+    if observed_files != expected_files:
+        raise AgentError("committed evidence harness contains unmanifested files")
+    if (harness / ".git/objects/info/alternates").exists():
+        raise AgentError("committed evidence harness may not use Git alternates")
+    if any(path.is_file() for path in (harness / ".git/objects").rglob("*")):
+        raise AgentError("committed evidence harness may not import Git objects")
+    config = (harness / ".git/config").read_text(encoding="utf-8")
+    if re.search(r"^\s*\[remote\s", config, flags=re.MULTILINE):
+        raise AgentError("committed evidence harness may not configure a source remote")
+
+
+def _offline_content_projection(
+    *, request: str, review_prompt: str, authority: Mapping[str, Any],
+    prepared: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Describe every byte intentionally placed in the offline packet and harness."""
+
+    entries: list[dict[str, Any]] = [
+        {
+            "channel": "untrusted-request",
+            "logical_path": "request:inline",
+            "size": len(request.encode("utf-8")),
+            "sha256": _sha256_text(request),
+        },
+        {
+            "channel": "outbound-prompt",
+            "logical_path": "prompt:trusted-review-packet",
+            "size": len(review_prompt.encode("utf-8")),
+            "sha256": _sha256_text(review_prompt),
+        },
+    ]
+    for item in authority.get("files", []):
+        content = str(item["content"])
+        entries.append(
+            {
+                "channel": "prompt-authority",
+                "logical_path": str(item["path"]),
+                "object_id": str(item["blob_oid"]),
+                "size": len(content.encode("utf-8")),
+                "sha256": str(item["sha256"]),
+            }
+        )
+    manifest = prepared.get("evidence_manifest")
+    if isinstance(manifest, Mapping):
+        entries.append(
+            {
+                "channel": "harness-manifest",
+                "logical_path": "evidence/manifest.json",
+                "size": int(prepared["evidence_manifest_file_size"]),
+                "sha256": str(prepared["evidence_manifest_file_sha256"]),
+            }
+        )
+        entries.extend(dict(item) for item in manifest.get("entries", []))
+        entries.extend(dict(item) for item in manifest.get("derived", []))
+    projection = {
+        "schema_version": 1,
+        "kind": "offline-packet-content-projection",
+        "external_launchable": False,
+        "host_isolation": "not-enforced",
+        "entries": entries,
+    }
+    projection["manifest_sha256"] = _sha256_text(
+        json.dumps(projection, sort_keys=True, ensure_ascii=True)
+    )
+    return projection
 
 
 def _verify_captured_bootstrap_snapshot(
@@ -2451,11 +2572,10 @@ def _prepare_committed_harness(
     base_sha: str | None,
     head_sha: str,
 ) -> dict[str, Any]:
+    if base_sha is None:
+        raise AgentError("internal error: committed review lacks a base commit")
     if target_kind == "base":
-        if base_sha is None:
-            raise AgentError("internal error: base review lacks a base commit")
         trusted_revision = base_sha
-        parent = base_sha
         target_tree = _git_text(
             source_root,
             ["rev-parse", "--verify", f"{head_sha}^{{tree}}"],
@@ -2467,52 +2587,104 @@ def _prepare_committed_harness(
             allowed_returncodes=(0, 128),
         )
         trusted_revision = parent_result.stdout.strip().lower() if parent_result.returncode == 0 else None
-        parent = trusted_revision
         target_tree = _git_text(
             source_root,
             ["rev-parse", "--verify", f"{head_sha}^{{tree}}"],
         ).stdout.strip().lower()
 
-    _clone_without_checkout(source_root, harness)
-    if trusted_revision is not None:
-        _git_text(
-            harness,
-            ["-c", f"core.hooksPath={os.devnull}", "checkout", "--detach", trusted_revision],
-        )
-    else:
-        empty_tree = _git_text(harness, ["mktree"], input_text="").stdout.strip().lower()
-        parent = _deterministic_commit(
-            harness,
-            tree=empty_tree,
-            parent=None,
-            message="Local QPBT root-commit review baseline",
-        )
-        _git_text(harness, ["-c", f"core.hooksPath={os.devnull}", "checkout", "--detach", parent])
-
-    synthetic = _deterministic_commit(
-        harness,
-        tree=target_tree,
-        parent=parent,
-        message=f"Local QPBT exact {target_kind} review target {head_sha}",
-    )
+    harness.mkdir(parents=True)
+    _git_text(harness, ["init", "-b", "review-evidence", "."])
+    evidence_root = harness / "evidence"
+    evidence_root.mkdir()
     diff = _git_bytes(
-        harness,
+        source_root,
         [
             "diff",
             "--binary",
             "--full-index",
             "--no-ext-diff",
             "--no-textconv",
-            parent,
-            synthetic,
+            base_sha,
+            head_sha,
         ],
     ).stdout
+    _atomic_write_bytes(evidence_root / "change.patch", diff)
+
+    changed = _git_bytes(
+        source_root,
+        ["diff", "--no-renames", "--name-only", "-z", base_sha, head_sha],
+    ).stdout
+    changed_paths = sorted(os.fsdecode(item) for item in changed.split(b"\0") if item)
+    for path in changed_paths:
+        if _normalize_disclosure_path(path) != path:
+            raise AgentError("committed evidence contains a noncanonical path")
+        if _is_forbidden_disclosure_path(path):
+            raise AgentError("committed evidence paths may not include credentials")
+    entries: list[dict[str, Any]] = []
+    for revision_role, revision in (("base", base_sha), ("head", head_sha)):
+        if revision is None:
+            continue
+        for path in changed_paths:
+            raw_entry = _git_bytes(
+                source_root,
+                ["ls-tree", "-z", revision, "--", path],
+            ).stdout
+            if not raw_entry:
+                continue
+            metadata, reported_path = raw_entry[:-1].split(b"\t", 1)
+            mode, object_type, object_id = metadata.decode("ascii").split(" ", 2)
+            if os.fsdecode(reported_path) != path:
+                raise AgentError("committed evidence path changed during capture")
+            if object_type == "commit":
+                payload = (object_id + "\n").encode("ascii")
+                representation = "inert-gitlink-oid"
+            else:
+                payload = _git_bytes(source_root, ["cat-file", "-p", object_id]).stdout
+                representation = "inert-object-bytes"
+            destination = evidence_root / revision_role / Path(path)
+            _atomic_write_bytes(destination, payload)
+            entries.append(
+                {
+                    "channel": "committed-evidence",
+                    "revision_role": revision_role,
+                    "path": path,
+                    "object_type": object_type,
+                    "mode": mode,
+                    "object_id": object_id,
+                    "representation": representation,
+                    "size": len(payload),
+                    "sha256": _sha256_bytes(payload),
+                    "evidence_path": destination.relative_to(harness).as_posix(),
+                }
+            )
+
+    patch_entry = {
+        "channel": "derived-patch",
+        "path": "evidence/change.patch",
+        "size": len(diff),
+        "sha256": _sha256_bytes(diff),
+    }
+    manifest = {
+        "schema_version": 1,
+        "kind": "offline-committed-projection",
+        "external_launchable": False,
+        "host_isolation": "not-enforced",
+        "base_sha": base_sha,
+        "head_sha": head_sha,
+        "head_tree_sha": target_tree,
+        "entries": entries,
+        "derived": [patch_entry],
+    }
+    _atomic_write_json(evidence_root / "manifest.json", manifest)
+    manifest_bytes = (evidence_root / "manifest.json").read_bytes()
     return {
-        "native_selector": {"kind": "commit", "value": synthetic},
-        "synthetic_commit_sha": synthetic,
-        "synthetic_parent_sha": parent,
+        "native_selector": {"kind": "evidence-packet", "value": None},
         "target_tree_oid": target_tree,
         "evidence_sha256": _sha256_bytes(diff),
+        "evidence_manifest": manifest,
+        "evidence_manifest_path": "evidence/manifest.json",
+        "evidence_manifest_file_sha256": _sha256_bytes(manifest_bytes),
+        "evidence_manifest_file_size": len(manifest_bytes),
         "trusted_revision": trusted_revision,
     }
 
@@ -2743,30 +2915,21 @@ def _run_review_unbound(
         wire_api=wire_api,
         requires_openai_auth=requires_openai_auth,
     )
-    disclosure_preflight_token = _preflight_external_disclosure(
-        cwd=cwd, target_kind=target_kind, target_value=target_value,
-        base_sha=base_sha, head_sha=head_sha, model=model,
-        transport_profile=transport_profile,
-        authorization=disclosure_authorization,
-        offline_test_mode=offline_test_mode,
-        runner=runner,
-    )
-    if dry_run:
-        persistence_probe = _skipped_codex_persistence_probe()
-    else:
-        probe_started_at = utc_now()
-        probe_started = time.monotonic()
-        persistence_probe = _probe_codex_persistence()
-        if persistence_probe["status"] != "available":
-            return _review_preflight_failure_envelope(
-                alias=alias,
-                runtime_dir=runtime_dir,
-                timeout_seconds=timeout,
-                persistence_probe=persistence_probe,
-                started_at=probe_started_at,
-                started=probe_started,
-            )
-    return _run_review_after_persistence_probe(
+    if not offline_test_mode:
+        _preflight_external_disclosure(
+            cwd=cwd, target_kind=target_kind, target_value=target_value,
+            base_sha=base_sha, head_sha=head_sha, model=model,
+            transport_profile=transport_profile,
+            authorization=disclosure_authorization,
+        )
+        raise AssertionError("production disclosure preflight must fail closed")
+    if runner is _subprocess_run:
+        raise AgentError("offline review test mode requires an injected runner")
+    if codex_capability is None:
+        raise AgentError("offline review test mode requires an injected capability record")
+    if transport_profile is not None or disclosure_authorization is not None:
+        raise AgentError("offline review test mode cannot accept transport or authorization data")
+    return _run_offline_review(
         alias=alias,
         prompt=prompt,
         cwd=cwd,
@@ -2781,10 +2944,7 @@ def _run_review_unbound(
         dry_run=dry_run,
         runner=runner,
         codex_capability=codex_capability,
-        transport_profile=transport_profile,
-        persistence_probe=persistence_probe,
-        disclosure_preflight_token=disclosure_preflight_token,
-        offline_test_mode=offline_test_mode,
+        persistence_probe=_skipped_codex_persistence_probe(),
     )
 
 
@@ -2826,14 +2986,14 @@ def run_review(
         provider_base_url=provider_base_url, wire_api=wire_api,
         requires_openai_auth=requires_openai_auth,
     )
-    _preflight_external_disclosure(
-        cwd=cwd, target_kind=target_kind, target_value=target_value,
-        base_sha=base_sha, head_sha=head_sha, model=model,
-        transport_profile=transport_profile,
-        authorization=disclosure_authorization,
-        offline_test_mode=offline_test_mode,
-        runner=runner,
-    )
+    if not offline_test_mode:
+        _preflight_external_disclosure(
+            cwd=cwd, target_kind=target_kind, target_value=target_value,
+            base_sha=base_sha, head_sha=head_sha, model=model,
+            transport_profile=transport_profile,
+            authorization=disclosure_authorization,
+        )
+        raise AssertionError("production disclosure preflight must fail closed")
     claimed = claim_issued_session(
         session_id=session_id, workflow_root=workflow_root, alias=alias, cwd=cwd,
         base_revision=base_sha, owned_paths=owned_paths, read_only=True,
@@ -2861,7 +3021,7 @@ def run_review(
         raise
 
 
-def _run_review_after_persistence_probe(
+def _run_offline_review(
     *,
     alias: str,
     prompt: str,
@@ -2877,18 +3037,13 @@ def _run_review_after_persistence_probe(
     dry_run: bool,
     runner: Any,
     codex_capability: Mapping[str, Any] | None,
-    transport_profile: Mapping[str, Any] | None,
     persistence_probe: Mapping[str, Any],
-    disclosure_preflight_token: object | None = None,
-    offline_test_mode: bool = False,
 ) -> dict[str, Any]:
-    """Run a review after an internal caller has completed persistence preflight."""
+    """Construct and exercise a non-transmitting review with an injected test double."""
 
-    if disclosure_preflight_token is not _DISCLOSURE_PREFLIGHT_TOKEN:
-        raise AgentError("review dispatch requires completed disclosure preflight")
-    if offline_test_mode and runner is _subprocess_run:
+    if runner is _subprocess_run:
         raise AgentError("offline review test mode requires an injected runner")
-    if offline_test_mode and codex_capability is None:
+    if codex_capability is None:
         raise AgentError("offline review test mode requires an injected capability record")
 
     source_root = _git_repo_root(cwd)
@@ -2948,7 +3103,10 @@ def _run_review_after_persistence_probe(
     }
     if not required_capability_fields.issubset(capability):
         raise AgentError("Codex capability record is incomplete")
-    use_native_review = capability["selector_with_prompt_supported"] is True
+    use_native_review = (
+        capability["selector_with_prompt_supported"] is True
+        and target_kind == "uncommitted"
+    )
     execution_mode = (
         "native-review-selector" if use_native_review else "generic-exec-frozen-evidence"
     )
@@ -2989,6 +3147,8 @@ def _run_review_after_persistence_probe(
             target["target_tree_oid"] = prepared["target_tree_oid"]
         if target_kind == "uncommitted":
             _verify_uncommitted_harness_manifest(harness, target)
+        else:
+            _verify_committed_harness_manifest(harness, target)
         if bootstrap_snapshot_digest is not None:
             captured_phase = _verify_captured_bootstrap_snapshot(
                 source_root=source_root,
@@ -3001,15 +3161,20 @@ def _run_review_after_persistence_probe(
             bootstrap_phase = captured_phase
         review_prompt = build_trusted_review_prompt(
             untrusted_request=prompt,
-            source_cwd=source_root,
             authority=authority,
             target=target,
             execution_mode=execution_mode,
             bootstrap_phase=bootstrap_phase,
         )
+        target["offline_content_projection"] = _offline_content_projection(
+            request=prompt,
+            review_prompt=review_prompt,
+            authority=authority,
+            prepared=prepared,
+        )
 
         command = [
-            OFFLINE_REVIEW_TEST_EXECUTABLE if offline_test_mode else "codex",
+            OFFLINE_REVIEW_TEST_EXECUTABLE,
             "--sandbox",
             "read-only",
             "--cd",
@@ -3017,8 +3182,6 @@ def _run_review_after_persistence_probe(
             "-c",
             "project_doc_max_bytes=0",
         ]
-        if transport_profile is not None:
-            command.extend(_review_transport_config_arguments(transport_profile))
         if model:
             command.extend(["--model", model])
         if use_native_review:
@@ -3076,8 +3239,8 @@ def _run_review_after_persistence_probe(
                 "prompt_bytes": len(review_prompt.encode("utf-8")),
                 "read_only": True,
                 "execution_mode": execution_mode,
-                "transport_profile": transport_profile,
-                "offline_test_mode": offline_test_mode,
+                "transport_profile": None,
+                "offline_test_mode": True,
                 "bootstrap_phase": bootstrap_phase,
                 "codex_cli": capability,
                 "host_persistence_probe": persistence_probe,
@@ -3166,8 +3329,8 @@ def _run_review_after_persistence_probe(
             "harness_ephemeral": True,
             "read_only": True,
             "execution_mode": execution_mode,
-            "transport_profile": transport_profile,
-            "offline_test_mode": offline_test_mode,
+            "transport_profile": None,
+            "offline_test_mode": True,
             "bootstrap_phase": bootstrap_phase,
             "codex_cli": capability,
             "host_persistence_probe": persistence_probe,
@@ -3497,7 +3660,11 @@ def _packet_from_arguments(arguments: argparse.Namespace, repo_root: Path, *, re
     context = []
     for raw_path in arguments.context_file:
         path = _resolve(repo_root, raw_path)
-        context.append((str(path), _read_text(path, "context file")))
+        try:
+            label = path.resolve().relative_to(repo_root).as_posix()
+        except ValueError as error:
+            raise AgentError("review context files must remain inside the repository") from error
+        context.append((label, _read_text(path, "context file")))
     if reviewer:
         prompt = build_review_request(
             alias=alias,
@@ -3579,74 +3746,14 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             target_kind, target_value = "commit", arguments.commit
         else:
             target_kind, target_value = "base", arguments.base or "main"
-        if arguments.session_id is not None:
-            cwd = _resolve(repo_root, arguments.cwd).resolve()
-            _preflight_external_disclosure(
-                cwd=cwd, target_kind=target_kind, target_value=target_value,
-                base_sha=arguments.base_sha, head_sha=arguments.head_sha,
-                model=arguments.model, transport_profile=transport_profile,
-                authorization=disclosure_authorization,
-            )
-            alias, prompt, cwd = _packet_from_arguments(arguments, repo_root, reviewer=True)
-            return run_review(
-                alias=alias, prompt=prompt, cwd=cwd, runtime_dir=runtime_dir,
-                target_kind=target_kind, target_value=target_value,
-                base_sha=arguments.base_sha, head_sha=arguments.head_sha,
-                model=arguments.model, model_provider=arguments.model_provider,
-                provider_name=arguments.provider_name,
-                provider_base_url=arguments.provider_base_url, wire_api=arguments.wire_api,
-                requires_openai_auth=arguments.provider_requires_openai_auth,
-                disclosure_authorization=disclosure_authorization,
-                bootstrap_snapshot_digest=arguments.bootstrap_snapshot_digest,
-                timeout_seconds=arguments.timeout_seconds, dry_run=arguments.dry_run,
-                session_id=arguments.session_id, workflow_root=repo_root,
-                owned_paths=arguments.owned_path, issue_id=arguments.issue,
-                parent_session_id=arguments.parent_session_id,
-            )
-        timeout = _validated_timeout_seconds(arguments.timeout_seconds)
         cwd = _resolve(repo_root, arguments.cwd).resolve()
-        disclosure_preflight_token = _preflight_external_disclosure(
+        _preflight_external_disclosure(
             cwd=cwd, target_kind=target_kind, target_value=target_value,
             base_sha=arguments.base_sha, head_sha=arguments.head_sha,
             model=arguments.model, transport_profile=transport_profile,
             authorization=disclosure_authorization,
         )
-        if arguments.dry_run:
-            persistence_probe = _skipped_codex_persistence_probe()
-        else:
-            alias = make_alias(arguments.issue, "reviewer", arguments.attempt, arguments.slug)
-            probe_started_at = utc_now()
-            probe_started = time.monotonic()
-            persistence_probe = _probe_codex_persistence()
-            if persistence_probe["status"] != "available":
-                return _review_preflight_failure_envelope(
-                    alias=alias,
-                    runtime_dir=runtime_dir,
-                    timeout_seconds=timeout,
-                    persistence_probe=persistence_probe,
-                    started_at=probe_started_at,
-                    started=probe_started,
-                )
-        alias, prompt, cwd = _packet_from_arguments(arguments, repo_root, reviewer=True)
-        return _run_review_after_persistence_probe(
-            alias=alias,
-            prompt=prompt,
-            cwd=cwd,
-            runtime_dir=runtime_dir,
-            target_kind=target_kind,
-            target_value=target_value,
-            base_sha=arguments.base_sha,
-            head_sha=arguments.head_sha,
-            model=arguments.model,
-            bootstrap_snapshot_digest=arguments.bootstrap_snapshot_digest,
-            timeout=timeout,
-            dry_run=arguments.dry_run,
-            runner=_subprocess_run,
-            codex_capability=None,
-            transport_profile=transport_profile,
-            persistence_probe=persistence_probe,
-            disclosure_preflight_token=disclosure_preflight_token,
-        )
+        raise AssertionError("production disclosure preflight must fail closed")
     if arguments.command == "archive":
         return run_archive(
             external_id=arguments.external_id,
