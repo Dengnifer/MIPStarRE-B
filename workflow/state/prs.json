@@ -6918,8 +6918,10 @@
       "base": "main",
       "head": "issue/qpbt-049-task-release-a01",
       "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
-      "head_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
-      "implementer_session_ids": [],
+      "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+      "implementer_session_ids": [
+        "i049-orchestrator-a02-release-repair"
+      ],
       "checks": [
         {
           "id": "check-qpbt-049-a02-immutable",
@@ -6933,6 +6935,19 @@
           "manifest_sha256": "a8c3ba182170da1f550612b3118fa76509359e6e709a3d8af43b28f302a7575e",
           "candidate_tree": "b9987862ab36204033cc4f63e5b6f465a1214d92",
           "parent_sha": "b9ca40aa590b99c903cc4a8385e229e7d6a2e594"
+        },
+        {
+          "id": "check-qpbt-049-repair-a02",
+          "name": "QPBT-049 release-lease repair scoped gates",
+          "command": "python3 tests/test_local_agent.py; python3 tests/test_workflow.py; compileall; checker; diff --check",
+          "status": "passed",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+          "completed_at": "2026-09-01T20:17:00Z",
+          "result_path": "workflow/reviews/qpbt-049-release-repair-a02.md",
+          "candidate_tree": "86da3fa54c1fa4ccdfdda7c31d2e348f64d23b22",
+          "parent_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
+          "manifest_sha256": "eeb1e91987e812a849ed330aca52e4176f8289526e81cb3418b294aaa2dace19"
         }
       ],
       "reviews": [
@@ -6990,13 +7005,16 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:00Z",
-      "updated_at": "2026-09-01T20:07:51.566280Z",
+      "updated_at": "2026-09-01T20:19:02.481879Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
         "scripts/workflow.py",
         "tests/test_workflow.py",
-        "workflow/reviews/qpbt-049-task-release-a01.md"
+        "workflow/reviews/qpbt-049-task-release-a01.md",
+        "scripts/local_agent.py",
+        "tests/test_local_agent.py",
+        "workflow/reviews/qpbt-049-release-repair-a02.md"
       ],
       "motivation": "Prevent collaboration task packets from being released before immutable backend identity confirmation.",
       "description": "Add a post-confirmation identity-bound release event and fail-closed lifecycle validation.",
@@ -7019,8 +7037,10 @@
       "base": "main",
       "head": "issue/qpbt-050-fsmonitor-hardening-a01",
       "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
-      "head_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
-      "implementer_session_ids": [],
+      "head_sha": "c70267e3d65aeb3c47b4680ab53693c5b9ead6fa",
+      "implementer_session_ids": [
+        "i050-orchestrator-a02-fsmonitor-repair"
+      ],
       "checks": [
         {
           "id": "check-qpbt-050-a02-immutable",
@@ -7034,6 +7054,19 @@
           "manifest_sha256": "85693d6b11e7714aaf04ffef551693989bddf094e8394cfd552f80ce25e9ccfb",
           "candidate_tree": "cb2a6e85311ea3ff681e8e5d378c8b075c283641",
           "parent_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d"
+        },
+        {
+          "id": "check-qpbt-050-repair-a02",
+          "name": "QPBT-050 trusted Git admission repair scoped gates",
+          "command": "python3 tests/test_hot_main_cache.py; compileall; checker; diff --check",
+          "status": "passed",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "c70267e3d65aeb3c47b4680ab53693c5b9ead6fa",
+          "completed_at": "2026-09-01T20:17:00Z",
+          "result_path": "workflow/reviews/qpbt-050-fsmonitor-repair-a02.md",
+          "candidate_tree": "1c1be2d9c9e7c790842fab47077055f929826c06",
+          "parent_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
+          "manifest_sha256": "a3358d0d5ce28b5569eaaff61872f9f231c47d693c0df31996ef732e2b8319da"
         }
       ],
       "reviews": [
@@ -7075,11 +7108,12 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:01Z",
-      "updated_at": "2026-09-01T20:07:51.723955Z",
+      "updated_at": "2026-09-01T20:19:02.622683Z",
       "changed_paths": [
         "scripts/hot_main_cache.py",
         "tests/test_hot_main_cache.py",
-        "workflow/reviews/qpbt-050-fsmonitor-hardening-a01.md"
+        "workflow/reviews/qpbt-050-fsmonitor-hardening-a01.md",
+        "workflow/reviews/qpbt-050-fsmonitor-repair-a02.md"
       ],
       "motivation": "Close the ambient fsmonitor execution residual in cache admission diagnostics.",
       "description": "Run every Git identity and cleanliness diagnostic under the trusted Git environment and add hook suppression coverage.",

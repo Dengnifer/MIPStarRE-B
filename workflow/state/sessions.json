@@ -22731,7 +22731,7 @@
       "name": "i049-orchestrator-a02-release-repair",
       "role": "orchestrator",
       "issue_id": "QPBT-049",
-      "status": "running",
+      "status": "archived",
       "attempt": 2,
       "priority": 1,
       "backend": "codex-collaboration",
@@ -22756,23 +22756,49 @@
       "dispatch_condition": "Fresh repair after A02 immutable review found two blocker release-gate escapes; preserve candidate head d202aca.",
       "external_id": "/root/i049_repair_bootstrap",
       "started_at": "2026-09-01T20:07:15.583367Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-01T20:17:15.391606Z",
+      "elapsed_seconds": 599.808,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-049-release-repair-a02.md",
+      "timing_quality": "runtime-measured",
+      "task_released_at": "2026-09-01T20:07:14.720527Z",
+      "task_release_protocol": "bootstrap-only thread confirmed before full packet",
+      "run_outcome": "repair-candidate-committed-awaiting-fresh-review",
+      "candidate_base_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
+      "candidate_head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+      "candidate_tree": "86da3fa54c1fa4ccdfdda7c31d2e348f64d23b22",
+      "candidate_parent_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
+      "candidate_manifest_sha256": "eeb1e91987e812a849ed330aca52e4176f8289526e81cb3418b294aaa2dace19",
+      "report_sha256": "4ee1544e166b69cb048d5e8dfe27674af0413a1530c50125fc5a8cb0e4b8e407",
+      "checks": {
+        "local_agent_tests": "65 passed",
+        "workflow_tests": "78 passed",
+        "compileall": "passed",
+        "diff_check": "passed",
+        "finding_ids": [
+          "F-LPR025-001",
+          "F-LPR025-002"
+        ],
+        "candidate_commit": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+        "builds": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "repository_edits": 1,
+        "nested_agents": 0
+      }
     },
     {
       "id": "i050-orchestrator-a02-fsmonitor-repair",
       "name": "i050-orchestrator-a02-fsmonitor-repair",
       "role": "orchestrator",
       "issue_id": "QPBT-050",
-      "status": "running",
+      "status": "archived",
       "attempt": 2,
       "priority": 1,
       "backend": "codex-collaboration",
@@ -22793,16 +22819,42 @@
       "dispatch_condition": "Fresh repair after A02 immutable security review found HIGH F-LPR026-001; preserve candidate head 5e67781.",
       "external_id": "/root/i050_repair_bootstrap",
       "started_at": "2026-09-01T20:07:16.033161Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-01T20:17:15.834829Z",
+      "elapsed_seconds": 599.802,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-050-fsmonitor-repair-a02.md",
+      "timing_quality": "runtime-measured",
+      "task_released_at": "2026-09-01T20:07:15.184642Z",
+      "task_release_protocol": "bootstrap-only thread confirmed before full packet",
+      "run_outcome": "repair-candidate-committed-awaiting-fresh-security-review",
+      "candidate_base_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
+      "candidate_head_sha": "c70267e3d65aeb3c47b4680ab53693c5b9ead6fa",
+      "candidate_tree": "1c1be2d9c9e7c790842fab47077055f929826c06",
+      "candidate_parent_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
+      "candidate_manifest_sha256": "a3358d0d5ce28b5569eaaff61872f9f231c47d693c0df31996ef732e2b8319da",
+      "report_sha256": "db01b6ce1ecf155dd478270b9ea0c574371e7bdd22e60b52e4b589a9ac96da47",
+      "checks": {
+        "hot_cache_tests": "62/62 passed",
+        "compileall": "passed",
+        "checker": "passed",
+        "diff_check": "passed",
+        "finding_ids": [
+          "F-LPR026-001"
+        ],
+        "candidate_commit": "c70267e3d65aeb3c47b4680ab53693c5b9ead6fa",
+        "builds": 0,
+        "production_warm": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "repository_edits": 1,
+        "nested_agents": 0
+      }
     }
   ]
 }
