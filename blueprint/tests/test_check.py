@@ -314,13 +314,20 @@ class BlueprintCheckTests(unittest.TestCase):
 
         f06 = by_id["F06-CL"]
         self.assertIn("MIPStarRE.QPBT.CLSampler.sample_directSum", f06["lean"]["names"])
+        self.assertEqual("faithful-boundary", f06["fidelity"])
+        self.assertEqual("faithful boundary", f06["integrity"]["verdict"])
+        for term in check.F06_EXECUTABLE_GAP_TERMS:
+            self.assertIn(term, f06["boundary_hypotheses"].lower())
 
         f07 = by_id["F07-TYPED"]
         self.assertEqual(check.TYPED_SOURCE_ANCHOR, f07["source"])
         self.assertEqual(check.TYPED_LEAN_NAMES, f07["lean"]["names"])
-        self.assertNotIn("finite dependent fibers", f07["boundary_hypotheses"].lower())
-        self.assertNotIn("finite decider", f07["integrity"]["lean_conclusion"].lower())
-        self.assertIn("G02", f07["boundary_hypotheses"])
+        self.assertEqual(check.F07_FINITENESS_CONTRACT,
+                         check.f07_finiteness_contract(f07))
+        self.assertIn(
+            "Among question/answer content fibers, only the sampler carrier is asserted finite.",
+            f07["statement"],
+        )
 
         game_semantics = by_id[check.GAME_SEMANTICS_OWNER_ID]
         self.assertEqual(
@@ -338,6 +345,10 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertEqual(check.DETYPING_LEAN_NAMES, detyping["lean"]["names"])
         self.assertFalse(any(dependency.startswith(("K03", "K04"))
                              for dependency in detyping["prerequisites"]))
+        for term in check.F07A_EXECUTABLE_OWNER_TERMS:
+            self.assertIn(term, detyping["boundary_hypotheses"].lower())
+        self.assertEqual(check.F07A_LEAN_ASSUMPTIONS,
+                         detyping["integrity"]["lean_assumptions"])
 
         for node_id, contract in check.NON_DETYPING_COMPLEXITY_CONTRACTS.items():
             node = by_id[node_id]
@@ -362,7 +373,7 @@ class BlueprintCheckTests(unittest.TestCase):
             ("wrong_source", "detyping source range must remain exact"),
             ("wrong_dependencies", "detyping prerequisites must remain exact"),
             ("wrong_names", "detyping callable names must remain exact"),
-            ("finite_fibers", "generic dependent fibers must not be claimed finite"),
+            ("finite_fibers", "generic dependent-fiber finiteness contract must remain exact"),
             ("k03_detyping", "must not own detyping"),
             ("k04_names", "non-detyping callable ownership must remain exact"),
         ):
@@ -410,6 +421,109 @@ class BlueprintCheckTests(unittest.TestCase):
                 else:
                     bad_by_id["F07-TYPED"]["boundary_hypotheses"] += " Finite dependent fibers."
                 self.assertTrue(any(phrase in error for error in self.errors(nodes=bad)))
+
+    def test_typed_finiteness_and_executable_ownership_wording_is_adversarial(self) -> None:
+        finiteness_mutations = (
+            ("statement", " Finite typed samplers and deciders are exposed."),
+            ("encoding", " All typed question and answer families are finite."),
+            ("boundary_hypotheses", " Dependent decider fibers are finite."),
+            ("lean_assumptions", " Finite typed questions, answers, and deciders are assumed."),
+            ("lean_conclusion", " The generic interfaces remain pointwise finite."),
+        )
+        for field, phrase in finiteness_mutations:
+            with self.subTest(field=field):
+                bad = copy.deepcopy(self.nodes)
+                f07 = next(node for node in bad["nodes"] if node["id"] == "F07-TYPED")
+                target = f07["integrity"] if field.startswith("lean_") else f07
+                target[field] += phrase
+                self.assertTrue(any(
+                    "generic dependent-fiber finiteness contract must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        conjoined_with_consumer = copy.deepcopy(self.nodes)
+        f07 = next(node for node in conjoined_with_consumer["nodes"]
+                   if node["id"] == "F07-TYPED")
+        f07["boundary_hypotheses"] = f07["boundary_hypotheses"].replace(
+            "required by the mathematical game consumer.",
+            "required by the mathematical game consumer while finite typed samplers "
+            "and deciders are exposed.",
+        )
+        self.assertTrue(any(
+            "generic dependent-fiber finiteness contract must remain exact" in error
+            for error in self.errors(nodes=conjoined_with_consumer)
+        ))
+
+        hidden_after_disclaimer = copy.deepcopy(self.nodes)
+        f07 = next(node for node in hidden_after_disclaimer["nodes"]
+                   if node["id"] == "F07-TYPED")
+        f07["boundary_hypotheses"] = f07["boundary_hypotheses"].replace(
+            "without pointwise finiteness assumptions.",
+            "without pointwise finiteness assumptions but dependent decider fibers "
+            "are finite.",
+        )
+        self.assertTrue(any(
+            "generic dependent-fiber finiteness contract must remain exact" in error
+            for error in self.errors(nodes=hidden_after_disclaimer)
+        ))
+
+        finite_f07a = copy.deepcopy(self.nodes)
+        detyping = next(node for node in finite_f07a["nodes"]
+                        if node["id"] == check.DETYPING_OWNER_ID)
+        detyping["integrity"]["lean_assumptions"] = (
+            "F07 finite typed interfaces, F04A game semantics, and a machine model."
+        )
+        self.assertTrue(any(
+            "dependent-fiber assumptions must remain exact" in error
+            for error in self.errors(nodes=finite_f07a)
+        ))
+
+        wrong_fidelity = copy.deepcopy(self.nodes)
+        next(node for node in wrong_fidelity["nodes"]
+             if node["id"] == "F06-CL")["fidelity"] = "exact"
+        self.assertTrue(any(
+            "fidelity must match its faithful-boundary integrity verdict" in error
+            for error in self.errors(nodes=wrong_fidelity)
+        ))
+
+        false_deferral = copy.deepcopy(self.nodes)
+        f06 = next(node for node in false_deferral["nodes"] if node["id"] == "F06-CL")
+        f06["boundary_hypotheses"] = (
+            "All spaces and randomness are finite. Raw Turing strings, executable "
+            "sampler interfaces, and efficiency claims are deferred to K03-K04."
+        )
+        self.assertTrue(any(
+            "generic executable representation and cost debt must retain its "
+            "dedicated-node gap" in error
+            for error in self.errors(nodes=false_deferral)
+        ))
+
+        false_f07a_ownership = copy.deepcopy(self.nodes)
+        f06 = next(node for node in false_f07a_ownership["nodes"]
+                   if node["id"] == "F06-CL")
+        f06["boundary_hypotheses"] = f06["boundary_hypotheses"].replace(
+            "No current blueprint node has the exact source anchor and callable names "
+            "for this generic executable layer. A dedicated source-bound node and "
+            "workflow issue must freeze conditionally-linear.tex:553-710 before "
+            "implementation.",
+            "F07A-DETYPING and QPBT-043 own the generic executable layer.",
+        )
+        self.assertTrue(any(
+            "generic executable representation and cost debt must retain its "
+            "dedicated-node gap" in error
+            for error in self.errors(nodes=false_f07a_ownership)
+        ))
+
+        vague_detyping = copy.deepcopy(self.nodes)
+        detyping = next(node for node in vague_detyping["nodes"]
+                        if node["id"] == check.DETYPING_OWNER_ID)
+        detyping["boundary_hypotheses"] = (
+            "The machine layer is deferred to later complexity work in K03 and K04."
+        )
+        self.assertTrue(any(
+            "executable representation and cost ownership must remain concrete" in error
+            for error in self.errors(nodes=vague_detyping)
+        ))
 
     def test_lean_api_compatibility_contract_is_explicit(self) -> None:
         by_id = {node["id"]: node for node in self.nodes["nodes"]}

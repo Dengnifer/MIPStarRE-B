@@ -30,7 +30,7 @@ digraph QPBT {
   "F04-DISTANCE-LAWS" [label="F04-DISTANCE-LAWS\nState-dependent distance triangle and postprocessing laws", style=filled, fillcolor="#d9ead3"];
   "F04A-GAME-SEMANTICS" [label="F04A-GAME-SEMANTICS\nFinite two-player game and quantum strategy semantics", style=filled, fillcolor="#cfe2f3"];
   "F05-PAULI" [label="F05-PAULI\nGeneralized Pauli and Fourier algebra", style=filled, fillcolor="#fce5cd"];
-  "F06-CL" [label="F06-CL\nConditionally-linear maps and samplers", style=filled, fillcolor="#d9ead3"];
+  "F06-CL" [label="F06-CL\nConditionally-linear maps and samplers", style=filled, fillcolor="#cfe2f3"];
   "F07-TYPED" [label="F07-TYPED\nTyped samplers, deciders, and graph distributions", style=filled, fillcolor="#cfe2f3"];
   "F07A-DETYPING" [label="F07A-DETYPING\nGraph simulation and typed-verifier detyping", style=filled, fillcolor="#cfe2f3"];
   "F08-MAGIC-GAME" [label="F08-MAGIC-GAME\nMagic Square game and perfect construction", style=filled, fillcolor="#d9ead3"];

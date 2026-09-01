@@ -117,6 +117,85 @@ TYPED_LEAN_NAMES = [
     "MIPStarRE.QPBT.TypedDecider",
     "MIPStarRE.QPBT.TypedDecider.accepts",
 ]
+F06_EXECUTABLE_GAP_TERMS = (
+    "binary-string encoding",
+    "six-input dimension",
+    "marginal",
+    "linear-map",
+    "factor-space",
+    "turing step count",
+    "executable downsizing",
+    "o(time_s(n) log q(n))",
+    "no current blueprint node",
+    "dedicated source-bound node and workflow issue",
+    "conditionally-linear.tex:553-710",
+    "f07a-detyping and qpbt-043 own only",
+    "types.tex:197-579",
+    "k03 and k04 own neither",
+)
+F07_FINITENESS_CONTRACT = {
+    "statement": (
+        "Define finite type and edge support and its graph-distribution semantics. "
+        "Define a typed sampler on the constant FieldVector question-content carrier. "
+        "Define heterogeneous typed questions and answers and total dependent deciders "
+        "over arbitrary fibers. Define mathematical typed-sampler downsizing and its PMF "
+        "theorem. Among question/answer content fibers, only the sampler carrier is "
+        "asserted finite."
+    ),
+    "encoding": (
+        "TypeGraph stores a nonempty symmetric Finset of ordered endpoints: a loop occurs "
+        "once and each non-loop occurs in both orientations. Its uniform PMF therefore "
+        "has the paper denominator 2m-k. Typed questions use Sigma fibers, and "
+        "TypedDecider is total over every type pair without erasing question or answer "
+        "fibers. TypedSampler.downsize retains the graph and level, downsizes both CL "
+        "families pointwise, and sample_downsize is the exact PMF pushforward."
+    ),
+    "boundary_hypotheses": (
+        "The type index and ordered-edge support are finite. Finiteness is asserted only "
+        "for the constant FieldVector question-content carrier used by TypedSampler. "
+        "TypedQuestion and TypedDecider admit arbitrary dependent question and answer "
+        "fibers without pointwise finiteness assumptions. G02 alone supplies the pointwise "
+        "finite question and answer families required by the mathematical game consumer. "
+        "The mathematical downsizing contract does not claim the source Turing-machine "
+        "representation or runtime equation. Typed verifier/game, executable typed "
+        "interfaces, graph simulation, detyping, and all cost clauses are owned by "
+        "F07A-DETYPING and frozen by QPBT-043; K03 and K04 own none of them."
+    ),
+    "paper_assumptions": (
+        "A finite type set, an undirected graph that may contain self-loops, typed CL "
+        "families and executable typed sampler/decider data, with a selected field basis "
+        "for downsizing."
+    ),
+    "lean_assumptions": (
+        "A nonempty symmetric finite ordered-edge support and certified maps on the "
+        "constant FieldVector carrier; FieldData only for downsizing; generic "
+        "sigma/dependent question, answer, and decider fibers carry no pointwise "
+        "finiteness assumption."
+    ),
+    "lean_conclusion": (
+        "A uniform ordered-edge PMF preserving loop/orientation weight, its callable type "
+        "marginal, a graph-preserving pointwise downsizing operation with exact PMF "
+        "pushforward, and a total dependent decider over arbitrary fibers. Executable "
+        "representation and costs remain explicit F07A-DETYPING/QPBT-043 obligations."
+    ),
+}
+F07A_LEAN_ASSUMPTIONS = (
+    "F07 typed interfaces with unrestricted dependent question, answer, and decider "
+    "fibers; F04A generic finite quantum-game semantics; the exact graph-event layer "
+    "owned here; and the types.tex:197-579 typed/detyping executable representation "
+    "and cost model to be frozen by QPBT-043."
+)
+F07A_EXECUTABLE_OWNER_TERMS = (
+    "types.tex:197-579",
+    "binary-string pair parsing",
+    "sampler and decider step counts",
+    "typed downsizing and detyping runtime bounds",
+    "description computability",
+    "qpbt-043",
+    "conditionally-linear.tex:553-710 remains outside this node",
+    "dedicated source-bound node and workflow issue",
+    "k03 and k04 own neither",
+)
 DETYPING_OWNER_ID = "F07A-DETYPING"
 DETYPING_SOURCE_ANCHOR = {
     "path": "references/2001.04383v3/sections/dependencies/types.tex",
@@ -196,6 +275,19 @@ MINIMAL_SKELETON_PLAN = {
     },
     "proof_complete_sorry_count": 0,
 }
+
+
+def f07_finiteness_contract(node: dict[str, Any]) -> dict[str, str]:
+    """Extract the source-reviewed F07 finiteness boundary for exact comparison."""
+    integrity = node.get("integrity", {})
+    return {
+        "statement": str(node.get("statement", "")),
+        "encoding": str(node.get("encoding", "")),
+        "boundary_hypotheses": str(node.get("boundary_hypotheses", "")),
+        "paper_assumptions": str(integrity.get("paper_assumptions", "")),
+        "lean_assumptions": str(integrity.get("lean_assumptions", "")),
+        "lean_conclusion": str(integrity.get("lean_conclusion", "")),
+    }
 
 
 def load_json(path: Path) -> Any:
@@ -535,18 +627,34 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
     f06 = nodes_by_id.get("F06-CL", {})
     if "MIPStarRE.QPBT.CLSampler.sample_directSum" not in f06.get("lean", {}).get("names", []):
         errors.append("F06-CL: direct-sum product-distribution theorem must remain callable")
+    if (f06.get("fidelity") != "faithful-boundary" or
+            f06.get("integrity", {}).get("verdict") != "faithful boundary"):
+        errors.append("F06-CL: fidelity must match its faithful-boundary integrity verdict")
+    f06_boundary = str(f06.get("boundary_hypotheses", "")).lower()
+    if not all(term in f06_boundary for term in F06_EXECUTABLE_GAP_TERMS):
+        errors.append(
+            "F06-CL: generic executable representation and cost debt must retain its "
+            "dedicated-node gap and exclude F07A/QPBT-043 and K03/K04 ownership"
+        )
     f07 = nodes_by_id.get("F07-TYPED", {})
     if f07.get("source") != TYPED_SOURCE_ANCHOR:
         errors.append("F07-TYPED: typed source range must remain exact")
     if f07.get("lean", {}).get("names") != TYPED_LEAN_NAMES:
         errors.append("F07-TYPED: typed callable names must remain exact")
-    f07_claims = " ".join(str(f07.get(field, "")) for field in (
-        "statement", "encoding", "boundary_hypotheses"
-    )).lower()
-    if "finite dependent fibers" in f07_claims or "finite decider" in f07_claims:
-        errors.append("F07-TYPED: generic dependent fibers must not be claimed finite")
-    if "g02" not in str(f07.get("boundary_hypotheses", "")).lower():
-        errors.append("F07-TYPED: consumer finiteness must remain assigned to G02")
+    if f07_finiteness_contract(f07) != F07_FINITENESS_CONTRACT:
+        errors.append(
+            "F07-TYPED: generic dependent-fiber finiteness contract must remain exact"
+        )
+    if str((detyping or {}).get("integrity", {}).get("lean_assumptions", "")) != (
+        F07A_LEAN_ASSUMPTIONS
+    ):
+        errors.append(f"{DETYPING_OWNER_ID}: dependent-fiber assumptions must remain exact")
+    detyping_boundary = str((detyping or {}).get("boundary_hypotheses", "")).lower()
+    if not all(term in detyping_boundary for term in F07A_EXECUTABLE_OWNER_TERMS):
+        errors.append(
+            f"{DETYPING_OWNER_ID}: executable representation and cost ownership must "
+            "remain concrete and exclude K03/K04"
+        )
     for node_id, expected_contract in NON_DETYPING_COMPLEXITY_CONTRACTS.items():
         node = nodes_by_id.get(node_id, {})
         if node.get("source", {}).get("generated_lines") != expected_contract["generated_lines"]:
