@@ -1520,6 +1520,28 @@ def validate_event_log(
                 errors.append(f"{location}: duplicate session release events")
             if released and issued and released[0][1:] < issued[0][1:]:
                 errors.append(f"{location}: release event precedes session issuance")
+            marked_issuance_payloads = [
+                payload
+                for payload in issuance_payloads[session_id]
+                if "release_contract" in payload
+            ]
+            for issuance_payload in marked_issuance_payloads:
+                if (
+                    issuance_payload.get("release_contract")
+                    != COLLABORATION_RELEASE_CONTRACT
+                ):
+                    errors.append(
+                        f"{location}: unsupported collaboration release contract"
+                    )
+                if session.get("backend") != "codex-collaboration":
+                    errors.append(
+                        f"{location}: issuance release contract is only valid for "
+                        "codex-collaboration sessions"
+                    )
+                if issuance_payload.get("external_id") != session.get("external_id"):
+                    errors.append(
+                        f"{location}: issuance external_id does not match issued session"
+                    )
             for release_payload in release_payloads[session_id]:
                 if session.get("backend") != "codex-collaboration":
                     errors.append(f"{location}: release is only valid for codex-collaboration sessions")
@@ -1534,13 +1556,19 @@ def validate_event_log(
                 and session.get("external_id")
                 and any(
                     payload.get("release_contract") == COLLABORATION_RELEASE_CONTRACT
-                    for payload in issuance_payloads[session_id]
+                    for payload in marked_issuance_payloads
                 )
             )
-            if release_required and (running or terminal) and not released:
+            if release_required and (running or terminal or archived) and not released:
                 errors.append(f"{location}: collaboration session requires post-confirmation release")
             if running and released and running[0][1:] < released[0][1:]:
                 errors.append(f"{location}: running transition precedes session release")
+            if release_required and released:
+                release_order = released[0][1:]
+                if any(event[1:] < release_order for event in terminal):
+                    errors.append(f"{location}: terminal event precedes session release")
+                if any(event[1:] < release_order for event in archived):
+                    errors.append(f"{location}: archive event precedes session release")
             status = session.get("status")
             if status == "archived":
                 if len(terminal) != 1:

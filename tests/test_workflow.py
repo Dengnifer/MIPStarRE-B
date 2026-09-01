@@ -2485,6 +2485,153 @@ class EventLogTests(unittest.TestCase):
             path.write_text(issue + "\n" + release + "\n" + running + "\n", encoding="utf-8")
             workflow.validate_event_log(path, state)
 
+    def test_marked_release_precedes_terminal_and_archive_events(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            state = documents()
+            session = issued_session("i052-collab-a01-terminal-release")
+            session["backend"] = "codex-collaboration"
+            session["external_id"] = "thread-terminal-release"
+            state["sessions.json"]["issued"] = [session]
+
+            def lifecycle_event(
+                timestamp: str,
+                event: str,
+                **payload: object,
+            ) -> str:
+                return self.event(
+                    timestamp,
+                    event,
+                    {"session_id": session["id"], **payload},
+                )
+
+            issue = lifecycle_event(
+                NOW,
+                "session.issued",
+                external_id=session["external_id"],
+                release_contract=workflow.COLLABORATION_RELEASE_CONTRACT,
+            )
+            cases = [
+                (
+                    "ordinary terminal before release",
+                    [
+                        issue,
+                        lifecycle_event(CHECKED, "session.finished"),
+                        lifecycle_event(REVIEW_STARTED, "session.released", external_id=session["external_id"]),
+                        lifecycle_event(REVIEW_ENDED, "session.archived"),
+                    ],
+                    "terminal event precedes session release",
+                ),
+                (
+                    "ordinary archive before release",
+                    [
+                        issue,
+                        lifecycle_event(CHECKED, "session.finished"),
+                        lifecycle_event(REVIEW_STARTED, "session.archived"),
+                        lifecycle_event(REVIEW_ENDED, "session.released", external_id=session["external_id"]),
+                    ],
+                    "archive event precedes session release",
+                ),
+                (
+                    "equal-time terminal before release",
+                    [
+                        issue,
+                        lifecycle_event(CHECKED, "session.finished"),
+                        lifecycle_event(CHECKED, "session.released", external_id=session["external_id"]),
+                        lifecycle_event(CHECKED, "session.archived"),
+                    ],
+                    "terminal event precedes session release",
+                ),
+                (
+                    "equal-time archive before release",
+                    [
+                        issue,
+                        lifecycle_event(CHECKED, "session.finished"),
+                        lifecycle_event(CHECKED, "session.archived"),
+                        lifecycle_event(CHECKED, "session.released", external_id=session["external_id"]),
+                    ],
+                    "archive event precedes session release",
+                ),
+            ]
+            for name, events, error in cases:
+                with self.subTest(name=name):
+                    path.write_text("\n".join(events) + "\n", encoding="utf-8")
+                    with self.assertRaisesRegex(workflow.ValidationError, error):
+                        workflow.validate_event_log(path, state)
+
+            path.write_text(
+                "\n".join(
+                    [
+                        issue,
+                        lifecycle_event(CHECKED, "session.released", external_id=session["external_id"]),
+                        lifecycle_event(CHECKED, "session.finished"),
+                        lifecycle_event(CHECKED, "session.archived"),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            workflow.validate_event_log(path, state)
+
+    def test_marked_issuance_identity_backend_and_contract_are_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            state = documents()
+            session = collaboration_planned_session("i052-collab-a01-issuance-identity")
+            session["status"] = "issued"
+            session["external_id"] = "thread-expected"
+            state["sessions.json"]["planned"] = []
+            state["sessions.json"]["issued"] = [session]
+
+            def issuance(**payload: object) -> str:
+                return self.event(
+                    NOW,
+                    "session.issued",
+                    {"session_id": session["id"], **payload},
+                )
+
+            marker = workflow.COLLABORATION_RELEASE_CONTRACT
+            hostile_cases = [
+                (
+                    "wrong external identity",
+                    issuance(external_id="thread-other", release_contract=marker),
+                    "issuance external_id does not match issued session",
+                ),
+                (
+                    "missing external identity",
+                    issuance(release_contract=marker),
+                    "issuance external_id does not match issued session",
+                ),
+                (
+                    "unsupported release contract",
+                    issuance(external_id=session["external_id"], release_contract="post-confirmation-v0"),
+                    "unsupported collaboration release contract",
+                ),
+            ]
+            for name, event, error in hostile_cases:
+                with self.subTest(name=name):
+                    path.write_text(event + "\n", encoding="utf-8")
+                    with self.assertRaisesRegex(workflow.ValidationError, error):
+                        workflow.validate_event_log(path, state)
+
+            session["backend"] = "codex-cli"
+            path.write_text(
+                issuance(external_id=session["external_id"], release_contract=marker) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                workflow.ValidationError,
+                "issuance release contract is only valid for codex-collaboration sessions",
+            ):
+                workflow.validate_event_log(path, state)
+
+            session["backend"] = "codex-collaboration"
+            path.write_text(
+                issuance(external_id="legacy-unbound") + "\n",
+                encoding="utf-8",
+            )
+            workflow.validate_event_log(path, state)
+
     def test_release_identity_and_backend_scope_are_checked(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "events.jsonl"
