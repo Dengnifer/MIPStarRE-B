@@ -19259,6 +19259,76 @@
         "nested_agents": 0
       },
       "notes": "Fresh immutable statement-integrity review approved all F01/F03/F04/G16 contracts with no findings; no forbidden public obligations."
+    },
+    {
+      "id": "i031-orchestrator-a01-field-skeleton",
+      "name": "i031-orchestrator-a01-field-skeleton",
+      "role": "orchestrator",
+      "issue_id": "QPBT-031",
+      "attempt": 1,
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "parent_session_id": null,
+      "external_id": "/root/i031_field_skeleton",
+      "read_only": false,
+      "base_revision": "259c73a368ef7403b4e36e190c9bf940497b300f",
+      "base_revision_reason": "Exact clean pre-metadata-checkpoint main commit with published cache key d71a99abea8f7ebf5bda5194dfef088b06f526230caf5ccbca34d62d5b4267b9; checkpoint 699bdd2 changes only workflow ledgers and does not alter Lean cache-key inputs.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-031-field-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Field.lean",
+        "workflow/reviews/qpbt-031-field-skeleton-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, blueprint/metadata/nodes.json#F01-FIELD, workflow/reviews/qpbt-023-leaf-contract-a04.md#F01-SIGNATURES, and docs/paper-gaps/self-dual-normal-basis.md first. Authenticate detached HEAD 259c73a368ef7403b4e36e190c9bf940497b300f, seed cache key d71a99abea8f7ebf5bda5194dfef088b06f526230caf5ccbca34d62d5b4267b9 with --main-commit 259c73a368ef7403b4e36e190c9bf940497b300f, and materialize the pinned MIPStarRE source from the authenticated archive. Implement only MIPStarRE/QPBT/Basic/Field.lean with the exact F01 declarations and imports. Keep exactly one tracked sorry at fieldDataOfOddExponent for G16; prove all other declarations without proof debt and introduce no axiom, constant, witness input, or public obligation. Run lake env lean MIPStarRE/QPBT/Basic/Field.lean, declaration/proof-debt scans, blueprint checks, and diff checks. Write findings-first evidence only to workflow/reviews/qpbt-031-field-skeleton-a01.md, including exact HEAD/tree, cache/seed timings, changed paths, theorem statement-integrity table, and token-null reason. Do not edit any path outside owned_paths.",
+      "result_envelope_path": "workflow/reviews/qpbt-031-field-skeleton-a01.md",
+      "started_at": "2026-09-01T11:20:24.662363Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "timing_quality": null,
+      "timing_bounds": null,
+      "status": "running"
+    },
+    {
+      "id": "i032-orchestrator-a01-approximation-skeleton",
+      "name": "i032-orchestrator-a01-approximation-skeleton",
+      "role": "orchestrator",
+      "issue_id": "QPBT-032",
+      "attempt": 1,
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "parent_session_id": null,
+      "external_id": "/root/i032_approximation_skeleton",
+      "read_only": false,
+      "base_revision": "259c73a368ef7403b4e36e190c9bf940497b300f",
+      "base_revision_reason": "Exact clean pre-metadata-checkpoint main commit with published cache key d71a99abea8f7ebf5bda5194dfef088b06f526230caf5ccbca34d62d5b4267b9; checkpoint 699bdd2 changes only workflow ledgers and does not alter Lean cache-key inputs.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-032-approx-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "workflow/reviews/qpbt-032-approximation-skeleton-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, blueprint/metadata/nodes.json#F03-MEASUREMENT, workflow/reviews/qpbt-023-leaf-contract-a04.md#F03-SIGNATURES, and workflow/reviews/stage-04a-lean-frontier-a54.md:151-220 first. Authenticate detached HEAD 259c73a368ef7403b4e36e190c9bf940497b300f, seed cache key d71a99abea8f7ebf5bda5194dfef088b06f526230caf5ccbca34d62d5b4267b9 with --main-commit 259c73a368ef7403b4e36e190c9bf940497b300f, and materialize the pinned MIPStarRE source from the authenticated archive. Implement only the F03 measurement-family boundary in MIPStarRE/QPBT/Basic/Approximation.lean: exact qualified Quantum.Measurement imports, family aliases, projectivity predicate, postprocess, and its two effect theorems. Reuse Quantum.Measurement.postprocess; do not import or duplicate LDT measurement APIs. Add no F04/observable declarations in this attempt, and introduce no sorry, axiom, constant, or public obligation. Run lake env lean MIPStarRE/QPBT/Basic/Approximation.lean, declaration/proof-debt/import scans, blueprint checks, and diff checks. Write findings-first evidence only to workflow/reviews/qpbt-032-approximation-skeleton-a01.md, including exact HEAD/tree, cache/seed timings, changed paths, statement-integrity table, and token-null reason. Do not edit any path outside owned_paths.",
+      "result_envelope_path": "workflow/reviews/qpbt-032-approximation-skeleton-a01.md",
+      "started_at": "2026-09-01T11:20:24.829520Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "timing_quality": null,
+      "timing_bounds": null,
+      "status": "running"
     }
   ]
 }

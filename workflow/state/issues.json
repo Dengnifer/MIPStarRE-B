@@ -1587,7 +1587,7 @@
       "title": "feat(QPBT/Basic): add finite-field leaf declarations",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-013",
       "dependency_ids": [
         "QPBT-004",
@@ -1606,7 +1606,7 @@
         "fieldData_nonempty_of_odd and the multiplication-matrix theorem are stated and proved without additional proof debt",
         "The private worktree is seeded from the authenticated current-main cache, the scoped Lean check passes, declaration provenance is present, and the owned-file scan finds no forbidden assumptions or unexpected sorry"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i031-orchestrator-a01-field-skeleton",
       "source_refs": [
         "blueprint/metadata/nodes.json#F01-FIELD",
         "workflow/reviews/qpbt-023-leaf-contract-a04.md#F01-SIGNATURES",
@@ -1614,7 +1614,7 @@
         "references/2001.04383v3/sections/dependencies/finite-fields.tex:1-412"
       ],
       "created_at": "2026-09-01T10:58:48Z",
-      "updated_at": "2026-09-01T10:58:48Z",
+      "updated_at": "2026-09-01T11:20:45.834555Z",
       "blocked_reason": null,
       "unblock_condition": "Dispatch one field orchestrator after QPBT-004, QPBT-023, and the exact current-main hot cache are verified."
     },
@@ -1623,7 +1623,7 @@
       "title": "feat(QPBT/Basic): add finite POVM family boundary",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-013",
       "dependency_ids": [
         "QPBT-004",
@@ -1642,7 +1642,7 @@
         "No sorry, axiom, proof-debt constant, or caller-supplied bridge assumption is introduced",
         "The private worktree is seeded from the authenticated current-main cache, the scoped Lean check passes, blueprint declaration synchronization passes, and the owned-file scan finds no forbidden imports or proof debt"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i032-orchestrator-a01-approximation-skeleton",
       "source_refs": [
         "blueprint/metadata/nodes.json#F03-MEASUREMENT",
         "workflow/reviews/qpbt-023-leaf-contract-a04.md#F03-SIGNATURES",
@@ -1650,7 +1650,7 @@
         "references/2001.04383v3/sections/dependencies/measurements.tex:3-47"
       ],
       "created_at": "2026-09-01T10:58:48Z",
-      "updated_at": "2026-09-01T10:58:48Z",
+      "updated_at": "2026-09-01T11:20:46.345463Z",
       "blocked_reason": null,
       "unblock_condition": "Dispatch one measurement orchestrator after QPBT-004, QPBT-023, and the exact current-main hot cache are verified."
     }
