@@ -133,6 +133,13 @@ def planned_session(
     return record
 
 
+def launch_confirmations(*sessions: dict[str, object]) -> dict[str, str]:
+    return {
+        str(session["id"]): f"launched-{session['id']}"
+        for session in sessions
+    }
+
+
 def check_evidence(
     *,
     check_id: str = "check-full-build",
@@ -413,6 +420,87 @@ class WorkflowValidationTests(unittest.TestCase):
         result = workflow.plan_dispatch(state, capacity=2, stage_id="STAGE-01")
         self.assertEqual("stage", result["capacity_scope"])
         self.assertEqual("all", result["backend_scope"])
+
+    def test_active_count_includes_each_nested_non_coordinator_session(self) -> None:
+        state = documents()
+        coordinator = issued_session(
+            "i001-coordinator-a01-nested-root",
+            issue_id="QPBT-001",
+            role="coordinator",
+            status="running",
+            read_only=False,
+            owned_paths=["workflow/"],
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        parent = issued_session(
+            "i002-reviewer-a01-nested-parent",
+            role="reviewer",
+            status="running",
+            read_only=True,
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        child = issued_session(
+            "i002-reviewer-a02-nested-child",
+            role="reviewer",
+            status="issued",
+            read_only=True,
+            started_at=None,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        parent["parent_session_id"] = coordinator["id"]
+        child["parent_session_id"] = parent["id"]
+        candidate = planned_session("i002-reviewer-a03-nested-queued")
+        state["sessions.json"]["issued"] = [coordinator, parent, child]
+        state["sessions.json"]["planned"] = [candidate]
+
+        self.assertEqual(
+            2,
+            workflow.active_non_coordinator_count(state, stage_id="STAGE-01"),
+        )
+        result = workflow.plan_dispatch(
+            state,
+            capacity=2,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+        )
+        self.assertEqual([], result["dispatchable"])
+        self.assertEqual(
+            [{"id": candidate["id"], "reason": "capacity-exhausted"}],
+            result["queued"],
+        )
+
+    def test_active_issued_session_requires_external_thread_identity(self) -> None:
+        state = documents()
+        active = issued_session(
+            "i002-reviewer-a01-unconfirmed-active",
+            role="reviewer",
+            status="issued",
+            read_only=True,
+            started_at=None,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        active["backend"] = "codex-collaboration"
+        active["external_id"] = None
+        state["sessions.json"]["issued"] = [active]
+        with self.assertRaisesRegex(
+            workflow.ValidationError,
+            "active sessions require a non-empty immutable external thread identity",
+        ):
+            workflow.validate_documents(state)
+
+        active["status"] = "archived"
+        active["started_at"] = REVIEW_STARTED
+        active["ended_at"] = REVIEW_ENDED
+        active["elapsed_seconds"] = 60.0
+        active["archive_status"] = "archived"
+        active["outcome_path"] = ".workflow-runtime/runs/legacy/result.json"
+        workflow.validate_documents(state)
 
     def test_stage_count_ignores_active_issue_without_stage_mapping(self) -> None:
         state = documents()
@@ -1316,6 +1404,7 @@ class WorkflowStoreTests(unittest.TestCase):
             capacity=1,
             stage_id="STAGE-01",
             session_ids=[second["id"], first["id"]],
+            launch_confirmations=launch_confirmations(first),
         )
         self.assertEqual("issued", queued["status"])
         self.assertEqual([first["id"]], queued["issued"])
@@ -1348,6 +1437,7 @@ class WorkflowStoreTests(unittest.TestCase):
             capacity=2,
             stage_id="STAGE-01",
             session_ids=[second["id"], first["id"]],
+            launch_confirmations=launch_confirmations(first, second),
         )
         self.assertEqual("issued", issued["status"])
         self.assertEqual([first["id"], second["id"]], issued["issued"])
@@ -1439,6 +1529,149 @@ class WorkflowStoreTests(unittest.TestCase):
         self.assertTrue(result["dry_run"])
         self.assertEqual([], self.store.validate()["sessions.json"]["issued"])
 
+    def test_backend_launch_rejection_leaves_exact_bytes_and_retry_deterministic(self) -> None:
+        candidate = planned_session("i002-reviewer-a01-launch-rejected")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+
+        first = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+            dry_run=True,
+        )
+        # A backend rejection means no confirmation call exists. Repeating the
+        # preflight must select the same planned work without durable effects.
+        second = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+            dry_run=True,
+        )
+        self.assertEqual(first, second)
+        self.assertEqual([candidate["id"]], first["dispatchable"])
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+        unconfirmed = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+        )
+        self.assertEqual("blocked", unconfirmed["status"])
+        self.assertEqual("backend-launch-unconfirmed", unconfirmed["blocked"][0]["reason"])
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+        external_id = "collaboration-thread-returned-by-backend"
+        issued = workflow.run_cli(
+            workflow.build_parser().parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "dispatch",
+                    "--capacity",
+                    "1",
+                    "--stage",
+                    "STAGE-01",
+                    "--session-id",
+                    str(candidate["id"]),
+                    "--confirm-launched",
+                    f"{candidate['id']}={external_id}",
+                ]
+            )
+        )
+        self.assertEqual("issued", issued["status"])
+        loaded = self.store.validate()["sessions.json"]["issued"]
+        self.assertEqual(external_id, loaded[0]["external_id"])
+        issuance = [
+            json.loads(line)
+            for line in self.events.read_text(encoding="utf-8").splitlines()
+            if line and json.loads(line)["event"] == "session.issued"
+        ]
+        self.assertEqual(external_id, issuance[-1]["payload"]["external_id"])
+
+    def test_generic_external_id_cannot_bypass_launch_confirmation(self) -> None:
+        candidate = planned_session("i002-reviewer-a01-fabricated-override")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+
+        result = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+            session_overrides={
+                str(candidate["id"]): {"external_id": "unconfirmed-generic-value"}
+            },
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual("backend-launch-unconfirmed", result["blocked"][0]["reason"])
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_confirmation_for_queued_session_fails_closed_then_admitted_prefix_issues(self) -> None:
+        first = planned_session("i002-reviewer-a01-confirmed-prefix")
+        second = planned_session("i002-reviewer-a02-confirmed-queued")
+        state = documents()
+        state["sessions.json"]["planned"] = [second, first]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+
+        preflight = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[second["id"], first["id"]],
+            dry_run=True,
+        )
+        self.assertEqual([first["id"]], preflight["dispatchable"])
+        self.assertEqual(
+            [{"id": second["id"], "reason": "capacity-exhausted"}],
+            preflight["queued"],
+        )
+
+        stale = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[second["id"], first["id"]],
+            launch_confirmations=launch_confirmations(second),
+        )
+        self.assertEqual("blocked", stale["status"])
+        self.assertEqual(
+            ["backend-launch-unconfirmed", "launch-confirmation-not-admitted"],
+            [entry["reason"] for entry in stale["blocked"]],
+        )
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+        admitted = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[second["id"], first["id"]],
+            launch_confirmations=launch_confirmations(first),
+        )
+        self.assertEqual([first["id"]], admitted["issued"])
+        loaded = self.store.validate()["sessions.json"]
+        self.assertEqual([second["id"]], [row["id"] for row in loaded["planned"]])
+        self.assertIsNone(loaded["planned"][0]["external_id"])
+
+    def test_launch_confirmation_parser_rejects_duplicates_and_malformed_values(self) -> None:
+        with self.assertRaisesRegex(workflow.WorkflowError, "duplicate launch confirmation"):
+            workflow._parse_launch_confirmation_assignments(["session=one", "session=two"])
+        for malformed in ("session", "=external", "session="):
+            with self.subTest(malformed=malformed):
+                with self.assertRaisesRegex(workflow.WorkflowError, "SESSION_ID=EXTERNAL_ID"):
+                    workflow._parse_launch_confirmation_assignments([malformed])
+
     def test_dispatch_store_rejects_unknown_capacity_without_mutation(self) -> None:
         candidate = planned_session("i002-reviewer-a01-unknown-capacity")
         state = documents()
@@ -1528,6 +1761,7 @@ class WorkflowStoreTests(unittest.TestCase):
                     capacity=1,
                     stage_id="STAGE-01",
                     session_ids=[candidate["id"]],
+                    launch_confirmations=launch_confirmations(candidate),
                 )
         finally:
             self.store.append_event = original_append_event  # type: ignore[method-assign]
@@ -1591,6 +1825,8 @@ class WorkflowStoreTests(unittest.TestCase):
                     "1",
                     "--json",
                     "{}",
+                    "--launched-external-id",
+                    f"launched-{candidate['id']}",
                 ]
             )
         )
@@ -1839,6 +2075,8 @@ class WorkflowStoreTests(unittest.TestCase):
                 "1",
                 "--json",
                 json.dumps(issued),
+                "--launched-external-id",
+                str(issued["external_id"]),
             ]
         )
         workflow.run_cli(issue_arguments)

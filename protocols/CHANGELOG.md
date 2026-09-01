@@ -1,5 +1,39 @@
 # Protocol Changelog
 
+## 0.1.9 candidate (QPBT-034) - 2026-09-01
+
+INC-053 records three `agent thread limit reached` rejections after the local
+QPBT-019 ledger admitted a third non-coordinator session while two
+collaboration workers were visible. The caller-supplied aggregate capacity and
+the backend's effective live admission limit had drifted, and the old ordering
+durably issued a session before it knew whether an external thread existed.
+
+QPBT-034 changes collaboration admission to a spawn-first,
+confirm-at-dispatch boundary. A deterministic `dispatch --dry-run` preflights
+one exact candidate without changing canonical bytes. The backend then receives
+only a bootstrap prompt. Rejection produces no confirmation call and therefore
+no session/event mutation. Success returns the immutable external thread ID,
+which the root coordinator must pass explicitly through `--confirm-launched`;
+the legacy wrapper uses `--launched-external-id`. Generic dispatch JSON cannot
+serve as confirmation. The locked confirmation transaction reruns every local
+admission check, binds the ID into the active record and issuance event, and
+retains the existing state/event rollback on any append or audit failure. A
+post-spawn confirmation failure requires immediate interruption of the inert
+bootstrap thread before deterministic retry.
+
+Every dispatcher issuance now requires a confirmed non-empty immutable external
+identity, and active collaboration rows enforce the invariant during schema
+validation. Terminal legacy rows and the separate Codex CLI launch-lease
+transport remain compatible. Nested parents and children each consume one
+non-coordinator slot, and nested launch uses the same root-confirmed bootstrap
+sequence. Focused regressions cover the
+three-rejection ordering class through a no-confirmation backend rejection,
+exact state/event byte preservation, deterministic preflight retry, generic-ID
+bypass rejection, queued confirmation drift, identity-bound issuance, nested
+slot accounting, parser failures, and preservation of the prior transaction
+rollback test. Aggregate evidence and independent immutable review remain
+required before activation.
+
 ## 0.1.8 candidate (QPBT-027) - 2026-09-01
 
 The QPBT-026 A15 critical-path audit
