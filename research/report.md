@@ -1459,3 +1459,14 @@ error. Fresh post-adoption A04 is the 207th Stage-04A attempt and formally
 confirms or rejects the old-head findings, while A05 is the 208th attempt and
 repairs the three gaps in parallel. Future adoption checks and formal reviews
 are sequential even when independent implementation work remains parallel.
+
+The chronologically valid A04 review independently confirmed all three
+LPR-024 findings on the exact immutable old head. Its canonical lifecycle
+window was `715.060` seconds and its evidence-producing review window was
+`358.098390` seconds; token usage remained unavailable and was recorded as
+JSON `null`. It ran 62 focused tests and six successful adversarial
+reproductions without an aggregate, real warm, Lean build, or production
+publication. LPR-024 therefore remains `changes_requested`. A05 is already
+repairing descriptor traversal, hard-link rejection, and incomplete-scan
+diagnostics in parallel; only a new-head check set and fresh independent
+approval can permit integration and the one singleton real warm.

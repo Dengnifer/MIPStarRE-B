@@ -6405,12 +6405,79 @@
           "report_sha256": "709ea72315f625673e687c27598e801d3fac459dc9ee4e576669a4dabc410f2d"
         }
       ],
-      "reviews": [],
-      "findings": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-045-pr024-a04-security",
+          "reviewer_session_id": "i045-reviewer-a04-pr024-postadoption",
+          "verdict": "request_changes",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "started_at": "2026-09-01T16:57:14.276027Z",
+          "completed_at": "2026-09-01T17:03:12.374417Z",
+          "result_path": "workflow/reviews/qpbt-045-pr024-review-a04.md",
+          "finding_ids": [
+            "F-LPR024-001",
+            "F-LPR024-002",
+            "F-LPR024-003"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "69aa23141d57e3a69abd9ce331c7dec767f6e82cd4f75e87a817a4535734730d",
+          "manifest_sha256": "2707b1097d9d3cc4ba2588f54b88ea8ac159ce8c6d0d3e3ec08d91ea0b38fd26",
+          "adoption_report_sha256": "709ea72315f625673e687c27598e801d3fac459dc9ee4e576669a4dabc410f2d",
+          "confirmed_reproductions": 6
+        }
+      ],
+      "findings": [
+        {
+          "introduced_review_id": "review-qpbt-045-pr024-a04-security",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "id": "F-LPR024-001",
+          "severity": "high",
+          "summary": "Lexical authored-tree traversal accepts a concurrently substituted root or intermediate directory.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 519,
+          "required_change": "Use descriptor-anchored no-follow recursion with root and child lexical-incarnation checks before and after use; fail closed on every scan, stat, open, and recheck error, with deterministic root/nested substitution regressions proving no snapshot or READY."
+        },
+        {
+          "introduced_review_id": "review-qpbt-045-pr024-a04-security",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "id": "F-LPR024-002",
+          "severity": "high",
+          "summary": "A byte-identical hard-linked authored source passes all five checks and can publish deep-ready READY.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 474,
+          "required_change": "Require st_nlink == 1 before and after every authored-file read, include link count in strong identity, and add a full fake-warm hard-link regression proving no snapshot or READY."
+        },
+        {
+          "introduced_review_id": "review-qpbt-045-pr024-a04-security",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "id": "F-LPR024-003",
+          "severity": "medium",
+          "summary": "Recursive scan errors and successful Git stderr diagnostics can hide generated authored source.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 519,
+          "required_change": "Fail closed on every enumeration or child-inspection error and on relevant nonempty Git status diagnostics even at exit zero; regress unreadable/generated subtree paths with no snapshot or READY."
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T16:37:00Z",
-      "updated_at": "2026-09-01T16:54:22.211694Z",
+      "updated_at": "2026-09-01T17:09:34.840373Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -6424,10 +6491,11 @@
       "addresses": "QPBT-045",
       "provenance_session_ids": [
         "i045-orchestrator-a01-hot-main-preservation",
-        "i045-integrator-a02-pr024-bind"
+        "i045-integrator-a02-pr024-bind",
+        "i045-reviewer-a04-pr024-postadoption"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Fresh immutable adversarial review of exact head bc41314fb74baced6f6a043cbc8956a18a2e0003, then guarded integration and exactly one lock-elected current-main warm with all authenticated local inputs."
+      "unexecuted_gate": "A05 must produce a new immutable head that closes F-LPR024-001 through F-LPR024-003; rerun current-head checks, obtain a fresh independent changed-head approval, integrate guardedly, then perform exactly one lock-elected current-main warm with all authenticated local inputs."
     }
   ]
 }
