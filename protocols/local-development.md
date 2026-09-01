@@ -43,7 +43,7 @@ manifest and metrics only after success, then atomically renames staging to the
 published key. Waiters re-check the manifest after the lock is released and
 report a cache hit instead of compiling.
 
-Canonical recipe v6 invokes the authenticated MIPStarRE materializer with
+Canonical recipe v7 invokes the authenticated MIPStarRE materializer with
 `--replace-existing`. The materializer refreshes the pinned upstream tree while
 copying the reserved committed `MIPStarRE/QPBT/` subtree byte-for-byte through
 its atomic transaction. The cache independently compares that authored
@@ -52,8 +52,14 @@ after materialization, after dependency retrieval, after the build, and
 immediately before publication. A missing, added, altered, untracked,
 generated, linked, or otherwise unsafe authored source fails the elected warm;
 failed staging never contains or publishes `READY`. The manifest records the
-verified inventory and all five boundaries. Do not retry an older recipe-v5
-failure after authored QPBT sources exist.
+verified inventory and all five boundaries. Each inventory walk binds the
+project, foundation, authored root, and recursive child directories with
+no-follow descriptors, rechecks their lexical incarnations before and after
+use, and reads only single-link regular files whose strong descriptor/name
+identity remains unchanged. Any traversal error or Git cleanliness diagnostic
+fails closed. Recipe v7 invalidates snapshots created under the rejected v6
+verifier. Do not retry an older recipe-v5 failure after authored QPBT sources
+exist.
 
 Publication also records a content-addressed inventory of the entire `.lake`
 tree. The `READY` marker binds the manifest bytes. Cheap status and warm-hit

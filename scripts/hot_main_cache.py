@@ -211,7 +211,7 @@ class BuildRecipe:
 
 CANONICAL_BUILD_RECIPE = BuildRecipe(
     recipe_id="qpbt-hot-main",
-    version=6,
+    version=7,
     dependency_command=("lake", LAKE_OVERRIDE_ARGUMENT, "exe", "cache", "get"),
     build_command=("lake", LAKE_OVERRIDE_ARGUMENT, "build"),
     materialize_command=(
@@ -452,83 +452,317 @@ def authored_tree_facts_at_commit(
     }
 
 
-def _authored_file_facts(path: Path) -> tuple[int, str]:
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+def _authored_directory_identity(value: os.stat_result) -> tuple[int, int]:
+    if not stat.S_ISDIR(value.st_mode):
+        raise CacheError("bound authored QPBT path is no longer a directory")
+    return value.st_dev, value.st_ino
+
+
+def _authored_directory_scan_identity(value: os.stat_result) -> tuple[int, ...]:
+    _authored_directory_identity(value)
+    return (
+        value.st_dev,
+        value.st_ino,
+        value.st_mode,
+        value.st_size,
+        value.st_mtime_ns,
+        value.st_ctime_ns,
+        value.st_nlink,
+    )
+
+
+def _authored_regular_identity(value: os.stat_result) -> tuple[int, ...]:
+    return (
+        value.st_dev,
+        value.st_ino,
+        value.st_mode,
+        value.st_size,
+        value.st_mtime_ns,
+        value.st_ctime_ns,
+        value.st_nlink,
+    )
+
+
+def _authored_directory_flags() -> int:
+    if not hasattr(os, "O_DIRECTORY") or not hasattr(os, "O_NOFOLLOW"):
+        raise CacheError("safe authored QPBT traversal requires O_DIRECTORY and O_NOFOLLOW")
+    return os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+
+
+@dataclass(frozen=True)
+class _BoundAuthoredDirectory:
+    lexical_path: Path
+    descriptor: int
+    identity: tuple[int, int]
+    label: str
+
+    def assert_current(self) -> None:
+        try:
+            current = self.lexical_path.stat(follow_symlinks=False)
+        except OSError as error:
+            raise CacheError(f"{self.label} path incarnation changed") from error
+        if (
+            stat.S_ISLNK(current.st_mode)
+            or not stat.S_ISDIR(current.st_mode)
+            or _authored_directory_identity(current) != self.identity
+        ):
+            raise CacheError(f"{self.label} path incarnation changed")
+
+
+def _bind_authored_root_directory(path: Path, label: str) -> _BoundAuthoredDirectory:
+    absolute = Path(os.path.abspath(path))
     try:
-        descriptor = os.open(path, flags)
+        before = absolute.stat(follow_symlinks=False)
+    except OSError as error:
+        raise CacheError(f"could not inspect {label}") from error
+    if stat.S_ISLNK(before.st_mode) or not stat.S_ISDIR(before.st_mode):
+        raise CacheError(f"{label} must be a real directory")
+    try:
+        descriptor = os.open(absolute, _authored_directory_flags())
+    except OSError as error:
+        raise CacheError(f"could not bind {label}") from error
+    try:
+        try:
+            descriptor_value = os.fstat(descriptor)
+        except OSError as error:
+            raise CacheError(f"could not inspect bound {label}") from error
+        bound = _BoundAuthoredDirectory(
+            absolute,
+            descriptor,
+            _authored_directory_identity(descriptor_value),
+            label,
+        )
+        if bound.identity != _authored_directory_identity(before):
+            raise CacheError(f"{label} changed while binding")
+        bound.assert_current()
+        return bound
+    except Exception:
+        os.close(descriptor)
+        raise
+
+
+def _bind_authored_child_directory(
+    parent: _BoundAuthoredDirectory,
+    name: str,
+    label: str,
+    *,
+    missing_ok: bool = False,
+) -> _BoundAuthoredDirectory | None:
+    parent.assert_current()
+    try:
+        before = os.stat(name, dir_fd=parent.descriptor, follow_symlinks=False)
+    except FileNotFoundError as error:
+        if not missing_ok:
+            raise CacheError(f"{label} disappeared while scanning") from error
+        parent.assert_current()
+        try:
+            os.stat(name, dir_fd=parent.descriptor, follow_symlinks=False)
+        except FileNotFoundError:
+            return None
+        except OSError as recheck_error:
+            raise CacheError(f"could not recheck absent {label}") from recheck_error
+        raise CacheError(f"{label} changed while checking absence")
+    except OSError as error:
+        raise CacheError(f"could not inspect {label}") from error
+    if stat.S_ISLNK(before.st_mode) or not stat.S_ISDIR(before.st_mode):
+        raise CacheError(f"{label} must be a real directory")
+    try:
+        descriptor = os.open(
+            name,
+            _authored_directory_flags(),
+            dir_fd=parent.descriptor,
+        )
+    except OSError as error:
+        raise CacheError(f"could not bind {label}") from error
+    lexical_path = parent.lexical_path / name
+    try:
+        try:
+            descriptor_value = os.fstat(descriptor)
+        except OSError as error:
+            raise CacheError(f"could not inspect bound {label}") from error
+        bound = _BoundAuthoredDirectory(
+            lexical_path,
+            descriptor,
+            _authored_directory_identity(descriptor_value),
+            label,
+        )
+        if bound.identity != _authored_directory_identity(before):
+            raise CacheError(f"{label} changed while binding")
+        parent.assert_current()
+        bound.assert_current()
+        return bound
+    except Exception:
+        os.close(descriptor)
+        raise
+
+
+def _authored_file_facts(
+    directory: _BoundAuthoredDirectory,
+    name: str,
+) -> tuple[int, str]:
+    path = directory.lexical_path / name
+    directory.assert_current()
+    try:
+        name_before = os.stat(name, dir_fd=directory.descriptor, follow_symlinks=False)
+    except OSError as error:
+        raise CacheError(f"could not inspect authored QPBT source: {path}") from error
+    if not stat.S_ISREG(name_before.st_mode) or name_before.st_nlink != 1:
+        raise CacheError(f"authored QPBT source must be a single-link regular file: {path}")
+    flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0)
+    try:
+        descriptor = os.open(name, flags, dir_fd=directory.descriptor)
     except OSError as error:
         raise CacheError(f"could not safely open authored QPBT source: {path}") from error
     try:
-        before = os.fstat(descriptor)
-        if not stat.S_ISREG(before.st_mode):
-            raise CacheError(f"authored QPBT source must be a regular file: {path}")
-        digest = hashlib.sha256()
-        total = 0
-        while True:
-            block = os.read(descriptor, 1024 * 1024)
-            if not block:
-                break
-            digest.update(block)
-            total += len(block)
-        after = os.fstat(descriptor)
-        identity = lambda value: (
-            value.st_dev,
-            value.st_ino,
-            value.st_size,
-            value.st_mtime_ns,
-        )
-        if identity(before) != identity(after) or total != before.st_size:
+        try:
+            before = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(before.st_mode)
+                or before.st_nlink != 1
+                or _authored_regular_identity(before)
+                != _authored_regular_identity(name_before)
+            ):
+                raise CacheError(f"authored QPBT source changed while binding: {path}")
+            digest = hashlib.sha256()
+            total = 0
+            while True:
+                block = os.read(descriptor, 1024 * 1024)
+                if not block:
+                    break
+                digest.update(block)
+                total += len(block)
+            after = os.fstat(descriptor)
+            name_after = os.stat(
+                name,
+                dir_fd=directory.descriptor,
+                follow_symlinks=False,
+            )
+        except OSError as error:
+            raise CacheError(f"could not safely read authored QPBT source: {path}") from error
+        directory.assert_current()
+        identity = _authored_regular_identity(before)
+        if (
+            before.st_nlink != 1
+            or after.st_nlink != 1
+            or name_after.st_nlink != 1
+            or _authored_regular_identity(after) != identity
+            or _authored_regular_identity(name_after) != identity
+            or total != before.st_size
+        ):
             raise CacheError(f"authored QPBT source changed while read: {path}")
         return total, digest.hexdigest()
     finally:
         os.close(descriptor)
 
 
+def _authored_component(name: str, path: Path) -> str:
+    if not name or name in (".", "..") or "/" in name:
+        raise CacheError(f"unsafe authored QPBT entry name: {path}")
+    try:
+        name.encode("utf-8")
+    except UnicodeEncodeError as error:
+        raise CacheError(f"authored QPBT entry name is not UTF-8: {path}") from error
+    return name
+
+
+def _scan_authored_directory(
+    directory: _BoundAuthoredDirectory,
+    relative_parts: tuple[str, ...],
+    records: list[tuple[str, int, str]],
+) -> None:
+    directory.assert_current()
+    try:
+        scan_before = os.fstat(directory.descriptor)
+        with os.scandir(directory.descriptor) as entries:
+            names = sorted(
+                _authored_component(entry.name, directory.lexical_path / entry.name)
+                for entry in entries
+            )
+    except OSError as error:
+        raise CacheError(
+            f"could not scan authored QPBT directory: {directory.lexical_path}"
+        ) from error
+    for name in names:
+        path = directory.lexical_path / name
+        try:
+            value = os.stat(name, dir_fd=directory.descriptor, follow_symlinks=False)
+        except OSError as error:
+            raise CacheError(f"could not inspect authored QPBT entry: {path}") from error
+        if stat.S_ISDIR(value.st_mode):
+            child = _bind_authored_child_directory(
+                directory,
+                name,
+                f"authored QPBT directory {path}",
+            )
+            if child is None:
+                raise CacheError(f"authored QPBT directory disappeared while scanning: {path}")
+            try:
+                _scan_authored_directory(child, (*relative_parts, name), records)
+            finally:
+                os.close(child.descriptor)
+        elif stat.S_ISREG(value.st_mode):
+            size, digest = _authored_file_facts(directory, name)
+            relative = PurePosixPath(*relative_parts, name).as_posix()
+            records.append((relative, size, digest))
+        else:
+            raise CacheError(f"unsafe authored QPBT entry: {path}")
+    try:
+        scan_after = os.fstat(directory.descriptor)
+    except OSError as error:
+        raise CacheError(
+            f"could not recheck authored QPBT directory: {directory.lexical_path}"
+        ) from error
+    directory.assert_current()
+    if _authored_directory_scan_identity(scan_before) != _authored_directory_scan_identity(
+        scan_after
+    ):
+        raise CacheError(
+            f"authored QPBT directory changed while scanned: {directory.lexical_path}"
+        )
+
+
 def authored_tree_facts_on_disk(project_dir: Path) -> dict[str, Any]:
-    """Inventory the reserved authored tree without following links."""
+    """Inventory the reserved authored tree through descriptor-bound directories."""
 
-    foundation = project_dir / "MIPStarRE"
-    try:
-        foundation_mode = foundation.stat(follow_symlinks=False).st_mode
-    except FileNotFoundError:
-        return {
-            "authored_qpbt_files": 0,
-            "authored_qpbt_bytes": 0,
-            "authored_qpbt_sha256": hashlib.sha256().hexdigest(),
-        }
-    except OSError as error:
-        raise CacheError(f"could not inspect authored QPBT parent: {foundation}") from error
-    if stat.S_ISLNK(foundation_mode) or not stat.S_ISDIR(foundation_mode):
-        raise CacheError("authored QPBT parent must be a real directory")
-
-    root = foundation / "QPBT"
-    try:
-        root_mode = root.stat(follow_symlinks=False).st_mode
-    except FileNotFoundError:
-        return {
-            "authored_qpbt_files": 0,
-            "authored_qpbt_bytes": 0,
-            "authored_qpbt_sha256": hashlib.sha256().hexdigest(),
-        }
-    except OSError as error:
-        raise CacheError(f"could not inspect authored QPBT tree: {root}") from error
-    if stat.S_ISLNK(root_mode) or not stat.S_ISDIR(root_mode):
-        raise CacheError("authored QPBT path must be a real directory")
-
+    empty = {
+        "authored_qpbt_files": 0,
+        "authored_qpbt_bytes": 0,
+        "authored_qpbt_sha256": hashlib.sha256().hexdigest(),
+    }
+    project = _bind_authored_root_directory(project_dir, "authored QPBT project root")
+    foundation: _BoundAuthoredDirectory | None = None
+    root: _BoundAuthoredDirectory | None = None
     records: list[tuple[str, int, str]] = []
-    for directory, dir_names, file_names in os.walk(root, followlinks=False):
-        base = Path(directory)
-        dir_names.sort()
-        file_names.sort()
-        for name in dir_names:
-            path = base / name
-            mode = path.stat(follow_symlinks=False).st_mode
-            if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
-                raise CacheError(f"unsafe authored QPBT directory: {path}")
-        for name in file_names:
-            path = base / name
-            size, digest = _authored_file_facts(path)
-            records.append((path.relative_to(root).as_posix(), size, digest))
+    try:
+        foundation = _bind_authored_child_directory(
+            project,
+            "MIPStarRE",
+            "authored QPBT parent",
+            missing_ok=True,
+        )
+        if foundation is None:
+            project.assert_current()
+            return empty
+        root = _bind_authored_child_directory(
+            foundation,
+            "QPBT",
+            "authored QPBT root",
+            missing_ok=True,
+        )
+        if root is None:
+            foundation.assert_current()
+            project.assert_current()
+            return empty
+        _scan_authored_directory(root, (), records)
+        root.assert_current()
+        foundation.assert_current()
+        project.assert_current()
+    finally:
+        if root is not None:
+            os.close(root.descriptor)
+        if foundation is not None:
+            os.close(foundation.descriptor)
+        os.close(project.descriptor)
 
     digest = hashlib.sha256()
     for relative, size, file_digest in records:
@@ -680,9 +914,15 @@ def git_source_changes(repo_root: Path) -> list[str]:
         result = subprocess.run(command, text=True, capture_output=True, check=False, shell=False)
     except OSError as error:
         raise CacheError(f"could not run git: {error}") from error
+    diagnostics = result.stderr.strip()
     if result.returncode != 0:
-        message = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        message = diagnostics or result.stdout.strip() or f"exit {result.returncode}"
         raise CacheError(f"could not inspect detached checkout cleanliness: {message}")
+    if diagnostics:
+        first_line = diagnostics.splitlines()[0][:500]
+        raise CacheError(
+            f"git emitted diagnostics while inspecting detached checkout cleanliness: {first_line}"
+        )
     return [line for line in result.stdout.splitlines() if line]
 
 

@@ -13,19 +13,28 @@ output before dependency retrieval or Lean compilation. Its retained
 `failure.json` and `build.log` are under the matching key in
 `.workflow-runtime/cache/failures/`.
 
-QPBT-045 bumps the deterministic canonical recipe to v6 and adds the existing
-authenticated replacement flag. The materializer remains the sole owner of
-atomic upstream replacement and reserved-tree copying; the cache now also
-binds and rechecks the exact authored path-and-byte inventory before
+QPBT-045 first bumped the deterministic canonical recipe to v6 and added the
+existing authenticated replacement flag. The materializer remains the sole
+owner of atomic upstream replacement and reserved-tree copying; the cache now
+also binds and rechecks the exact authored path-and-byte inventory before
 materialization, after materialization, after dependency retrieval, after the
-build, and immediately before publication. Any missing, added, altered,
-untracked, generated, linked, or unsafe QPBT source fails closed with no
-`READY`. Focused regressions reproduce the v5 nonzero-tree failure, cover zero
-and nonzero authored trees, delegate upstream replacement and exact
-preservation to the existing materializer contract, inject drift at every
-boundary, and prove version-only key determinism. Focused and aggregate gates
-plus a fresh immutable review are required before integration; only then may a
-single lock-elected current-main warm publish recipe v6.
+build, and immediately before publication.
+
+Immutable review A03 then reproduced three fail-open gaps: the lexical walker
+could follow a substituted root or child directory, exact hard-linked authored
+files passed because link count was absent from identity, and unreadable
+generated subtrees plus exit-zero Git diagnostics could be omitted. The repair
+bumps the canonical recipe to v7 so no v6 snapshot remains addressable. It
+recurses from no-follow directory descriptors, verifies root and child lexical
+incarnations before and after use, fails on every scan/stat/open/recheck error,
+and requires single-link regular files with strong before/after descriptor and
+name identity including `st_nlink`. Nonempty Git cleanliness diagnostics also
+fail closed. Deterministic regressions cover root/nested substitution, helper
+and complete-warm hard links, unreadable generated subtrees, no snapshot or
+`READY`, zero/nonzero inventories, replacement, and version-only cache-key
+determinism. Focused and aggregate gates plus a fresh immutable review are
+required before integration; only then may a single lock-elected current-main
+warm publish recipe v7.
 
 ## 0.1.9 candidate (QPBT-034) - 2026-09-01
 

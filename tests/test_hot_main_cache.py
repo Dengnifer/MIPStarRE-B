@@ -49,12 +49,12 @@ CANONICAL_MATERIALIZE_V5_COMMAND = (
     "--archive-env",
     "MIPSTARRE_ARCHIVE",
 )
-CANONICAL_MATERIALIZE_V6_COMMAND = (
+CANONICAL_MATERIALIZE_V7_COMMAND = (
     *CANONICAL_MATERIALIZE_V5_COMMAND,
     "--replace-existing",
 )
 PRESERVING_TEST_RECIPE = cache_module.BuildRecipe.for_testing(
-    materialize_command=CANONICAL_MATERIALIZE_V6_COMMAND,
+    materialize_command=CANONICAL_MATERIALIZE_V7_COMMAND,
     dependency_command=("fake", "deps"),
     build_command=("fake", "build"),
     additional_identity_files=(
@@ -62,7 +62,7 @@ PRESERVING_TEST_RECIPE = cache_module.BuildRecipe.for_testing(
         "scripts/materialize_mipstarre.py",
     ),
     recipe_id="test-preserving-materializing-build",
-    version=6,
+    version=7,
 )
 LEGACY_V5_TEST_RECIPE = cache_module.BuildRecipe.for_testing(
     materialize_command=CANONICAL_MATERIALIZE_V5_COMMAND,
@@ -321,7 +321,7 @@ def fake_preserving_success(
     command: list[str] | tuple[str, ...],
     log_path: Path,
 ) -> int:
-    if tuple(command) == CANONICAL_MATERIALIZE_V6_COMMAND:
+    if tuple(command) == CANONICAL_MATERIALIZE_V7_COMMAND:
         upstream = project / "MIPStarRE" / "Basic.lean"
         upstream.write_bytes(upstream.read_bytes())
         (project / "MIPStarRE" / "materialized-marker").write_text(
@@ -722,7 +722,7 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual(5, failure["recipe"]["version"])
         self.assertNotIn("--replace-existing", failure["recipe"]["materialize_command"])
 
-    def test_recipe_v6_preserves_nonzero_authored_tree_and_refreshes_upstream(self) -> None:
+    def test_recipe_v7_preserves_nonzero_authored_tree_and_refreshes_upstream(self) -> None:
         authored = self.repo / "MIPStarRE" / "QPBT"
         authored.mkdir()
         payload = b"def owned := true\n"
@@ -730,7 +730,7 @@ class HotMainCacheTests(unittest.TestCase):
         run_git(self.repo, "add", "MIPStarRE/QPBT/Owned.lean")
         run_git(self.repo, "commit", "-m", "add authored source")
         manager = self.manager(
-            runtime=self.base / "runtime-recipe-v6",
+            runtime=self.base / "runtime-recipe-v7",
             recipe=PRESERVING_TEST_RECIPE,
         )
         calls: list[list[str]] = []
@@ -750,7 +750,7 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual("built", built["result"])
         self.assertEqual(
             [
-                list(CANONICAL_MATERIALIZE_V6_COMMAND),
+                list(CANONICAL_MATERIALIZE_V7_COMMAND),
                 ["fake", "deps"],
                 ["fake", "build"],
             ],
@@ -777,25 +777,14 @@ class HotMainCacheTests(unittest.TestCase):
         )
         self.assertTrue(manager.is_ready(deep=True))
 
-    def test_canonical_recipe_v6_and_version_only_keying_are_deterministic(self) -> None:
-        self.assertEqual(6, cache_module.CANONICAL_BUILD_RECIPE.version)
+    def test_canonical_recipe_v7_and_version_only_keying_are_deterministic(self) -> None:
+        self.assertEqual(7, cache_module.CANONICAL_BUILD_RECIPE.version)
         self.assertEqual(
-            CANONICAL_MATERIALIZE_V6_COMMAND,
+            CANONICAL_MATERIALIZE_V7_COMMAND,
             cache_module.CANONICAL_BUILD_RECIPE.materialize_command,
         )
         equivalent = cache_module.BuildRecipe.for_testing(
-            materialize_command=CANONICAL_MATERIALIZE_V6_COMMAND,
-            dependency_command=("fake", "deps"),
-            build_command=("fake", "build"),
-            additional_identity_files=(
-                "references/mipstarre-upstream.json",
-                "scripts/materialize_mipstarre.py",
-            ),
-            recipe_id="test-preserving-materializing-build",
-            version=6,
-        )
-        version_seven = cache_module.BuildRecipe.for_testing(
-            materialize_command=CANONICAL_MATERIALIZE_V6_COMMAND,
+            materialize_command=CANONICAL_MATERIALIZE_V7_COMMAND,
             dependency_command=("fake", "deps"),
             build_command=("fake", "build"),
             additional_identity_files=(
@@ -805,9 +794,20 @@ class HotMainCacheTests(unittest.TestCase):
             recipe_id="test-preserving-materializing-build",
             version=7,
         )
+        version_eight = cache_module.BuildRecipe.for_testing(
+            materialize_command=CANONICAL_MATERIALIZE_V7_COMMAND,
+            dependency_command=("fake", "deps"),
+            build_command=("fake", "build"),
+            additional_identity_files=(
+                "references/mipstarre-upstream.json",
+                "scripts/materialize_mipstarre.py",
+            ),
+            recipe_id="test-preserving-materializing-build",
+            version=8,
+        )
         first = self.manager(recipe=PRESERVING_TEST_RECIPE).identity.cache_key
         second = self.manager(recipe=equivalent).identity.cache_key
-        bumped = self.manager(recipe=version_seven).identity.cache_key
+        bumped = self.manager(recipe=version_eight).identity.cache_key
         self.assertEqual(first, second)
         self.assertNotEqual(first, bumped)
 
@@ -838,7 +838,7 @@ class HotMainCacheTests(unittest.TestCase):
                 ) -> int:
                     result = fake_preserving_success(project, command, log_path)
                     owned = project / "MIPStarRE" / "QPBT" / "Owned.lean"
-                    if case == "missing" and tuple(command) == CANONICAL_MATERIALIZE_V6_COMMAND:
+                    if case == "missing" and tuple(command) == CANONICAL_MATERIALIZE_V7_COMMAND:
                         owned.unlink()
                     elif case == "altered" and list(command) == ["fake", "deps"]:
                         owned.write_text("def owned := false\n", encoding="utf-8")
@@ -903,6 +903,173 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual([], calls)
         self.assertFalse(manager.snapshot_dir.exists())
         self.assertEqual([], list(manager.runtime_dir.rglob("READY")))
+
+    def test_authored_inventory_rejects_root_and_nested_directory_substitution(self) -> None:
+        for case in ("root", "nested"):
+            with self.subTest(case=case):
+                project = self.base / f"directory-substitution-{case}" / "project"
+                root = project / "MIPStarRE" / "QPBT"
+                root.mkdir(parents=True)
+                target = root
+                if case == "nested":
+                    target = root / "Nested"
+                    target.mkdir()
+                external = self.base / f"directory-substitution-{case}" / "external"
+                external.mkdir()
+                sentinel = external / "sentinel"
+                sentinel.write_text("unchanged\n", encoding="utf-8")
+                bound = target.with_name(f"{target.name}-bound")
+                original_scandir = os.scandir
+                swapped = False
+
+                def swap_after_bind(path: os.PathLike[str] | str | int):
+                    nonlocal swapped
+                    current: Path | None = None
+                    if isinstance(path, int):
+                        try:
+                            current = Path(os.readlink(f"/proc/self/fd/{path}"))
+                        except OSError:
+                            current = None
+                    if not swapped and current == target:
+                        swapped = True
+                        target.rename(bound)
+                        target.symlink_to(external, target_is_directory=True)
+                    return original_scandir(path)
+
+                with mock.patch.object(
+                    cache_module.os,
+                    "scandir",
+                    side_effect=swap_after_bind,
+                ):
+                    with self.assertRaisesRegex(
+                        cache_module.CacheError,
+                        "path incarnation changed",
+                    ):
+                        cache_module.authored_tree_facts_on_disk(project)
+                self.assertTrue(swapped)
+                self.assertTrue(target.is_symlink())
+                self.assertEqual("unchanged\n", sentinel.read_text(encoding="utf-8"))
+
+    def test_authored_inventory_rejects_hard_linked_file(self) -> None:
+        project = self.base / "hard-link-helper" / "project"
+        authored = project / "MIPStarRE" / "QPBT"
+        authored.mkdir(parents=True)
+        external = self.base / "hard-link-helper" / "external.lean"
+        external.write_text("def owned := true\n", encoding="utf-8")
+        os.link(external, authored / "Owned.lean")
+
+        with self.assertRaisesRegex(cache_module.CacheError, "single-link regular file"):
+            cache_module.authored_tree_facts_on_disk(project)
+        self.assertEqual(2, external.stat().st_nlink)
+
+    def test_git_source_changes_rejects_exit_zero_diagnostics(self) -> None:
+        warning = (
+            "warning: could not open directory "
+            "'MIPStarRE/QPBT/Hidden/': Permission denied\n"
+        )
+        completed = subprocess.CompletedProcess(
+            args=["git", "status"],
+            returncode=0,
+            stdout="",
+            stderr=warning,
+        )
+        with mock.patch.object(cache_module.subprocess, "run", return_value=completed):
+            with self.assertRaisesRegex(cache_module.CacheError, "git emitted diagnostics"):
+                cache_module.git_source_changes(self.repo)
+
+    def test_full_warm_rejects_hard_linked_authored_file_without_ready(self) -> None:
+        authored = self.repo / "MIPStarRE" / "QPBT"
+        authored.mkdir()
+        payload = b"def owned := true\n"
+        (authored / "Owned.lean").write_bytes(payload)
+        run_git(self.repo, "add", "MIPStarRE/QPBT/Owned.lean")
+        run_git(self.repo, "commit", "-m", "add authored source")
+        manager = self.manager(
+            runtime=self.base / "runtime-authored-hard-link",
+            recipe=PRESERVING_TEST_RECIPE,
+        )
+        external = self.base / "external-owned.lean"
+        external.write_bytes(payload)
+
+        def hard_link_after_build(
+            project: Path,
+            command: list[str] | tuple[str, ...],
+            log_path: Path,
+        ) -> int:
+            result = fake_preserving_success(project, command, log_path)
+            if list(command) == ["fake", "build"]:
+                owned = project / "MIPStarRE" / "QPBT" / "Owned.lean"
+                owned.unlink()
+                os.link(external, owned)
+            return result
+
+        with self.assertRaisesRegex(cache_module.CacheError, "after_build"):
+            manager.warm(
+                _test_command_callback=hard_link_after_build,
+                _test_source_verifier=fake_source_verifier,
+            )
+        self.assertFalse(manager.snapshot_dir.exists())
+        self.assertEqual([], list(manager.runtime_dir.rglob("READY")))
+        failures = list((manager.runtime_dir / "cache" / "failures").iterdir())
+        self.assertEqual(1, len(failures))
+        self.assertFalse((failures[0] / "READY").exists())
+
+    def test_full_warm_rejects_unreadable_generated_subtree_without_ready(self) -> None:
+        authored = self.repo / "MIPStarRE" / "QPBT"
+        authored.mkdir()
+        (authored / "Owned.lean").write_text("def owned := true\n", encoding="utf-8")
+        run_git(self.repo, "add", "MIPStarRE/QPBT/Owned.lean")
+        run_git(self.repo, "commit", "-m", "add authored source")
+        manager = self.manager(
+            runtime=self.base / "runtime-authored-unreadable",
+            recipe=PRESERVING_TEST_RECIPE,
+        )
+
+        def generate_unreadable_subtree(
+            project: Path,
+            command: list[str] | tuple[str, ...],
+            log_path: Path,
+        ) -> int:
+            result = fake_preserving_success(project, command, log_path)
+            if list(command) == ["fake", "build"]:
+                hidden = project / "MIPStarRE" / "QPBT" / "Hidden"
+                hidden.mkdir()
+                (hidden / "Generated.lean").write_text(
+                    "def generated := true\n",
+                    encoding="utf-8",
+                )
+            return result
+
+        original_scandir = os.scandir
+        denied = False
+
+        def deny_hidden(path: os.PathLike[str] | str | int):
+            nonlocal denied
+            current: Path | None = None
+            if isinstance(path, int):
+                try:
+                    current = Path(os.readlink(f"/proc/self/fd/{path}"))
+                except OSError:
+                    current = None
+            elif isinstance(path, (str, os.PathLike)):
+                current = Path(path)
+            if not denied and current is not None and current.name == "Hidden":
+                denied = True
+                raise PermissionError("deterministic unreadable generated subtree")
+            return original_scandir(path)
+
+        with mock.patch.object(cache_module.os, "scandir", side_effect=deny_hidden):
+            with self.assertRaisesRegex(cache_module.CacheError, "after_build"):
+                manager.warm(
+                    _test_command_callback=generate_unreadable_subtree,
+                    _test_source_verifier=fake_source_verifier,
+                )
+        self.assertTrue(denied)
+        self.assertFalse(manager.snapshot_dir.exists())
+        self.assertEqual([], list(manager.runtime_dir.rglob("READY")))
+        failures = list((manager.runtime_dir / "cache" / "failures").iterdir())
+        self.assertEqual(1, len(failures))
+        self.assertFalse((failures[0] / "READY").exists())
 
     def test_packages_are_identity_bound_materialized_and_verified_before_lake_steps(self) -> None:
         manager = self.manager(recipe=PACKAGE_MATERIALIZING_TEST_RECIPE)
@@ -1028,8 +1195,8 @@ class HotMainCacheTests(unittest.TestCase):
     def test_canonical_lake_commands_require_override_and_reject_updates(self) -> None:
         canonical = cache_module.CANONICAL_BUILD_RECIPE
         self.assertEqual(3, cache_module.BUILD_RECIPE_SCHEMA_VERSION)
-        self.assertEqual(6, canonical.version)
-        self.assertEqual(CANONICAL_MATERIALIZE_V6_COMMAND, canonical.materialize_command)
+        self.assertEqual(7, canonical.version)
+        self.assertEqual(CANONICAL_MATERIALIZE_V7_COMMAND, canonical.materialize_command)
         self.assertEqual(
             (
                 "python3",
