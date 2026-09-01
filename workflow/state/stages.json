@@ -196,7 +196,9 @@
         "QPBT-021",
         "QPBT-022",
         "QPBT-024",
-        "QPBT-025"
+        "QPBT-025",
+        "QPBT-031",
+        "QPBT-032"
       ],
       "started_at": "2026-08-30T19:45:39.120486Z",
       "ended_at": null,
@@ -211,7 +213,8 @@
       "max_concurrency": 4,
       "outputs": [
         "research/report.md",
-        "workflow/reviews/qpbt-018-021-closure-evidence-a18.md"
+        "workflow/reviews/qpbt-018-021-closure-evidence-a18.md",
+        "workflow/reviews/qpbt-031-032-cache-warm-a01.md"
       ],
       "incident_ids": [
         "INC-021",
@@ -233,7 +236,8 @@
         "INC-041",
         "INC-042",
         "INC-043",
-        "INC-044"
+        "INC-044",
+        "INC-052"
       ]
     },
     {

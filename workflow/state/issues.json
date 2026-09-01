@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 31,
+  "next_sequence": 33,
   "issues": [
     {
       "id": "QPBT-000",
@@ -647,11 +647,10 @@
         "exact-ownership"
       ],
       "acceptance_gates": [
-        "The frozen interface contract is recorded before dispatch",
-        "Only MIPStarRE/QPBT/Basic/Field.lean and MIPStarRE/QPBT/Basic/Approximation.lean are owned",
-        "Both files type-check with the exact namespace, signatures, universes, imports, and instances from the blueprint",
-        "No sorry, axiom, or proof-debt constant is introduced",
-        "The scoped Lean build and declaration-integrity checks pass"
+        "Coordinate the two disjoint QPBT-013 child issues QPBT-031 (Field.lean) and QPBT-032 (Approximation.lean) under the reviewed QPBT-023 contract",
+        "No overlapping writable ownership is assigned: child QPBT-031 owns only MIPStarRE/QPBT/Basic/Field.lean and child QPBT-032 owns only MIPStarRE/QPBT/Basic/Approximation.lean",
+        "The first-wave child skeletons preserve exact blueprint signatures and source provenance; the single authorized G16 fieldDataOfOddExponent hole remains explicitly tracked, while the F03 child has no proof debt",
+        "Both child PRs pass scoped Lean checks, declaration-integrity scans, independent local review, and guarded integration before this coordination issue closes"
       ],
       "owner_session_id": null,
       "source_refs": [
@@ -659,12 +658,10 @@
         "blueprint/metadata/nodes.json#F03-MEASUREMENT",
         "blueprint/metadata/nodes.json#F04-DISTANCE"
       ],
-      "owned_paths": [
-        "MIPStarRE/QPBT/Basic/Field.lean",
-        "MIPStarRE/QPBT/Basic/Approximation.lean"
-      ],
+      "owned_paths": [],
       "created_at": "2026-08-30T23:54:39.078758Z",
-      "updated_at": "2026-08-31T10:14:49.223511Z"
+      "updated_at": "2026-09-01T11:00:57.988916Z",
+      "unblock_condition": "Dispatch the two disjoint child orchestrators after the current-main cache is READY; close only after both child issues finish."
     },
     {
       "id": "QPBT-014",
@@ -1584,6 +1581,78 @@
       "updated_at": "2026-09-01T07:31:55.784891Z",
       "blocked_reason": "The exact-content coordinator is a required dependency, and the host currently has no digest-pinned reviewer or broker images, attested internal network, or single-connection broker.",
       "unblock_condition": "Complete QPBT-029, then assign one infrastructure orchestrator to build and independently review the pinned two-container boundary and offline sentinel gate without endpoint contact."
+    },
+    {
+      "id": "QPBT-031",
+      "title": "feat(QPBT/Basic): add finite-field leaf declarations",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-013",
+      "dependency_ids": [
+        "QPBT-004",
+        "QPBT-023"
+      ],
+      "labels": [
+        "lean",
+        "minimal-skeleton",
+        "field",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement only MIPStarRE/QPBT/Basic/Field.lean from the frozen F01 contract and do not edit any other canonical source path",
+        "Use the exact namespace, imports, universes, structures, definitions, and theorem signatures recorded in workflow/reviews/qpbt-023-leaf-contract-a04.md#F01-SIGNATURES",
+        "The only permitted proof debt is one tracked sorry in MIPStarRE.QPBT.fieldDataOfOddExponent for G16; no axiom, constant, caller-supplied basis, or public obligation assumption is introduced",
+        "fieldData_nonempty_of_odd and the multiplication-matrix theorem are stated and proved without additional proof debt",
+        "The private worktree is seeded from the authenticated current-main cache, the scoped Lean check passes, declaration provenance is present, and the owned-file scan finds no forbidden assumptions or unexpected sorry"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "blueprint/metadata/nodes.json#F01-FIELD",
+        "workflow/reviews/qpbt-023-leaf-contract-a04.md#F01-SIGNATURES",
+        "docs/paper-gaps/self-dual-normal-basis.md#G16",
+        "references/2001.04383v3/sections/dependencies/finite-fields.tex:1-412"
+      ],
+      "created_at": "2026-09-01T10:58:48Z",
+      "updated_at": "2026-09-01T10:58:48Z",
+      "blocked_reason": null,
+      "unblock_condition": "Dispatch one field orchestrator after QPBT-004, QPBT-023, and the exact current-main hot cache are verified."
+    },
+    {
+      "id": "QPBT-032",
+      "title": "feat(QPBT/Basic): add finite POVM family boundary",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-013",
+      "dependency_ids": [
+        "QPBT-004",
+        "QPBT-023"
+      ],
+      "labels": [
+        "lean",
+        "minimal-skeleton",
+        "measurement",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement only MIPStarRE/QPBT/Basic/Approximation.lean for the F03 measurement-family boundary and do not edit any other canonical source path",
+        "Use the exact qualified Quantum.Measurement imports, namespace, universes, family aliases, projectivity predicate, postprocess definition, and postprocess effect theorems frozen in workflow/reviews/qpbt-023-leaf-contract-a04.md#F03-SIGNATURES",
+        "Reuse MIPStarRE.Quantum.Measurement.postprocess and preserve the paper's outcome-fiber sum and empty-fiber behavior; do not import or duplicate MIPStarRE.LDT measurement APIs",
+        "No sorry, axiom, proof-debt constant, or caller-supplied bridge assumption is introduced",
+        "The private worktree is seeded from the authenticated current-main cache, the scoped Lean check passes, blueprint declaration synchronization passes, and the owned-file scan finds no forbidden imports or proof debt"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "blueprint/metadata/nodes.json#F03-MEASUREMENT",
+        "workflow/reviews/qpbt-023-leaf-contract-a04.md#F03-SIGNATURES",
+        "workflow/reviews/stage-04a-lean-frontier-a54.md:151-220",
+        "references/2001.04383v3/sections/dependencies/measurements.tex:3-47"
+      ],
+      "created_at": "2026-09-01T10:58:48Z",
+      "updated_at": "2026-09-01T10:58:48Z",
+      "blocked_reason": null,
+      "unblock_condition": "Dispatch one measurement orchestrator after QPBT-004, QPBT-023, and the exact current-main hot cache are verified."
     }
   ]
 }

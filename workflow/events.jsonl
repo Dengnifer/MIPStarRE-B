@@ -2607,3 +2607,8 @@
 {"schema_version":1,"timestamp":"2026-09-01T10:36:48.682035Z","event":"record.transitioned","actor":"local","pid":3,"payload":{"kind":"pr","status":"merged","id":"LPR-019"}}
 {"schema_version":1,"timestamp":"2026-09-01T10:37:05.730809Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-023","fields":["completion_evidence"]}}
 {"schema_version":1,"timestamp":"2026-09-01T10:37:27.452149Z","event":"record.transitioned","actor":"local","pid":3,"payload":{"kind":"issue","status":"done","id":"QPBT-023"}}
+{"schema_version":1,"timestamp":"2026-09-01T10:59:50.886839Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-031"}}
+{"schema_version":1,"timestamp":"2026-09-01T10:59:50.939875Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-032"}}
+{"schema_version":1,"timestamp":"2026-09-01T11:00:58.029660Z","event":"record.updated","actor":"local","pid":3,"payload":{"kind":"issue","id":"QPBT-013","fields":["owned_paths","acceptance_gates","unblock_condition"]}}
+{"schema_version":1,"timestamp":"2026-09-01T11:01:31.185125Z","event":"record.updated","actor":"local","pid":3,"payload":{"kind":"stage","id":"STAGE-04A","fields":["issue_ids"]}}
+{"schema_version":1,"timestamp":"2026-09-01T11:06:17.540052Z","event":"record.updated","actor":"local","pid":3,"payload":{"kind":"stage","id":"STAGE-04A","fields":["incident_ids","outputs"]}}
