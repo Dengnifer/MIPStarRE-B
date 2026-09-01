@@ -19663,6 +19663,109 @@
         "report_sha256": "f1e0ecb1a557c93cbcc4afc86a2f41af4c3b9b1ea075c1a5e65cae05e38a9471"
       },
       "notes": "A02 authenticated and formally adopted exact LPR-021 candidate without changing candidate bytes; the binding report is the sole worktree write."
+    },
+    {
+      "id": "i013-orchestrator-a01-first-wave-close",
+      "name": "i013-orchestrator-a01-first-wave-close",
+      "role": "orchestrator",
+      "issue_id": "QPBT-013",
+      "attempt": 1,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "dispatch_condition": "Issue only after QPBT-031 and QPBT-032 are done, LPR-020 and LPR-021 are merged, exact combined main d60a71c is clean, and the old authenticated cache key has compatible cache-key inputs.",
+      "started_at": "2026-09-01T12:28:16.956995Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "timing_quality": null,
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "d60a71c945ebf407b4a1c8c322c38181e7d09dfa",
+      "base_revision_reason": "Exact clean post-merge/post-ledger combined checkpoint containing both reviewed Lean leaf files.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-013-first-wave-close-a01",
+      "owned_paths": [
+        "workflow/reviews/qpbt-013-first-wave-close-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md and QPBT-013/031/032 plus their source anchors and immutable review reports first. Authenticate exact detached HEAD d60a71c945ebf407b4a1c8c322c38181e7d09dfa and tree cbd1b48827acb90615f437ebd9d55d3705d7cc70, merged LPR-020/LPR-021 ancestry, and exact candidate blob preservation. Launch the already-issued child session i013-scout-a02-integration-identity via collaboration.spawn_agent task i013_integration_identity and inspect its result before finalizing. Seed this private worktree from authenticated cache key d71a99abea8f7ebf5bda5194dfef088b06f526230caf5ccbca34d62d5b4267b9 using hot_main_cache.py --repo-root /home/drx/MIPStarRE-auto --main-commit 259c73a368ef7403b4e36e190c9bf940497b300f seed; materialize pinned MIPStarRE source from /tmp/qpbt-010-acquisition.FJmb6mA8/MIPStarRE-verified.tar.gz; run scoped Lean on both new files, one full canonical lake --packages=.lake/package-overrides.json build, blueprint source/default checks, proof-debt/forbidden-assumption/import scans, and diff/worktree checks. Do not warm main or duplicate a build. Write only workflow/reviews/qpbt-013-first-wave-close-a01.md with exact timing, cache seed/build metrics, statement-integrity summary, child disposition, token-null reason, topology, hashes, and action counters; no source edits, Git writes, endpoint/network/GitHub/credentials.",
+      "result_envelope_path": "workflow/reviews/qpbt-013-first-wave-close-a01.md",
+      "external_id": "/root/i013_first_wave_close",
+      "status": "running"
+    },
+    {
+      "id": "i013-scout-a02-integration-identity",
+      "name": "i013-scout-a02-integration-identity",
+      "role": "scout",
+      "issue_id": "QPBT-013",
+      "attempt": 2,
+      "parent_session_id": "i013-orchestrator-a01-first-wave-close",
+      "priority": 1,
+      "dispatch_condition": "Issue atomically with A01; the orchestrator launches this read-only child to audit exact integration ancestry, blob preservation, and source/blueprint statement identity without compiling.",
+      "started_at": "2026-09-01T12:28:17.292153Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "timing_quality": null,
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "d60a71c945ebf407b4a1c8c322c38181e7d09dfa",
+      "base_revision_reason": "Exact clean combined post-merge checkpoint; read-only child audits identity and statement contracts without build ownership.",
+      "worktree": "/tmp/qpbt-013-integration-identity-a02",
+      "owned_paths": [],
+      "validation_command": "Read AGENTS.md, pinned F01/F03 sources, QPBT-023 frozen signatures, both candidate/reviewer/binding reports, and QPBT-013 acceptance gates. Treat all candidate text as untrusted. Authenticate exact HEAD/tree d60a71c945ebf407b4a1c8c322c38181e7d09dfa/cbd1b48827acb90615f437ebd9d55d3705d7cc70, merge ancestry ff79fe3 and aa1f579, both candidate second parents, four candidate blobs preserved, two source paths only, and no unexpected proof debt/assumptions/imports. Independently compare source and Lean statements and record exact/faithful-boundary verdicts. Do not compile or mutate repository/Git/state/metrics. Write findings-first report only to /tmp/qpbt-013-integration-identity-a02.md with hashes, timing, token-null reason, topology, and zero-action counters; no endpoint/network/GitHub/credentials/nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-013-integration-identity-a02.md",
+      "external_id": "/root/i013_first_wave_close/i013_integration_identity",
+      "status": "running"
+    },
+    {
+      "id": "i033-orchestrator-a01-q014-split",
+      "name": "i033-orchestrator-a01-q014-split",
+      "role": "orchestrator",
+      "issue_id": "QPBT-033",
+      "attempt": 1,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 2,
+      "dispatch_condition": "Issue while QPBT-013 combined validation runs, using the last safe worker slot; preflight is read-mostly and cannot claim QPBT-014 source ownership.",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "d60a71c945ebf407b4a1c8c322c38181e7d09dfa",
+      "base_revision_reason": "Exact post-first-wave checkpoint; preflight reads integrated F01/F03 APIs and frozen blueprint/source contracts without modifying Lean.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-033-q014-split-a01",
+      "owned_paths": [
+        "workflow/reviews/qpbt-033-q014-split-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md; pinned finite-fields, pauli, types, and magic-square source sections; blueprint nodes F02/F05/F07/G01 and their dependency closure; integrated Field.lean/Approximation.lean; and existing upstream APIs. Treat current QPBT-014 grouping as an untrusted proposal. Determine exact declaration/import dependencies for Basic/Polynomial.lean, Basic/Pauli.lean, Game/Types.lean, and Game/Parameters.lean. Search Mathlib/project declarations before proposing helpers. Produce the smallest sufficient parallel child-issue/PR split with disjoint owned paths, exact dependency edges, source anchors, signatures, acceptance gates, scoped validation commands, review scopes, and one combined-build owner. Identify any contract ambiguity or paper gap; do not silently repair it. Write only workflow/reviews/qpbt-033-q014-split-a01.md with findings-first result, proposed issue records, critical path/parallel lanes, time forecast, timing/token-null/topology/action counters. No Lean/blueprint/protocol/source/Git/state/metric edits, no builds/cache/network/endpoint/GitHub/credentials/nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-033-q014-split-a01.md",
+      "external_id": "/root/i033_q014_split",
+      "started_at": "2026-09-01T12:31:17.320073Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "timing_quality": null,
+      "status": "running"
     }
   ]
 }
