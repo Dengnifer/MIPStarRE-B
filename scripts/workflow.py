@@ -2500,21 +2500,96 @@ def _require_findings_update(old: Any, new: Any) -> None:
                 raise WorkflowError("PR findings may only transition from open to resolved")
 
 
-def _check_pr_update(record: Mapping[str, Any], assignments: Sequence[tuple[list[str], Any]]) -> None:
-    for keys, value in assignments:
-        field = keys[0]
+def _require_new_finding_confirmations(
+    old_findings: Any, candidate: Mapping[str, Any]
+) -> None:
+    new_findings = candidate.get("findings")
+    reviews = candidate.get("reviews")
+    if (
+        not isinstance(old_findings, list)
+        or not isinstance(new_findings, list)
+        or not isinstance(reviews, list)
+    ):
+        raise WorkflowError("PR confirmation evidence must remain structured lists")
+    review_by_id = {
+        review["id"]: review for review in reviews
+        if isinstance(review, dict) and isinstance(review.get("id"), str)
+    }
+    for index, new_finding in enumerate(new_findings):
+        if not isinstance(new_finding, dict):
+            raise WorkflowError("new PR finding evidence must remain a structured object")
+        old_finding = old_findings[index] if index < len(old_findings) else {}
+        if not isinstance(old_finding, dict):
+            raise WorkflowError("old PR finding evidence must remain a structured object")
+        old_ids = old_finding.get("confirmation_review_ids", [])
+        new_ids = new_finding.get("confirmation_review_ids", [])
+        if not isinstance(old_ids, list) or not isinstance(new_ids, list):
+            raise WorkflowError("PR finding confirmation_review_ids must remain lists")
+        prior_id = old_ids[-1] if old_ids else new_finding.get("resolved_by_review_id")
+        prior = review_by_id.get(prior_id) if isinstance(prior_id, str) else None
+        prior_completed = _timestamp_value(prior.get("completed_at")) if prior is not None else None
+        for confirmation_id in new_ids[len(old_ids) :]:
+            if not isinstance(confirmation_id, str):
+                raise WorkflowError("new PR finding confirmation IDs must be strings")
+            review = review_by_id.get(confirmation_id)
+            if review is None:
+                raise WorkflowError(
+                    f"new PR finding confirmation {confirmation_id!r} is not in the candidate review list"
+                )
+            if confirmation_id == new_finding.get("resolved_by_review_id"):
+                raise WorkflowError("new PR finding confirmation must differ from the resolution review")
+            if new_ids.count(confirmation_id) != 1:
+                raise WorkflowError(f"new PR finding confirmation {confirmation_id!r} is duplicated")
+            if review.get("base_sha") != candidate.get("base_sha"):
+                raise WorkflowError(
+                    f"new PR finding confirmation {confirmation_id!r} has the wrong base SHA"
+                )
+            if review.get("head_sha") != candidate.get("head_sha"):
+                raise WorkflowError(
+                    f"new PR finding confirmation {confirmation_id!r} has the wrong head SHA"
+                )
+            if review.get("verdict") != "approve":
+                raise WorkflowError(f"new PR finding confirmation {confirmation_id!r} must approve")
+            started = _timestamp_value(review.get("started_at"))
+            completed = _timestamp_value(review.get("completed_at"))
+            if started is None or completed is None or completed < started:
+                raise WorkflowError(
+                    f"new PR finding confirmation {confirmation_id!r} has malformed chronology"
+                )
+            if prior_completed is not None and (
+                started < prior_completed or completed <= prior_completed
+            ):
+                raise WorkflowError(f"new PR finding confirmation {confirmation_id!r} is out of order")
+            prior_completed = completed
+
+
+def _check_pr_update(
+    record: Mapping[str, Any], candidate: Mapping[str, Any]
+) -> None:
+    for field, value in candidate.items():
+        if value == record.get(field):
+            continue
         if field in {"checks", "reviews", "implementer_session_ids"}:
-            if len(keys) != 1:
-                raise WorkflowError(f"PR field {field!r} must be replaced as one append-only list")
             _require_append_only(record.get(field), value, field)
         elif field == "findings":
-            if len(keys) != 1:
-                raise WorkflowError("PR findings must be replaced as one disposition-aware list")
             _require_findings_update(record.get("findings"), value)
         elif field == "integration_sha":
             old = record.get(field)
             if old is not None and value != old:
                 raise WorkflowError("PR integration_sha is immutable once recorded")
+    _require_new_finding_confirmations(record.get("findings"), candidate)
+
+
+def _check_pr_assignment_shapes(assignments: Sequence[tuple[list[str], Any]]) -> None:
+    for keys, _ in assignments:
+        field = keys[0]
+        if (
+            field in {"checks", "reviews", "implementer_session_ids"}
+            and len(keys) != 1
+        ):
+            raise WorkflowError(f"PR field {field!r} must be replaced as one append-only list")
+        if field == "findings" and len(keys) != 1:
+            raise WorkflowError("PR findings must be replaced as one disposition-aware list")
 
 
 def _check_session_update(record: Mapping[str, Any], assignments: Sequence[tuple[list[str], Any]]) -> None:
@@ -2860,11 +2935,16 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             if arguments.kind == "pr" and record.get("status") in {"merged", "closed"}:
                 raise WorkflowError("merged or closed PR records cannot be updated")
             if arguments.kind == "pr":
-                _check_pr_update(record, assignments)
-            elif arguments.kind == "issued-session":
+                _check_pr_assignment_shapes(assignments)
+            if arguments.kind == "issued-session":
                 _check_session_update(record, assignments)
+            candidate = copy.deepcopy(record)
             for keys, value in assignments:
-                _set_nested(record, keys, value)
+                _set_nested(candidate, keys, value)
+            if arguments.kind == "pr":
+                _check_pr_update(record, candidate)
+            record.clear()
+            record.update(candidate)
             if (
                 arguments.kind == "pr"
                 and old_head != record.get("head_sha")

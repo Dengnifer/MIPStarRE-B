@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import itertools
 import json
 from pathlib import Path
 import sys
@@ -1101,6 +1102,59 @@ class WorkflowValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(workflow.WorkflowError, "only transition from open to resolved"):
             workflow._require_findings_update([open_finding], [malformed_transition])
 
+    def test_pr_update_guard_authorizes_only_new_current_confirmations(self) -> None:
+        state = finding_reconfirmation_documents(confirmation_ids=[])
+        old = state["prs.json"]["pull_requests"][0]
+        confirmation_review = old["reviews"].pop()
+        candidate = copy.deepcopy(old)
+        candidate["reviews"].append(confirmation_review)
+        candidate["findings"][0]["confirmation_review_ids"] = ["review-003"]
+        workflow._check_pr_update(old, candidate)
+
+        appended_finding = copy.deepcopy(candidate)
+        appended_finding["head_sha"] = "e" * 40
+        new_finding = copy.deepcopy(appended_finding["findings"][0])
+        new_finding["id"] = "F-003"
+        new_finding["confirmation_review_ids"] = ["review-003"]
+        appended_finding["findings"].append(new_finding)
+        with self.assertRaisesRegex(workflow.WorkflowError, "wrong head SHA"):
+            workflow._check_pr_update(candidate, appended_finding)
+
+        cases = [
+            ("missing", lambda pr, docs: pr["reviews"].pop(), "candidate review list"),
+            (
+                "duplicate",
+                lambda pr, docs: pr["findings"][0].update(
+                    confirmation_review_ids=["review-003", "review-003"]
+                ),
+                "duplicated",
+            ),
+            ("wrong-head", lambda pr, docs: pr.update(head_sha="e" * 40), "wrong head SHA"),
+            ("wrong-base", lambda pr, docs: pr["reviews"][2].update(base_sha="e" * 40), "wrong base SHA"),
+            (
+                "non-approve",
+                lambda pr, docs: pr["reviews"][2].update(verdict="request_changes"),
+                "must approve",
+            ),
+            (
+                "malformed",
+                lambda pr, docs: pr["reviews"][2].update(completed_at=[]),
+                "malformed chronology",
+            ),
+            (
+                "out-of-order",
+                lambda pr, docs: pr["reviews"][2].update(started_at=REVIEW2_STARTED),
+                "out of order",
+            ),
+        ]
+        for name, mutate, expected in cases:
+            with self.subTest(name=name):
+                changed = copy.deepcopy(candidate)
+                changed_state = copy.deepcopy(state)
+                mutate(changed, changed_state)
+                with self.assertRaisesRegex(workflow.WorkflowError, expected):
+                    workflow._check_pr_update(old, changed)
+
     def test_issued_session_contract_and_lifecycle_are_required(self) -> None:
         state = documents()
         session = issued_session(
@@ -1653,6 +1707,61 @@ class WorkflowStoreTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(workflow.WorkflowError, "reviews.*append-only"):
             workflow.run_cli(evidence)
+
+    def test_pr_update_rejects_stale_confirmation_after_all_assignments_atomically(self) -> None:
+        state = finding_reconfirmation_documents(confirmation_ids=[])
+        pr = state["prs.json"]["pull_requests"][0]
+        pr["status"] = "changes_requested"
+        (self.state_dir / "prs.json").write_text(json.dumps(state["prs.json"]), encoding="utf-8")
+        (self.state_dir / "sessions.json").write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        parser = workflow.build_parser()
+        findings = copy.deepcopy(pr["findings"])
+        new_finding = copy.deepcopy(findings[0])
+        new_finding["id"] = "F-003"
+        new_finding["confirmation_review_ids"] = ["review-003"]
+        findings.append(new_finding)
+        assignments = [
+            f"findings={json.dumps(findings)}",
+            f"reviews={json.dumps(pr['reviews'])}",
+            f"head_sha={json.dumps('e' * 40)}",
+        ]
+        original_prs = (self.state_dir / "prs.json").read_bytes()
+        original_events = self.events.read_bytes()
+        for order in itertools.permutations(assignments):
+            arguments = ["--root", str(self.root), "update", "pr", "LPR-001"]
+            for assignment in order:
+                arguments.extend(["--set", assignment])
+            with self.subTest(order=order), self.assertRaisesRegex(
+                workflow.WorkflowError, "wrong head SHA"
+            ):
+                workflow.run_cli(parser.parse_args(arguments))
+            self.assertEqual(original_prs, (self.state_dir / "prs.json").read_bytes())
+            self.assertEqual(original_events, self.events.read_bytes())
+
+    def test_current_confirmation_may_become_a_historical_prefix(self) -> None:
+        state = finding_reconfirmation_documents(confirmation_ids=[])
+        pr = state["prs.json"]["pull_requests"][0]
+        pr["status"] = "changes_requested"
+        (self.state_dir / "prs.json").write_text(json.dumps(state["prs.json"]), encoding="utf-8")
+        (self.state_dir / "sessions.json").write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        parser = workflow.build_parser()
+        findings = copy.deepcopy(pr["findings"])
+        findings[0]["confirmation_review_ids"] = ["review-003"]
+        append = parser.parse_args(
+            [
+                "--root", str(self.root), "update", "pr", "LPR-001",
+                "--set", f"findings={json.dumps(findings)}",
+            ]
+        )
+        workflow.run_cli(append)
+        advance = parser.parse_args(
+            [
+                "--root", str(self.root), "update", "pr", "LPR-001",
+                "--set", f"head_sha={json.dumps('e' * 40)}",
+            ]
+        )
+        result = workflow.run_cli(advance)
+        self.assertEqual(["review-003"], result["findings"][0]["confirmation_review_ids"])
 
     def test_approval_and_merge_transitions_require_current_evidence(self) -> None:
         state = documents()
