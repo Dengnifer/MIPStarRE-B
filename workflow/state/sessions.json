@@ -22289,9 +22289,87 @@
         "github": 0,
         "credentials": 0,
         "nested_agents": 0,
-        "worktree_clean": true
+        "worktree_clean": true,
+        "production_warm": {
+          "main_sha": "b9cef4736f5b404ac63ab4b27133544f797f2960",
+          "main_tree": "34a4dabc6672108c50b65a67ba1a4b844213302c",
+          "integration_sha": "47b0bf444d9f29e82e03e51a6d2c89ff5958e6d5",
+          "cache_key": "6769ce0a7274640b5deef277c966ea811808b3458b925548a4bf5b4c2392f1ce",
+          "recipe_id": "qpbt-hot-main",
+          "recipe_schema_version": 3,
+          "recipe_version": 7,
+          "result": "built",
+          "status_after": "hit",
+          "cache_hit": 0,
+          "cache_miss": 1,
+          "builds": 1,
+          "elected_owner": {
+            "pid": 2,
+            "host": "GHZ"
+          },
+          "duplicate_builders": 0,
+          "lock_waited": 0,
+          "lock_wait_seconds": 0,
+          "materialize_seconds": 2.919058,
+          "package_materialize_seconds": 17.539748,
+          "package_verify_seconds": 16.265412,
+          "dependency_cache_seconds": 42.017862,
+          "build_seconds": 553.322734,
+          "elapsed_seconds": 660.198314,
+          "build_targets": 8992,
+          "snapshot_dir": "/home/drx/MIPStarRE-auto/.workflow-runtime/cache/main/6769ce0a7274640b5deef277c966ea811808b3458b925548a4bf5b4c2392f1ce",
+          "manifest_sha256": "aa7e13ea5bd1522d6be91e40e469646439bc2941b513b285d901563b17a673bb",
+          "ready_sha256": "dffcc4273eb6009fae4a597094a39e2ec36c3497217fdb711958a3f79fc7b398",
+          "ready_contents": "aa7e13ea5bd1522d6be91e40e469646439bc2941b513b285d901563b17a673bb",
+          "build_log_sha256": "a42bef6f778293a8337c7d261877ac3f1189423bbd983b22586f4c172f109ae6",
+          "artifact_inventory": {
+            "schema_version": 1,
+            "sha256": "fced5d201aa76027eacfbc5b53d6c7ffd486791a9af8ea466366fd9d4687af02",
+            "files": 124925,
+            "directories": 4147,
+            "symlinks": 3,
+            "bytes": 10097592794
+          },
+          "authored_qpbt": {
+            "files": 2,
+            "bytes": 5319,
+            "sha256": "0578da860a522b58b69c2c16df366c7eee3abd97c425900401e4e83c992803ed"
+          },
+          "foundation": {
+            "files": 337,
+            "bytes": 5970111,
+            "sha256": "d8d9e7632f5dcdb0cbe7bceeb55c71a0dbbcf6f901c6efd7f4c4814090d096db"
+          },
+          "mathlib": {
+            "commit": "81a5d257c8e410db227a6665ed08f64fea08e997",
+            "tree": "5ea66b811b8461daae82f14d356fed2a287d7c40",
+            "archive_sha256": "c29325b477966a6f8eb784723f19da26800c71458f7c24cc668713725eba78d7",
+            "pack_sha256": "4659f2a0cabfec474474f5e83ea3d495e711b735418742dd3d642328adcada02",
+            "mode": "archive"
+          },
+          "mipstarre_archive_sha256": "656d92a4ad1fb24216ab0b26c6956b1cfb88ba7816257baa0e668415c0a7adcc",
+          "deep_ready": true
+        },
+        "preflight": {
+          "initial_attempt": {
+            "result": "failed_closed_before_lock",
+            "error": "set exactly one of MATHLIB_SOURCE or MATHLIB_ARCHIVE",
+            "lock_acquired": false,
+            "snapshot_published": false,
+            "ready_published": false,
+            "builds": 0
+          },
+          "corrected_attempt": {
+            "result": "passed",
+            "mathlib_selector": "MATHLIB_ARCHIVE",
+            "mipstarre_input": "MIPSTARRE_ARCHIVE",
+            "lake_package_input": "LAKE_PACKAGE_ARCHIVES"
+          },
+          "followup_issue": "QPBT-051",
+          "incident_id": "INC-065"
+        }
       },
-      "notes": "A09 no-ff merged the approved recipe-v7 candidate onto current main and preserved all candidate blobs. Focused/materializer/workflow/diff gates passed; production singleton warm remains the root gate."
+      "notes": "A09 integration followed by one authenticated recipe-v7 warm; deep-ready evidence is in workflow/reviews/qpbt-045-root-warm-a01.md. INC-065 records the preflight omission and QPBT-051 is the required follow-up."
     }
   ]
 }

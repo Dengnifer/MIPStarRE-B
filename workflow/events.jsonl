@@ -3094,3 +3094,10 @@
 {"schema_version":1,"timestamp":"2026-09-01T18:33:46.375366Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"ready","id":"LPR-024"}}
 {"schema_version":1,"timestamp":"2026-09-01T18:33:46.766940Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"approved","id":"LPR-024"}}
 {"schema_version":1,"timestamp":"2026-09-01T18:34:19.367326Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
+{"schema_version":1,"timestamp":"2026-09-01T18:58:09.530081Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-051"}}
+{"schema_version":1,"timestamp":"2026-09-01T19:01:59.997541Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issued-session","id":"i045-integrator-a09-guarded-merge","fields":["checks.production_warm","checks.preflight","notes"]}}
+{"schema_version":1,"timestamp":"2026-09-01T19:02:35.326663Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-024","fields":["integration_sha","integration_tree","integration_parents","integration_report_path","integration_report_sha256","integration_evidence","testing"]}}
+{"schema_version":1,"timestamp":"2026-09-01T19:02:51.473712Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"merged","id":"LPR-024"}}
+{"schema_version":1,"timestamp":"2026-09-01T19:02:51.833642Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"done","id":"QPBT-045"}}
+{"schema_version":1,"timestamp":"2026-09-01T19:03:02.591342Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["incident_ids"]}}
+{"schema_version":1,"timestamp":"2026-09-01T19:03:31.671217Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-045","fields":["source_refs","closure_evidence"]}}

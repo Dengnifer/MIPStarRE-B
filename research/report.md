@@ -1545,3 +1545,26 @@ All seven candidate blobs matched; 60/60 hot-cache and 11/11 materializer
 tests, compile/workflow/checker gates, and diff authentication passed in
 `254.19` canonical seconds. The production singleton recipe-v7 warm has not
 run yet; it is the sole remaining admission gate for QPBT-045.
+
+The root then authenticated and completed the one permitted recipe-v7
+post-integration warm on `b9cef4736f5b404ac63ab4b27133544f797f2960`. The
+read-only cache preflight found the exact Mathlib archive, MIPStarRE archive,
+and eight Lake-package archives. The first unqualified command failed closed
+before lock acquisition because the Mathlib selector was omitted; no staging,
+snapshot, `READY`, or build was created. This is the third occurrence of the
+hot-cache input-preflight omission (INC-065), so QPBT-051 was opened as the
+required tooling follow-up. After the tuple was bound explicitly, exactly one
+builder on `GHZ` acquired the lock and published key
+`6769ce0a7274640b5deef277c966ea811808b3458b925548a4bf5b4c2392f1ce`.
+Materialization took `2.919058` seconds, package materialization
+`17.539748`, package verification `16.265412`, dependency cache retrieval
+`42.017862`, and the `8992`-target Lean build `553.322734`, for
+`660.198314` seconds total with zero lock wait. The manifest/`READY` digest is
+`aa7e13ea5bd1522d6be91e40e469646439bc2941b513b285d901563b17a673bb`; deep
+inventory is `124925` files, `4147` directories, `3` symlinks, and
+`10097592794` bytes with digest
+`fced5d201aa76027eacfbc5b53d6c7ffd486791a9af8ea466366fd9d4687af02`.
+Full provenance is retained in
+`workflow/reviews/qpbt-045-root-warm-a01.md`. QPBT-045 and LPR-024 are now
+closed/merged; QPBT-050 remains the independent fsmonitor-hardening follow-up,
+and QPBT-048's fresh mathematical/API review is the next Lean-entry gate.

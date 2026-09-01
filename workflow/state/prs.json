@@ -6456,7 +6456,7 @@
     {
       "id": "LPR-024",
       "title": "fix(cache): preserve authored QPBT sources",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-045"
       ],
@@ -6826,10 +6826,10 @@
           "confirmation_review_ids": []
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "b9cef4736f5b404ac63ab4b27133544f797f2960",
+      "merged_at": "2026-09-01T19:02:51.416920Z",
       "created_at": "2026-09-01T16:37:00Z",
-      "updated_at": "2026-09-01T18:33:46.716189Z",
+      "updated_at": "2026-09-01T19:02:51.416920Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -6841,7 +6841,7 @@
       ],
       "motivation": "Unblock all new Lean work by preserving exact committed QPBT sources while refreshing authenticated upstream MIPStarRE content during singleton hot-main cache warm.",
       "description": "Recipe v7 preserves exact authored QPBT sources and hardens admission with descriptor-bound traversal, single-link file identity, fail-closed recursive inspection, and rejection of incomplete Git diagnostics.",
-      "testing": "A08 approved the candidate; A09 no-ff integration 47b0bf4 preserved all candidate blobs and passed 60/60 hot-cache, 11/11 materializer, compile/workflow/checker/test_check_workflow, and diff gates. No production warm yet.",
+      "testing": "A09 guarded integration passed; recipe-v7 singleton warm built 8992 targets with deep-ready manifest/READY/inventory verification; root evidence is in workflow/reviews/qpbt-045-root-warm-a01.md.",
       "addresses": "QPBT-045",
       "provenance_session_ids": [
         "i045-orchestrator-a01-hot-main-preservation",
@@ -6853,7 +6853,39 @@
         "i045-integrator-a09-guarded-merge"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "After the authenticated no-ff integration, run exactly one lock-elected recipe-v7 current-main warm with status/READY/deep-inventory evidence; then record the integration SHA and close QPBT-045."
+      "unexecuted_gate": "After the authenticated no-ff integration, run exactly one lock-elected recipe-v7 current-main warm with status/READY/deep-inventory evidence; then record the integration SHA and close QPBT-045.",
+      "integration_tree": "34a4dabc6672108c50b65a67ba1a4b844213302c",
+      "integration_parents": [
+        "80871365b40087648e2ea7b0f3ffd3567622cb0b",
+        "0c0a8e2831c3d5da88e232e5705923e1f31ccbc4"
+      ],
+      "integration_report_path": "workflow/reviews/qpbt-045-root-warm-a01.md",
+      "integration_report_sha256": "f107448db821bf45d8676c64204f26a23b2690d18255dd481a9e22e8d789ce66",
+      "integration_evidence": {
+        "cache_key": "6769ce0a7274640b5deef277c966ea811808b3458b925548a4bf5b4c2392f1ce",
+        "recipe_version": 7,
+        "result": "built",
+        "main_sha": "b9cef4736f5b404ac63ab4b27133544f797f2960",
+        "manifest_sha256": "aa7e13ea5bd1522d6be91e40e469646439bc2941b513b285d901563b17a673bb",
+        "ready_sha256": "dffcc4273eb6009fae4a597094a39e2ec36c3497217fdb711958a3f79fc7b398",
+        "artifact_inventory_sha256": "fced5d201aa76027eacfbc5b53d6c7ffd486791a9af8ea466366fd9d4687af02",
+        "artifact_files": 124925,
+        "artifact_directories": 4147,
+        "artifact_symlinks": 3,
+        "artifact_bytes": 10097592794,
+        "lock_wait_seconds": 0,
+        "materialize_seconds": 2.919058,
+        "package_materialize_seconds": 17.539748,
+        "package_verify_seconds": 16.265412,
+        "dependency_cache_seconds": 42.017862,
+        "build_seconds": 553.322734,
+        "elapsed_seconds": 660.198314,
+        "builders": 1,
+        "duplicate_builders": 0,
+        "deep_ready": true,
+        "evidence_path": "workflow/reviews/qpbt-045-root-warm-a01.md",
+        "evidence_sha256": "f107448db821bf45d8676c64204f26a23b2690d18255dd481a9e22e8d789ce66"
+      }
     }
   ]
 }

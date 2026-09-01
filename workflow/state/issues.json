@@ -2317,7 +2317,7 @@
       "title": "Preserve authored QPBT sources during hot-main cache warm",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-024"
@@ -2346,7 +2346,9 @@
         "workflow/reviews/qpbt-031-032-cache-warm-a01.md",
         "scripts/hot_main_cache.py",
         "scripts/materialize_mipstarre.py",
-        "protocols/local-development.md"
+        "protocols/local-development.md",
+        "workflow/reviews/qpbt-045-root-warm-a01.md",
+        "research/metrics/incidents.jsonl#INC-065"
       ],
       "owned_paths": [
         "scripts/hot_main_cache.py",
@@ -2355,9 +2357,20 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:50:00Z",
-      "updated_at": "2026-09-01T17:59:34.142373Z",
+      "updated_at": "2026-09-01T19:03:31.626221Z",
       "blocked_reason": null,
-      "unblock_condition": null
+      "unblock_condition": null,
+      "closure_evidence": {
+        "integration_sha": "b9cef4736f5b404ac63ab4b27133544f797f2960",
+        "cache_key": "6769ce0a7274640b5deef277c966ea811808b3458b925548a4bf5b4c2392f1ce",
+        "warm_report": "workflow/reviews/qpbt-045-root-warm-a01.md",
+        "warm_result": "built",
+        "deep_ready": true,
+        "follow_up_issues": [
+          "QPBT-050",
+          "QPBT-051"
+        ]
+      }
     },
     {
       "id": "QPBT-046",
@@ -2596,6 +2609,54 @@
       "updated_at": "2026-09-01T18:22:00Z",
       "blocked_reason": "Depends on the approved QPBT-045 candidate completing its guarded integration and singleton recipe-v7 warm.",
       "unblock_condition": "QPBT-045 done with an authenticated recipe-v7 current-main warm."
+    },
+    {
+      "id": "QPBT-051",
+      "title": "Add complete-input preflight for authenticated hot-cache warms",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-045",
+      "dependency_ids": [
+        "QPBT-045",
+        "QPBT-050"
+      ],
+      "labels": [
+        "workflow",
+        "hot-cache",
+        "preflight",
+        "authenticated-inputs",
+        "recurrence-threshold",
+        "safety",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Reproduce and durably record the current-main warm invocation that omitted the authenticated Mathlib, MIPStarRE, and Lake-package input tuple and failed closed before lock acquisition, snapshot creation, or compilation.",
+        "Add the smallest complete-input preflight for the canonical warm so all three authenticated local inputs are named, present, non-symlinked, and hash/shape validated before any builder election; preserve the exactly-one Mathlib selector rule and fail closed without changing cache identity.",
+        "Add focused regressions for each missing input, conflicting selectors, malformed paths, and successful preflight, proving no lock-held build, snapshot, or READY is published on preflight failure.",
+        "Update the local build/orchestration protocol and changelog with the preflight command, run focused and aggregate workflow/checker/diff gates, obtain a fresh immutable review, and record the third-occurrence incident disposition."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-052",
+        "research/metrics/incidents.jsonl#INC-065",
+        "workflow/reviews/qpbt-045-root-warm-a01.md",
+        "scripts/hot_main_cache.py",
+        "protocols/local-development.md",
+        "protocols/orchestration.md"
+      ],
+      "owned_paths": [
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "protocols/local-development.md",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md",
+        "workflow/reviews/qpbt-051-input-preflight.md"
+      ],
+      "created_at": "2026-09-01T19:00:00Z",
+      "updated_at": "2026-09-01T19:00:00Z",
+      "blocked_reason": "Depends on QPBT-045 completion and the overlapping QPBT-050 Git-diagnostics hardening.",
+      "unblock_condition": "QPBT-045 and QPBT-050 are done; then assign one orchestrator with an isolated worktree."
     }
   ]
 }
