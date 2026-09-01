@@ -2477,3 +2477,7 @@
 {"schema_version":1,"timestamp":"2026-09-01T08:01:10.493360Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"in_progress","id":"QPBT-004"}}
 {"schema_version":1,"timestamp":"2026-09-01T08:01:10.883065Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-023","fields":["owner_session_id"]}}
 {"schema_version":1,"timestamp":"2026-09-01T08:01:11.323665Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"in_progress","id":"QPBT-023"}}
+{"schema_version":1,"timestamp":"2026-09-01T08:02:29.416305Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issued-session","id":"i004-orchestrator-a37-foundation-closure","fields":["external_id"]}}
+{"schema_version":1,"timestamp":"2026-09-01T08:02:29.800403Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"running","session_id":"i004-orchestrator-a37-foundation-closure"}}
+{"schema_version":1,"timestamp":"2026-09-01T08:02:30.181160Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issued-session","id":"i023-orchestrator-a01-leaf-contract","fields":["external_id"]}}
+{"schema_version":1,"timestamp":"2026-09-01T08:02:30.637807Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"running","session_id":"i023-orchestrator-a01-leaf-contract"}}
