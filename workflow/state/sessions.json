@@ -23580,6 +23580,44 @@
       "outcome_path": null,
       "task_released_at": "2026-09-01T23:15:10.937531Z",
       "task_release_protocol": "bootstrap-only thread confirmed before full packet"
+    },
+    {
+      "id": "i052-orchestrator-a05-release-contract-repair",
+      "name": "i052-orchestrator-a05-release-contract-repair",
+      "role": "orchestrator",
+      "issue_id": "QPBT-052",
+      "attempt": 5,
+      "priority": 1,
+      "backend": "codex-collaboration",
+      "pr_id": "LPR-025",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "read_only": false,
+      "base_revision": "40d3e565426f74a0e3c60798ec7e2b5f7e35cfbf",
+      "base_revision_reason": "Exact LPR-025 head reviewed in A04; repair starts from the two finding-bearing candidate.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-052-release-contract-repair-a05",
+      "owned_paths": [
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "workflow/reviews/qpbt-052-release-contract-repair-a05.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-052, LPR-025, exact A04 report/findings, and the prior candidate. Repair only F-LPR025-A04-001 and A04-002 with focused chronology/identity regressions; preserve markerless legacy compatibility. Run workflow/local-agent suites, compileall, checker, validate, diff hygiene, and report exact candidate hashes. Do not touch Lean/Lake/build/cache/network/GitHub/credentials/canonical state or unrelated files.",
+      "result_envelope_path": "workflow/reviews/qpbt-052-release-contract-repair-a05.md",
+      "dispatch_condition": "A04 requested changes on exact head 40d3e565; dispatch in the remaining non-overlapping workflow slot.",
+      "status": "running",
+      "external_id": "/root/i052_orchestrator_a05_release_contract_repair",
+      "started_at": "2026-09-01T23:38:15.185360Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "task_released_at": "2026-09-01T23:37:40.942000Z",
+      "task_release_protocol": "bootstrap-only thread confirmed before full packet"
     }
   ]
 }

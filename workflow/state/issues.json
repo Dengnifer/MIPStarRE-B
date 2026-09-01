@@ -1973,7 +1973,7 @@
       "title": "feat(QPBT/Game): implement admissible parameter boundary",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -1992,7 +1992,7 @@
         "Do not add positivity, a field witness, an LDT alias/coercion, sorry, axiom, constant, or public obligation input",
         "Pass scoped Lean, target build, owned-scope debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i039-orchestrator-a01-parameters",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#G01--Parameters",
         "blueprint/metadata/nodes.json#G01-PARAMETERS",
@@ -2002,9 +2002,9 @@
         "MIPStarRE/QPBT/Game/Parameters.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T12:59:00Z",
-      "blocked_reason": "QPBT-035 callable contract is not yet reviewed and integrated.",
-      "unblock_condition": "QPBT-035 done."
+      "updated_at": "2026-09-01T23:40:43.074734Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-036",
@@ -2665,7 +2665,7 @@
       "title": "Repair release lifecycle compatibility and transaction ordering",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-049",
       "dependency_ids": [
         "QPBT-034"
@@ -2686,7 +2686,7 @@
         "Use event sequence as a strict chronology tie-breaker when timestamps are equal, with regressions for equal-time issuance/release/running permutations.",
         "Run focused local-agent/workflow suites, full checker, compileall, diff hygiene, and an independent immutable review of the repaired head; do not touch Lean, Lake, build/cache, network, GitHub, credentials, or unrelated paths."
       ],
-      "owner_session_id": "i052-orchestrator-a03-release-contract-repair",
+      "owner_session_id": "i052-orchestrator-a05-release-contract-repair",
       "source_refs": [
         "workflow/reviews/qpbt-049-review-a03.md#F-LPR025-A03-001",
         "workflow/reviews/qpbt-049-review-a03.md#F-LPR025-A03-002",
@@ -2706,10 +2706,10 @@
         "workflow/reviews/qpbt-052-release-contract-repair-a03.md"
       ],
       "created_at": "2026-09-01T20:47:03Z",
-      "updated_at": "2026-09-01T22:17:17.012406Z",
+      "updated_at": "2026-09-01T23:37:34.790533Z",
       "blocked_reason": null,
-      "unblock_condition": "Fresh immutable review of the repaired release contract, then guarded integration.",
-      "repair_round": 3
+      "unblock_condition": "Repair A04-001 and A04-002 on a changed exact head, then obtain a fresh immutable review before guarded integration.",
+      "repair_round": 4
     }
   ]
 }
