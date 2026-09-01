@@ -1553,6 +1553,78 @@ class RuntimeTests(unittest.TestCase):
         self.assertFalse((self.runtime / "review-harnesses").exists())
         self.assertFalse((self.runtime / "runs").exists())
 
+    def test_malformed_offline_capability_schema_fails_at_both_early_boundaries(
+        self,
+    ) -> None:
+        valid = capability(native=False)
+        invalid_records = {
+            "unserializable unexpected field": {**valid, "unexpected": object()},
+            "boolean return code": {**valid, "probe_returncode": True},
+            "malformed output digest": {**valid, "probe_output_sha256": "not-a-digest"},
+            "zero probe timeout": {**valid, "probe_timeout_seconds": 0},
+            "floating version timeout": {**valid, "version_help_timeout_seconds": 1.5},
+            "integer timeout result": {**valid, "probe_timed_out": 1},
+            "integer termination signal": {**valid, "probe_termination_signal": 15},
+            "integer escalation result": {**valid, "probe_termination_escalated": 0},
+        }
+        runner = FakeRunner("")
+
+        for boundary in ("public", "private"):
+            for case, record in invalid_records.items():
+                with self.subTest(boundary=boundary, case=case), mock.patch.object(
+                    local_agent, "inspect_codex_review_capability"
+                ) as capability_probe, mock.patch.object(
+                    local_agent, "_git_repo_root"
+                ) as repository_probe, mock.patch.object(
+                    local_agent, "_prepare_uncommitted_harness"
+                ) as uncommitted_harness, mock.patch.object(
+                    local_agent, "_prepare_committed_harness"
+                ) as committed_harness, mock.patch.object(
+                    local_agent, "_prepare_output_directory"
+                ) as output, mock.patch.object(
+                    local_agent, "claim_issued_session"
+                ) as claim, self.assertRaises(local_agent.AgentError):
+                    arguments = {
+                        "alias": "i026-reviewer-a19-invalid-capability",
+                        "prompt": "review",
+                        "cwd": self.root / "must-not-be-inspected",
+                        "runtime_dir": self.runtime,
+                        "target_kind": "base",
+                        "target_value": "main",
+                        "base_sha": "a" * 40,
+                        "head_sha": "b" * 40,
+                        "runner": runner,
+                        "codex_capability": record,
+                    }
+                    if boundary == "public":
+                        local_agent.run_review(
+                            **arguments,
+                            offline_test_mode=True,
+                            session_id="i026-reviewer-a19-invalid-capability",
+                            workflow_root=self.root,
+                            issue_id="QPBT-026",
+                        )
+                    else:
+                        local_agent._run_offline_review(
+                            **arguments,
+                            model=None,
+                            bootstrap_snapshot_digest=None,
+                            timeout=30.0,
+                            dry_run=False,
+                            persistence_probe={"status": "skipped-offline-test-mode"},
+                        )
+                capability_probe.assert_not_called()
+                repository_probe.assert_not_called()
+                uncommitted_harness.assert_not_called()
+                committed_harness.assert_not_called()
+                output.assert_not_called()
+                claim.assert_not_called()
+                self.assertEqual([], runner.calls)
+                self.assertFalse((self.root / "must-not-be-inspected").exists())
+                self.assertFalse(self.runtime.exists())
+                self.assertFalse((self.runtime / "review-harnesses").exists())
+                self.assertFalse((self.runtime / "runs").exists())
+
     def test_no_replayable_preflight_token_or_production_helper_exists(self) -> None:
         self.assertFalse(hasattr(local_agent, "_DISCLOSURE_PREFLIGHT_TOKEN"))
         self.assertFalse(hasattr(local_agent, "_run_review_after_persistence_probe"))
@@ -2275,6 +2347,7 @@ class RuntimeTests(unittest.TestCase):
             ),
         ]
         result = local_agent.inspect_codex_review_capability()
+        self.assertEqual(result, local_agent._validate_offline_codex_capability(result))
         self.assertFalse(result["selector_with_prompt_supported"])
         self.assertEqual("codex-cli 0.test", result["version"])
         self.assertEqual(local_agent._sha256_text("help\n"), result["review_help_sha256"])

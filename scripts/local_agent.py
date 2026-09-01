@@ -2274,22 +2274,70 @@ def _validate_offline_codex_capability(
         "selector_with_prompt_supported",
         "probe_reason",
     }
+    optional_fields = {
+        "probe_returncode",
+        "probe_output_sha256",
+        "probe_timeout_seconds",
+        "version_help_timeout_seconds",
+        "probe_timed_out",
+        "probe_termination_signal",
+        "probe_termination_escalated",
+    }
     if not required_fields.issubset(capability):
         raise AgentError("Codex capability record is incomplete")
-    if not isinstance(capability["version"], str) or not capability["version"].strip():
+    if capability.keys() - required_fields - optional_fields:
+        raise AgentError("Codex capability record has unexpected fields")
+    if type(capability["version"]) is not str or not capability["version"].strip():
         raise AgentError("Codex capability record has an invalid version")
     if (
-        not isinstance(capability["review_help_sha256"], str)
+        type(capability["review_help_sha256"]) is not str
         or re.fullmatch(r"[0-9a-f]{64}", capability["review_help_sha256"]) is None
     ):
         raise AgentError("Codex capability record has an invalid review help digest")
     if type(capability["selector_with_prompt_supported"]) is not bool:
         raise AgentError("Codex capability record has an invalid selector result")
     if (
-        not isinstance(capability["probe_reason"], str)
+        type(capability["probe_reason"]) is not str
         or not capability["probe_reason"].strip()
     ):
         raise AgentError("Codex capability record has an invalid probe reason")
+    if "probe_returncode" in capability and (
+        capability["probe_returncode"] is not None
+        and type(capability["probe_returncode"]) is not int
+    ):
+        raise AgentError("Codex capability record has an invalid probe return code")
+    if "probe_output_sha256" in capability and (
+        type(capability["probe_output_sha256"]) is not str
+        or re.fullmatch(r"[0-9a-f]{64}", capability["probe_output_sha256"]) is None
+    ):
+        raise AgentError("Codex capability record has an invalid probe output digest")
+    for field in ("probe_timeout_seconds", "version_help_timeout_seconds"):
+        if field in capability and (
+            type(capability[field]) is not int or capability[field] <= 0
+        ):
+            raise AgentError(f"Codex capability record has an invalid {field}")
+    if (
+        "probe_timed_out" in capability
+        and type(capability["probe_timed_out"]) is not bool
+    ):
+        raise AgentError("Codex capability record has an invalid timeout result")
+    if "probe_termination_signal" in capability and (
+        capability["probe_termination_signal"] is not None
+        and (
+            type(capability["probe_termination_signal"]) is not str
+            or not capability["probe_termination_signal"].strip()
+        )
+    ):
+        raise AgentError("Codex capability record has an invalid termination signal")
+    if (
+        "probe_termination_escalated" in capability
+        and type(capability["probe_termination_escalated"]) is not bool
+    ):
+        raise AgentError("Codex capability record has an invalid termination escalation result")
+    try:
+        json.dumps(capability, ensure_ascii=True, allow_nan=False)
+    except (TypeError, ValueError) as error:
+        raise AgentError("Codex capability record is not JSON-safe") from error
     return capability
 
 
