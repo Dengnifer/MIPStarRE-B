@@ -1257,7 +1257,7 @@
       "title": "Require exact disclosure authorization before external reviewer dispatch",
       "kind": "workflow",
       "execution_category": "preflight",
-      "status": "in_progress",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [],
       "labels": [
@@ -1283,7 +1283,7 @@
         "protocols/review.md"
       ],
       "created_at": "2026-09-01T05:30:00+08:00",
-      "updated_at": "2026-09-01T02:42:12.755893Z",
+      "updated_at": "2026-09-01T07:09:59.925985Z",
       "blocked_reason": null,
       "unblock_condition": "Assign one orchestrator and implement the exact authorization preflight with focused regressions, changelog evidence, and a fresh independent immutable review.",
       "standing_transport_trust_binding": "QPBT-010.standing_transport_trust",
@@ -1330,7 +1330,7 @@
       "title": "Enable content-bound OS-isolated production external review",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "ready",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-026",
@@ -1359,9 +1359,9 @@
         "protocols/review.md"
       ],
       "created_at": "2026-09-01T04:05:01.370018Z",
-      "updated_at": "2026-09-01T04:05:01.370018Z",
-      "blocked_reason": "Production review is intentionally fail-closed until QPBT-026 and the QPBT-027 PR-ledger repair are complete.",
-      "unblock_condition": "Complete QPBT-026 and QPBT-027, then assign one isolated orchestrator to implement and independently review version-2 content authorization plus OS isolation without contacting an endpoint."
+      "updated_at": "2026-09-01T07:11:09.095189Z",
+      "blocked_reason": null,
+      "unblock_condition": "Assign one isolated orchestrator to implement and independently review version-2 content authorization plus OS isolation without contacting an endpoint."
     }
   ]
 }

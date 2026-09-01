@@ -4073,7 +4073,7 @@
     {
       "id": "LPR-016",
       "title": "feat(review): require exact disclosure preflight",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-026"
       ],
@@ -4435,6 +4435,83 @@
           "second_parent": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
           "changed_paths": 4,
           "worktree_clean": true
+        },
+        {
+          "id": "check-qpbt-026-activation-focused-8e2a645",
+          "name": "exact activation-object focused suites",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_workflow.py'; PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_local_agent.py'",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "8e2a645e272ba4de9d1218ca5a13bf86534b55fd",
+          "completed_at": "2026-09-01T07:07:48.794344Z",
+          "result_path": "workflow/reviews/qpbt-026-final-activation-a27-validation-root.md",
+          "workflow_tests": "70/70",
+          "workflow_seconds": 0.644,
+          "local_agent_tests": "63/63",
+          "local_agent_seconds": 4.414
+        },
+        {
+          "id": "check-qpbt-026-activation-aggregate-8e2a645",
+          "name": "exact activation-object aggregate Python gate",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "8e2a645e272ba4de9d1218ca5a13bf86534b55fd",
+          "completed_at": "2026-09-01T07:07:48.794344Z",
+          "result_path": "workflow/reviews/qpbt-026-final-activation-a27-validation-root.md",
+          "tests": "336/336",
+          "seconds": 187.177,
+          "root_owned": true
+        },
+        {
+          "id": "check-qpbt-026-activation-auxiliary-8e2a645",
+          "name": "exact activation-object compile workflow and blueprint gates",
+          "command": "compileall; workflow validate and checker --skip-tests; blueprint test check graph",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "8e2a645e272ba4de9d1218ca5a13bf86534b55fd",
+          "completed_at": "2026-09-01T07:07:48.794344Z",
+          "result_path": "workflow/reviews/qpbt-026-final-activation-a27-validation-root.md",
+          "compileall": "passed",
+          "workflow_validate": "passed",
+          "workflow_checker": "passed",
+          "blueprint_tests": "26/26",
+          "blueprint_nodes": 48,
+          "blueprint_chapters": 12,
+          "acyclic": true,
+          "deterministic": true
+        },
+        {
+          "id": "check-qpbt-026-activation-identity-8e2a645",
+          "name": "exact activation-object identity preservation and unchanged fast-forward",
+          "command": "authenticate commit tree ordered parents four result blobs preserved first-parent entries and canonical HEAD",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "8e2a645e272ba4de9d1218ca5a13bf86534b55fd",
+          "completed_at": "2026-09-01T07:07:48.794344Z",
+          "result_path": "workflow/reviews/qpbt-026-final-activation-a27-authority.json",
+          "tree_sha": "ccd2ecf221756b539242faea25490809d9527e90",
+          "first_parent": "3c0e7c5675a7fca0bba925f016e8df39c0d444c0",
+          "second_parent": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+          "changed_paths": 4,
+          "expected_result_blobs": "4/4",
+          "first_parent_entries_preserved": true,
+          "canonical_fast_forward_unchanged": true
+        },
+        {
+          "id": "check-qpbt-026-activation-audit-8e2a645",
+          "name": "fresh independent exact activation-object audit",
+          "command": "read-only hostile audit of exact immutable activation object and authenticated root evidence",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "8e2a645e272ba4de9d1218ca5a13bf86534b55fd",
+          "completed_at": "2026-09-01T07:07:48.794344Z",
+          "result_path": "workflow/reviews/qpbt-026-final-activation-a27.md",
+          "reviewer_session_id": "i026-reviewer-a27-final-activation",
+          "verdict": "approve",
+          "formal_pr_review": false,
+          "new_findings": [],
+          "report_sha256": "970a082b4affc64abaa450373a893d2247d64cc4570cb716ad14a80456319a80"
         }
       ],
       "reviews": [
@@ -4686,10 +4763,10 @@
           "line": 2277
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "8e2a645e272ba4de9d1218ca5a13bf86534b55fd",
+      "merged_at": "2026-09-01T07:09:51.282866Z",
       "created_at": "2026-08-31T22:10:00Z",
-      "updated_at": "2026-09-01T06:36:03.723546Z",
+      "updated_at": "2026-09-01T07:09:51.282866Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -4703,7 +4780,7 @@
       ],
       "motivation": "INC-045 showed that endpoint/model authorization without an exact private evidence scope cannot safely launch an external reviewer.",
       "description": "Validate legacy destination, immutable target, and path scope, then fail closed before any production reviewer side effect; keep the offline projected test facility non-launchable, validate the complete allowlisted capability schema before side effects, and scrub all ambient Git selection from harness and runner environments.",
-      "testing": "63/63 exact-head local-agent tests; candidate compileall/workflow/diff gates; exact A20 formal approval and seven current-head confirmations; semantic prototype focused 70/70 and 63/63; root prototype aggregate 336/336; blueprint 26/26 with 48-node deterministic graph; final exact activation-object rerun and audit pending",
+      "testing": "63/63 exact-head local-agent tests; candidate compileall/workflow/diff gates; exact A20 formal approval and seven current-head confirmations; exact activation focused 70/70 and 63/63; aggregate 336/336 in 187.177s; compileall; workflow validator/checker; blueprint 26/26 with deterministic acyclic 48-node/12-chapter graph; exact four-path identity and preservation; fresh A27 activation approval with no findings",
       "addresses": "QPBT-026",
       "provenance_session_ids": [
         "i026-orchestrator-a01-disclosure-preflight",
@@ -4716,10 +4793,11 @@
         "i026-scout-a22-semantic-union",
         "i026-integrator-a23-semantic-union",
         "i026-scout-a24-activation-topology",
-        "i026-reviewer-a25-integration-prototype"
+        "i026-reviewer-a25-integration-prototype",
+        "i026-reviewer-a27-final-activation"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Freeze the final canonical first parent after activation-auditor registration; construct one immutable two-parent four-blob overlay with exact head 5bf6e086 as second parent; run exact-object aggregate, blueprint, compile, workflow, identity, and preservation gates; obtain fresh independent approval of that exact object; then fast-forward it unchanged before importing audit bookkeeping.",
+      "unexecuted_gate": "Completed: exact immutable activation object 8e2a645 passed all focused, aggregate, compile, workflow, blueprint, identity, preservation, and fresh independent audit gates, then main fast-forwarded to it unchanged before audit bookkeeping import.",
       "integration_plan_evidence": {
         "confirmation_review_id": "review-qpbt-026-pr016-a20-immutable",
         "confirmed_findings": "F-LPR016-001 through F-LPR016-007",
@@ -4762,7 +4840,28 @@
         "prototype_review_formal_pr_review": false,
         "root_prototype_validation_report": "workflow/reviews/qpbt-026-integration-validation-root.md",
         "root_prototype_validation_report_sha256": "a44710e9ec6245881444c4571742cbb94d09a9f1471d8b6047a8599fbf313203",
-        "final_activation_audit_required": true
+        "final_activation_audit_required": false,
+        "activation_sha": "8e2a645e272ba4de9d1218ca5a13bf86534b55fd",
+        "activation_tree": "ccd2ecf221756b539242faea25490809d9527e90",
+        "activation_first_parent": "3c0e7c5675a7fca0bba925f016e8df39c0d444c0",
+        "activation_second_parent": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+        "activation_unique_merge_base": "ea584e9e894391773e09ddad2ce4d082497c7913",
+        "activation_changed_paths": 4,
+        "activation_result_blobs": "4/4",
+        "activation_first_parent_entries_preserved": true,
+        "activation_authority_path": "workflow/reviews/qpbt-026-final-activation-a27-authority.json",
+        "activation_authority_sha256": "1111e7abdbdb6ee208d21dbfe3681bc97fcd841314b042627cc8bd879161c7ce",
+        "final_validation_report": "workflow/reviews/qpbt-026-final-activation-a27-validation-root.md",
+        "final_validation_report_sha256": "2c798ca5d0abb765a7c234467bb92c40ed5dc78948302d5ba1c316334e43f82b",
+        "final_activation_reviewer_session_id": "i026-reviewer-a27-final-activation",
+        "final_activation_review_verdict": "approve",
+        "final_activation_review_findings": [],
+        "final_activation_review_formal_pr_review": false,
+        "final_activation_review_report": "workflow/reviews/qpbt-026-final-activation-a27.md",
+        "final_activation_review_report_sha256": "970a082b4affc64abaa450373a893d2247d64cc4570cb716ad14a80456319a80",
+        "final_activation_fast_forward_unchanged": true,
+        "superseded_unreviewed_sha": "17415b8b00883962e64dbede1fe2c079f0654956",
+        "superseded_object_activated": false
       }
     },
     {

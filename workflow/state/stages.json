@@ -123,7 +123,10 @@
         "workflow/reviews/qpbt-026-activation-topology-a24.md",
         "workflow/reviews/qpbt-026-integration-review-a25.md",
         "workflow/reviews/qpbt-026-integration-validation-root.md",
-        "workflow/reviews/qpbt-026-final-activation-a26.md"
+        "workflow/reviews/qpbt-026-final-activation-a26.md",
+        "workflow/reviews/qpbt-026-final-activation-a27-authority.json",
+        "workflow/reviews/qpbt-026-final-activation-a27-validation-root.md",
+        "workflow/reviews/qpbt-026-final-activation-a27.md"
       ],
       "incident_ids": [
         "INC-021",

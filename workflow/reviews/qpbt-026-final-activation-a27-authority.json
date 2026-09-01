@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "issue_id": "QPBT-026",
+  "pr_id": "LPR-016",
+  "review_session_id": "i026-reviewer-a27-final-activation",
+  "activation_sha": "8e2a645e272ba4de9d1218ca5a13bf86534b55fd",
+  "activation_tree": "ccd2ecf221756b539242faea25490809d9527e90",
+  "first_parent": "3c0e7c5675a7fca0bba925f016e8df39c0d444c0",
+  "first_parent_tree": "26b79d147e0038e2f0be317d01f36e103744a414",
+  "second_parent": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+  "second_parent_tree": "88b1b6076aa8890376cf4f8b56c3da2bd372367d",
+  "unique_merge_base": "ea584e9e894391773e09ddad2ce4d082497c7913",
+  "semantic_prototype_sha": "8ee49bcca504ccb02ffcb4852f63ca2d2f8fbbd4",
+  "semantic_prototype_tree": "d1651f29f41d555859838a088726f03ac869d541",
+  "superseded_unreviewed_sha": "17415b8b00883962e64dbede1fe2c079f0654956",
+  "changed_paths": [
+    "protocols/CHANGELOG.md",
+    "protocols/review.md",
+    "scripts/local_agent.py",
+    "tests/test_local_agent.py"
+  ],
+  "result_blobs": {
+    "protocols/CHANGELOG.md": "107c5eb147811e0d3909717c74e2f32eb43d1ac5",
+    "protocols/review.md": "037b625f0f77cfef1997d793aa14d48893d91dc0",
+    "scripts/local_agent.py": "25a5198e9b3c7e3ace8c6365b7064e8aa55dc506",
+    "tests/test_local_agent.py": "f8b51e87f2e1d7ac5fc40d55b0c415b95cebf824"
+  },
+  "preserved_qpbt027_blobs": {
+    "scripts/workflow.py": "6b5271bc995066641319c4ee0fe880e37d74490e",
+    "tests/test_workflow.py": "ac747a955a360cf6bb8b8d1124f4fd1bf1846dbe"
+  },
+  "shared_report_blobs": {
+    "workflow/reviews/qpbt-026-capability-schema-a19.md": "80d15f96cc97594236bc6d7d55879b2bead3c0a5",
+    "workflow/reviews/qpbt-026-disclosure-preflight-a01.md": "2923e68d180243053e80bc56f48fac9053499d4e",
+    "workflow/reviews/qpbt-026-disclosure-preflight-a05.md": "0ccf818f3a274a2fd649086a6919cc71a997cb59",
+    "workflow/reviews/qpbt-026-disclosure-preflight-a11.md": "da1e5c1cf6d8fec19a8c21d508c5efbd6f5baabc",
+    "workflow/reviews/qpbt-026-offline-isolation-a17.md": "ea20399f6dceeea1e7d7ac04e90acd46f45935ce"
+  },
+  "validation": {
+    "workflow_tests": "70/70",
+    "workflow_seconds": 0.644,
+    "local_agent_tests": "63/63",
+    "local_agent_seconds": 4.414,
+    "aggregate_tests": "336/336",
+    "aggregate_seconds": 187.177,
+    "compileall": "passed",
+    "workflow_validate": "passed",
+    "workflow_checker_skip_tests": "passed",
+    "blueprint_tests": "26/26",
+    "blueprint_nodes": 48,
+    "blueprint_chapters": 12,
+    "blueprint_acyclic": true,
+    "blueprint_deterministic": true,
+    "identity": "passed",
+    "marker_scan": "passed",
+    "diff_check": "passed",
+    "worktree_clean": true
+  },
+  "validation_report_path": "/tmp/qpbt-026-final-activation-a27-validation-root.md",
+  "validation_report_sha256": "2c798ca5d0abb765a7c234467bb92c40ed5dc78948302d5ba1c316334e43f82b",
+  "created_at": "2026-09-01T06:57:08.144293Z"
+}
