@@ -29,14 +29,14 @@ availability reasons rather than receiving estimates.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 112 terminal attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | source and blueprint acceptance chain closed; LPR-018 has three confirmed findings and supplemental QPBT-028/029/030 isolation work continues off the Lean critical path |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 40 issued attempts, 39 terminal and 1 active; peak concurrency 3 | collaboration usage unavailable | source and API audits archived; expanded-scope QPBT-023 contract continuation active |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 193 issued attempts: 192 terminal and 1 active session; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files are reviewed, merged, and combined-build clean; the approved admission repair awaits guarded integration while the callable-contract repair runs on its reviewed head |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 193 issued attempts: 192 terminal and 1 active session; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files and the live-admission repair are merged and post-integration clean; the callable-contract repair runs on its reviewed head |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
 
 ## Schedule estimates
 
-The snapshot below was updated at 2026-09-01 22:23 +08. Ranges are wall-clock
+The snapshot below was updated at 2026-09-01 22:31 +08. Ranges are wall-clock
 forecasts with the root coordinator plus three safe worker lanes, not token or
 person-hour estimates. The lanes are allocated to one critical-path writer,
 one fresh source/fidelity reviewer, and one independent API/cache or disjoint
@@ -46,9 +46,9 @@ hot-main build remains a singleton.
 | Stage | Measured elapsed at snapshot | Estimated remaining wall time | Dominant assumption |
 | --- | ---: | ---: | --- |
 | 1. Workflow skeleton | 15 h 53 min (complete) | 0 | Acceptance and independent review are complete. |
-| 2. Source split | 44 h 18 min | 1-3 working weeks on an independent lane | QPBT-029 must complete exact capture/projection and QPBT-030 must build and test pinned reviewer/broker isolation; the explicit supplemental-review disposition means this no longer delays Lean dispatch. |
-| 3. Lean blueprint | 42 h 38 min | 1-3 hours for the active three-finding contract repair, then one fresh resolution review | The first immutable review found two high contract omissions and one medium metadata overclaim; A04 is repairing exactly those findings on the reviewed head. |
-| 4A. Minimal skeleton | 42 h 38 min | writers can start in about 1-3 hours if the changed-head review is clean; next four-file wave remains 17-41 active hours (about 1-4 calendar days); full stage 6-16 weeks | `Field.lean` and `Approximation.lean` are merged and combined-build clean. QPBT-035 gates three parallel Lean writers until its exact contract repair and review complete; the self-dual-normal-basis theorem remains the dominant full-stage risk. |
+| 2. Source split | 44 h 26 min | 1-3 working weeks on an independent lane | QPBT-029 must complete exact capture/projection and QPBT-030 must build and test pinned reviewer/broker isolation; the explicit supplemental-review disposition means this no longer delays Lean dispatch. |
+| 3. Lean blueprint | 42 h 46 min | 1-3 hours for the active three-finding contract repair, then one fresh resolution review | The first immutable review found two high contract omissions and one medium metadata overclaim; A04 is repairing exactly those findings on the reviewed head. |
+| 4A. Minimal skeleton | 42 h 46 min | writers can start in about 1-3 hours if the changed-head review is clean; next four-file wave remains 17-41 active hours (about 1-4 calendar days); full stage 6-16 weeks | `Field.lean` and `Approximation.lean` are merged and combined-build clean. QPBT-035 gates three parallel Lean writers until its exact contract repair and review complete; the self-dual-normal-basis theorem remains the dominant full-stage risk. |
 | 4B. Complete skeleton | not started | 4-10 weeks | All 48 blueprint declarations receive reviewed signatures; tracked `sorry` is allowed but no assumptions hide proof debt. |
 | 4C. Proofs | not started | 18-48 months | External theorem boundaries are admissible where declared and the rigidity/LDT dependencies do not require foundational redevelopment. |
 | 5. Final audit | not started | 3-8 weeks | Statements remain stable and full build/declaration synchronization does not expose late source gaps. |
@@ -1292,9 +1292,10 @@ rollback. A03 repaired both findings at changed report head
 approved the exact changed head with no new findings after independently
 re-running both adversarial cases and all 344 aggregate tests. Both findings
 are formally resolved. The no-byte-change integrator then authenticated the
-exact approved head, seven-path manifest, report chain, and both dispositions;
-LPR-022 is approved and awaits only guarded integration and post-integration
-validation.
+exact approved head, seven-path manifest, report chain, and both dispositions.
+LPR-022 was guarded-merged at `d1e484bcdf99c05e8110e5e855e57c32b5645da0`;
+all seven candidate blobs were preserved, and the post-integration aggregate
+suite passed 344/344 in `179.222` seconds with every auxiliary gate clean.
 
 QPBT-035 A01 ran for `887.256` coordinator-measured seconds and stopped before
 contract edits when it found that the closed blueprint validator admitted only

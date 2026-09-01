@@ -2836,3 +2836,6 @@
 {"schema_version":1,"timestamp":"2026-09-01T14:22:18.659436Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"running","session_id":"i035-orchestrator-a04-q014-contract-fixes"}}
 {"schema_version":1,"timestamp":"2026-09-01T14:22:48.617796Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-035","fields":["owner_session_id","source_refs"]}}
 {"schema_version":1,"timestamp":"2026-09-01T14:22:48.907755Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
+{"schema_version":1,"timestamp":"2026-09-01T14:30:50.322398Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-022","fields":["integration_sha","post_integration_evidence","unexecuted_gate"]}}
+{"schema_version":1,"timestamp":"2026-09-01T14:30:58.550137Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"merged","id":"LPR-022"}}
+{"schema_version":1,"timestamp":"2026-09-01T14:30:58.855212Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"done","id":"QPBT-034"}}

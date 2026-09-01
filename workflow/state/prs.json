@@ -5728,7 +5728,7 @@
     {
       "id": "LPR-022",
       "title": "fix(workflow): confirm live collaboration admission",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-034"
       ],
@@ -5966,10 +5966,10 @@
           "required_change": "Restore exact state/event snapshots on BaseException and inject interrupts at each publication boundary."
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "d1e484bcdf99c05e8110e5e855e57c32b5645da0",
+      "merged_at": "2026-09-01T14:30:58.496091Z",
       "created_at": "2026-09-01T13:15:00Z",
-      "updated_at": "2026-09-01T14:20:59.566489Z",
+      "updated_at": "2026-09-01T14:30:58.496091Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -5988,7 +5988,28 @@
         "i034-orchestrator-a03-live-admission-fixes"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Formal no-byte-change adoption passed on the exact approved head; guarded integration and post-integration validation remain."
+      "unexecuted_gate": "Completed: exact approved head f672839 was guarded-merged at d1e484b; all seven candidate blobs were preserved and 344 aggregate tests plus checker, compile, workflow, and diff gates passed.",
+      "post_integration_evidence": {
+        "integration_sha": "d1e484bcdf99c05e8110e5e855e57c32b5645da0",
+        "integration_tree": "8b76f55e3f228af652eb0529dcc17459f6fd66db",
+        "first_parent": "85fcaba60d1bd9c4f9c8ebe1c74cd7b38684f26a",
+        "second_parent": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+        "candidate_base": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+        "candidate_tree": "119e7f038655033878c874b074cbcf9c477cba32",
+        "candidate_result_blobs": "7/7",
+        "merge_conflicts": 0,
+        "changed_paths": 7,
+        "binding_report": "workflow/reviews/qpbt-034-pr022-bind-a05.md",
+        "binding_report_sha256": "87908159e8487583e0c119ca4ebd888e23ea15dce52416e061cdb9a7e215bbea",
+        "review": "review-qpbt-034-pr022-a04-resolution",
+        "review_report_sha256": "be8edc8454ea5a3e792cd4619434a29b44caa85e714a464e65e25c717e5636b9",
+        "aggregate_tests": "344/344 passed in 179.222s",
+        "workflow_checker": "3/3 passed",
+        "compileall": "passed",
+        "workflow_validate": "passed",
+        "diff_check": "passed",
+        "completed_at": "2026-09-01T14:30:12Z"
+      }
     },
     {
       "id": "LPR-023",
