@@ -2011,7 +2011,7 @@
       "title": "feat(QPBT/Basic): implement low-degree polynomial encoding",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2040,7 +2040,7 @@
         "MIPStarRE/QPBT/Basic/Polynomial.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T22:02:26.281748Z",
+      "updated_at": "2026-09-01T23:07:04.916581Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -2049,7 +2049,7 @@
       "title": "feat(QPBT/Game): implement conditionally-linear and typed interfaces",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "blocked",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2085,9 +2085,9 @@
         "MIPStarRE/QPBT/Game/Types.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T22:07:22.744137Z",
-      "blocked_reason": null,
-      "unblock_condition": null
+      "updated_at": "2026-09-01T23:24:32.600381Z",
+      "blocked_reason": "A01 exposed a source-fidelity blocker: directSum and downsize discard their input maps, while CLSampler.sample and TypedSampler.sample use degenerate zero outputs. Candidate 9070aa4 is rejected and will not be integrated.",
+      "unblock_condition": "Implement and review certificate-preserving direct-sum/downsize transports and source-faithful sampler distributions for arbitrary conditionally-linear maps, then retry from a fresh exact base."
     },
     {
       "id": "QPBT-040",

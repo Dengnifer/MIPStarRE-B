@@ -7055,6 +7055,24 @@
           "report_sha256": "d73fe817f25d1ebc83ae93b266eccae47b9925ac2cc1010cc87a39734227532d",
           "manifest_sha256": "eeb1e91987e812a849ed330aca52e4176f8289526e81cb3418b294aaa2dace19",
           "integration_gate": "blocked: legacy compatibility, transaction validation, and equal-timestamp ordering repairs required"
+        },
+        {
+          "id": "review-qpbt-052-pr025-a04-release-contract",
+          "reviewer_session_id": "i052-reviewer-a04-release-contract",
+          "verdict": "request_changes",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "40d3e565426f74a0e3c60798ec7e2b5f7e35cfbf",
+          "started_at": "2026-09-01T22:48:09.893512Z",
+          "completed_at": "2026-09-01T22:54:04.710303Z",
+          "result_path": "workflow/reviews/qpbt-052-review-a04.md",
+          "finding_ids": [
+            "F-LPR025-A04-001",
+            "F-LPR025-A04-002"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "e4d2cafe70963d59ebb68ba4854a60d31bdeefbb43ee49f43cf354c7ae7e7036",
+          "manifest_sha256": "9c8a5a2e835d5afd3363d708be5298a8141a64aac52b3652083754aef1e57e6e",
+          "integration_gate": "blocked: release must precede terminal/archive events and issuance identity must match the session"
         }
       ],
       "findings": [
@@ -7132,12 +7150,42 @@
           "path": "scripts/workflow.py",
           "line": 1518,
           "required_change": "Use event sequence/line number as a tie-breaker for release chronology."
+        },
+        {
+          "id": "F-LPR025-A04-001",
+          "introduced_review_id": "review-qpbt-052-pr025-a04-release-contract",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "40d3e565426f74a0e3c60798ec7e2b5f7e35cfbf",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Marked collaboration terminal/archive events can precede the required task release attestation.",
+          "path": "scripts/workflow.py",
+          "line": 1541,
+          "required_change": "Reject release-after-terminal/archive chronology, including equal-timestamp permutations, and add focused regressions."
+        },
+        {
+          "id": "F-LPR025-A04-002",
+          "introduced_review_id": "review-qpbt-052-pr025-a04-release-contract",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "40d3e565426f74a0e3c60798ec7e2b5f7e35cfbf",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "A marked session.issued event does not bind its external identity to the issued session identity.",
+          "path": "scripts/workflow.py",
+          "line": 1525,
+          "required_change": "Validate issuance payload external_id and backend/contract consistency against the immutable session identity, retaining markerless legacy compatibility."
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:00Z",
-      "updated_at": "2026-09-01T22:17:55.816005Z",
+      "updated_at": "2026-09-01T22:56:35.322415Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -7148,7 +7196,8 @@
         "tests/test_local_agent.py",
         "workflow/reviews/qpbt-049-release-repair-a02.md",
         "workflow/reviews/qpbt-049-review-a03.md",
-        "workflow/reviews/qpbt-052-release-contract-repair-a03.md"
+        "workflow/reviews/qpbt-052-release-contract-repair-a03.md",
+        "workflow/reviews/qpbt-052-review-a04.md"
       ],
       "motivation": "Prevent collaboration task packets from being released before immutable backend identity confirmation.",
       "description": "Add a post-confirmation identity-bound release event and fail-closed lifecycle validation.",
@@ -7158,10 +7207,11 @@
         "i049-orchestrator-a01-task-release",
         "i049-orchestrator-a02-release-repair",
         "i049-reviewer-a03-release-repair",
-        "i052-orchestrator-a03-release-contract-repair"
+        "i052-orchestrator-a03-release-contract-repair",
+        "i052-reviewer-a04-release-contract"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Obtain a fresh independent immutable review of exact head 40d3e565426f74a0e3c60798ec7e2b5f7e35cfbf, then guarded integration onto current main."
+      "unexecuted_gate": "Repair A04-001 and A04-002 on a changed head, then obtain a fresh immutable review before guarded integration."
     },
     {
       "id": "LPR-026",
@@ -7325,6 +7375,100 @@
       ],
       "requested_external_review": true,
       "unexecuted_gate": "No unexecuted LPR-026 gates; production cache use remains governed by the separate current-main singleton protocol."
+    },
+    {
+      "id": "LPR-027",
+      "title": "feat(QPBT/Basic): implement low-degree polynomial encoding",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-036"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-036-polynomial-a01",
+      "base_sha": "358cd108db045d13f4e0095a2948dd4037be2b54",
+      "head_sha": "8467454fefefdbac7478a2df8f8c1e2d9c25fcf5",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-036-scoped-lean",
+          "name": "QPBT-036 scoped Lean typecheck",
+          "command": "lake env lean MIPStarRE/QPBT/Basic/Polynomial.lean",
+          "status": "passed",
+          "base_sha": "358cd108db045d13f4e0095a2948dd4037be2b54",
+          "head_sha": "8467454fefefdbac7478a2df8f8c1e2d9c25fcf5",
+          "completed_at": "2026-09-01T23:06:00Z",
+          "result_path": "workflow/reviews/qpbt-036-polynomial-a01.md"
+        },
+        {
+          "id": "check-qpbt-036-target-build",
+          "name": "QPBT-036 affected target build",
+          "command": "lake build MIPStarRE.QPBT.Basic.Polynomial",
+          "status": "passed",
+          "base_sha": "358cd108db045d13f4e0095a2948dd4037be2b54",
+          "head_sha": "8467454fefefdbac7478a2df8f8c1e2d9c25fcf5",
+          "completed_at": "2026-09-01T23:06:10Z",
+          "result_path": "workflow/reviews/qpbt-036-polynomial-a01.md"
+        },
+        {
+          "id": "check-qpbt-036-full-build",
+          "name": "QPBT-036 private full build",
+          "command": "lake build",
+          "status": "passed",
+          "base_sha": "358cd108db045d13f4e0095a2948dd4037be2b54",
+          "head_sha": "8467454fefefdbac7478a2df8f8c1e2d9c25fcf5",
+          "completed_at": "2026-09-01T23:06:20Z",
+          "result_path": "workflow/reviews/qpbt-036-polynomial-a01.md"
+        },
+        {
+          "id": "check-qpbt-036-blueprint-source",
+          "name": "QPBT-036 blueprint and pinned-source synchronization",
+          "command": "python3 blueprint/check.py --check --source-root /home/drx/MIPStarRE-auto/references/2001.04383v3",
+          "status": "passed",
+          "base_sha": "358cd108db045d13f4e0095a2948dd4037be2b54",
+          "head_sha": "8467454fefefdbac7478a2df8f8c1e2d9c25fcf5",
+          "completed_at": "2026-09-01T23:06:30Z",
+          "result_path": "workflow/reviews/qpbt-036-polynomial-a01.md"
+        },
+        {
+          "id": "check-qpbt-036-debt-import",
+          "name": "QPBT-036 proof-debt and import scan",
+          "command": "owned-file sorry/axiom/constant and import scan",
+          "status": "passed",
+          "base_sha": "358cd108db045d13f4e0095a2948dd4037be2b54",
+          "head_sha": "8467454fefefdbac7478a2df8f8c1e2d9c25fcf5",
+          "completed_at": "2026-09-01T23:06:40Z",
+          "result_path": "workflow/reviews/qpbt-036-polynomial-a01.md"
+        },
+        {
+          "id": "check-qpbt-036-diff",
+          "name": "QPBT-036 candidate diff hygiene",
+          "command": "git diff --check 358cd108db045d13f4e0095a2948dd4037be2b54..8467454fefefdbac7478a2df8f8c1e2d9c25fcf5",
+          "status": "passed",
+          "base_sha": "358cd108db045d13f4e0095a2948dd4037be2b54",
+          "head_sha": "8467454fefefdbac7478a2df8f8c1e2d9c25fcf5",
+          "completed_at": "2026-09-01T23:06:50Z",
+          "result_path": "workflow/reviews/qpbt-036-polynomial-a01.md"
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-01T23:08:47.942383Z",
+      "updated_at": "2026-09-01T23:09:02.793627Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Basic/Polynomial.lean",
+        "workflow/reviews/qpbt-036-polynomial-a01.md"
+      ],
+      "motivation": "Land the source-faithful F02 low-degree polynomial encoding contract.",
+      "description": "Add Boolean/field point boundaries, individual-degree indicator polynomials, evaluation, interpolation, and injectivity declarations and proofs.",
+      "testing": "Scoped Lean, target/full builds, pinned-source blueprint synchronization, debt/import scan, and diff hygiene passed; canonical warm failure was isolated and retained in the implementation report.",
+      "addresses": "QPBT-036",
+      "provenance_session_ids": [
+        "i036-orchestrator-a01-polynomial"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": "Bind a fresh independent immutable reviewer to the exact candidate, then adopt and guarded-integrate with a PR-bound implementer session."
     }
   ]
 }
