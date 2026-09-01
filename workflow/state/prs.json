@@ -4073,7 +4073,7 @@
     {
       "id": "LPR-016",
       "title": "feat(review): require exact disclosure preflight",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-026"
       ],
@@ -4519,7 +4519,10 @@
           "resolved_by_review_id": "review-qpbt-026-pr016-a08-immutable",
           "summary": "Validated disclosure authorization is copied into the review target, prompt, and result envelope, contrary to the no-echo protocol.",
           "path": "scripts/local_agent.py",
-          "line": 2885
+          "line": 2885,
+          "confirmation_review_ids": [
+            "review-qpbt-026-pr016-a20-immutable"
+          ]
         },
         {
           "id": "F-LPR016-002",
@@ -4533,7 +4536,10 @@
           "resolved_by_review_id": "review-qpbt-026-pr016-a14-immutable",
           "summary": "Omitting a custom transport profile bypasses the required disclosure authorization before a default-provider model-backed review and lease claim.",
           "path": "scripts/local_agent.py",
-          "line": 697
+          "line": 697,
+          "confirmation_review_ids": [
+            "review-qpbt-026-pr016-a20-immutable"
+          ]
         },
         {
           "id": "F-LPR016-003",
@@ -4547,7 +4553,10 @@
           "resolved_by_review_id": "review-qpbt-026-pr016-a08-immutable",
           "summary": "Commit-target head SHA drift is checked only after the bound reviewer lease is claimed.",
           "path": "scripts/local_agent.py",
-          "line": 681
+          "line": 681,
+          "confirmation_review_ids": [
+            "review-qpbt-026-pr016-a20-immutable"
+          ]
         },
         {
           "id": "F-LPR016-004",
@@ -4561,7 +4570,10 @@
           "resolved_by_review_id": "review-qpbt-026-pr016-a08-immutable",
           "summary": "Credential-path rejection checks only an incomplete basename pattern, allowing common nested key and credential paths despite exclude_credentials.",
           "path": "scripts/local_agent.py",
-          "line": 642
+          "line": 642,
+          "confirmation_review_ids": [
+            "review-qpbt-026-pr016-a20-immutable"
+          ]
         },
         {
           "id": "F-LPR016-005",
@@ -4575,7 +4587,10 @@
           "resolved_by_review_id": "review-qpbt-026-pr016-a14-immutable",
           "summary": "Changed-path authorization omits unchanged authority bytes embedded in the outbound prompt and unlisted repository content readable through the full cloned harness.",
           "path": "scripts/local_agent.py",
-          "line": 812
+          "line": 812,
+          "confirmation_review_ids": [
+            "review-qpbt-026-pr016-a20-immutable"
+          ]
         },
         {
           "id": "F-LPR016-006",
@@ -4589,7 +4604,10 @@
           "resolved_by_review_id": "review-qpbt-026-pr016-a18-immutable",
           "summary": "An empty injected offline capability record invokes the real Codex capability probe through a truthiness fallback.",
           "path": "scripts/local_agent.py",
-          "line": 3097
+          "line": 3097,
+          "confirmation_review_ids": [
+            "review-qpbt-026-pr016-a20-immutable"
+          ]
         },
         {
           "id": "F-LPR016-007",
@@ -4603,7 +4621,10 @@
           "resolved_by_review_id": "review-qpbt-026-pr016-a18-immutable",
           "summary": "Inherited Git repository and object-selection environment exposes unmanifested source objects inside the projected offline harness.",
           "path": "scripts/local_agent.py",
-          "line": 1831
+          "line": 1831,
+          "confirmation_review_ids": [
+            "review-qpbt-026-pr016-a20-immutable"
+          ]
         },
         {
           "id": "F-LPR016-008",
@@ -4623,7 +4644,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T22:10:00Z",
-      "updated_at": "2026-09-01T04:51:14.144144Z",
+      "updated_at": "2026-09-01T06:10:24.467648Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -4637,7 +4658,7 @@
       ],
       "motivation": "INC-045 showed that endpoint/model authorization without an exact private evidence scope cannot safely launch an external reviewer.",
       "description": "Validate legacy destination, immutable target, and path scope, then fail closed before any production reviewer side effect; keep the offline projected test facility non-launchable, validate the complete allowlisted capability schema before side effects, and scrub all ambient Git selection from harness and runner environments.",
-      "testing": "63/63 exact-head local-agent tests; Python compileall; workflow validation; SHA-bound nine-path diff hygiene; direct-parent, tree, branch, ancestry, and clean-worktree identity",
+      "testing": "63/63 exact-head local-agent tests; Python compileall; workflow validation; SHA-bound nine-path diff hygiene; exact A20 approval and seven current-head finding confirmations; isolated approval transition replay passed",
       "addresses": "QPBT-026",
       "provenance_session_ids": [
         "i026-orchestrator-a01-disclosure-preflight",
@@ -4645,15 +4666,42 @@
         "i026-scout-a10-scope-token-design",
         "i026-fixer-a11-scope-token-repair",
         "i026-fixer-a17-offline-isolation",
-        "i026-fixer-a19-capability-schema"
+        "i026-fixer-a19-capability-schema",
+        "i026-scout-a21-confirmation-payload",
+        "i026-scout-a22-semantic-union"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "A20 approved exact head 5bf6e08, resolved F-LPR016-008, and reconfirmed F-LPR016-001 through F-LPR016-007. QPBT-027 must integrate before those append-only current-head confirmations can be recorded and the PR approved. Production external review remains disabled."
+      "unexecuted_gate": "Construct an immutable true two-parent integration candidate from the actual clean main parent and exact head 5bf6e086; resolve the single changelog conflict by semantic union, authenticate the clean review-protocol union, run full gates, and obtain a fresh independent combined-tree review before merge activation.",
+      "integration_plan_evidence": {
+        "confirmation_review_id": "review-qpbt-026-pr016-a20-immutable",
+        "confirmed_findings": "F-LPR016-001 through F-LPR016-007",
+        "confirmation_payload_sha256": "40ca819fd4e58b80bb3dcd85c7d418733d399aec41067c89c397a3f89010bf52",
+        "confirmation_report": "workflow/reviews/qpbt-026-confirmation-payload-a21.md",
+        "confirmation_report_sha256": "bce35989da213e2933109a31616ae04f0b4fb75dad532de027ecd9e1e15b6d75",
+        "checkpoint_sha": "3686315526fab8704745df6ad69d60e1bd72fa3a",
+        "candidate_sha": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+        "conflict_paths": [
+          "protocols/CHANGELOG.md"
+        ],
+        "semantic_review_paths": [
+          "protocols/CHANGELOG.md",
+          "protocols/review.md"
+        ],
+        "expected_first_parent_delta_paths": [
+          "protocols/CHANGELOG.md",
+          "protocols/review.md",
+          "scripts/local_agent.py",
+          "tests/test_local_agent.py"
+        ],
+        "fresh_combined_tree_review_required": true,
+        "semantic_union_report": "workflow/reviews/qpbt-026-semantic-union-a22.md",
+        "semantic_union_report_sha256": "1738299df52a8a9fdfa12b6423ef5e795b08f0a85d17b1b95067fffcd70f15ae"
+      }
     },
     {
       "id": "LPR-017",
       "title": "fix(review): permit append-only finding reconfirmation",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-027"
       ],
@@ -4879,10 +4927,10 @@
           "line": 2480
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "3686315526fab8704745df6ad69d60e1bd72fa3a",
+      "merged_at": "2026-09-01T06:09:33.394745Z",
       "created_at": "2026-09-01T04:34:43.606227Z",
-      "updated_at": "2026-09-01T05:39:29.800828Z",
+      "updated_at": "2026-09-01T06:09:33.394745Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -4893,7 +4941,7 @@
       ],
       "motivation": "Remove the ledger contradiction that made honest approval impossible after a resolved finding's PR head advanced.",
       "description": "Preserve immutable finding resolutions and append later approving review references only when exact-current at append time; public updates assemble a complete candidate, authorize only new suffix evidence including new findings, retain legitimate historical prefixes, and fail closed across malformed and multi-field cases.",
-      "testing": "70/70 exact-head workflow tests; 323/323 dependency-free aggregate tests; compileall; workflow validation/checker; A11 formal approval; 12/12 public assignment-order probes and 15/15 adversarial cases; exact six-path identity",
+      "testing": "70/70 fresh post-integration workflow tests; 323/323 root aggregate tests in 190.970s; compileall; workflow validation/checker; blueprint 26/26 and deterministic 48-node graph; exact merge identity; fresh A14 approval with no findings",
       "addresses": "QPBT-027",
       "provenance_session_ids": [
         "i027-orchestrator-a01-finding-reconfirm",
@@ -4906,10 +4954,34 @@
         "i027-scout-a09-pr017-integration",
         "i027-scout-a10-postreview-ledger",
         "i027-reviewer-a11-pr017-immutable",
-        "i027-scout-a12-recovery-merge"
+        "i027-scout-a12-recovery-merge",
+        "i027-scout-a13-final-merge",
+        "i027-reviewer-a14-integration-audit"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "A11 approved exact base 506ac7a7 / head 2c6b1f1 and resolved F-LPR017-001. Commit approved state, rerun exact first-parent merge preview, then true-merge and run post-integration activation gates."
+      "unexecuted_gate": "Completed: exact true merge 3686315, post-integration activation gates, and fresh immutable A14 audit all passed.",
+      "post_integration_evidence": {
+        "integration_sha": "3686315526fab8704745df6ad69d60e1bd72fa3a",
+        "integration_tree": "5f076ec1171b80dd0aa9a0e459ef4788897ea2a9",
+        "first_parent": "3a90910de7921e43fd40db44271c528bbca7301d",
+        "second_parent": "2c6b1f1d0be89d09bad2f60e074cf106be99fd46",
+        "changed_paths": 4,
+        "exact_candidate_blobs": "6/6",
+        "root_merge_preview": "4 result blobs, 0 conflicts, 0 markers",
+        "root_aggregate_tests": "323/323",
+        "root_aggregate_seconds": 190.97,
+        "compileall": "passed",
+        "workflow_validate": "passed",
+        "workflow_checker_skip_tests": "passed",
+        "blueprint": "26/26 tests; 48 nodes; 12 chapters; acyclic and deterministic",
+        "reviewer_session_id": "i027-reviewer-a14-integration-audit",
+        "reviewer_verdict": "approve",
+        "reviewer_findings": [],
+        "reviewer_report": "workflow/reviews/qpbt-027-postintegration-a14.md",
+        "reviewer_report_sha256": "9e7ad2b6fa48fa065599a0ce24e496adde1b5fa550be9ad0b85434eb36889534",
+        "coordinator_report": "workflow/reviews/qpbt-027-postintegration-root.md",
+        "coordinator_report_sha256": "eb48ce622bf227fe841ecc6789f9f0b325eb02ad016d3f0922566a69b9e91f81"
+      }
     }
   ]
 }
