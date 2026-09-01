@@ -27,7 +27,7 @@ availability reasons rather than receiving estimates.
 | Stage | Status | Start | End | Sessions issued | Token data | Key output |
 | --- | --- | --- | --- | ---: | --- | --- |
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
-| 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 108 issued attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | local source review approved; QPBT-026 and QPBT-027 complete; QPBT-028 writer plus two scouts active |
+| 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 108 issued attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | local source review approved; QPBT-026/QPBT-027 complete; QPBT-028 writer active and two discovery scouts archived |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed; QPBT-023 tracks the newly found leaf-contract gap |
 | 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 173 Stage-4A issued attempts; peak concurrency 4 | collaboration usage unavailable | recipe-v5 cache accepted at `d73cce44`; QPBT-003 remains the critical dependency |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
@@ -46,7 +46,7 @@ hot-main build remains a singleton.
 | Stage | Measured elapsed at snapshot | Estimated remaining wall time | Dominant assumption |
 | --- | ---: | ---: | --- |
 | 1. Workflow skeleton | 15 h 53 min (complete) | 0 | Acceptance and independent review are complete. |
-| 2. Source split | 37 h 49 min | 2-6 working days, then a user-dependent authorization window | QPBT-026/QPBT-027 are complete. Implement, adversarially test, independently review, and integrate QPBT-028; then authorize one exact immutable endpoint manifest or explicitly dispose the supplemental review gate. |
+| 2. Source split | 37 h 49 min | 1-3 working weeks, then a user-dependent authorization window | QPBT-029 must complete exact capture/projection; QPBT-030 must build and test pinned reviewer/broker isolation; then authorize one exact immutable endpoint manifest or explicitly dispose the supplemental review gate. |
 | 3. Lean blueprint | 32 h 20 min | 2-5 working days after Stage 2 | Freeze and independently review the F01/F03/F04 callable contracts and record the self-dual-basis gap. |
 | 4A. Minimal skeleton | 32 h 20 min | 6-16 weeks | The recipe-v5 main cache is accepted; the remaining critical gate is QPBT-003, including the callable-contract and self-dual-normal-basis boundary. |
 | 4B. Complete skeleton | not started | 4-10 weeks | All 48 blueprint declarations receive reviewed signatures; tracked `sorry` is allowed but no assumptions hide proof debt. |
@@ -1082,9 +1082,13 @@ issued 108 subagent attempts and retains peak concurrency four including root.
 No endpoint, network, GitHub, credential, Lean, Lake, or cache action is part of
 this reconnaissance.
 
-The measured Stage 2 engineering forecast is now 2-6 working days for QPBT-028
-implementation, adversarial testing, independent immutable review, and
-integration. A final endpoint review should take hours once its exact manifest
+Discovery split the remaining QPBT-028 work into QPBT-029, the one-time exact
+capture and immutable projection coordinator, and QPBT-030, the digest-pinned
+Docker reviewer plus single-connection credential broker. The measured Stage 2
+engineering forecast is therefore 1-3 working weeks for implementation,
+adversarial testing, real offline sentinel/egress integration, independent
+immutable review, and integration. A final endpoint review should take hours
+once its exact manifest
 is authorized, but the wait for that authorization is externally unbounded and
 is not folded into the engineering estimate. Standing trust in
 `https://api.finite-dimensional.space` is transport trust; it does not permit
