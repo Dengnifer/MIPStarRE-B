@@ -21064,6 +21064,44 @@
       },
       "archive_status": "active",
       "outcome_path": null
+    },
+    {
+      "id": "i045-orchestrator-a01-hot-main-preservation",
+      "name": "i045-orchestrator-a01-hot-main-preservation",
+      "role": "orchestrator",
+      "issue_id": "QPBT-045",
+      "attempt": 1,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "dispatch_condition": "Issue immediately from exact pushed main after INC-060 proves recipe v5 blocks every new Lean cache seed; run in parallel with blueprint-only QPBT-035 repair.",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "f4b00c7616b8710220a4f8480cfb23412914d151",
+      "base_revision_reason": "Exact authenticated and pushed main commit/tree f4b00c7616b8710220a4f8480cfb23412914d151/f120a82f74df4d32bfb6b0491636546c7651b64a in a clean dedicated QPBT-045 worktree.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-045-hot-main-preservation-a01",
+      "owned_paths": [
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "protocols/local-development.md",
+        "protocols/CHANGELOG.md",
+        "workflow/reviews/qpbt-045-hot-main-preservation-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md and canonical QPBT-045/INC-054/INC-060. Authenticate exact clean base f4b00c7616b8710220a4f8480cfb23412914d151/tree f120a82f74df4d32bfb6b0491636546c7651b64a. Reproduce recipe-v5 preservation failure only through focused temporary tests/evidence; do not rerun the real warm. Make the smallest sufficient recipe change: replacement-mode authenticated MIPStarRE materialization, byte-exact authored QPBT inventory checks before materialization and after every dependency/build/publication boundary, deterministic recipe version bump, and fail-closed zero/nonzero/mutation regressions. Preserve upstream replacement behavior and all existing security/atomicity contracts. Update local-development protocol and CHANGELOG with evidence. Run focused hot-cache tests, aggregate workflow suite, compile/checker/diff gates; no actual cache publication, Lean build, network, endpoint, GitHub, or credentials. Use at most one bounded independent subagent for source/test scouting if it saves time; report its stable name/external ID/elapsed/token-null/counters. Write exact report, commit only owned paths, return exact commit/tree/path-sorted manifest/report hashes and all timings/counters.",
+      "result_envelope_path": "workflow/reviews/qpbt-045-hot-main-preservation-a01.md",
+      "status": "running",
+      "external_id": "/root/i045_hot_main_preservation_a01",
+      "started_at": "2026-09-01T16:14:43.730369Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null
     }
   ]
 }

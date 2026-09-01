@@ -1403,3 +1403,8 @@ Stage-04A subagent attempt and owns only the exact changed-head blueprint
 repair; c35 remains unintegrated pending a new immutable head and fresh review.
 The reconciliation checkpoint passed canonical state validation and all
 344 aggregate workflow regressions in `276.528` seconds.
+QPBT-045 then started as the 202nd Stage-04A attempt from exact pushed commit
+`f4b00c7616b8710220a4f8480cfb23412914d151`, in a private worktree disjoint
+from the concurrent QPBT-035 blueprint repair. Its implementation is forbidden
+from performing the real warm; singleton publication remains a post-review,
+post-integration coordinator gate.
