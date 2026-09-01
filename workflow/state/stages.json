@@ -72,7 +72,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; available external-session usage is recorded per session"
       },
-      "subagents_issued": 83,
+      "subagents_issued": 84,
       "max_concurrency": 4,
       "outputs": [
         "workflow/reviews/stage-02-split-design-recon.md",
@@ -97,7 +97,8 @@
         "workflow/reviews/qpbt-026-canonical-checkpoint-a13-r2.md",
         "workflow/reviews/qpbt-026-disclosure-preflight-a11.md",
         "workflow/reviews/qpbt-026-review-a14-pr016-immutable.md",
-        "workflow/reviews/qpbt-026-stage2-critical-path-a15.md"
+        "workflow/reviews/qpbt-026-stage2-critical-path-a15.md",
+        "workflow/reviews/qpbt-026-offline-isolation-a17.md"
       ],
       "incident_ids": [
         "INC-021",

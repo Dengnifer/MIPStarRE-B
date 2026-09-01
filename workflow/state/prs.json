@@ -4080,11 +4080,12 @@
       "base": "main",
       "head": "issue/qpbt-026-disclosure-a01",
       "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
-      "head_sha": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+      "head_sha": "f3f49388f7058a9f9b997798417e4ae08435f523",
       "implementer_session_ids": [
         "i026-integrator-a02-pr016-bind",
         "i026-fixer-a05-disclosure-preflight",
-        "i026-fixer-a11-scope-token-repair"
+        "i026-fixer-a11-scope-token-repair",
+        "i026-fixer-a17-offline-isolation"
       ],
       "checks": [
         {
@@ -4263,6 +4264,68 @@
           "commit_count": 3,
           "branch": "issue/qpbt-026-disclosure-a01",
           "worktree_clean": true
+        },
+        {
+          "id": "check-qpbt-026-focused-f3f4938",
+          "name": "A17 exact-head disclosure safety focused tests",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_local_agent.py'",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "f3f49388f7058a9f9b997798417e4ae08435f523",
+          "completed_at": "2026-09-01T04:12:05Z",
+          "result_path": "workflow/reviews/qpbt-026-offline-isolation-a17.md",
+          "tests": "62/62",
+          "seconds": 5.129,
+          "fixer_tests": "62/62",
+          "fixer_seconds": 4.392
+        },
+        {
+          "id": "check-qpbt-026-compile-f3f4938",
+          "name": "A17 exact-head Python compile check",
+          "command": "PYTHONPYCACHEPREFIX=/tmp/qpbt-026-root-a17-pycache python3 -m compileall -q scripts/local_agent.py tests/test_local_agent.py",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "f3f49388f7058a9f9b997798417e4ae08435f523",
+          "completed_at": "2026-09-01T04:12:05Z",
+          "result_path": "workflow/reviews/qpbt-026-offline-isolation-a17.md",
+          "root_reproduced": true
+        },
+        {
+          "id": "check-qpbt-026-validate-f3f4938",
+          "name": "A17 exact-head workflow validation",
+          "command": "python3 scripts/workflow.py validate --json",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "f3f49388f7058a9f9b997798417e4ae08435f523",
+          "completed_at": "2026-09-01T04:12:05Z",
+          "result_path": "workflow/reviews/qpbt-026-offline-isolation-a17.md",
+          "valid": true
+        },
+        {
+          "id": "check-qpbt-026-diff-f3f4938",
+          "name": "A17 SHA-bound diff hygiene and path inventory",
+          "command": "git diff --check ea584e9e894391773e09ddad2ce4d082497c7913..f3f49388f7058a9f9b997798417e4ae08435f523",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "f3f49388f7058a9f9b997798417e4ae08435f523",
+          "completed_at": "2026-09-01T04:12:05Z",
+          "result_path": "workflow/reviews/qpbt-026-offline-isolation-a17.md",
+          "changed_paths": 8
+        },
+        {
+          "id": "check-qpbt-026-identity-f3f4938",
+          "name": "A17 candidate ancestry tree branch and clean-worktree identity",
+          "command": "git rev-parse HEAD HEAD^{tree} HEAD^; git merge-base --is-ancestor BASE HEAD; git rev-list --count BASE..HEAD; git status --porcelain",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "f3f49388f7058a9f9b997798417e4ae08435f523",
+          "completed_at": "2026-09-01T04:12:05Z",
+          "result_path": "workflow/reviews/qpbt-026-offline-isolation-a17.md",
+          "tree_sha": "631264163b80c81db945fc88d0f9de5a61ab9228",
+          "direct_fix_parent": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+          "commit_count": 4,
+          "branch": "issue/qpbt-026-disclosure-a01",
+          "worktree_clean": true
         }
       ],
       "reviews": [
@@ -4438,7 +4501,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T22:10:00Z",
-      "updated_at": "2026-09-01T03:57:15.276353Z",
+      "updated_at": "2026-09-01T04:12:06.240851Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -4446,20 +4509,22 @@
         "tests/test_local_agent.py",
         "workflow/reviews/qpbt-026-disclosure-preflight-a01.md",
         "workflow/reviews/qpbt-026-disclosure-preflight-a05.md",
-        "workflow/reviews/qpbt-026-disclosure-preflight-a11.md"
+        "workflow/reviews/qpbt-026-disclosure-preflight-a11.md",
+        "workflow/reviews/qpbt-026-offline-isolation-a17.md"
       ],
       "motivation": "INC-045 showed that endpoint/model authorization without an exact private evidence scope cannot safely launch an external reviewer.",
-      "description": "Validate legacy destination, immutable target, and path scope, then fail closed before any production reviewer side effect until exact-content authorization and enforceable OS read isolation are implemented; retain a deterministic projected offline test facility.",
-      "testing": "60/60 exact-head local-agent tests; Python compileall; workflow validation; SHA-bound seven-path diff hygiene; direct-parent, tree, branch, ancestry, and clean-worktree identity",
+      "description": "Validate legacy destination, immutable target, and path scope, then fail closed before any production reviewer side effect; keep the offline projected test facility non-launchable, validate injected capability evidence before side effects, and scrub all ambient Git selection from harness and runner environments.",
+      "testing": "62/62 exact-head local-agent tests; Python compileall; workflow validation; SHA-bound eight-path diff hygiene; direct-parent, tree, branch, ancestry, and clean-worktree identity",
       "addresses": "QPBT-026",
       "provenance_session_ids": [
         "i026-orchestrator-a01-disclosure-preflight",
         "i026-fixer-a05-disclosure-preflight",
         "i026-scout-a10-scope-token-design",
-        "i026-fixer-a11-scope-token-repair"
+        "i026-fixer-a11-scope-token-repair",
+        "i026-fixer-a17-offline-isolation"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "F-LPR016-006 and F-LPR016-007 require a direct-descendant fix and a different fresh immutable reviewer; production external review remains disabled and no endpoint is contacted."
+      "unexecuted_gate": "QPBT-027 must supply immutable append-only finding reconfirmation before approval; a fresh independent immutable reviewer must approve exact head f3f49388f7058a9f9b997798417e4ae08435f523 and reconfirm F001-F005 plus dispose F006-F007. Production external review remains disabled and no endpoint is contacted."
     }
   ]
 }
