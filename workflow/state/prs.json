@@ -5152,7 +5152,7 @@
     {
       "id": "LPR-018",
       "title": "feat(review): add fail-closed v2 isolation preflight",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-028"
       ],
@@ -5242,7 +5242,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T07:45:41.746204Z",
-      "updated_at": "2026-09-01T07:59:42.354795Z",
+      "updated_at": "2026-09-01T09:09:04.274874Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",

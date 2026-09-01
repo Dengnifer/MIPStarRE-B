@@ -74,7 +74,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; available external-session usage is recorded per session"
       },
-      "subagents_issued": 111,
+      "subagents_issued": 112,
       "max_concurrency": 4,
       "outputs": [
         "workflow/reviews/stage-02-split-design-recon.md",
@@ -143,7 +143,8 @@
         "INC-047",
         "INC-048",
         "INC-049",
-        "INC-050"
+        "INC-050",
+        "INC-051"
       ]
     },
     {
