@@ -1470,3 +1470,11 @@ publication. LPR-024 therefore remains `changes_requested`. A05 is already
 repairing descriptor traversal, hard-link rejection, and incomplete-scan
 diagnostics in parallel; only a new-head check set and fresh independent
 approval can permit integration and the one singleton real warm.
+
+The remaining collaboration slot was then assigned to the 209th Stage-04A
+attempt, a detached read-only QPBT-048 source/API scout fixed at
+`77172fd30105531f668acc0338caae028901d24d`. It independently derives the
+executable conditionally-linear sampler and downsizing obligations from the
+pinned paper while A01 writes the candidate. This uses no moving writer
+worktree, shared build output, or duplicate compilation; its result will be
+nonbinding evidence for the later immutable changed-head review.

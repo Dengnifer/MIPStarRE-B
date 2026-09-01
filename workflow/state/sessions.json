@@ -21540,6 +21540,39 @@
         "worktree_clean": true
       },
       "notes": "Post-adoption A04 independently reproduced all three A03 security gaps on the exact immutable old head. This is the formal request-changes review; LPR-024 remains blocked pending A05 repair and fresh changed-head review. INC-060 remains open."
+    },
+    {
+      "id": "i048-scout-a02-executable-cl-source",
+      "name": "i048-scout-a02-executable-cl-source",
+      "role": "scout",
+      "issue_id": "QPBT-048",
+      "attempt": 2,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "dispatch_condition": "Issue in parallel with A01 after exact base/source/worktree authentication; derive an independent source/API checklist without inspecting or editing the moving writer candidate.",
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "pr_id": "LPR-023",
+      "read_only": true,
+      "base_revision": "77172fd30105531f668acc0338caae028901d24d",
+      "base_revision_reason": "Exact authenticated A12 LPR-023 changed head/tree 77172fd30105531f668acc0338caae028901d24d/4c158849f44522dc92c8229aeb223d96ece4cf0b in isolated detached /tmp worktree.",
+      "worktree": "/tmp/qpbt-048-source-audit-a02",
+      "owned_paths": [],
+      "validation_command": "Read AGENTS.md, canonical QPBT-048, A11/A12 F-LPR023-004 evidence, pinned references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-712 including def:sampler, def:sampler-sample, def:downsize_sampler, lem:downsize_sampler, cited finite-field representation source, blueprint F06/F07/F07A/K03/K04, MIPStarRE/QPBT/Basic/Field.lean, and project/Mathlib APIs. Authenticate clean detached base 77172fd30105531f668acc0338caae028901d24d/tree 4c158849f44522dc92c8229aeb223d96ece4cf0b. Independently derive exact hypotheses, quantifier order, boundary data, dimension/marginal/linear/factor query interface, associated CL maps/distribution, step count, executable downsize, dimension and O(TIME_S(n) * log q(n)) obligations; distinguish paper claims from faithful Lean boundary data and flag every ambiguity or gap. Recommend exact direct imports and elaborated callable shapes with bounded /tmp Lean #check/signature probes only if useful. Do not inspect A01's moving worktree or report, edit repository/canonical files, compile targets/full build, use cache/materialization, network/endpoint/GitHub/credentials, dispatch nested agents, or perform Git writes. Write only /tmp/qpbt-048-source-audit-a02.md and return report SHA-256, statement-integrity checklist, source hashes, probe results, elapsed/token-null/topology/counters.",
+      "result_envelope_path": "workflow/reviews/qpbt-048-source-audit-a02.md",
+      "status": "running",
+      "external_id": "/root/i048_source_audit_a02",
+      "started_at": "2026-09-01T17:14:23.268697Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null
     }
   ]
 }
