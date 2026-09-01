@@ -2489,12 +2489,22 @@
         "blueprint/generated/graph.json",
         "blueprint/generated/graph.dot",
         "blueprint/src/generated/chapter-02-entries.tex",
-        "blueprint/src/generated/chapter-03-entries.tex"
+        "blueprint/src/generated/chapter-03-entries.tex",
+        "blueprint/src/generated/chapter-04-entries.tex",
+        "blueprint/src/generated/chapter-05-entries.tex",
+        "blueprint/src/generated/chapter-06-entries.tex",
+        "blueprint/src/generated/chapter-07-entries.tex",
+        "blueprint/src/generated/chapter-08-entries.tex",
+        "blueprint/src/generated/chapter-09-entries.tex",
+        "blueprint/src/generated/chapter-10-entries.tex",
+        "blueprint/src/generated/chapter-11-entries.tex",
+        "blueprint/src/generated/chapter-12-entries.tex"
       ],
       "created_at": "2026-09-01T16:45:00Z",
-      "updated_at": "2026-09-01T16:49:26.525543Z",
+      "updated_at": "2026-09-01T17:18:04.693445Z",
       "blocked_reason": null,
-      "unblock_condition": null
+      "unblock_condition": null,
+      "ownership_handoff": "A01 commits only its immutable leased subset; a sequential root-issued integrator owns generated chapter-04 through chapter-12 before review."
     }
   ]
 }
