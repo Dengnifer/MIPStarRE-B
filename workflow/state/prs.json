@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 22,
+  "next_sequence": 23,
   "pull_requests": [
     {
       "id": "LPR-001",
@@ -5724,6 +5724,103 @@
         "binding_report_sha256": "f1e0ecb1a557c93cbcc4afc86a2f41af4c3b9b1ea075c1a5e65cae05e38a9471",
         "validation": "scoped Lean; target and private full build; blueprint/source sync; debt/import scan; diff; workflow identity"
       }
+    },
+    {
+      "id": "LPR-022",
+      "title": "fix(workflow): confirm live collaboration admission",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-034"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-034-live-admission-a01",
+      "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+      "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-034-focused",
+          "name": "QPBT-034 focused workflow regressions",
+          "command": "python3 -m unittest discover -s tests -p test_workflow.py -v",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+          "completed_at": "2026-09-01T13:15:00Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a01.md"
+        },
+        {
+          "id": "check-qpbt-034-aggregate",
+          "name": "QPBT-034 aggregate regression suite",
+          "command": "python3 -m unittest discover -s tests -p test_*.py",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+          "completed_at": "2026-09-01T13:15:00Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a01.md"
+        },
+        {
+          "id": "check-qpbt-034-checker",
+          "name": "QPBT-034 workflow checker tests",
+          "command": "python3 tests/test_check_workflow.py",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+          "completed_at": "2026-09-01T13:15:00Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a01.md"
+        },
+        {
+          "id": "check-qpbt-034-compileall",
+          "name": "QPBT-034 Python compile check",
+          "command": "python3 -m compileall -q scripts tests",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+          "completed_at": "2026-09-01T13:15:00Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a01.md"
+        },
+        {
+          "id": "check-qpbt-034-state",
+          "name": "QPBT-034 canonical workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+          "completed_at": "2026-09-01T13:15:00Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a01.md"
+        },
+        {
+          "id": "check-qpbt-034-diff",
+          "name": "QPBT-034 candidate diff hygiene",
+          "command": "git diff --check 17608ac90f1896cc019e8a7a7619ada6a3c05cef..1c01622d672514c9b91e61ff4d03b27583a6391f",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+          "completed_at": "2026-09-01T13:15:00Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a01.md"
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-01T13:15:00Z",
+      "updated_at": "2026-09-01T13:15:00Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/orchestration.md",
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "workflow/reviews/qpbt-034-live-admission-a01.md"
+      ],
+      "motivation": "Prevent durable workflow issuance before a live collaboration thread exists after three backend-capacity admission mismatches.",
+      "description": "Require an explicit backend-returned external identity at mutating dispatch, keep rejected launches byte-stable and planned, account nested sessions, and document bootstrap-only recovery.",
+      "testing": "Focused discovery 76/76, aggregate 342/342, workflow checker 3/3, compileall, canonical validation, and diff hygiene passed. The dotted unittest form was attempted but is structurally inapplicable because tests is not a local package.",
+      "addresses": "QPBT-034",
+      "provenance_session_ids": [
+        "i034-orchestrator-a01-live-admission"
+      ],
+      "requested_external_review": false,
+      "unexecuted_gate": "Fresh independent immutable local review and formal no-byte-change adoption remain required."
     }
   ]
 }

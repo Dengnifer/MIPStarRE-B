@@ -1818,7 +1818,7 @@
       "title": "Reconcile local dispatch with live collaboration slot admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-019",
       "dependency_ids": [
         "QPBT-019"
@@ -1850,7 +1850,7 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T12:32:00Z",
-      "updated_at": "2026-09-01T12:48:20.629903Z",
+      "updated_at": "2026-09-01T13:14:01.603960Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -1879,7 +1879,7 @@
         "Run blueprint unit, source-root, default declaration, generated-diff, and workflow checks; record statement-integrity tables and exact source hashes",
         "Obtain a fresh independent immutable mathematical/API review before guarded integration"
       ],
-      "owner_session_id": "i035-orchestrator-a01-q014-contract",
+      "owner_session_id": "i035-orchestrator-a02-q014-contract",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md",
         "blueprint/metadata/nodes.json#F02-CODE",
@@ -1887,7 +1887,7 @@
         "blueprint/metadata/nodes.json#F06-CL",
         "blueprint/metadata/nodes.json#F07-TYPED",
         "blueprint/metadata/nodes.json#G01-PARAMETERS",
-        "docs/paper-gaps/pauli-trace-phase.md#G09",
+        "blueprint/metadata/gaps.json#G09",
         "references/2001.04383v3/sections/dependencies/low-degree-code.tex",
         "references/2001.04383v3/sections/dependencies/pauli.tex",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex",
@@ -1895,6 +1895,8 @@
         "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex"
       ],
       "owned_paths": [
+        "blueprint/check.py",
+        "blueprint/tests/test_check.py",
         "blueprint/metadata/nodes.json",
         "blueprint/generated/graph.json",
         "blueprint/generated/graph.dot",
@@ -1902,7 +1904,7 @@
         "blueprint/src/generated/chapter-03-entries.tex"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T13:03:14.715138Z",
+      "updated_at": "2026-09-01T13:23:16.864517Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -1936,14 +1938,14 @@
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#F05--Pauli",
         "blueprint/metadata/nodes.json#F05-PAULI",
-        "docs/paper-gaps/pauli-trace-phase.md#G09",
+        "blueprint/metadata/gaps.json#G09",
         "references/2001.04383v3/sections/dependencies/pauli.tex:1-214"
       ],
       "owned_paths": [
         "MIPStarRE/QPBT/Basic/Pauli.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T12:59:00Z",
+      "updated_at": "2026-09-01T13:22:33.024087Z",
       "blocked_reason": "QPBT-035 callable contract is not yet reviewed and integrated.",
       "unblock_condition": "QPBT-035 done, plus any explicit F03 completion dependency selected by that contract."
     },
