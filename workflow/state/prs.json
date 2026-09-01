@@ -3280,7 +3280,7 @@
     {
       "id": "LPR-012",
       "title": "feat(cache): replay pinned local mathlib source on exact base",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-021"
       ],
@@ -3457,10 +3457,10 @@
           "line": 23
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "c5a0fecc26eb18452219cf0df31ce2a9113e45f1",
+      "merged_at": "2026-09-01T03:42:58.786511Z",
       "created_at": "2026-08-31T11:47:00Z",
-      "updated_at": "2026-08-31T13:13:27.525865Z",
+      "updated_at": "2026-09-01T03:42:58.786511Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -3478,12 +3478,68 @@
         "i021-orchestrator-a03-rebase-pr-base",
         "i021-orchestrator-a04-pr012-bind",
         "i021-orchestrator-a06-changelog-count"
-      ]
+      ],
+      "post_integration_evidence": {
+        "report_path": "workflow/reviews/qpbt-025-postintegration-warm-success-537.md",
+        "report_sha256": "940f18e7bbd60b7e440860bbcc6ce8b851b6515c983c0ff45da97dafb0070cbb",
+        "closure_audit_path": "workflow/reviews/qpbt-025-postwarm-closure-a06.md",
+        "closure_audit_sha256": "38b31d20168bbd06521874a2002b246a67c894167d8969a51b3f9d6ac9b360a2",
+        "ledger_audit_path": "workflow/reviews/qpbt-025-closure-ledger-a07.md",
+        "ledger_audit_sha256": "791259a3399b964476067a3cc92cecc917657410c18920814d13d58eb61d3172",
+        "main_sha": "d73cce44d5f9f37d38ee8d916811719408818c03",
+        "cache_key": "5377961b0bebafd24648ea2ae9d0bc6e10f5c9481433db433e55b687c8bcd266",
+        "recipe_schema": 3,
+        "recipe_version": 5,
+        "warm_result": "built",
+        "post_status": "hit",
+        "cache_hit": 0,
+        "cache_miss": 1,
+        "builds": 1,
+        "warm_retries": 0,
+        "lock_waited": 0,
+        "lock_wait_seconds": 0,
+        "materialize_seconds": 3.038161,
+        "package_materialize_seconds": 17.847069,
+        "package_verify_seconds": 16.824722,
+        "dependency_cache_seconds": 39.60957,
+        "build_seconds": 551.877742,
+        "elapsed_seconds": 655.003154,
+        "command": [
+          "lake",
+          "--packages=.lake/package-overrides.json",
+          "build"
+        ],
+        "package_verify_command": [
+          "python3",
+          "scripts/materialize_lake_packages.py",
+          "verify",
+          "--remove-validated-generated-sidecars"
+        ],
+        "metric_timestamp": "2026-08-31T20:02:45.006319Z",
+        "metric_line_sha256": "5022a23bf7a4a686588a5bba912e136051b743328a640c7dcb3b6185de1cb919",
+        "manifest_sha256": "f41716f8a1213bd1fbff2939723c739653c360d6b797d93be69cb5a42f5ad234",
+        "ready_file_sha256": "06720bffaa45dfc2fe92f5816caf9e31178d52bd4a95bcb4fdf70eceae4aa80a",
+        "build_log_sha256": "4737436c617f7072fd7bfb6d0fd65f900e8713fb7bfd722eb98e22e0c58b7b5c",
+        "ready_manifest_sha256_equal": true,
+        "deep_inventory_verified": true,
+        "artifact_inventory": {
+          "schema_version": 1,
+          "sha256": "321e2813533a93c8218eefb277bd3425d3b55a59d978a233fc9b4795de42df60",
+          "files": 124925,
+          "directories": 4147,
+          "symlinks": 3,
+          "bytes": 10097592794
+        },
+        "trusted_sidecar_absent": true,
+        "trusted_target_present": true,
+        "proofwidgets_build_present": true,
+        "matching_failure_envelopes": 0
+      }
     },
     {
       "id": "LPR-013",
       "title": "fix(cache): replay portable detached clone on current main",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-018"
       ],
@@ -3570,10 +3626,10 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "c0de0900a01724c2a515311424dcbe5e7526ebd4",
+      "merged_at": "2026-09-01T03:42:57.821989Z",
       "created_at": "2026-08-31T14:42:45.297996Z",
-      "updated_at": "2026-08-31T15:09:50.668232Z",
+      "updated_at": "2026-09-01T03:42:57.821989Z",
       "changed_paths": [
         "scripts/hot_main_cache.py",
         "tests/test_hot_main_cache.py"
@@ -3588,7 +3644,63 @@
         "i018-scout-a11-fallback-diff"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Faithful guarded fast-forward to c0de090 plus post-integration Python gates and exactly one authenticated singleton warm/status-ready/deep-inventory result remain required."
+      "unexecuted_gate": "Faithful guarded fast-forward to c0de090 plus post-integration Python gates and exactly one authenticated singleton warm/status-ready/deep-inventory result remain required.",
+      "post_integration_evidence": {
+        "report_path": "workflow/reviews/qpbt-025-postintegration-warm-success-537.md",
+        "report_sha256": "940f18e7bbd60b7e440860bbcc6ce8b851b6515c983c0ff45da97dafb0070cbb",
+        "closure_audit_path": "workflow/reviews/qpbt-025-postwarm-closure-a06.md",
+        "closure_audit_sha256": "38b31d20168bbd06521874a2002b246a67c894167d8969a51b3f9d6ac9b360a2",
+        "ledger_audit_path": "workflow/reviews/qpbt-025-closure-ledger-a07.md",
+        "ledger_audit_sha256": "791259a3399b964476067a3cc92cecc917657410c18920814d13d58eb61d3172",
+        "main_sha": "d73cce44d5f9f37d38ee8d916811719408818c03",
+        "cache_key": "5377961b0bebafd24648ea2ae9d0bc6e10f5c9481433db433e55b687c8bcd266",
+        "recipe_schema": 3,
+        "recipe_version": 5,
+        "warm_result": "built",
+        "post_status": "hit",
+        "cache_hit": 0,
+        "cache_miss": 1,
+        "builds": 1,
+        "warm_retries": 0,
+        "lock_waited": 0,
+        "lock_wait_seconds": 0,
+        "materialize_seconds": 3.038161,
+        "package_materialize_seconds": 17.847069,
+        "package_verify_seconds": 16.824722,
+        "dependency_cache_seconds": 39.60957,
+        "build_seconds": 551.877742,
+        "elapsed_seconds": 655.003154,
+        "command": [
+          "lake",
+          "--packages=.lake/package-overrides.json",
+          "build"
+        ],
+        "package_verify_command": [
+          "python3",
+          "scripts/materialize_lake_packages.py",
+          "verify",
+          "--remove-validated-generated-sidecars"
+        ],
+        "metric_timestamp": "2026-08-31T20:02:45.006319Z",
+        "metric_line_sha256": "5022a23bf7a4a686588a5bba912e136051b743328a640c7dcb3b6185de1cb919",
+        "manifest_sha256": "f41716f8a1213bd1fbff2939723c739653c360d6b797d93be69cb5a42f5ad234",
+        "ready_file_sha256": "06720bffaa45dfc2fe92f5816caf9e31178d52bd4a95bcb4fdf70eceae4aa80a",
+        "build_log_sha256": "4737436c617f7072fd7bfb6d0fd65f900e8713fb7bfd722eb98e22e0c58b7b5c",
+        "ready_manifest_sha256_equal": true,
+        "deep_inventory_verified": true,
+        "artifact_inventory": {
+          "schema_version": 1,
+          "sha256": "321e2813533a93c8218eefb277bd3425d3b55a59d978a233fc9b4795de42df60",
+          "files": 124925,
+          "directories": 4147,
+          "symlinks": 3,
+          "bytes": 10097592794
+        },
+        "trusted_sidecar_absent": true,
+        "trusted_target_present": true,
+        "proofwidgets_build_present": true,
+        "matching_failure_envelopes": 0
+      }
     },
     {
       "id": "LPR-014",
@@ -3968,10 +4080,11 @@
       "base": "main",
       "head": "issue/qpbt-026-disclosure-a01",
       "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
-      "head_sha": "94c0e630b5f2697f678c400da082f108bde89471",
+      "head_sha": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
       "implementer_session_ids": [
         "i026-integrator-a02-pr016-bind",
-        "i026-fixer-a05-disclosure-preflight"
+        "i026-fixer-a05-disclosure-preflight",
+        "i026-fixer-a11-scope-token-repair"
       ],
       "checks": [
         {
@@ -4087,6 +4200,69 @@
           "direct_fix_parent": "5d6164e949a32c906557a136c7e49558ea13d7ae",
           "commit_count": 2,
           "worktree_clean": true
+        },
+        {
+          "id": "check-qpbt-026-focused-89862d4",
+          "name": "A11 exact-head disclosure safety focused tests",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_local_agent.py'",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+          "completed_at": "2026-09-01T03:40:15Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a11.md",
+          "tests": "60/60",
+          "seconds": 5.312,
+          "fixer_tests": "60/60",
+          "fixer_seconds": 5.316,
+          "fixer_wall_seconds": 5.49
+        },
+        {
+          "id": "check-qpbt-026-compile-89862d4",
+          "name": "A11 exact-head Python compile check",
+          "command": "PYTHONPYCACHEPREFIX=/tmp/qpbt-026-root-a11-pycache python3 -m compileall -q scripts/local_agent.py tests/test_local_agent.py",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+          "completed_at": "2026-09-01T03:40:15Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a11.md",
+          "root_reproduced": true
+        },
+        {
+          "id": "check-qpbt-026-validate-89862d4",
+          "name": "A11 exact-head workflow validation",
+          "command": "python3 scripts/workflow.py validate --json",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+          "completed_at": "2026-09-01T03:40:15Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a11.md",
+          "valid": true
+        },
+        {
+          "id": "check-qpbt-026-diff-89862d4",
+          "name": "A11 SHA-bound diff hygiene and path inventory",
+          "command": "git diff --check ea584e9e894391773e09ddad2ce4d082497c7913..89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+          "completed_at": "2026-09-01T03:40:15Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a11.md",
+          "changed_paths": 7
+        },
+        {
+          "id": "check-qpbt-026-identity-89862d4",
+          "name": "A11 candidate ancestry tree branch and clean-worktree identity",
+          "command": "git rev-parse HEAD HEAD^{tree} HEAD^; git merge-base --is-ancestor BASE HEAD; git rev-list --count BASE..HEAD; git status --porcelain",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+          "completed_at": "2026-09-01T03:40:15Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a11.md",
+          "tree_sha": "62c3da6b307a6411721469538368a2680e32da01",
+          "direct_fix_parent": "94c0e630b5f2697f678c400da082f108bde89471",
+          "commit_count": 3,
+          "branch": "issue/qpbt-026-disclosure-a01",
+          "worktree_clean": true
         }
       ],
       "reviews": [
@@ -4140,6 +4316,23 @@
           "formal_pr_review": true,
           "report_sha256": "6d1452b08f1fdfc89f66bfdd77eeeb69ba1086ec960aefa1a7c2d920c555f5eb",
           "acceptance_commands": 5
+        },
+        {
+          "id": "review-qpbt-026-pr016-a14-immutable",
+          "reviewer_session_id": "i026-reviewer-a14-pr016-immutable",
+          "verdict": "request_changes",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+          "started_at": "2026-09-01T03:42:26.722741Z",
+          "completed_at": "2026-09-01T03:51:37.257657Z",
+          "result_path": "workflow/reviews/qpbt-026-review-a14-pr016-immutable.md",
+          "finding_ids": [
+            "F-LPR016-006",
+            "F-LPR016-007"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "8a613b59d20b27b9eb709547c7719c8c10e963367c49f9cb14881eeb4b74bb29",
+          "acceptance_commands": 5
         }
       ],
       "findings": [
@@ -4163,10 +4356,10 @@
           "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
           "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
           "severity": "blocker",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A14 verified at head 89862d4 that the module-global token and independently callable post-persistence production helper are absent and every production review path fails before runner construction; the falsey offline capability fallback is tracked separately as F-LPR016-006.",
+          "resolved_by_review_id": "review-qpbt-026-pr016-a14-immutable",
           "summary": "Omitting a custom transport profile bypasses the required disclosure authorization before a default-provider model-backed review and lease claim.",
           "path": "scripts/local_agent.py",
           "line": 697
@@ -4205,37 +4398,68 @@
           "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
           "head_sha": "94c0e630b5f2697f678c400da082f108bde89471",
           "severity": "blocker",
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A14 verified at head 89862d4 that production version-1 review fails before task/context reads, probes, harness/output creation, lease, command construction, or runner; the distinct inherited object-store defect in the offline projection is tracked as F-LPR016-007.",
+          "resolved_by_review_id": "review-qpbt-026-pr016-a14-immutable",
+          "summary": "Changed-path authorization omits unchanged authority bytes embedded in the outbound prompt and unlisted repository content readable through the full cloned harness.",
+          "path": "scripts/local_agent.py",
+          "line": 812
+        },
+        {
+          "id": "F-LPR016-006",
+          "introduced_review_id": "review-qpbt-026-pr016-a14-immutable",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+          "severity": "blocker",
           "status": "open",
           "disposition": "pending",
           "disposition_evidence": null,
           "resolved_by_review_id": null,
-          "summary": "Changed-path authorization omits unchanged authority bytes embedded in the outbound prompt and unlisted repository content readable through the full cloned harness.",
+          "summary": "An empty injected offline capability record invokes the real Codex capability probe through a truthiness fallback.",
           "path": "scripts/local_agent.py",
-          "line": 812
+          "line": 3097
+        },
+        {
+          "id": "F-LPR016-007",
+          "introduced_review_id": "review-qpbt-026-pr016-a14-immutable",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "89862d4b74364d1b2bb488d3ffc8e6820564c9ea",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Inherited Git repository and object-selection environment exposes unmanifested source objects inside the projected offline harness.",
+          "path": "scripts/local_agent.py",
+          "line": 1831
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T22:10:00Z",
-      "updated_at": "2026-09-01T03:05:34.338983Z",
+      "updated_at": "2026-09-01T03:57:15.276353Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
         "scripts/local_agent.py",
         "tests/test_local_agent.py",
         "workflow/reviews/qpbt-026-disclosure-preflight-a01.md",
-        "workflow/reviews/qpbt-026-disclosure-preflight-a05.md"
+        "workflow/reviews/qpbt-026-disclosure-preflight-a05.md",
+        "workflow/reviews/qpbt-026-disclosure-preflight-a11.md"
       ],
       "motivation": "INC-045 showed that endpoint/model authorization without an exact private evidence scope cannot safely launch an external reviewer.",
-      "description": "Require a versioned non-secret authorization record that exactly binds endpoint, model, wire API, immutable revision identity, and private file paths before any external disclosure or session lease.",
-      "testing": "exact-head focused local-agent tests; Python compileall; workflow validation; SHA-bound diff hygiene; final commit/tree identity",
+      "description": "Validate legacy destination, immutable target, and path scope, then fail closed before any production reviewer side effect until exact-content authorization and enforceable OS read isolation are implemented; retain a deterministic projected offline test facility.",
+      "testing": "60/60 exact-head local-agent tests; Python compileall; workflow validation; SHA-bound seven-path diff hygiene; direct-parent, tree, branch, ancestry, and clean-worktree identity",
       "addresses": "QPBT-026",
       "provenance_session_ids": [
         "i026-orchestrator-a01-disclosure-preflight",
-        "i026-fixer-a05-disclosure-preflight"
+        "i026-fixer-a05-disclosure-preflight",
+        "i026-scout-a10-scope-token-design",
+        "i026-fixer-a11-scope-token-repair"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "A fresh independent immutable local reviewer must approve the exact head before integration; no external endpoint is contacted without explicit file-scope authorization."
+      "unexecuted_gate": "F-LPR016-006 and F-LPR016-007 require a direct-descendant fix and a different fresh immutable reviewer; production external review remains disabled and no endpoint is contacted."
     }
   ]
 }

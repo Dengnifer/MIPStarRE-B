@@ -27,16 +27,16 @@ availability reasons rather than receiving estimates.
 | Stage | Status | Start | End | Sessions issued | Token data | Key output |
 | --- | --- | --- | --- | ---: | --- | --- |
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
-| 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 60 terminal sessions plus 1 retained issued attempt; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local immutable review approved; endpoint-dependent transport gate remains |
+| 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 83 issued attempts; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local source review approved; QPBT-026 and QPBT-027 repairs active; QPBT-028 planned |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed; QPBT-023 tracks the newly found leaf-contract gap |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 304 total issued attempts (303 non-coordinator); 172 Stage-4A attempts; peak concurrency 4 | collaboration usage unavailable | recipe-v5 cache accepted at `d73cce44`; QPBT-003 remains the critical dependency |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 173 Stage-4A issued attempts; peak concurrency 4 | collaboration usage unavailable | recipe-v5 cache accepted at `d73cce44`; QPBT-003 remains the critical dependency |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
 
 ## Schedule estimates
 
-The snapshot below was updated at 2026-09-01 04:25 +08. Ranges are wall-clock
+The snapshot below was updated at 2026-09-01 12:05 +08. Ranges are wall-clock
 forecasts with the root coordinator plus three safe worker lanes, not token or
 person-hour estimates. The lanes are allocated to one critical-path writer,
 one fresh source/fidelity reviewer, and one independent API/cache or disjoint
@@ -46,9 +46,9 @@ hot-main build remains a singleton.
 | Stage | Measured elapsed at snapshot | Estimated remaining wall time | Dominant assumption |
 | --- | ---: | ---: | --- |
 | 1. Workflow skeleton | 15 h 53 min (complete) | 0 | Acceptance and independent review are complete. |
-| 2. Source split | 26 h 52 min | 2-6 h after gate disposition | Offline materialization and verification pass; if the endpoint-specific review remains mandatory, completion is externally unbounded. |
-| 3. Lean blueprint | 24 h 40 min | 2-5 working days | Freeze and independently review the F01/F03/F04 callable contracts and record the self-dual-basis gap. |
-| 4A. Minimal skeleton | 24 h 40 min | 6-16 weeks | The recipe-v5 main cache is accepted; the remaining critical gate is QPBT-003, including the callable-contract and self-dual-normal-basis boundary. |
+| 2. Source split | 34 h 31 min | 4-12 working days, then a user-dependent authorization window | Finish and review QPBT-026/QPBT-027, implement QPBT-028's exact-content and OS-isolation boundary, then authorize one exact immutable endpoint manifest or explicitly dispose the supplemental review gate. |
+| 3. Lean blueprint | 32 h 20 min | 2-5 working days after Stage 2 | Freeze and independently review the F01/F03/F04 callable contracts and record the self-dual-basis gap. |
+| 4A. Minimal skeleton | 32 h 20 min | 6-16 weeks | The recipe-v5 main cache is accepted; the remaining critical gate is QPBT-003, including the callable-contract and self-dual-normal-basis boundary. |
 | 4B. Complete skeleton | not started | 4-10 weeks | All 48 blueprint declarations receive reviewed signatures; tracked `sorry` is allowed but no assumptions hide proof debt. |
 | 4C. Proofs | not started | 18-48 months | External theorem boundaries are admissible where declared and the rigidity/LDT dependencies do not require foundational redevelopment. |
 | 5. Final audit | not started | 3-8 weeks | Statements remain stable and full build/declaration synchronization does not expose late source gaps. |
@@ -1037,3 +1037,44 @@ including independent review; the callable-contract portion of Stage 3 is
 2-5 working days; and Stage 4A remains estimated at 6-16 weeks before proof
 work, subject to QPBT-023's mathematical boundary. These are forecasts, not
 token or person-hour claims.
+
+### Disclosure and PR-lifecycle repair checkpoint (2026-09-01)
+
+Fresh immutable LPR-016 review A14 inspected exact head `89862d4b` for
+`550.534916` agent-measured seconds and passed 60/60 focused tests, compileall,
+workflow validation, and immutable identity checks. It still returned
+`request_changes`: an empty injected offline capability mapping could fall
+through to a real Codex capability probe, and ambient
+`GIT_ALTERNATE_OBJECT_DIRECTORIES` could reconnect the projected harness to
+unmanifested source objects. No Codex process, endpoint, network, GitHub,
+credential, Lean, Lake, build, or cache action occurred. These findings are
+F-LPR016-006 and F-LPR016-007; the original production disclosure blockers are
+otherwise resolved.
+
+The parallel A15 critical-path audit took `709.667174` agent-measured seconds.
+It found a separate local-PR deadlock: approval requires each historical
+finding to be confirmed on the newest head, while the update rule makes an
+already resolved finding's complete disposition immutable. QPBT-027 therefore
+adds an append-only current-head reconfirmation record rather than rewriting
+review history. Its writer runs in a separate worktree beside the F006/F007
+fixer, and it delegated one bounded read-only adversarial tester. This uses all
+three non-coordinator lanes while the root alone updates canonical state; the
+two writable sessions have disjoint worktrees and no build or cache action is
+duplicated.
+
+QPBT-028 records the next production boundary but is not yet dispatched. It
+must bind every outbound and tool-readable content unit in a version-2
+immutable manifest and enforce an OS filesystem, environment, and tool-egress
+boundary that denies an unmanifested host sentinel. It can be implemented and
+reviewed without contacting the endpoint. Only after that gate passes can one
+final exact LPR-001 manifest be presented for separate content authorization.
+Standing trust in `https://api.finite-dimensional.space` is transport trust;
+it does not authorize credentials, unrelated private content, or unspecified
+repository bytes.
+
+The measured Stage 2 forecast is now 4-12 working days for the two current
+repairs, their independent reviews/integration, and QPBT-028. A final endpoint
+review should take hours once its exact manifest is authorized, but the wait
+for that authorization is externally unbounded and is not folded into the
+engineering estimate. Collaboration token usage for A14, A15, and the active
+writers is unavailable and remains JSON `null`; no estimate was substituted.

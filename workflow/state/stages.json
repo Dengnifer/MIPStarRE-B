@@ -59,7 +59,9 @@
         "QPBT-010",
         "QPBT-002",
         "QPBT-012",
-        "QPBT-026"
+        "QPBT-026",
+        "QPBT-027",
+        "QPBT-028"
       ],
       "started_at": "2026-08-30T17:33:51.133961Z",
       "ended_at": null,
@@ -70,7 +72,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; available external-session usage is recorded per session"
       },
-      "subagents_issued": 78,
+      "subagents_issued": 83,
       "max_concurrency": 4,
       "outputs": [
         "workflow/reviews/stage-02-split-design-recon.md",
@@ -92,7 +94,10 @@
         "workflow/reviews/qpbt-026-scope-token-design-a10.md",
         "workflow/reviews/qpbt-026-stage2-readiness-a12.md",
         "workflow/reviews/qpbt-026-canonical-checkpoint-a13.md",
-        "workflow/reviews/qpbt-026-canonical-checkpoint-a13-r2.md"
+        "workflow/reviews/qpbt-026-canonical-checkpoint-a13-r2.md",
+        "workflow/reviews/qpbt-026-disclosure-preflight-a11.md",
+        "workflow/reviews/qpbt-026-review-a14-pr016-immutable.md",
+        "workflow/reviews/qpbt-026-stage2-critical-path-a15.md"
       ],
       "incident_ids": [
         "INC-021",
@@ -167,7 +172,8 @@
       "subagents_issued": 173,
       "max_concurrency": 4,
       "outputs": [
-        "research/report.md"
+        "research/report.md",
+        "workflow/reviews/qpbt-018-021-closure-evidence-a18.md"
       ],
       "incident_ids": [
         "INC-021",

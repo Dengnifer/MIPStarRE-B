@@ -708,7 +708,7 @@
       "title": "Make the hot-main detached clone portable across mount boundaries",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-001"
@@ -735,7 +735,63 @@
         "research/metrics/incidents.jsonl#INC-043"
       ],
       "created_at": "2026-08-31T01:34:01Z",
-      "updated_at": "2026-08-31T14:39:56.191994Z"
+      "updated_at": "2026-09-01T03:42:58.289818Z",
+      "completion_evidence": {
+        "report_path": "workflow/reviews/qpbt-025-postintegration-warm-success-537.md",
+        "report_sha256": "940f18e7bbd60b7e440860bbcc6ce8b851b6515c983c0ff45da97dafb0070cbb",
+        "closure_audit_path": "workflow/reviews/qpbt-025-postwarm-closure-a06.md",
+        "closure_audit_sha256": "38b31d20168bbd06521874a2002b246a67c894167d8969a51b3f9d6ac9b360a2",
+        "ledger_audit_path": "workflow/reviews/qpbt-025-closure-ledger-a07.md",
+        "ledger_audit_sha256": "791259a3399b964476067a3cc92cecc917657410c18920814d13d58eb61d3172",
+        "main_sha": "d73cce44d5f9f37d38ee8d916811719408818c03",
+        "cache_key": "5377961b0bebafd24648ea2ae9d0bc6e10f5c9481433db433e55b687c8bcd266",
+        "recipe_schema": 3,
+        "recipe_version": 5,
+        "warm_result": "built",
+        "post_status": "hit",
+        "cache_hit": 0,
+        "cache_miss": 1,
+        "builds": 1,
+        "warm_retries": 0,
+        "lock_waited": 0,
+        "lock_wait_seconds": 0,
+        "materialize_seconds": 3.038161,
+        "package_materialize_seconds": 17.847069,
+        "package_verify_seconds": 16.824722,
+        "dependency_cache_seconds": 39.60957,
+        "build_seconds": 551.877742,
+        "elapsed_seconds": 655.003154,
+        "command": [
+          "lake",
+          "--packages=.lake/package-overrides.json",
+          "build"
+        ],
+        "package_verify_command": [
+          "python3",
+          "scripts/materialize_lake_packages.py",
+          "verify",
+          "--remove-validated-generated-sidecars"
+        ],
+        "metric_timestamp": "2026-08-31T20:02:45.006319Z",
+        "metric_line_sha256": "5022a23bf7a4a686588a5bba912e136051b743328a640c7dcb3b6185de1cb919",
+        "manifest_sha256": "f41716f8a1213bd1fbff2939723c739653c360d6b797d93be69cb5a42f5ad234",
+        "ready_file_sha256": "06720bffaa45dfc2fe92f5816caf9e31178d52bd4a95bcb4fdf70eceae4aa80a",
+        "build_log_sha256": "4737436c617f7072fd7bfb6d0fd65f900e8713fb7bfd722eb98e22e0c58b7b5c",
+        "ready_manifest_sha256_equal": true,
+        "deep_inventory_verified": true,
+        "artifact_inventory": {
+          "schema_version": 1,
+          "sha256": "321e2813533a93c8218eefb277bd3425d3b55a59d978a233fc9b4795de42df60",
+          "files": 124925,
+          "directories": 4147,
+          "symlinks": 3,
+          "bytes": 10097592794
+        },
+        "trusted_sidecar_absent": true,
+        "trusted_target_present": true,
+        "proofwidgets_build_present": true,
+        "matching_failure_envelopes": 0
+      }
     },
     {
       "id": "QPBT-019",
@@ -807,7 +863,7 @@
       "title": "Supply a local pinned mathlib source for the hot cache",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-001"
@@ -832,7 +888,63 @@
         "workflow/reviews/qpbt-021-local-mathlib.md"
       ],
       "created_at": "2026-08-31T03:15:00Z",
-      "updated_at": "2026-08-31T11:49:14.095991Z"
+      "updated_at": "2026-09-01T03:42:59.292480Z",
+      "completion_evidence": {
+        "report_path": "workflow/reviews/qpbt-025-postintegration-warm-success-537.md",
+        "report_sha256": "940f18e7bbd60b7e440860bbcc6ce8b851b6515c983c0ff45da97dafb0070cbb",
+        "closure_audit_path": "workflow/reviews/qpbt-025-postwarm-closure-a06.md",
+        "closure_audit_sha256": "38b31d20168bbd06521874a2002b246a67c894167d8969a51b3f9d6ac9b360a2",
+        "ledger_audit_path": "workflow/reviews/qpbt-025-closure-ledger-a07.md",
+        "ledger_audit_sha256": "791259a3399b964476067a3cc92cecc917657410c18920814d13d58eb61d3172",
+        "main_sha": "d73cce44d5f9f37d38ee8d916811719408818c03",
+        "cache_key": "5377961b0bebafd24648ea2ae9d0bc6e10f5c9481433db433e55b687c8bcd266",
+        "recipe_schema": 3,
+        "recipe_version": 5,
+        "warm_result": "built",
+        "post_status": "hit",
+        "cache_hit": 0,
+        "cache_miss": 1,
+        "builds": 1,
+        "warm_retries": 0,
+        "lock_waited": 0,
+        "lock_wait_seconds": 0,
+        "materialize_seconds": 3.038161,
+        "package_materialize_seconds": 17.847069,
+        "package_verify_seconds": 16.824722,
+        "dependency_cache_seconds": 39.60957,
+        "build_seconds": 551.877742,
+        "elapsed_seconds": 655.003154,
+        "command": [
+          "lake",
+          "--packages=.lake/package-overrides.json",
+          "build"
+        ],
+        "package_verify_command": [
+          "python3",
+          "scripts/materialize_lake_packages.py",
+          "verify",
+          "--remove-validated-generated-sidecars"
+        ],
+        "metric_timestamp": "2026-08-31T20:02:45.006319Z",
+        "metric_line_sha256": "5022a23bf7a4a686588a5bba912e136051b743328a640c7dcb3b6185de1cb919",
+        "manifest_sha256": "f41716f8a1213bd1fbff2939723c739653c360d6b797d93be69cb5a42f5ad234",
+        "ready_file_sha256": "06720bffaa45dfc2fe92f5816caf9e31178d52bd4a95bcb4fdf70eceae4aa80a",
+        "build_log_sha256": "4737436c617f7072fd7bfb6d0fd65f900e8713fb7bfd722eb98e22e0c58b7b5c",
+        "ready_manifest_sha256_equal": true,
+        "deep_inventory_verified": true,
+        "artifact_inventory": {
+          "schema_version": 1,
+          "sha256": "321e2813533a93c8218eefb277bd3425d3b55a59d978a233fc9b4795de42df60",
+          "files": 124925,
+          "directories": 4147,
+          "symlinks": 3,
+          "bytes": 10097592794
+        },
+        "trusted_sidecar_absent": true,
+        "trusted_target_present": true,
+        "proofwidgets_build_present": true,
+        "matching_failure_envelopes": 0
+      }
     },
     {
       "id": "QPBT-022",
@@ -1176,6 +1288,80 @@
       "unblock_condition": "Assign one orchestrator and implement the exact authorization preflight with focused regressions, changelog evidence, and a fresh independent immutable review.",
       "standing_transport_trust_binding": "QPBT-010.standing_transport_trust",
       "transport_trust_scope": "Standing endpoint trust is separate from exact immutable file-manifest content authorization; credentials and unrelated private content remain excluded."
+    },
+    {
+      "id": "QPBT-027",
+      "title": "Permit append-only reconfirmation of historical PR findings",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "in_progress",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-012"
+      ],
+      "labels": [
+        "workflow",
+        "local-pr",
+        "review",
+        "lifecycle",
+        "protocol-debt"
+      ],
+      "acceptance_gates": [
+        "Original finding identity, disposition, evidence, and resolving review remain immutable",
+        "A later immutable review may append a reconfirmation reference only for the same PR and exact current base/head",
+        "Approved and merged PR validation accepts an exact current-head reconfirmation without rewriting historical resolution",
+        "Missing, stale, duplicate, non-reviewer, wrong-PR, and mismatched-head reconfirmations fail closed",
+        "Focused and aggregate workflow tests, checker, compileall, diff integrity, and an independent immutable review pass"
+      ],
+      "owner_session_id": "i027-orchestrator-a01-finding-reconfirm",
+      "source_refs": [
+        "scripts/workflow.py:692-710",
+        "scripts/workflow.py:2380-2401",
+        "workflow/reviews/qpbt-026-stage2-critical-path-a15.md",
+        "workflow/state/prs.json#LPR-016"
+      ],
+      "created_at": "2026-09-01T03:59:51.833330Z",
+      "updated_at": "2026-09-01T04:00:44.881380Z",
+      "blocked_reason": null,
+      "unblock_condition": "Implement an append-only current-head finding reconfirmation contract and obtain an independent immutable review."
+    },
+    {
+      "id": "QPBT-028",
+      "title": "Enable content-bound OS-isolated production external review",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-026",
+        "QPBT-027"
+      ],
+      "labels": [
+        "workflow",
+        "security",
+        "external-review",
+        "authorization",
+        "isolation"
+      ],
+      "acceptance_gates": [
+        "A version-2 authorization binds endpoint, model, wire API, immutable base/head/tree, and every path, channel, revision role, Git mode/type/object identity, size, and SHA-256 that may reach the reviewer",
+        "One-time evidence capture produces an exact immutable projection with no source objects, refs, remotes, alternates, live symlinks, host paths, credentials, or unrelated content",
+        "An enforceable OS filesystem, environment, and tool-egress boundary denies access to an unmanifested host sentinel and fails closed when unavailable",
+        "Production dispatch validates the separately authorized exact manifest before any endpoint request and never records or exposes credentials",
+        "The complete A10 channel matrix and adversarial drift/exclusion/isolation regressions pass",
+        "A fresh independent immutable security review approves the mechanism before any repository evidence is transmitted"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-026-stage2-critical-path-a15.md",
+        "workflow/reviews/qpbt-026-scope-token-design-a10.md",
+        "workflow/reviews/qpbt-026-review-a14-pr016-immutable.md",
+        "protocols/review.md"
+      ],
+      "created_at": "2026-09-01T04:05:01.370018Z",
+      "updated_at": "2026-09-01T04:05:01.370018Z",
+      "blocked_reason": "Production review is intentionally fail-closed until QPBT-026 and the QPBT-027 PR-ledger repair are complete.",
+      "unblock_condition": "Complete QPBT-026 and QPBT-027, then assign one isolated orchestrator to implement and independently review version-2 content authorization plus OS isolation without contacting an endpoint."
     }
   ]
 }
