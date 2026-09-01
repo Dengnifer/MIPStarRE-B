@@ -5152,7 +5152,7 @@
     {
       "id": "LPR-018",
       "title": "feat(review): add fail-closed v2 isolation preflight",
-      "status": "draft",
+      "status": "ready",
       "issue_ids": [
         "QPBT-028"
       ],
@@ -5160,7 +5160,9 @@
       "head": "issue/qpbt-028-content-isolation-a01",
       "base_sha": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
       "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e",
-      "implementer_session_ids": [],
+      "implementer_session_ids": [
+        "i028-integrator-a04-pr018-bind"
+      ],
       "checks": [
         {
           "id": "check-qpbt-028-local-agent-7e7fe07",
@@ -5240,7 +5242,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T07:45:41.746204Z",
-      "updated_at": "2026-09-01T07:45:41.746204Z",
+      "updated_at": "2026-09-01T07:59:42.354795Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -5257,10 +5259,11 @@
       "provenance_session_ids": [
         "i028-orchestrator-a01-content-isolation",
         "i028-scout-a02-a10-channel-matrix",
-        "i028-scout-a03-os-isolation"
+        "i028-scout-a03-os-isolation",
+        "i028-integrator-a04-pr018-bind"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "A post-PR no-byte-change adoption and fresh immutable local security review are required before integration. This PR intentionally does not close QPBT-028; QPBT-029 and QPBT-030 remain required."
+      "unexecuted_gate": "Fresh immutable local security review is required before integration. This PR intentionally does not close QPBT-028; QPBT-029 and QPBT-030 remain required."
     }
   ]
 }

@@ -169,7 +169,7 @@
       "id": "QPBT-004",
       "title": "Establish the Lean project and reusable quantum foundations",
       "kind": "formalization",
-      "status": "ready",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-003",
@@ -185,7 +185,7 @@
         "Reusable imported foundations have provenance",
         "The empty project build and local cache gate pass"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i004-orchestrator-a37-foundation-closure",
       "source_refs": [
         "blueprint/src/chapter/",
         "workflow/reviews/qpbt-018-plausible-drift-a15.md",
@@ -197,7 +197,7 @@
         "workflow/state/issues.json#QPBT-025"
       ],
       "created_at": "2026-08-30T09:31:33+08:00",
-      "updated_at": "2026-09-01T07:54:56.035403Z",
+      "updated_at": "2026-09-01T08:01:10.440926Z",
       "blocked_reason": null,
       "unblock_condition": null,
       "last_cache_failure_evidence": {
@@ -1064,7 +1064,7 @@
       "id": "QPBT-023",
       "title": "Freeze QPBT leaf signatures and self-dual basis obligation",
       "kind": "blueprint",
-      "status": "ready",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-003"
@@ -1081,7 +1081,7 @@
         "Obtain an independent immutable blueprint contract review",
         "Blueprint declaration synchronization, graph, source-root, and diff-integrity checks pass"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i023-orchestrator-a01-leaf-contract",
       "source_refs": [
         "references/2001.04383v3/QPBT_SOURCE_MAP.md",
         "workflow/reviews/stage-04a-q013-leaf-contract.md",
@@ -1090,7 +1090,7 @@
         "blueprint/metadata/nodes.json#F04-DISTANCE"
       ],
       "created_at": "2026-08-31T10:13:51Z",
-      "updated_at": "2026-09-01T07:54:56.792587Z",
+      "updated_at": "2026-09-01T08:01:11.242560Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
