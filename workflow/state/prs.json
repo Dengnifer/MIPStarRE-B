@@ -6948,6 +6948,19 @@
           "candidate_tree": "86da3fa54c1fa4ccdfdda7c31d2e348f64d23b22",
           "parent_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
           "manifest_sha256": "eeb1e91987e812a849ed330aca52e4176f8289526e81cb3418b294aaa2dace19"
+        },
+        {
+          "id": "check-qpbt-049-review-a03",
+          "name": "QPBT-049 A03 immutable scoped review checks",
+          "command": "65 local-agent tests; 78 workflow tests; compileall; immutable diff authentication (full candidate validate failure recorded in report)",
+          "status": "passed",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+          "completed_at": "2026-09-01T20:27:00Z",
+          "result_path": "workflow/reviews/qpbt-049-review-a03.md",
+          "manifest_sha256": "eeb1e91987e812a849ed330aca52e4176f8289526e81cb3418b294aaa2dace19",
+          "candidate_tree": "86da3fa54c1fa4ccdfdda7c31d2e348f64d23b22",
+          "parent_sha": "d202aca7c352d5480bff3726539a3354d5176b52"
         }
       ],
       "reviews": [
@@ -6968,6 +6981,25 @@
           "report_sha256": "92e07e5810838d2e445e93a69327d0d690f145b797c64c56d0055e3c22b84012",
           "manifest_sha256": "a8c3ba182170da1f550612b3118fa76509359e6e709a3d8af43b28f302a7575e",
           "integration_gate": "blocked pending release-path repair and fresh review"
+        },
+        {
+          "id": "review-qpbt-049-pr025-a03-release-repair",
+          "reviewer_session_id": "i049-reviewer-a03-release-repair",
+          "verdict": "request_changes",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+          "started_at": "2026-09-01T20:28:45Z",
+          "completed_at": "2026-09-01T20:40:40Z",
+          "result_path": "workflow/reviews/qpbt-049-review-a03.md",
+          "finding_ids": [
+            "F-LPR025-A03-001",
+            "F-LPR025-A03-002",
+            "F-LPR025-A03-003"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "d73fe817f25d1ebc83ae93b266eccae47b9925ac2cc1010cc87a39734227532d",
+          "manifest_sha256": "eeb1e91987e812a849ed330aca52e4176f8289526e81cb3418b294aaa2dace19",
+          "integration_gate": "blocked: legacy compatibility, transaction validation, and equal-timestamp ordering repairs required"
         }
       ],
       "findings": [
@@ -6977,10 +7009,10 @@
           "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
           "head_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
           "severity": "blocker",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A03 review confirms the prior repair behavior; new independent blockers remain recorded.",
+          "resolved_by_review_id": "review-qpbt-049-pr025-a03-release-repair",
           "summary": "Governed local-agent claim_issued_session bypasses the post-confirmation collaboration release lease.",
           "path": "scripts/local_agent.py",
           "line": 381,
@@ -6992,20 +7024,65 @@
           "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
           "head_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
           "severity": "blocker",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A03 review confirms the prior repair behavior; new independent blockers remain recorded.",
+          "resolved_by_review_id": "review-qpbt-049-pr025-a03-release-repair",
           "summary": "Event-log validation does not bind release external identity/backend scope or require release before a collaboration session runs.",
           "path": "scripts/workflow.py",
           "line": 1482,
           "required_change": "Validate release payload identity, collaboration backend scope, chronology, and required release before running/terminal progression."
+        },
+        {
+          "id": "F-LPR025-A03-001",
+          "introduced_review_id": "review-qpbt-049-pr025-a03-release-repair",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "New release validator rejects valid legacy collaboration histories.",
+          "path": "scripts/workflow.py",
+          "line": 1525,
+          "required_change": "Introduce an explicit compatibility boundary while enforcing release for newly confirmed collaboration launches."
+        },
+        {
+          "id": "F-LPR025-A03-002",
+          "introduced_review_id": "review-qpbt-049-pr025-a03-release-repair",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Direct CLI transition bypasses pre/post event-log validation.",
+          "path": "scripts/workflow.py",
+          "line": 3184,
+          "required_change": "Use the same lock-held pre/post event validation and rollback boundary for CLI transitions."
+        },
+        {
+          "id": "F-LPR025-A03-003",
+          "introduced_review_id": "review-qpbt-049-pr025-a03-release-repair",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Equal timestamps permit release-before-issuance chronology inversion.",
+          "path": "scripts/workflow.py",
+          "line": 1518,
+          "required_change": "Use event sequence/line number as a tie-breaker for release chronology."
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:00Z",
-      "updated_at": "2026-09-01T20:19:02.481879Z",
+      "updated_at": "2026-09-01T20:45:01.828762Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -7014,23 +7091,25 @@
         "workflow/reviews/qpbt-049-task-release-a01.md",
         "scripts/local_agent.py",
         "tests/test_local_agent.py",
-        "workflow/reviews/qpbt-049-release-repair-a02.md"
+        "workflow/reviews/qpbt-049-release-repair-a02.md",
+        "workflow/reviews/qpbt-049-review-a03.md"
       ],
       "motivation": "Prevent collaboration task packets from being released before immutable backend identity confirmation.",
       "description": "Add a post-confirmation identity-bound release event and fail-closed lifecycle validation.",
-      "testing": "78 workflow tests; compileall; diff hygiene; immutable review pending.",
+      "testing": "A03 scoped tests passed; canonical candidate validation failed on legacy-release compatibility; immutable review request_changes.",
       "addresses": "QPBT-049",
       "provenance_session_ids": [
         "i049-orchestrator-a01-task-release",
-        "i049-orchestrator-a02-release-repair"
+        "i049-orchestrator-a02-release-repair",
+        "i049-reviewer-a03-release-repair"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable review of repaired release gate head, then guarded integration."
+      "unexecuted_gate": "Repair A03 compatibility/transaction/ordering findings, obtain fresh approval, then guarded integration."
     },
     {
       "id": "LPR-026",
       "title": "fix(cache): isolate Git diagnostics from ambient hooks",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-050"
       ],
@@ -7067,6 +7146,19 @@
           "candidate_tree": "1c1be2d9c9e7c790842fab47077055f929826c06",
           "parent_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
           "manifest_sha256": "a3358d0d5ce28b5569eaaff61872f9f231c47d693c0df31996ef732e2b8319da"
+        },
+        {
+          "id": "check-qpbt-050-review-a03",
+          "name": "QPBT-050 A03 immutable security review checks",
+          "command": "62 hot-cache tests; compileall; checker; immutable diff authentication; hostile Git environment probes",
+          "status": "passed",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "c70267e3d65aeb3c47b4680ab53693c5b9ead6fa",
+          "completed_at": "2026-09-01T20:27:00Z",
+          "result_path": "workflow/reviews/qpbt-050-review-a03.md",
+          "manifest_sha256": "a3358d0d5ce28b5569eaaff61872f9f231c47d693c0df31996ef732e2b8319da",
+          "candidate_tree": "1c1be2d9c9e7c790842fab47077055f929826c06",
+          "parent_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7"
         }
       ],
       "reviews": [
@@ -7086,6 +7178,21 @@
           "report_sha256": "ed6e204e047b30aafe4884eafea2d0fead7068797a18ea3ce496caf5f8502570",
           "manifest_sha256": "85693d6b11e7714aaf04ffef551693989bddf094e8394cfd552f80ce25e9ccfb",
           "integration_gate": "blocked pending trusted git_resolved_path repair and fresh review"
+        },
+        {
+          "id": "review-qpbt-050-pr026-a03-fsmonitor-repair",
+          "reviewer_session_id": "i050-reviewer-a03-fsmonitor-repair",
+          "verdict": "approve",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "c70267e3d65aeb3c47b4680ab53693c5b9ead6fa",
+          "started_at": "2026-09-01T20:28:46Z",
+          "completed_at": "2026-09-01T20:40:40Z",
+          "result_path": "workflow/reviews/qpbt-050-review-a03.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "8bfefa83a421eb2a7c8bfb49dbbae20ccae04eaae720d0d29249c42bf88c82fd",
+          "manifest_sha256": "a3358d0d5ce28b5569eaaff61872f9f231c47d693c0df31996ef732e2b8319da",
+          "integration_gate": "review approved; guarded integration pending"
         }
       ],
       "findings": [
@@ -7095,10 +7202,10 @@
           "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
           "head_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
           "severity": "high",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A03 immutable security review confirms trusted Git admission for every diagnostic and hostile-environment probes.",
+          "resolved_by_review_id": "review-qpbt-050-pr026-a03-fsmonitor-repair",
           "summary": "Seed admission calls git_resolved_path without the trusted Git environment, allowing ambient GIT_WORK_TREE/config influence.",
           "path": "scripts/hot_main_cache.py",
           "line": 1047,
@@ -7108,23 +7215,25 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:01Z",
-      "updated_at": "2026-09-01T20:19:02.622683Z",
+      "updated_at": "2026-09-01T20:45:02.255789Z",
       "changed_paths": [
         "scripts/hot_main_cache.py",
         "tests/test_hot_main_cache.py",
         "workflow/reviews/qpbt-050-fsmonitor-hardening-a01.md",
-        "workflow/reviews/qpbt-050-fsmonitor-repair-a02.md"
+        "workflow/reviews/qpbt-050-fsmonitor-repair-a02.md",
+        "workflow/reviews/qpbt-050-review-a03.md"
       ],
       "motivation": "Close the ambient fsmonitor execution residual in cache admission diagnostics.",
       "description": "Run every Git identity and cleanliness diagnostic under the trusted Git environment and add hook suppression coverage.",
-      "testing": "61 hot-cache tests; compileall; checker; diff hygiene; immutable security review pending.",
+      "testing": "A03 immutable security review approved; 62 hot-cache tests, compileall, checker, hostile Git probes, and diff checks passed.",
       "addresses": "QPBT-050",
       "provenance_session_ids": [
         "i050-orchestrator-a01-fsmonitor-hardening",
-        "i050-orchestrator-a02-fsmonitor-repair"
+        "i050-orchestrator-a02-fsmonitor-repair",
+        "i050-reviewer-a03-fsmonitor-repair"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable security review of repaired trusted Git head, then guarded integration."
+      "unexecuted_gate": "Guarded integration onto current main, then issue closure and cache gate re-evaluation."
     }
   ]
 }

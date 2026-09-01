@@ -22861,7 +22861,7 @@
       "name": "i049-reviewer-a03-release-repair",
       "backend": "codex-collaboration",
       "role": "reviewer",
-      "status": "running",
+      "status": "archived",
       "issue_id": "QPBT-049",
       "pr_id": "LPR-025",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
@@ -22881,23 +22881,44 @@
       "candidate_report_sha256": "4ee1544e166b69cb048d5e8dfe27674af0413a1530c50125fc5a8cb0e4b8e407",
       "review_scope": "Verify both prior blocker repairs: actual governed claim path cannot bypass post-confirmation release, and event-log validation binds release identity/backend/chronology and requires release for collaboration progression.",
       "started_at": "2026-09-01T20:28:42.734403Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-01T20:40:41.388309Z",
+      "elapsed_seconds": 718.654,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-049-review-a03.md",
+      "timing_quality": "runtime-measured",
+      "report_sha256": "d73fe817f25d1ebc83ae93b266eccae47b9925ac2cc1010cc87a39734227532d",
+      "run_outcome": "formal-request-changes-three-findings",
+      "verdict": "request_changes",
+      "finding_ids": [
+        "F-LPR025-A03-001",
+        "F-LPR025-A03-002",
+        "F-LPR025-A03-003"
+      ],
+      "checks": {
+        "local_agent_tests": "65 passed",
+        "workflow_tests": "78 passed",
+        "compileall": "passed",
+        "diff_check": "passed",
+        "workflow_validate": "failed: 382 legacy-release errors",
+        "builds": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "repository_edits": 0,
+        "nested_agents": 0
+      }
     },
     {
       "id": "i050-reviewer-a03-fsmonitor-repair",
       "name": "i050-reviewer-a03-fsmonitor-repair",
       "backend": "codex-collaboration",
       "role": "reviewer",
-      "status": "running",
+      "status": "archived",
       "issue_id": "QPBT-050",
       "pr_id": "LPR-026",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
@@ -22917,16 +22938,33 @@
       "candidate_report_sha256": "db01b6ce1ecf155dd478270b9ea0c574371e7bdd22e60b52e4b589a9ac96da47",
       "review_scope": "Verify every Git diagnostic used by cache admission receives the trusted environment, including seed identity resolution, hostile ambient config/worktree/fsmonitor hooks, fail-closed warnings, and publication barriers.",
       "started_at": "2026-09-01T20:28:43.175190Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-01T20:40:41.827595Z",
+      "elapsed_seconds": 718.652,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-050-review-a03.md",
+      "timing_quality": "runtime-measured",
+      "report_sha256": "8bfefa83a421eb2a7c8bfb49dbbae20ccae04eaae720d0d29249c42bf88c82fd",
+      "run_outcome": "formal-approve-no-new-findings",
+      "verdict": "approve",
+      "finding_ids": [],
+      "checks": {
+        "hot_cache_tests": "62/62 passed",
+        "compileall": "passed",
+        "checker": "passed",
+        "diff_check": "passed",
+        "hostile_git_probe": "passed",
+        "builds": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "repository_edits": 0,
+        "nested_agents": 0
+      }
     }
   ]
 }
