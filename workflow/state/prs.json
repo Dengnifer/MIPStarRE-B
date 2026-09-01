@@ -4477,6 +4477,33 @@
           "report_sha256": "0b203f02ade092400fdc524cb36ec5ee54ab190f3d460392d27f4dde09053cfe",
           "acceptance_commands": 5,
           "safe_adversarial_reproductions": 4
+        },
+        {
+          "id": "review-qpbt-026-pr016-a20-immutable",
+          "reviewer_session_id": "i026-reviewer-a20-pr016-immutable",
+          "verdict": "approve",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+          "started_at": "2026-09-01T04:44:48.599403Z",
+          "completed_at": "2026-09-01T04:46:47.228264Z",
+          "result_path": "workflow/reviews/qpbt-026-review-a20-pr016-immutable.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "7cfeb869a3f150fe68ebe4c153e4a6357f235cb87b0affa357c6c3c7b4bdaae0",
+          "acceptance_commands": 4,
+          "resolved_finding_ids": [
+            "F-LPR016-008"
+          ],
+          "reconfirmed_finding_ids": [
+            "F-LPR016-001",
+            "F-LPR016-002",
+            "F-LPR016-003",
+            "F-LPR016-004",
+            "F-LPR016-005",
+            "F-LPR016-006",
+            "F-LPR016-007"
+          ],
+          "safe_adversarial_cases": 10
         }
       ],
       "findings": [
@@ -4584,10 +4611,10 @@
           "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
           "head_sha": "f3f49388f7058a9f9b997798417e4ae08435f523",
           "severity": "high",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A20 verified at exact current head 5bf6e086 that the complete 11-field capability allowlist, exact types, nullable constraints, strict JSON safety, and unknown-field rejection execute before every repository, probe, harness, output, lease, runner, or serialization side effect.",
+          "resolved_by_review_id": "review-qpbt-026-pr016-a20-immutable",
           "summary": "Capability validation accepts malformed unexpected data, allowing harness, output, and runner side effects before final serialization fails.",
           "path": "scripts/local_agent.py",
           "line": 2277
@@ -4596,7 +4623,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T22:10:00Z",
-      "updated_at": "2026-09-01T04:44:09.399833Z",
+      "updated_at": "2026-09-01T04:51:14.144144Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -4621,12 +4648,12 @@
         "i026-fixer-a19-capability-schema"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Fresh immutable A20 review must resolve F-LPR016-008 and reconfirm F-LPR016-001 through F-LPR016-007 at exact head 5bf6e08. QPBT-027 must integrate before approval can append current-head confirmations. Production external review remains disabled and no endpoint is contacted."
+      "unexecuted_gate": "A20 approved exact head 5bf6e08, resolved F-LPR016-008, and reconfirmed F-LPR016-001 through F-LPR016-007. QPBT-027 must integrate before those append-only current-head confirmations can be recorded and the PR approved. Production external review remains disabled."
     },
     {
       "id": "LPR-017",
       "title": "fix(review): permit append-only finding reconfirmation",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-027"
       ],
@@ -4721,12 +4748,45 @@
           "worktree_clean": true
         }
       ],
-      "reviews": [],
-      "findings": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-027-pr017-a04-immutable",
+          "reviewer_session_id": "i027-reviewer-a04-pr017-immutable",
+          "verdict": "request_changes",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+          "started_at": "2026-09-01T04:42:58.025300Z",
+          "completed_at": "2026-09-01T04:48:08.355211Z",
+          "result_path": "workflow/reviews/qpbt-027-review-a04-pr017-immutable.md",
+          "finding_ids": [
+            "F-LPR017-001"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "2fd2a123a2ed32b34d674509f4faf78fe398ee44add61270db570bd46a30d58e",
+          "acceptance_commands": 6,
+          "safe_adversarial_reproductions": 1
+        }
+      ],
+      "findings": [
+        {
+          "id": "F-LPR017-001",
+          "introduced_review_id": "review-qpbt-027-pr017-a04-immutable",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Public PR updates can newly append a reconfirmation already stale against the current PR base/head, after which append-only immutability locks in false historical evidence.",
+          "path": "scripts/workflow.py",
+          "line": 2480
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T04:34:43.606227Z",
-      "updated_at": "2026-09-01T04:41:43.803005Z",
+      "updated_at": "2026-09-01T04:51:14.393717Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -4744,7 +4804,7 @@
         "i027-integrator-a03-pr017-bind"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Fresh independent immutable reviewer approval of exact base 506ac7a7 and head 44ecdce9 remains required before integration; A03 authenticated and formally adopted the unchanged candidate."
+      "unexecuted_gate": "F-LPR017-001 requires a direct-descendant fix that validates each newly appended confirmation against the complete candidate PR state before persistence, plus a fresh immutable reviewer of the new head."
     }
   ]
 }
