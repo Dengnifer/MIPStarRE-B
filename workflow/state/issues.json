@@ -2049,7 +2049,7 @@
       "title": "feat(QPBT/Game): implement conditionally-linear and typed interfaces",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2071,7 +2071,7 @@
         "Make no raw-string efficiency claim and introduce no sorry, axiom, constant, or public bridge assumption",
         "Pass scoped Lean, target build, loop/codec/debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i038-orchestrator-a01-types",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#F06F07--Types",
         "workflow/reviews/qpbt-035-q014-contract-a07.md#F06-CL",
@@ -2085,9 +2085,9 @@
         "MIPStarRE/QPBT/Game/Types.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T15:57:29.924029Z",
-      "blocked_reason": "QPBT-035 callable contract is not yet reviewed and integrated.",
-      "unblock_condition": "QPBT-035 done."
+      "updated_at": "2026-09-01T22:07:22.744137Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-040",

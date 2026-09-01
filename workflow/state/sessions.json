@@ -23312,6 +23312,41 @@
       "archive_status": "not_requested",
       "outcome_path": null,
       "pr_id": null
+    },
+    {
+      "id": "i038-orchestrator-a01-types",
+      "name": "i038-orchestrator-a01-types",
+      "role": "orchestrator",
+      "issue_id": "QPBT-038",
+      "attempt": 1,
+      "priority": 1,
+      "backend": "codex-collaboration",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "read_only": false,
+      "base_revision": "e1e5e28822aaf212b6eb5b4ecbcd93ef787979b6",
+      "base_revision_reason": "Current pushed main checkpoint after first parallel Lean-lane dispatch.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-038-types-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-038-types-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-038, F06/F07 metadata and exact signature markers, pinned conditionally-linear/types sources, Field.lean, and Mathlib PMF APIs. Implement the exact Types contract with no sorry/axiom/constant/public bridge assumption, run scoped Lean and required cache/build/debt/sync gates, and write an immutable findings-first report.",
+      "result_envelope_path": "workflow/reviews/qpbt-038-types-a01.md",
+      "dispatch_condition": "QPBT-035 is done; begin the third independent Lean writer lane.",
+      "status": "running",
+      "external_id": "/root/i038_types_bootstrap",
+      "started_at": "2026-09-01T22:06:28.173071Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "pr_id": null
     }
   ]
 }
