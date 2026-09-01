@@ -2338,7 +2338,7 @@
         "Update the local build protocol and protocol changelog, pass focused and aggregate workflow tests, and obtain a fresh independent immutable review",
         "After guarded integration, warm exact current main once under the filesystem lock with all three authenticated local inputs; record cache key, input hashes, lock wait, materialization/dependency/build durations, inventory, result, and zero duplicate builders"
       ],
-      "owner_session_id": "i045-orchestrator-a05-pr024-security-repair",
+      "owner_session_id": "i045-orchestrator-a07-pr024-review-repair",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-054",
         "research/metrics/incidents.jsonl#INC-060",
@@ -2355,7 +2355,7 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:50:00Z",
-      "updated_at": "2026-09-01T17:23:51.058787Z",
+      "updated_at": "2026-09-01T17:59:34.142373Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -2449,7 +2449,7 @@
       "title": "Freeze the executable conditionally-linear sampler contract",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2470,9 +2470,13 @@
         "Assign the node to MIPStarRE/QPBT/Game/Types.lean and the existing QPBT-038 writer lane without duplicating F06 mathematical callables; update F06/F07/F07A prerequisites, transitive definitions, integrity tables, and QPBT-038 source/acceptance metadata so every executable clause has exactly one owner",
         "Add fail-closed checker invariants and focused adversarial mutations for source range, labels, callable list, imports, owner file, dependency edges, dimension/runtime formulas, and exclusion from F07A/K03/K04; regenerate every deterministic 54-node consumer byte-idempotently",
         "Run blueprint unit, default, exact pinned-source, reference authentication, workflow/checker, diff, and bounded Lean signature probes; record exact statement-integrity and source/hash evidence",
-        "Obtain a fresh independent immutable mathematical/API review of the changed LPR-023 head before QPBT-035 can resume review"
+        "Obtain a fresh independent immutable mathematical/API review of the changed LPR-023 head before QPBT-035 can resume review",
+        "Replace eventual Filter.atTop IsBigO with a callable global-positive-index RuntimeBigO matching top-level/preliminaries.tex, guard every paper-indexed clause by 0 < n, retain 1 <= ell exactly, and define TIME_S(n) as the exact finite maximum of operational steps over semantically valid queries rather than a free upper bound",
+        "Expose a genuine six-tape operational boundary, ignored-tape behavior, data-valued chosen CL decompositions with valid dependent u/y query subtypes, canonical finite-field bit-codec coherence, exact sampler PMF pushforward, and a downsize compiler theorem whose parsing, conversion, simulation, copying, block-order, and output costs are proved rather than assumed",
+        "Record the TIME_S aggregation ambiguity, linear-query prefix/domain defects, finite-field codec gap, and downsize runtime proof gap explicitly in F06A statement-integrity/paper-gap metadata; do not hide them in public obligations or assign them to F07A, K03, or K04",
+        "After changing the callable surface, update QPBT-038 and every transitive generated consumer, run bounded Lean signature probes plus all blueprint/source/workflow gates, and obtain a fresh immutable mathematical/API review before resolving F-LPR023-003 through F-LPR023-005"
       ],
-      "owner_session_id": "i048-orchestrator-a01-executable-cl-contract",
+      "owner_session_id": "i048-orchestrator-a04-source-fidelity-repair",
       "source_refs": [
         "workflow/reviews/qpbt-035-pr023-review-a11.md#F-LPR023-004",
         "workflow/reviews/qpbt-035-contract-review-repair-a12.md#F-LPR023-004",
@@ -2480,7 +2484,10 @@
         "blueprint/metadata/nodes.json#F07A-DETYPING",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-626",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:628-660",
-        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:662-712"
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:662-712",
+        "workflow/reviews/qpbt-048-executable-cl-contract-a01.md",
+        "workflow/reviews/qpbt-048-source-audit-a02.md#A02-001-A02-008",
+        "workflow/reviews/qpbt-048-generated-sync-a03.md"
       ],
       "owned_paths": [
         "blueprint/check.py",
@@ -2501,10 +2508,10 @@
         "blueprint/src/generated/chapter-12-entries.tex"
       ],
       "created_at": "2026-09-01T16:45:00Z",
-      "updated_at": "2026-09-01T17:29:40.526813Z",
+      "updated_at": "2026-09-01T17:57:29.595635Z",
       "blocked_reason": null,
       "unblock_condition": null,
-      "ownership_handoff": "A01 commits only its immutable leased subset; a sequential root-issued integrator owns generated chapter-04 through chapter-12 before review."
+      "ownership_handoff": "A03 closed the INC-063 generated sync at 783ec5f; A04 exclusively owns the complete source-fidelity repair across metadata/checker/tests/all deterministic generated consumers."
     },
     {
       "id": "QPBT-049",

@@ -6021,10 +6021,13 @@
       "base": "main",
       "head": "issue/qpbt-035-q014-contract-a01",
       "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
-      "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+      "head_sha": "783ec5f5b0ed876addb3cf6e02bf0fdc2426fa19",
       "implementer_session_ids": [
         "i035-orchestrator-a04-q014-contract-fixes",
-        "i035-orchestrator-a07-source-contract-repair"
+        "i035-orchestrator-a07-source-contract-repair",
+        "i035-orchestrator-a12-contract-review-repair",
+        "i048-orchestrator-a01-executable-cl-contract",
+        "i048-integrator-a03-generated-sync"
       ],
       "checks": [
         {
@@ -6204,6 +6207,52 @@
           "result_path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
           "comparison_base_sha": "3f2630a7631a0164b6ef4aca1fd081ba264beeb2",
           "result": "passed"
+        },
+        {
+          "id": "check-qpbt-035-a12-repair",
+          "name": "QPBT-035 A12 changed-head contract repair",
+          "command": "30 blueprint tests; deterministic 53-node default/pinned checks; 336-test aggregate; diff and immutable report authentication",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "77172fd30105531f668acc0338caae028901d24d",
+          "comparison_base_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "completed_at": "2026-09-01T16:40:17.272650Z",
+          "result_path": "workflow/reviews/qpbt-035-contract-review-repair-a12.md",
+          "head_tree": "4c158849f44522dc92c8229aeb223d96ece4cf0b",
+          "manifest_sha256": "9b05ab1c1c793ec6e9e383ce3695f2fcee544b0aa4894704f35946865a1f73d1",
+          "report_sha256": "df93700d6879e8c67649b5b25b641fe2a498c963eb2d7e77f504f024b8bb53b0",
+          "result": "F-LPR023-003 and F-LPR023-005 repaired pending fresh review; F-LPR023-004 retained"
+        },
+        {
+          "id": "check-qpbt-048-a01-contract",
+          "name": "QPBT-048 executable CL contract candidate",
+          "command": "31 blueprint tests; deterministic 54-node default/pinned checks; 336-test aggregate; 38-callable Lean signature probe; source and diff authentication",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "9f0c7878d1d77749c52351853261aba4930ecb33",
+          "comparison_base_sha": "77172fd30105531f668acc0338caae028901d24d",
+          "completed_at": "2026-09-01T17:29:19.616079Z",
+          "result_path": "workflow/reviews/qpbt-048-executable-cl-contract-a01.md",
+          "head_tree": "6fe3b2b0bc5ab199e65d89923afd88f544489fa3",
+          "manifest_sha256": "fcb890b51d6052eccda19e7ae5b94894f81084f747810fe0fbbad686a256e492",
+          "report_sha256": "bb1f714998e774f95d25327efe4285adc2e6817eb4c66e6b2dea8ba3f89198aa",
+          "signature_sha256": "027de2c872cf086fb93456381ac5325aba2676b6be82428151c978e40fa2672d",
+          "result": "mechanically passed; independent A02 source audit requires contract repair before review"
+        },
+        {
+          "id": "check-qpbt-048-a03-generated-sync",
+          "name": "QPBT-048 deterministic generated-consumer sync",
+          "command": "two byte-idempotent generator writes; 31 blueprint tests; default/pinned 54-node checks; source/workflow/diff authentication",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "783ec5f5b0ed876addb3cf6e02bf0fdc2426fa19",
+          "comparison_base_sha": "9f0c7878d1d77749c52351853261aba4930ecb33",
+          "completed_at": "2026-09-01T17:43:09.417741Z",
+          "result_path": "workflow/reviews/qpbt-048-generated-sync-a03.md",
+          "head_tree": "87eda049a6e8bfac7965c0df41de23930f26f9ba",
+          "manifest_sha256": "443af57c0d65b9345b85290d42d7216cc979777971e00952d030704af78b9794",
+          "report_sha256": "8d95d622e13479d1f1f42b0532db6657e6e5437dbb2e7bf2da65c73ca0647c59",
+          "result": "INC-063 generated ownership handoff complete; no mathematical/checker bytes changed"
         }
       ],
       "reviews": [
@@ -6226,6 +6275,31 @@
           "manifest_sha256": "d001ca49a11bbe32526931274a74e55b61a8a57b2544d0a79fd298f83680889d",
           "statement_integrity": "F02/G01 exact; F05 documented mismatch faithful; F06/F07 mismatch",
           "lean_signature_probes": 4
+        },
+        {
+          "id": "review-qpbt-035-pr023-a11-resolution",
+          "reviewer_session_id": "i035-reviewer-a11-pr023-resolution",
+          "verdict": "request_changes",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "started_at": "2026-09-01T15:43:28.815310Z",
+          "completed_at": "2026-09-01T16:01:49.116080Z",
+          "result_path": "workflow/reviews/qpbt-035-pr023-review-a11.md",
+          "finding_ids": [
+            "F-LPR023-004",
+            "F-LPR023-005"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "ea250f6c921716e21ba758e47cbf0bc7e96a89582b05df4ecbc897cbdcf25687",
+          "manifest_sha256": "1a5831dad7f443ef9ea01906caf178805e41acce8687d3c27750e1cc8390d19c",
+          "resolved_finding_ids": [
+            "F-LPR023-001",
+            "F-LPR023-002"
+          ],
+          "retained_open_finding_ids": [
+            "F-LPR023-003"
+          ],
+          "statement_integrity": "F04A/F07A faithful boundary; F06 executable ownership and F07 finiteness remained mismatched"
         }
       ],
       "findings": [
@@ -6233,31 +6307,33 @@
           "introduced_review_id": "review-qpbt-035-pr023-a03-contract",
           "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
           "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A11 independently verified exact F07A ownership under QPBT-041/042/043 and confirmed K03/K04 remain outside detyping ownership.",
+          "resolved_by_review_id": "review-qpbt-035-pr023-a11-resolution",
           "id": "F-LPR023-001",
           "severity": "high",
           "summary": "F07 defers detyping obligations to K03-K04 even though neither node owns detyping definitions or equivalence theorems.",
           "path": "blueprint/metadata/nodes.json",
           "line": 385,
-          "required_change": "Keep source detyping obligations visible under F07 or create an exact later node with dependencies, callable names, source range, and a tracked discharge issue."
+          "required_change": "Keep source detyping obligations visible under F07 or create an exact later node with dependencies, callable names, source range, and a tracked discharge issue.",
+          "confirmation_review_ids": []
         },
         {
           "introduced_review_id": "review-qpbt-035-pr023-a03-contract",
           "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
           "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A11 independently verified CLSampler.sample_directSum, its exact theorem type, source order, independence, and authenticated marker.",
+          "resolved_by_review_id": "review-qpbt-035-pr023-a11-resolution",
           "id": "F-LPR023-002",
           "severity": "high",
           "summary": "F06 omits the source theorem that the direct-sum sampler distribution is the product distribution.",
           "path": "blueprint/metadata/nodes.json",
           "line": 333,
-          "required_change": "Freeze a precisely typed sample_directSum/reindexing theorem in F06 or assign it to a concrete later node with an exact callable contract."
+          "required_change": "Freeze a precisely typed sample_directSum/reindexing theorem in F06 or assign it to a concrete later node with an exact callable contract.",
+          "confirmation_review_ids": []
         },
         {
           "introduced_review_id": "review-qpbt-035-pr023-a03-contract",
@@ -6272,13 +6348,46 @@
           "summary": "F07 metadata claims finite dependent fibers and a finite decider although its frozen generic question/answer families have no pointwise finiteness assumptions.",
           "path": "blueprint/metadata/nodes.json",
           "line": 385,
-          "required_change": "Narrow the metadata to the constant finite sampler carrier and defer consumer finiteness to G02, or add connected dependent families with pointwise finite assumptions."
+          "required_change": "Narrow the metadata to the constant finite sampler carrier and defer consumer finiteness to G02, or add connected dependent families with pointwise finite assumptions.",
+          "confirmation_review_ids": []
+        },
+        {
+          "introduced_review_id": "review-qpbt-035-pr023-a11-resolution",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "id": "F-LPR023-004",
+          "severity": "high",
+          "summary": "F06 assigns its executable conditionally-linear sampler source debt to nodes whose frozen source ranges exclude it.",
+          "path": "blueprint/metadata/nodes.json",
+          "line": 352,
+          "required_change": "Create a dedicated source-bound callable owner for conditionally-linear.tex:553-712, retain K03/K04 exact ownership, and freeze a source-faithful executable sampler/downsize contract.",
+          "confirmation_review_ids": []
+        },
+        {
+          "introduced_review_id": "review-qpbt-035-pr023-a11-resolution",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "id": "F-LPR023-005",
+          "severity": "low",
+          "summary": "The A07 report cites a nonexistent stable A08 session name.",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "line": 156,
+          "required_change": "Correct the immutable provenance identifier to i035-scout-a08-game-semantics-api in a changed-head repair record.",
+          "confirmation_review_ids": []
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T13:51:43.737636Z",
-      "updated_at": "2026-09-01T15:30:41.279470Z",
+      "updated_at": "2026-09-01T17:52:51.435533Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.dot",
@@ -6286,14 +6395,26 @@
         "blueprint/metadata/nodes.json",
         "blueprint/src/generated/chapter-02-entries.tex",
         "blueprint/src/generated/chapter-03-entries.tex",
+        "blueprint/src/generated/chapter-04-entries.tex",
+        "blueprint/src/generated/chapter-05-entries.tex",
+        "blueprint/src/generated/chapter-06-entries.tex",
+        "blueprint/src/generated/chapter-07-entries.tex",
+        "blueprint/src/generated/chapter-08-entries.tex",
+        "blueprint/src/generated/chapter-09-entries.tex",
+        "blueprint/src/generated/chapter-10-entries.tex",
+        "blueprint/src/generated/chapter-11-entries.tex",
+        "blueprint/src/generated/chapter-12-entries.tex",
         "blueprint/tests/test_check.py",
+        "workflow/reviews/qpbt-035-contract-review-repair-a12.md",
         "workflow/reviews/qpbt-035-q014-contract-a02.md",
         "workflow/reviews/qpbt-035-q014-contract-a04.md",
-        "workflow/reviews/qpbt-035-q014-contract-a07.md"
+        "workflow/reviews/qpbt-035-q014-contract-a07.md",
+        "workflow/reviews/qpbt-048-executable-cl-contract-a01.md",
+        "workflow/reviews/qpbt-048-generated-sync-a03.md"
       ],
       "motivation": "Resolve the QPBT-014 preflight blockers and freeze an elaborated, source-faithful callable surface before four independent Lean writers begin.",
       "description": "Publish exact F02/F05/F06/F07/G01 signatures, imports, writer lanes, source boundaries, and deterministic generated metadata without adding public bridge assumptions.",
-      "testing": "Changed head c35fcd3: 29/29 blueprint tests, deterministic 53-node generation, default and pinned-source checks, workflow validation/checker, exact F07 plus A08 F04A signature probes, candidate authentication, and diff hygiene passed; no target/full build was required for blueprint-only changes.",
+      "testing": "Through head 783ec5f: A12 passed 30 blueprint tests and 336 workflow tests; A01 passed 31 blueprint tests, deterministic 54-node checks, 336 workflow tests, source authentication, and a 38-callable Lean probe; A03 proved two-write idempotence and passed 31 tests plus default/pinned checks. A02 independently found six source/API blockers, so review is deferred.",
       "addresses": "QPBT-035",
       "provenance_session_ids": [
         "i035-orchestrator-a01-q014-contract",
@@ -6303,10 +6424,15 @@
         "i035-scout-a05-detype-source",
         "i035-scout-a06-directsum-api",
         "i035-orchestrator-a07-source-contract-repair",
-        "i035-scout-a08-game-semantics-api"
+        "i035-scout-a08-game-semantics-api",
+        "i035-reviewer-a11-pr023-resolution",
+        "i035-orchestrator-a12-contract-review-repair",
+        "i048-orchestrator-a01-executable-cl-contract",
+        "i048-scout-a02-executable-cl-source",
+        "i048-integrator-a03-generated-sync"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Obtain a fresh immutable mathematical/API resolution review of exact head c35fcd36bea96705851655852eabc78ca9db9b3f; only that review may resolve F-LPR023-001 through F-LPR023-003 and approve guarded integration."
+      "unexecuted_gate": "Repair A02-001 through A02-006 on a changed head: global positive-index RuntimeBigO, exact valid-query time aggregation, explicit six-tape cost semantics, data-valued valid dependent CL decompositions, canonical field-codec coherence, and proved downsize compiler costs. Then rerun changed-head gates and obtain a fresh immutable mathematical/API review resolving F-LPR023-003 through F-LPR023-005."
     },
     {
       "id": "LPR-024",
@@ -6318,10 +6444,11 @@
       "base": "main",
       "head": "issue/qpbt-045-hot-main-preservation-a01",
       "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
-      "head_sha": "3c3f0c15aef87920d0668cc18d1fd03bc0274b7f",
+      "head_sha": "39c9ee0d74c929cbd4a1fc98be970f4d6c6c8a16",
       "implementer_session_ids": [
         "i045-integrator-a02-pr024-bind",
-        "i045-orchestrator-a05-pr024-security-repair"
+        "i045-orchestrator-a05-pr024-security-repair",
+        "i045-orchestrator-a07-pr024-review-repair"
       ],
       "checks": [
         {
@@ -6488,6 +6615,57 @@
           "completed_at": "2026-09-01T17:24:09.578144Z",
           "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a05.md",
           "result": "passed"
+        },
+        {
+          "id": "check-qpbt-045-a07-auth",
+          "name": "QPBT-045 A07 immutable changed-head authentication",
+          "command": "Authenticate exact base/head/tree/parent, three-path commit manifest/report, clean worktree, and full-base/changed-head diff hygiene",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "39c9ee0d74c929cbd4a1fc98be970f4d6c6c8a16",
+          "completed_at": "2026-09-01T17:58:15.068491Z",
+          "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a07.md",
+          "head_tree": "105854b569b76a6c2103ac2c22e512454afe0c53",
+          "parent_sha": "3c3f0c15aef87920d0668cc18d1fd03bc0274b7f",
+          "manifest_sha256": "11ee7fbec15a1bda08bcfc94da37232a191f48ac19a94f29af1c8299bc006c6b",
+          "report_sha256": "3dbca3c82dd9e5131c69823529e0b44b1f4b9b50b70ccb262e1c60acf831e13f",
+          "result": "passed"
+        },
+        {
+          "id": "check-qpbt-045-a07-focused",
+          "name": "QPBT-045 A07 hot-cache and materializer gates",
+          "command": "python3 tests/test_hot_main_cache.py; python3 tests/test_mipstarre_materialization.py",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "39c9ee0d74c929cbd4a1fc98be970f4d6c6c8a16",
+          "completed_at": "2026-09-01T17:58:15.068491Z",
+          "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a07.md",
+          "result": "60/60 hot-cache and 11/11 materializer tests passed",
+          "hot_cache_seconds": 12.58,
+          "materializer_seconds": 0.57
+        },
+        {
+          "id": "check-qpbt-045-a07-aggregate",
+          "name": "QPBT-045 A07 aggregate workflow regressions",
+          "command": "python3 -m unittest discover -s tests -p 'test_*.py'",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "39c9ee0d74c929cbd4a1fc98be970f4d6c6c8a16",
+          "completed_at": "2026-09-01T17:58:15.068491Z",
+          "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a07.md",
+          "result": "358/358 passed; exactly one aggregate attempt",
+          "wall_seconds": 183.35
+        },
+        {
+          "id": "check-qpbt-045-a07-workflow",
+          "name": "QPBT-045 A07 workflow/checker/compile gates",
+          "command": "python3 -m compileall -q scripts tests; python3 scripts/workflow.py validate; python3 scripts/check_workflow.py --skip-tests; python3 tests/test_check_workflow.py",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "39c9ee0d74c929cbd4a1fc98be970f4d6c6c8a16",
+          "completed_at": "2026-09-01T17:58:15.068491Z",
+          "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a07.md",
+          "result": "compileall, workflow/checker, and 3/3 checker tests passed"
         }
       ],
       "reviews": [
@@ -6510,6 +6688,30 @@
           "manifest_sha256": "2707b1097d9d3cc4ba2588f54b88ea8ac159ce8c6d0d3e3ec08d91ea0b38fd26",
           "adoption_report_sha256": "709ea72315f625673e687c27598e801d3fac459dc9ee4e576669a4dabc410f2d",
           "confirmed_reproductions": 6
+        },
+        {
+          "id": "review-qpbt-045-pr024-a06-resolution",
+          "reviewer_session_id": "i045-reviewer-a06-pr024-resolution",
+          "verdict": "request_changes",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "3c3f0c15aef87920d0668cc18d1fd03bc0274b7f",
+          "started_at": "2026-09-01T17:27:23.425022Z",
+          "completed_at": "2026-09-01T17:39:25.083251Z",
+          "result_path": "workflow/reviews/qpbt-045-pr024-review-a06.md",
+          "finding_ids": [
+            "F-LPR024-004"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "d400d0653cd15a987c3ccc4b942d0bce3222b9e95f43f94833134bb18757c7a3",
+          "manifest_sha256": "bab2e635156e4fbb9ac66ebddff6c3c6601e5c892a6f26a593ee4703d58416bb",
+          "resolved_finding_ids": [
+            "F-LPR024-002"
+          ],
+          "retained_open_finding_ids": [
+            "F-LPR024-001",
+            "F-LPR024-003"
+          ],
+          "registered_checks": "14/14"
         }
       ],
       "findings": [
@@ -6526,22 +6728,24 @@
           "summary": "Lexical authored-tree traversal accepts a concurrently substituted root or intermediate directory.",
           "path": "scripts/hot_main_cache.py",
           "line": 519,
-          "required_change": "Use descriptor-anchored no-follow recursion with root and child lexical-incarnation checks before and after use; fail closed on every scan, stat, open, and recheck error, with deterministic root/nested substitution regressions proving no snapshot or READY."
+          "required_change": "Use descriptor-anchored no-follow recursion with root and child lexical-incarnation checks before and after use; fail closed on every scan, stat, open, and recheck error, with deterministic root/nested substitution regressions proving no snapshot or READY.",
+          "confirmation_review_ids": []
         },
         {
           "introduced_review_id": "review-qpbt-045-pr024-a04-security",
           "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
           "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A06 independently verified single-link enforcement at all four identity boundaries, strong identity including st_nlink, helper/full-warm regressions, and a hard-link full warm that produced no snapshot or READY.",
+          "resolved_by_review_id": "review-qpbt-045-pr024-a06-resolution",
           "id": "F-LPR024-002",
           "severity": "high",
           "summary": "A byte-identical hard-linked authored source passes all five checks and can publish deep-ready READY.",
           "path": "scripts/hot_main_cache.py",
           "line": 474,
-          "required_change": "Require st_nlink == 1 before and after every authored-file read, include link count in strong identity, and add a full fake-warm hard-link regression proving no snapshot or READY."
+          "required_change": "Require st_nlink == 1 before and after every authored-file read, include link count in strong identity, and add a full fake-warm hard-link regression proving no snapshot or READY.",
+          "confirmation_review_ids": []
         },
         {
           "introduced_review_id": "review-qpbt-045-pr024-a04-security",
@@ -6556,33 +6760,53 @@
           "summary": "Recursive scan errors and successful Git stderr diagnostics can hide generated authored source.",
           "path": "scripts/hot_main_cache.py",
           "line": 519,
-          "required_change": "Fail closed on every enumeration or child-inspection error and on relevant nonempty Git status diagnostics even at exit zero; regress unreadable/generated subtree paths with no snapshot or READY."
+          "required_change": "Fail closed on every enumeration or child-inspection error and on relevant nonempty Git status diagnostics even at exit zero; regress unreadable/generated subtree paths with no snapshot or READY.",
+          "confirmation_review_ids": []
+        },
+        {
+          "introduced_review_id": "review-qpbt-045-pr024-a06-resolution",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "3c3f0c15aef87920d0668cc18d1fd03bc0274b7f",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "id": "F-LPR024-004",
+          "severity": "high",
+          "summary": "Committed and on-disk authored inventories hash different record orders for valid same-stem module and namespace-directory layouts.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 767,
+          "required_change": "Sort on-disk inventory records by the complete relative path before digesting and add an exact Game.lean plus Game/Types.lean regression comparing committed and on-disk facts.",
+          "confirmation_review_ids": []
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T16:37:00Z",
-      "updated_at": "2026-09-01T17:24:40.599096Z",
+      "updated_at": "2026-09-01T18:00:09.266442Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
         "scripts/hot_main_cache.py",
         "tests/test_hot_main_cache.py",
         "workflow/reviews/qpbt-045-hot-main-preservation-a01.md",
-        "workflow/reviews/qpbt-045-hot-main-preservation-a05.md"
+        "workflow/reviews/qpbt-045-hot-main-preservation-a05.md",
+        "workflow/reviews/qpbt-045-hot-main-preservation-a07.md"
       ],
       "motivation": "Unblock all new Lean work by preserving exact committed QPBT sources while refreshing authenticated upstream MIPStarRE content during singleton hot-main cache warm.",
       "description": "Recipe v7 preserves exact authored QPBT sources and hardens admission with descriptor-bound traversal, single-link file identity, fail-closed recursive inspection, and rejection of incomplete Git diagnostics.",
-      "testing": "A05 final hot-cache 56/56, materializer 11/11, aggregate 354/354 exactly once, compileall, canonical workflow/checker, full-base diff hygiene, and immutable candidate authentication passed. No production warm, Lean build, network, endpoint, GitHub, or credential action occurred.",
+      "testing": "A07 changed head 39c9ee0: authenticated three-path candidate, 60/60 hot-cache, 11/11 materializer, 358/358 aggregate exactly once, compileall, workflow/checker/test_check_workflow, and diff hygiene passed. All four A06 findings are candidate-resolved; fresh independent review remains required. No real warm or Lean build occurred.",
       "addresses": "QPBT-045",
       "provenance_session_ids": [
         "i045-orchestrator-a01-hot-main-preservation",
         "i045-integrator-a02-pr024-bind",
         "i045-reviewer-a04-pr024-postadoption",
-        "i045-orchestrator-a05-pr024-security-repair"
+        "i045-orchestrator-a05-pr024-security-repair",
+        "i045-reviewer-a06-pr024-resolution",
+        "i045-orchestrator-a07-pr024-review-repair"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Obtain a fresh independent immutable security review of exact changed head 3c3f0c15aef87920d0668cc18d1fd03bc0274b7f against all three open findings; only approval may permit guarded integration and exactly one lock-elected current-main warm."
+      "unexecuted_gate": "Obtain a fresh independent immutable security review of exact changed head 39c9ee0d74c929cbd4a1fc98be970f4d6c6c8a16 against F-LPR024-001 through F-LPR024-004, then integrate only after approval and run the one guarded singleton current-main warm."
     }
   ]
 }
