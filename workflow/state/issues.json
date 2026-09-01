@@ -634,7 +634,7 @@
       "id": "QPBT-013",
       "title": "Implement minimal QPBT leaf foundations",
       "kind": "formalization",
-      "status": "in_progress",
+      "status": "done",
       "parent_id": "QPBT-005",
       "dependency_ids": [
         "QPBT-004",
@@ -660,8 +660,57 @@
       ],
       "owned_paths": [],
       "created_at": "2026-08-30T23:54:39.078758Z",
-      "updated_at": "2026-09-01T12:28:27.193669Z",
-      "unblock_condition": "Dispatch the two disjoint child orchestrators after the current-main cache is READY; close only after both child issues finish."
+      "updated_at": "2026-09-01T12:44:59.225519Z",
+      "unblock_condition": null,
+      "completion_evidence": {
+        "checkpoint_sha": "d60a71c945ebf407b4a1c8c322c38181e7d09dfa",
+        "checkpoint_tree": "cbd1b48827acb90615f437ebd9d55d3705d7cc70",
+        "child_issue_ids": [
+          "QPBT-031",
+          "QPBT-032"
+        ],
+        "pr_ids": [
+          "LPR-020",
+          "LPR-021"
+        ],
+        "merge_shas": [
+          "ff79fe3444eae7015def65039cac62ec213e8ed4",
+          "aa1f579d56b4476220d2d6ef4c69c3c06ae779e2"
+        ],
+        "candidate_blobs_preserved": "4/4",
+        "cache": {
+          "key": "d71a99abea8f7ebf5bda5194dfef088b06f526230caf5ccbca34d62d5b4267b9",
+          "seed_hit": 1,
+          "seed_seconds": 64.962432,
+          "seed_builds": 0,
+          "lock_wait_seconds": 0
+        },
+        "materialization": {
+          "attempts": 2,
+          "retries": 1,
+          "success_seconds": 2.935132,
+          "preserved_authored_files": 2
+        },
+        "scoped_lean": [
+          "Field passed (3.84s; authorized G16 warning)",
+          "Approximation passed (4.06s)"
+        ],
+        "full_build": "passed (8992 jobs, 6.07s; exactly one combined build)",
+        "blueprint_sync": "2/2 passed; 51 nodes/12 chapters",
+        "proof_debt": "exactly one blueprint-authorized G16 sorry; no other debt",
+        "forbidden_assumptions": "none",
+        "independent_audit": {
+          "session_id": "i013-scout-a02-integration-identity",
+          "verdict": "approve",
+          "findings": 0,
+          "report_sha256": "2e1cda47e46be941e5d9c50115a96a1e2fddf38d5ec235df72f59e3ce22e1f8c"
+        },
+        "orchestrator_report": {
+          "path": "workflow/reviews/qpbt-013-first-wave-close-a01.md",
+          "sha256": "f3cedb57dd6a1af26e745feff2e924a391cf7151b754ed440965cb972c881ffb"
+        }
+      },
+      "blocked_reason": null
     },
     {
       "id": "QPBT-014",

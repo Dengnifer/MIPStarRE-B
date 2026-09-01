@@ -29,7 +29,7 @@ availability reasons rather than receiving estimates.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 112 terminal attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | source and blueprint acceptance chain closed; LPR-018 has three confirmed findings and supplemental QPBT-028/029/030 isolation work continues off the Lean critical path |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 40 issued attempts, 39 terminal and 1 active; peak concurrency 3 | collaboration usage unavailable | source and API audits archived; expanded-scope QPBT-023 contract continuation active |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 179 issued attempts: 177 terminal and 2 active reviewers; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean candidates are complete and under parallel immutable review |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 184 issued attempts: 183 terminal and 1 active split preflight; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files are reviewed, merged, and combined-build clean; the next four-file wave is being split for parallel dispatch |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
@@ -1223,3 +1223,30 @@ corresponding clean, exact-head private seeded worktree after byte-for-byte
 manifest equality. This avoided two redundant multi-gigabyte seeds while
 preserving distinct reviewer identity, immutable candidate authority, and the
 single-builder rule.
+
+Both reviewers approved with zero findings. The Field reviewer completed the
+previously missing private full-build gate in `6.07` seconds; the Approximation
+reviewer reconfirmed its scoped and target checks. Formal no-byte-change
+integrators then authenticated the candidates, after which LPR-020 and LPR-021
+merged as `ff79fe3444eae7015def65039cac62ec213e8ed4` and
+`aa1f579d56b4476220d2d6ef4c69c3c06ae779e2`. All four candidate blobs were
+preserved exactly.
+
+QPBT-013's combined checkpoint used one private cache seed, a hit in
+`64.962432` seconds with no build and no lock wait. The first source
+materialization invocation omitted integrated-checkpoint preservation mode and
+failed closed; the single `--replace-existing` retry took `2.935132` seconds
+and preserved both authored files. This first occurrence is recorded as
+`INC-054`. Field and Approximation then type-checked in `3.84` and `4.06`
+seconds, and exactly one combined full build passed all 8,992 jobs in `6.07`
+seconds. Both blueprint checks passed with 51 nodes across 12 chapters, no
+forbidden assumption was found, and the only proof debt remains the authorized
+G16 `sorry`. A nested read-only identity scout independently approved the
+combined ancestry, source fidelity, and blob preservation with zero findings.
+
+Three attempted third-worker launches were rejected even though the durable
+planner had admitted them under capacity three. This recurrence is `INC-053`;
+QPBT-034 now tracks a live-backend admission handshake. Until that is fixed,
+the coordinator limits collaboration to two simultaneous workers. QPBT-033 is
+using one lane to preflight the next four-file QPBT-014 split while leaving the
+other lane available for independent work.
