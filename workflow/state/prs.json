@@ -6951,7 +6951,7 @@
       "base": "main",
       "head": "issue/qpbt-049-task-release-a01",
       "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
-      "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+      "head_sha": "40d3e565426f74a0e3c60798ec7e2b5f7e35cfbf",
       "implementer_session_ids": [
         "i049-orchestrator-a02-release-repair"
       ],
@@ -6994,6 +6994,28 @@
           "manifest_sha256": "eeb1e91987e812a849ed330aca52e4176f8289526e81cb3418b294aaa2dace19",
           "candidate_tree": "86da3fa54c1fa4ccdfdda7c31d2e348f64d23b22",
           "parent_sha": "d202aca7c352d5480bff3726539a3354d5176b52"
+        },
+        {
+          "id": "check-qpbt-052-repair-a03",
+          "name": "QPBT-052 release contract repair candidate",
+          "command": "82 workflow tests; 65 local-agent tests; compileall; checker; workflow validation; diff hygiene; exact three-path authentication",
+          "status": "passed",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "40d3e565426f74a0e3c60798ec7e2b5f7e35cfbf",
+          "completed_at": "2026-09-01T22:17:30Z",
+          "result_path": "workflow/reviews/qpbt-052-release-contract-repair-a03.md",
+          "comparison_base_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+          "head_tree": "29c30cc8e5482a463f583ccad8eebe120a7a1f11",
+          "parent_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
+          "manifest_sha256": "9c8a5a2e835d5afd3363d708be5298a8141a64aac52b3652083754aef1e57e6e",
+          "report_sha256": "591730f6940c2eb8d27caf88d1c8dd188138fcc18b5beac84157268c4f1544af",
+          "workflow_tests": "82/82 passed",
+          "local_agent_tests": "65/65 passed",
+          "compileall": "passed",
+          "checker": "passed",
+          "workflow_validate": "passed",
+          "diff_check": "passed",
+          "findings": "candidate repair addresses A03-001 through A03-003"
         }
       ],
       "reviews": [
@@ -7115,7 +7137,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:00Z",
-      "updated_at": "2026-09-01T20:45:01.828762Z",
+      "updated_at": "2026-09-01T22:17:55.816005Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -7125,19 +7147,21 @@
         "scripts/local_agent.py",
         "tests/test_local_agent.py",
         "workflow/reviews/qpbt-049-release-repair-a02.md",
-        "workflow/reviews/qpbt-049-review-a03.md"
+        "workflow/reviews/qpbt-049-review-a03.md",
+        "workflow/reviews/qpbt-052-release-contract-repair-a03.md"
       ],
       "motivation": "Prevent collaboration task packets from being released before immutable backend identity confirmation.",
       "description": "Add a post-confirmation identity-bound release event and fail-closed lifecycle validation.",
-      "testing": "A03 scoped tests passed; canonical candidate validation failed on legacy-release compatibility; immutable review request_changes.",
+      "testing": "A03 repair candidate 40d3e565: 82/82 workflow tests, 65/65 local-agent tests, compileall, checker, workflow validation, and diff hygiene passed; legacy lifecycle compatibility, lock-held rollback, and equal-time event ordering are covered.",
       "addresses": "QPBT-049",
       "provenance_session_ids": [
         "i049-orchestrator-a01-task-release",
         "i049-orchestrator-a02-release-repair",
-        "i049-reviewer-a03-release-repair"
+        "i049-reviewer-a03-release-repair",
+        "i052-orchestrator-a03-release-contract-repair"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Repair A03 compatibility/transaction/ordering findings, obtain fresh approval, then guarded integration."
+      "unexecuted_gate": "Obtain a fresh independent immutable review of exact head 40d3e565426f74a0e3c60798ec7e2b5f7e35cfbf, then guarded integration onto current main."
     },
     {
       "id": "LPR-026",
