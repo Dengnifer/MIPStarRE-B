@@ -7450,25 +7450,137 @@
           "result_path": "workflow/reviews/qpbt-036-polynomial-a01.md"
         }
       ],
-      "reviews": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-036-pr027-a02-polynomial",
+          "reviewer_session_id": "i036-reviewer-a02-polynomial",
+          "verdict": "approve",
+          "base_sha": "358cd108db045d13f4e0095a2948dd4037be2b54",
+          "head_sha": "8467454fefefdbac7478a2df8f8c1e2d9c25fcf5",
+          "started_at": "2026-09-01T23:16:14.065124Z",
+          "completed_at": "2026-09-01T23:53:38.593869Z",
+          "result_path": "workflow/reviews/qpbt-036-review-a02.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "24986875977e8e8e5cab4a80a98d66b9c321c102414fe338cf31cdb73106d50e",
+          "manifest_sha256": "0e7fd38a46b63c7ee660fa14fb828e19331233b0c983a687b1a38d0a2ceb3725",
+          "integration_gate": "review approved; PR-bound writable adoption and guarded integration remain"
+        }
+      ],
       "findings": [],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T23:08:47.942383Z",
-      "updated_at": "2026-09-01T23:09:02.793627Z",
+      "updated_at": "2026-09-01T23:54:55.598390Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Basic/Polynomial.lean",
-        "workflow/reviews/qpbt-036-polynomial-a01.md"
+        "workflow/reviews/qpbt-036-polynomial-a01.md",
+        "workflow/reviews/qpbt-036-review-a02.md"
       ],
       "motivation": "Land the source-faithful F02 low-degree polynomial encoding contract.",
       "description": "Add Boolean/field point boundaries, individual-degree indicator polynomials, evaluation, interpolation, and injectivity declarations and proofs.",
       "testing": "Scoped Lean, target/full builds, pinned-source blueprint synchronization, debt/import scan, and diff hygiene passed; canonical warm failure was isolated and retained in the implementation report.",
       "addresses": "QPBT-036",
       "provenance_session_ids": [
-        "i036-orchestrator-a01-polynomial"
+        "i036-orchestrator-a01-polynomial",
+        "i036-reviewer-a02-polynomial"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Bind a fresh independent immutable reviewer to the exact candidate, then adopt and guarded-integrate with a PR-bound implementer session."
+      "unexecuted_gate": "Bind a writable PR adoption/integrator session, authenticate the approved exact head, then guarded-integrate onto current main with post-integration gates."
+    },
+    {
+      "id": "LPR-028",
+      "title": "feat(QPBT/Game): define admissible parameters",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-039"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-039-parameters-a01",
+      "base_sha": "874dc07433936e26d62c42cdd779dde42386f99d",
+      "head_sha": "f6b19fc9fb87e0616b8367749ff971539bc1b45f",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-039-scoped-lean",
+          "name": "QPBT-039 scoped Lean typecheck",
+          "command": "lake env lean MIPStarRE/QPBT/Game/Parameters.lean",
+          "status": "passed",
+          "base_sha": "874dc07433936e26d62c42cdd779dde42386f99d",
+          "head_sha": "f6b19fc9fb87e0616b8367749ff971539bc1b45f",
+          "completed_at": "2026-09-01T23:45:41.711627Z",
+          "result_path": "workflow/reviews/qpbt-039-parameters-a01.md"
+        },
+        {
+          "id": "check-qpbt-039-target-build",
+          "name": "QPBT-039 affected target build",
+          "command": "lake build MIPStarRE.QPBT.Game.Parameters",
+          "status": "passed",
+          "base_sha": "874dc07433936e26d62c42cdd779dde42386f99d",
+          "head_sha": "f6b19fc9fb87e0616b8367749ff971539bc1b45f",
+          "completed_at": "2026-09-01T23:45:41.711627Z",
+          "result_path": "workflow/reviews/qpbt-039-parameters-a01.md"
+        },
+        {
+          "id": "check-qpbt-039-full-build",
+          "name": "QPBT-039 private full build",
+          "command": "lake build",
+          "status": "passed",
+          "base_sha": "874dc07433936e26d62c42cdd779dde42386f99d",
+          "head_sha": "f6b19fc9fb87e0616b8367749ff971539bc1b45f",
+          "completed_at": "2026-09-01T23:45:41.711627Z",
+          "result_path": "workflow/reviews/qpbt-039-parameters-a01.md"
+        },
+        {
+          "id": "check-qpbt-039-blueprint-source",
+          "name": "QPBT-039 blueprint and pinned-source synchronization",
+          "command": "python3 blueprint/check.py --check --source-root /home/drx/MIPStarRE-auto/references/2001.04383v3",
+          "status": "passed",
+          "base_sha": "874dc07433936e26d62c42cdd779dde42386f99d",
+          "head_sha": "f6b19fc9fb87e0616b8367749ff971539bc1b45f",
+          "completed_at": "2026-09-01T23:45:41.711627Z",
+          "result_path": "workflow/reviews/qpbt-039-parameters-a01.md"
+        },
+        {
+          "id": "check-qpbt-039-debt-import",
+          "name": "QPBT-039 proof-debt and import scan",
+          "command": "owned-file sorry/axiom/constant/obligation and exact-import scan",
+          "status": "passed",
+          "base_sha": "874dc07433936e26d62c42cdd779dde42386f99d",
+          "head_sha": "f6b19fc9fb87e0616b8367749ff971539bc1b45f",
+          "completed_at": "2026-09-01T23:45:41.711627Z",
+          "result_path": "workflow/reviews/qpbt-039-parameters-a01.md"
+        },
+        {
+          "id": "check-qpbt-039-diff",
+          "name": "QPBT-039 candidate identity and diff hygiene",
+          "command": "one-commit/one-path manifest authentication and git diff --check",
+          "status": "passed",
+          "base_sha": "874dc07433936e26d62c42cdd779dde42386f99d",
+          "head_sha": "f6b19fc9fb87e0616b8367749ff971539bc1b45f",
+          "completed_at": "2026-09-01T23:45:41.711627Z",
+          "result_path": "workflow/reviews/qpbt-039-parameters-a01.md"
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-01T23:48:12.813862Z",
+      "updated_at": "2026-09-01T23:48:56.582909Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Game/Parameters.lean",
+        "workflow/reviews/qpbt-039-parameters-a01.md"
+      ],
+      "motivation": "Land the source-faithful G01 admissible-parameter boundary.",
+      "description": "Add the project-owned natural parameter tuple and exact odd-exponent, power-of-two, and natural-divisibility admissibility predicate.",
+      "testing": "Scoped Lean, affected target, private full build, pinned-source blueprint synchronization, proof-debt/import scan, and exact one-path diff gate passed; one elected hot-cache miss and private seed are recorded in the report.",
+      "addresses": "QPBT-039",
+      "provenance_session_ids": [
+        "i039-orchestrator-a01-parameters"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": "Bind a fresh independent immutable reviewer to exact candidate f6b19fc, then adopt and guarded-integrate with a PR-bound implementer session."
     }
   ]
 }

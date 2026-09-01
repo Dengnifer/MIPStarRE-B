@@ -1973,7 +1973,7 @@
       "title": "feat(QPBT/Game): implement admissible parameter boundary",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2002,7 +2002,7 @@
         "MIPStarRE/QPBT/Game/Parameters.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T23:40:43.074734Z",
+      "updated_at": "2026-09-01T23:45:33.838985Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
