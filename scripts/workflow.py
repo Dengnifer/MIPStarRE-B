@@ -1479,6 +1479,8 @@ def validate_event_log(
             phase: str | None = None
             if event_name == "session.issued":
                 phase = "issued"
+            elif event_name == "session.released":
+                phase = "released"
             elif event_name in {"session.finished", "session.failed"}:
                 phase = "terminal"
             elif event_name == "session.archived":
@@ -1502,9 +1504,14 @@ def validate_event_log(
             issued = [item for item in phases if item[0] == "issued"]
             terminal = [item for item in phases if item[0] == "terminal"]
             archived = [item for item in phases if item[0] == "archived"]
+            released = [item for item in phases if item[0] == "released"]
             location = f"events[{session_id}]"
             if len(issued) != 1:
                 errors.append(f"{location}: expected exactly one session issuance event")
+            if len(released) > 1:
+                errors.append(f"{location}: duplicate session release events")
+            if released and issued and released[0][1] < issued[0][1]:
+                errors.append(f"{location}: release event precedes session issuance")
             status = session.get("status")
             if status == "archived":
                 if len(terminal) != 1:
@@ -1939,6 +1946,39 @@ class WorkflowStore:
             plan["request_atomic"] = True
             plan["all_or_nothing"] = not bool(plan["queued"])
             return plan
+
+    def release_session(self, session_id: str, external_id: str) -> dict[str, Any]:
+        """Record the single post-confirmation release attestation."""
+        if not isinstance(session_id, str) or not session_id.strip():
+            raise WorkflowError("release session ID must be a non-empty string")
+        if not isinstance(external_id, str) or not external_id.strip():
+            raise WorkflowError("release external ID must be a non-empty string")
+        with self._lock(exclusive=True):
+            documents = self.load()
+            validate_documents(documents)
+            validate_event_log(self.events_path, documents)
+            session = next((item for item in documents["sessions.json"]["issued"] if item.get("id") == session_id), None)
+            if session is None:
+                raise WorkflowError(f"unknown issued session {session_id!r}")
+            if session.get("backend") != "codex-collaboration":
+                raise WorkflowError("only codex-collaboration sessions require release")
+            if session.get("external_id") != external_id:
+                raise WorkflowError("release external ID does not match issued identity")
+            releases = []
+            if self.events_path.exists():
+                for line in self.events_path.read_text(encoding="utf-8").splitlines():
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    payload = event.get("payload", {}) if isinstance(event, dict) else {}
+                    if event.get("event") == "session.released" and payload.get("session_id") == session_id:
+                        releases.append(event)
+            if releases:
+                raise WorkflowError(f"session {session_id!r} has already been released")
+            timestamp = self._batch_event_timestamp()
+            self.append_event("session.released", {"session_id": session_id, "external_id": external_id}, lock_held=True, timestamp=timestamp)
+            return copy.deepcopy(session)
 
 
 def dependency_ready_issues(documents: Mapping[str, Any], *, stage_id: str | None = None) -> list[dict[str, Any]]:
@@ -2958,6 +2998,10 @@ def build_parser() -> argparse.ArgumentParser:
     transition.add_argument("id")
     transition.add_argument("status")
 
+    release = subparsers.add_parser("release-session", help="release a confirmed collaboration session")
+    release.add_argument("session_id")
+    release.add_argument("external_id")
+
     issue_session = subparsers.add_parser(
         "issue-session",
         help="capacity-gated compatibility wrapper for dispatching one planned session",
@@ -3123,6 +3167,20 @@ def run_cli(arguments: argparse.Namespace) -> Any:
 
         def transition_record(document: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
             record = _find_record(document, collection, arguments.id)
+            if arguments.kind == "issued-session" and arguments.status == "running" and record.get("backend") == "codex-collaboration":
+                released = False
+                if store.events_path.exists():
+                    for line in store.events_path.read_text(encoding="utf-8").splitlines():
+                        try:
+                            event = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        payload = event.get("payload", {}) if isinstance(event, dict) else {}
+                        if event.get("event") == "session.released" and payload.get("session_id") == arguments.id and payload.get("external_id") == record.get("external_id"):
+                            released = True
+                            break
+                if not released:
+                    raise WorkflowError("collaboration session requires post-confirmation release")
             _transition_record(arguments.kind, record, arguments.status)
             return record
 
@@ -3136,6 +3194,8 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             event_payload,
             transition_record,
         )
+    if arguments.command == "release-session":
+        return store.release_session(arguments.session_id, arguments.external_id)
     if arguments.command == "issue-session":
         additions = _load_json_argument(arguments.json, arguments.file)
         if not isinstance(additions, Mapping):

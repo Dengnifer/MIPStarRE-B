@@ -2378,6 +2378,25 @@ class EventLogTests(unittest.TestCase):
             )
             workflow.validate_event_log(path, state)
 
+    def test_release_event_must_follow_issuance_and_be_unique(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            state = documents()
+            session = collaboration_planned_session("i049-collab-a01-release")
+            session["status"] = "issued"
+            session["external_id"] = "thread-release"
+            state["sessions.json"]["planned"] = []
+            state["sessions.json"]["issued"] = [session]
+            pre = self.event(REVIEW_STARTED, "session.released", {"session_id": session["id"], "external_id": "thread-release"})
+            issue = self.event(NOW, "session.issued", {"session_id": session["id"]})
+            path.write_text(pre + "\n" + issue + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(workflow.ValidationError, "chronological"):
+                workflow.validate_event_log(path, state)
+            duplicate = self.event(REVIEW_ENDED, "session.released", {"session_id": session["id"], "external_id": "thread-release"})
+            path.write_text(issue + "\n" + pre.replace(REVIEW_STARTED, REVIEW_ENDED) + "\n" + duplicate + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(workflow.ValidationError, "duplicate session release"):
+                workflow.validate_event_log(path, state)
+
 
 if __name__ == "__main__":
     unittest.main()
