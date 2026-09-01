@@ -6,13 +6,13 @@ Model review starts only after deterministic validation succeeds. Code review
 and blueprint/prose review are separate fresh sessions because their failure
 modes differ. A completion auditor checks the assembled outcome after both.
 
-Reviewer sessions run read-only and receive a trusted prompt from the reviewed
-base plus an untrusted diff/context artifact. The wrapper loads and hashes base
-authority with `git show`, constructs an isolated evidence repository, disables
-project/user instruction loading there, and records the installed Codex version
-and review-help hash. It uses a native selector only when a parser probe proves
-that selector and trusted prompt coexist; otherwise it uses generic read-only
-`codex exec` over the same frozen evidence. They may inspect paper sources,
+Reviewer sessions are intended to run read-only and receive a trusted prompt
+from the reviewed base plus an untrusted diff/context artifact. External
+dispatch is currently disabled because read-only execution does not confine
+reads to authorized evidence. The deterministic offline path constructs a
+projected evidence repository and invokes only an injected non-`codex` test
+double; it does not establish a production isolation boundary. Reviewers may
+inspect paper sources,
 blueprint entries, definitions, callers, and build logs. They may not edit,
 commit, launch fix agents, change state, or approve their own work.
 
@@ -32,28 +32,92 @@ attempt never confers approval and cannot be resumed as the approving reviewer.
 
 ## External disclosure preflight
 
-Before an external model-backed reviewer starts, record the exact endpoint
-origin, model identifier, wire protocol, evidence scope, and explicit user
-authorization. Never record an API key or authentication token. Changing the
-endpoint, model, or evidence scope invalidates the authorization binding and
-requires a new preflight decision. A rejected launch is terminal and cannot be
-routed through a different persistence or network path.
+Transport trust and content-disclosure authorization are separate decisions.
+Official OpenAI transport and `https://api.finite-dimensional.space` are
+standing trusted transports, but that trust authorizes no repository content.
+Never record an API key or authentication token. Changing endpoint, model,
+profile, revision, or evidence content requires a new authorization decision.
 
-Custom reviewer transport is an explicit, non-secret all-or-none profile: the
-model-provider key, provider display name, HTTPS base URL, `responses` wire API,
+The legacy version-1 JSON record binds endpoint origin, model, `wire_api`,
+immutable `base_sha`, `head_sha`, and `tree_sha`, plus the sorted changed paths
+and true `exclude_credentials`/`exclude_unrelated_contents` controls. The
+wrapper still resolves exact clean commits, preserves both rename endpoints,
+screens normalized paths, and validates every version-1 field. Raw and
+normalized authorization mappings remain internal and never enter targets,
+prompts, envelopes, or logs.
+
+Version 1 is not production-launch authority. Path names do not bind unchanged
+authority, request/context, patches, Git objects, command output, environment,
+or the transitive host read surface. Even a matching version-1 record therefore
+fails closed for missing exact-content authorization and enforceable filesystem
+isolation. Production entry points reject before task/context reads, persistence
+or capability probes, evidence preparation, lease claim, command construction,
+or runner invocation. Uncommitted targets also remain non-launchable.
+
+Path screening distinguishes private containers from ordinary public
+certificate material: `.pem`, `.key`, `.p12`, `.pfx`, `.jks`, `.keystore`, and
+`.kdbx` fail closed, while `.crt` and `.cer` are not rejected merely by
+extension. High-signal credential dot-directories, service-account artifacts,
+`.npmrc`, and `.pypirc` are rejected without treating generic `keys`, `auth`,
+`private`, or `certs` directories as credentials by themselves.
+
+Any future reviewer transport remains a mandatory, explicit, non-secret
+all-or-none profile: the model-provider key, provider display name, HTTPS base
+URL, `responses` wire API,
 and the provider's `requires_openai_auth` boolean. The wrapper keeps
 `--ignore-user-config` and injects the validated profile as top-level CLI
-configuration overrides before `exec`; authentication still comes from the
-Codex credential store and is never read or recorded by the wrapper. Provider
+configuration overrides before `exec`; no current production review reaches
+that command construction. Authentication must remain outside reviewer-readable
+evidence and is never read or recorded by the wrapper. Provider
 keys must be safe dotted-config components, and endpoint URLs with userinfo,
 credentials, queries, fragments, or non-HTTPS schemes fail before evidence
-dispatch.
+dispatch. Omitting the profile never means local execution: it would inherit an
+unknown user-configured destination, so the wrapper rejects it before loading
+authorization, task, or context files, probing persistence, or claiming a lease.
 
-For the Stage 1 bootstrap review, the authorized profile is
+Library tests may opt into `offline_test_mode` only with an injected runner and
+an injected Codex capability record. The record is copied and its required
+fields are validated before repository inspection, harness/output creation,
+lease claim, or runner invocation; a falsey record never falls back to a Codex
+probe. That mode substitutes a non-`codex` executable marker, accepts no
+transport or authorization data, skips persistence probing, and has no CLI
+switch. A committed offline harness is a fresh Git repository with no source
+objects or remote. It contains only inert base/head bytes for changed endpoints,
+an exact derived patch, and a manifest recording path, revision role, Git
+type/mode/object identity, size, and SHA-256.
+
+Every Git operation used for source inspection or harness construction receives
+the same fixed minimal process environment: a system-default executable path, C
+locale, disabled system/global configuration and prompting, and no inherited
+repository, worktree, index, object, alternate, namespace, replacement, shallow,
+discovery, quarantine, ceiling, or template selector. Only the fixed author and
+committer dates needed for deterministic harness commits may extend it; identity
+itself is command-local. The injected offline runner is handed that same minimal
+environment. Tests must plant a source-object alternate and confirm that the
+unmanifested source head remains unresolved, the harness reports no alternate,
+and the child sees none of the selector variables. This closes ambient Git
+selection; it does not turn the in-process test double into OS-enforced host
+filesystem isolation.
+
+The offline packet projection also binds the inline request, final prompt,
+unchanged base authority blobs, harness manifest, and derived evidence. It
+explicitly records `external_launchable: false` and
+`host_isolation: not-enforced`. This is the deterministic exact-content success
+regression, not authorization or proof of a production read boundary.
+
+There is no module-global preflight token and no independently callable
+post-persistence production helper. Offline state therefore cannot be replayed
+into production or across targets, models, or profiles, and duplicate
+consumption is inapplicable because no authorization capability exists.
+
+The configured Stage 1 bootstrap transport profile is
 `gpt-5.6-sol` over the Responses protocol at
-`https://api.finite-dimensional.space`. The disclosure scope is the frozen
-Stage 1 repository evidence read by the reviewer; ignored paper payloads,
-runtime files, and credentials are excluded.
+`https://api.finite-dimensional.space`. Transport trust is not content
+authorization. Version-1 authorization does not bind an uncommitted snapshot,
+so the current launcher refuses that external dispatch.
+Bootstrap harness behavior remains testable only through the non-transmitting
+offline mode until a separately reviewed immutable-snapshot authorization schema
+exists; ignored paper payloads, runtime files, and credentials remain excluded.
 
 Before spending a frozen full-evidence attempt, a minimal read-only prompt must
 receive a complete response through that exact endpoint/model profile within
@@ -77,15 +141,16 @@ attempt; if this gate fails, fix the packet before spending a full reviewer
 session rather than treating a tiny successful canary as evidence that a large
 prompt will complete.
 
-The unborn Stage 1 review passes `--bootstrap-snapshot-digest` with the exact
-digest printed by the freeze tool. The launcher accepts this phase contract
-only with `--uncommitted` while `HEAD` is unborn. It independently runs the
-bootstrap verifier, matches the digest, requires an unsealed Stage 1 manifest,
+The offline unborn Stage 1 harness passes `--bootstrap-snapshot-digest` with the
+exact digest printed by the freeze tool. Harness construction accepts this phase
+contract only with `--uncommitted` while `HEAD` is unborn. It independently runs
+the bootstrap verifier, matches the digest, requires an unsealed Stage 1 manifest,
 and compares the manifest's terminal-evidence contract with the tool's fixed
 allowlist and rule. After evidence capture it repeats verification, byte-matches
 the copied freeze manifest, and binds every captured core path and hash to the
-verified freeze before dispatch. The trusted phase record has an exact key set
-and constant values; extra, missing, or changed fields fail before prompt
+verified freeze before invoking the offline test double. The trusted phase
+record has an exact key set and constant values; extra, missing, or changed
+fields fail before prompt
 serialization. Only then does built-in trusted prompt text explain the
 unavoidable ordering: the current reviewer's terminal lifecycle fields, final
 report, and seal are completed after an approving reviewer returns, so their
