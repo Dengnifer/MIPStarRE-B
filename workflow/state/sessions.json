@@ -19835,6 +19835,45 @@
       "outcome_path": null,
       "timing_quality": null,
       "status": "running"
+    },
+    {
+      "id": "i034-orchestrator-a01-live-admission",
+      "name": "i034-orchestrator-a01-live-admission",
+      "role": "orchestrator",
+      "issue_id": "QPBT-034",
+      "attempt": 1,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 3,
+      "dispatch_condition": "Run off the Lean critical path only when fewer than two collaboration workers are live; preserve the conservative two-worker fallback until this issue is reviewed and integrated.",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+      "base_revision_reason": "Exact validated post-QPBT-013 checkpoint containing INC-053 and QPBT-034.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-034-live-admission-a01",
+      "owned_paths": [
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md",
+        "workflow/reviews/qpbt-034-live-admission-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-034, INC-053, protocols/orchestration.md:29-57, the relevant changelog history, and scripts/workflow.py dispatch/transition/event validation plus focused tests. Reproduce the ledger/backend ordering failure from the three recorded rejections. Implement the smallest fail-closed two-phase admission boundary possible without direct collaboration-tool access from the CLI: a rejected backend launch must leave the session planned and event/state bytes unchanged; a successful immutable external thread identity must be confirmed at issuance; retries and nested child accounting must be deterministic. Preserve existing dispatch atomicity and compatibility where sound. Add focused and aggregate tests, update orchestration.md and CHANGELOG.md, run python3 -m unittest tests.test_workflow -v, python3 -m unittest discover -s tests -p test_*.py, python3 tests/test_check_workflow.py, python3 -m compileall -q scripts tests, python3 scripts/workflow.py validate, and git diff --check. Commit only owned paths on issue/qpbt-034-live-admission-a01 and write the report with exact head/tree, tests, timing, token-null reason, topology, action counters, and residual limitations. No canonical state/metrics/research edits; no Lean/build/cache/network/endpoint/GitHub/credentials/nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-034-live-admission-a01.md",
+      "external_id": "/root/i034_live_admission",
+      "started_at": "2026-09-01T12:48:19.974283Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "timing_quality": null,
+      "status": "running"
     }
   ]
 }

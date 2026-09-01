@@ -1791,7 +1791,7 @@
       "title": "Reconcile local dispatch with live collaboration slot admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-019",
       "dependency_ids": [
         "QPBT-019"
@@ -1809,18 +1809,23 @@
         "Add focused and aggregate regressions for backend capacity drift, queued retries, and nested-agent slot accounting",
         "Make the smallest sufficient protocol/tooling change, record it in protocols/CHANGELOG.md, and obtain an independent immutable review"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i034-orchestrator-a01-live-admission",
       "source_refs": [
         "protocols/orchestration.md:29-57",
         "protocols/CHANGELOG.md:136-161",
         "scripts/workflow.py:1758-1880",
         "research/metrics/incidents.jsonl#INC-053"
       ],
-      "owned_paths": [],
+      "owned_paths": [
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md"
+      ],
       "created_at": "2026-09-01T12:32:00Z",
-      "updated_at": "2026-09-01T12:32:00Z",
+      "updated_at": "2026-09-01T12:48:20.629903Z",
       "blocked_reason": null,
-      "unblock_condition": "Schedule off the Lean critical path after the current issued sessions terminate; until then use at most two live collaboration workers and queue the remainder."
+      "unblock_condition": null
     }
   ]
 }
