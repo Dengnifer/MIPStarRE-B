@@ -1408,3 +1408,40 @@ QPBT-045 then started as the 202nd Stage-04A attempt from exact pushed commit
 from the concurrent QPBT-035 blueprint repair. Its implementation is forbidden
 from performing the real warm; singleton publication remains a post-review,
 post-integration coordinator gate.
+
+A12 spawned one depth-1 read-only source/checker scout as the 203rd Stage-04A
+attempt. The backend exposed exact cumulative usage for this nested session:
+2,089,907 input tokens (1,932,032 cached), 23,670 output tokens (17,567
+reasoning), and 2,113,577 total. The scout ran for `611.890` seconds, made
+zero edits, and had no children. Because it shared A12's moving writable
+worktree and correctly observed generated drift after the parent changed
+bytes, its recommendation is recorded only as nonbinding design input; A12
+separately authenticated the pinned source and final candidate. The initially
+terminal import was rejected by lifecycle validation until root added distinct
+retroactive issuance, terminal, and archive events; no checkpoint was made
+while the ledger was invalid.
+
+QPBT-045 A01 completed recipe-v6 preservation work in a `1587.560`-second
+coordinator lifecycle window (`1014.727` agent-measured seconds). Its final
+focused suite passed 51/51, the authenticated materializer suite passed 11/11,
+and the single aggregate run passed 349/349 in `183.12` wall seconds. No Lean
+build or production warm occurred. The immutable candidate is
+`bc41314fb74baced6f6a043cbc8956a18a2e0003`, with tree
+`c71eb62b31004c1b219f93e25475d5f1aa7356b7`. A post-PR adopter then
+authenticated all five paths and all six registered checks without changing
+candidate bytes; its coordinator/agent windows were `300.390`/`181.193297`
+seconds. LPR-024 is ready while a fresh read-only security reviewer examines
+the root and intermediate-directory substitution race before integration.
+
+A12 completed in `2285.927` coordinator-measured seconds
+(`2182.865093` agent-measured), producing changed head
+`77172fd30105531f668acc0338caae028901d24d`. All 30 blueprint tests and
+336/336 full workflow regressions passed. It resolved the F07 finiteness and
+immutable-name findings, but correctly left the generic executable
+conditionally-linear layer unowned rather than assigning it to F07A, K03, or
+K04. QPBT-048 now tracks the exact source at
+`conditionally-linear.tex:553-712`; QPBT-035 is mechanically blocked on that
+issue. QPBT-048 runs as the 206th Stage-04A subagent attempt in parallel with
+the LPR-024 security review. This converts an ambiguous prose deferral into an
+explicit dependency and preserves the rule that Lean implementation cannot
+start from a source-incomplete callable contract.

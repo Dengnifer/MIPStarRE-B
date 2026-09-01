@@ -6307,6 +6307,127 @@
       ],
       "requested_external_review": false,
       "unexecuted_gate": "Obtain a fresh immutable mathematical/API resolution review of exact head c35fcd36bea96705851655852eabc78ca9db9b3f; only that review may resolve F-LPR023-001 through F-LPR023-003 and approve guarded integration."
+    },
+    {
+      "id": "LPR-024",
+      "title": "fix(cache): preserve authored QPBT sources",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-045"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-045-hot-main-preservation-a01",
+      "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+      "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+      "implementer_session_ids": [
+        "i045-integrator-a02-pr024-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-045-auth",
+          "name": "QPBT-045 immutable candidate authentication",
+          "command": "git status --short --branch; git rev-parse HEAD^{commit} HEAD^{tree} HEAD^; git diff-tree --no-commit-id --name-only -r HEAD",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "completed_at": "2026-09-01T16:31:00Z",
+          "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a01.md",
+          "head_tree": "c71eb62b31004c1b219f93e25475d5f1aa7356b7",
+          "manifest_sha256": "2707b1097d9d3cc4ba2588f54b88ea8ac159ce8c6d0d3e3ec08d91ea0b38fd26"
+        },
+        {
+          "id": "check-qpbt-045-focused",
+          "name": "QPBT-045 focused hot-cache regressions",
+          "command": "python3 tests/test_hot_main_cache.py",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "completed_at": "2026-09-01T16:31:00Z",
+          "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a01.md",
+          "result": "51/51 passed",
+          "wall_seconds": 11.26
+        },
+        {
+          "id": "check-qpbt-045-materializer",
+          "name": "QPBT-045 authenticated materializer regressions",
+          "command": "python3 tests/test_mipstarre_materialization.py",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "completed_at": "2026-09-01T16:31:00Z",
+          "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a01.md",
+          "result": "11/11 passed",
+          "wall_seconds": 0.41
+        },
+        {
+          "id": "check-qpbt-045-aggregate",
+          "name": "QPBT-045 aggregate workflow regressions",
+          "command": "python3 -m unittest discover -s tests -p test_*.py",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "completed_at": "2026-09-01T16:31:00Z",
+          "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a01.md",
+          "result": "349/349 passed; one aggregate attempt",
+          "wall_seconds": 183.12
+        },
+        {
+          "id": "check-qpbt-045-workflow",
+          "name": "QPBT-045 canonical workflow and checker gates",
+          "command": "python3 scripts/workflow.py validate; python3 scripts/check_workflow.py --skip-tests; python3 tests/test_check_workflow.py",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "completed_at": "2026-09-01T16:31:00Z",
+          "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a01.md",
+          "result": "workflow validation/checker and 3/3 checker tests passed"
+        },
+        {
+          "id": "check-qpbt-045-diff",
+          "name": "QPBT-045 diff hygiene",
+          "command": "git diff --check f4b00c7616b8710220a4f8480cfb23412914d151..bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "completed_at": "2026-09-01T16:31:00Z",
+          "result_path": "workflow/reviews/qpbt-045-hot-main-preservation-a01.md"
+        },
+        {
+          "id": "check-qpbt-045-a02-bind",
+          "name": "LPR-024 post-PR no-byte-change adoption",
+          "command": "Authenticate exact detached base/head/tree/parent, five-path manifest, writer report, six registered checks, and diff hygiene; no candidate writes",
+          "status": "passed",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
+          "completed_at": "2026-09-01T16:44:33.917614Z",
+          "result_path": "workflow/reviews/qpbt-045-pr024-bind-a02.md",
+          "result": "authenticated for adoption",
+          "report_sha256": "709ea72315f625673e687c27598e801d3fac459dc9ee4e576669a4dabc410f2d"
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-01T16:37:00Z",
+      "updated_at": "2026-09-01T16:48:39.148871Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/local-development.md",
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "workflow/reviews/qpbt-045-hot-main-preservation-a01.md"
+      ],
+      "motivation": "Unblock all new Lean work by preserving exact committed QPBT sources while refreshing authenticated upstream MIPStarRE content during singleton hot-main cache warm.",
+      "description": "Bump the cache recipe to v6, invoke replacement-mode materialization, and bind the authored QPBT inventory at five build and publication boundaries.",
+      "testing": "Final focused hot-cache 51/51, materializer 11/11, aggregate 349/349 exactly once, compileall, canonical workflow/checker, candidate authentication, and diff hygiene passed. No production warm, Lean build, network, endpoint, GitHub, or credential access occurred.",
+      "addresses": "QPBT-045",
+      "provenance_session_ids": [
+        "i045-orchestrator-a01-hot-main-preservation",
+        "i045-integrator-a02-pr024-bind"
+      ],
+      "requested_external_review": false,
+      "unexecuted_gate": "Fresh immutable adversarial review of exact head bc41314fb74baced6f6a043cbc8956a18a2e0003, then guarded integration and exactly one lock-elected current-main warm with all authenticated local inputs."
     }
   ]
 }

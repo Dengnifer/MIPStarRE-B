@@ -1864,11 +1864,12 @@
       "title": "Freeze callable contracts for the QPBT-014 Lean split",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "blocked",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
-        "QPBT-033"
+        "QPBT-033",
+        "QPBT-048"
       ],
       "labels": [
         "blueprint",
@@ -1878,11 +1879,11 @@
         "exact-ownership"
       ],
       "acceptance_gates": [
-        "Resolve QPBT-033 findings 1-3, 5, and 7 before any QPBT-014 Lean writer starts: add F06, remove or reassign the orphan raw BitVec codec and already-discharged FieldData gate, and freeze every callable theorem required by F02/F05/F06/F07/G01",
-        "Publish exact elaborated Lean signatures and direct imports for Polynomial.lean, Pauli.lean, Game/Types.lean, and Game/Parameters.lean, including Boolean-versus-field domains, G09 twisted phase, loop-preserving type graphs, dependent fibers, and the F03/F10 boundary",
-        "Update the 53-node blueprint metadata and deterministic chapter-02/chapter-03/graph outputs; F04A owns reusable game semantics, F07 owns typed downsizing, and F07A owns typed verifier/game plus complete detyping obligations without changing paper claims or adding public bridge assumptions",
+        "Resolve QPBT-033 findings 1-3, 5, and 7 before any QPBT-014 Lean writer starts: add F06, remove or reassign the orphan raw BitVec codec and already-discharged FieldData gate, and freeze every callable theorem required by F02/F05/F06/F06A/F07/G01",
+        "Publish exact elaborated Lean signatures and direct imports for Polynomial.lean, Pauli.lean, Game/Types.lean, and Game/Parameters.lean, including Boolean-versus-field domains, the generic executable CL sampler/downsize layer, G09 twisted phase, loop-preserving type graphs, dependent fibers, and the F03/F10 boundary",
+        "Update the 54-node blueprint metadata and deterministic chapter-02/chapter-03/graph outputs; F06A owns generic executable CL sampling, F04A owns reusable game semantics, F07 owns typed downsizing, and F07A owns typed verifier/game plus detyping obligations without changing paper claims or adding public bridge assumptions",
         "Run blueprint unit, source-root, default declaration, generated-diff, and workflow checks; record statement-integrity tables and exact source hashes",
-        "Obtain a fresh independent immutable mathematical/API review before guarded integration"
+        "Obtain a fresh independent immutable mathematical/API review after QPBT-048 closes F-LPR023-004 and before guarded integration"
       ],
       "owner_session_id": "i035-orchestrator-a07-source-contract-repair",
       "source_refs": [
@@ -1908,7 +1909,9 @@
         "workflow/reviews/qpbt-035-detype-source-a05.md",
         "workflow/reviews/qpbt-035-directsum-api-a06.md",
         "workflow/reviews/qpbt-035-q014-contract-a07.md",
-        "workflow/reviews/qpbt-035-game-semantics-api-a08.md"
+        "workflow/reviews/qpbt-035-game-semantics-api-a08.md",
+        "workflow/state/issues.json#QPBT-048",
+        "workflow/reviews/qpbt-035-contract-review-repair-a12.md#F-LPR023-004"
       ],
       "owned_paths": [
         "blueprint/check.py",
@@ -1920,9 +1923,9 @@
         "blueprint/src/generated/chapter-03-entries.tex"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T15:29:31.841029Z",
-      "blocked_reason": null,
-      "unblock_condition": null
+      "updated_at": "2026-09-01T16:45:05.965971Z",
+      "blocked_reason": "F-LPR023-004 remains open because conditionally-linear.tex:553-710 has no exact executable sampler/downsize blueprint node or callable owner.",
+      "unblock_condition": "QPBT-048 done with a fresh immutable LPR-023 changed-head review."
     },
     {
       "id": "QPBT-037",
@@ -2314,7 +2317,7 @@
       "title": "Preserve authored QPBT sources during hot-main cache warm",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-024"
@@ -2352,7 +2355,7 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:50:00Z",
-      "updated_at": "2026-09-01T16:14:52.624875Z",
+      "updated_at": "2026-09-01T16:40:42.171858Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -2440,6 +2443,58 @@
       "updated_at": "2026-09-01T15:58:15Z",
       "blocked_reason": "QPBT-043 must first publish the exact declaration skeleton and its tracked proof-debt inventory.",
       "unblock_condition": "QPBT-043 done."
+    },
+    {
+      "id": "QPBT-048",
+      "title": "Freeze the executable conditionally-linear sampler contract",
+      "kind": "blueprint",
+      "execution_category": "implementation",
+      "status": "in_progress",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-013",
+        "QPBT-033"
+      ],
+      "labels": [
+        "blueprint",
+        "lean-contract",
+        "conditionally-linear",
+        "turing-machine",
+        "runtime",
+        "statement-integrity",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Add one dedicated source-bound blueprint node for the generic executable conditionally-linear sampler layer at pinned conditionally-linear.tex:553-710, with exact anchors def:sampler, def:sampler-sample, def:downsize_sampler, and lem:downsize_sampler; do not assign this layer to F07A, K03, or K04",
+        "Freeze exact elaborated Lean signatures and direct imports for admissible indexed field sizes, binary representation boundary data, the six-input dimension/marginal/linear/factor query interface, associated mathematical CL maps and sampler distribution, step count, executable downsizing, dimension s(n) * log q(n), associated downsized CL maps, and O(TIME_S(n) * log q(n)) runtime",
+        "Assign the node to MIPStarRE/QPBT/Game/Types.lean and the existing QPBT-038 writer lane without duplicating F06 mathematical callables; update F06/F07/F07A prerequisites, transitive definitions, integrity tables, and QPBT-038 source/acceptance metadata so every executable clause has exactly one owner",
+        "Add fail-closed checker invariants and focused adversarial mutations for source range, labels, callable list, imports, owner file, dependency edges, dimension/runtime formulas, and exclusion from F07A/K03/K04; regenerate every deterministic 54-node consumer byte-idempotently",
+        "Run blueprint unit, default, exact pinned-source, reference authentication, workflow/checker, diff, and bounded Lean signature probes; record exact statement-integrity and source/hash evidence",
+        "Obtain a fresh independent immutable mathematical/API review of the changed LPR-023 head before QPBT-035 can resume review"
+      ],
+      "owner_session_id": "i048-orchestrator-a01-executable-cl-contract",
+      "source_refs": [
+        "workflow/reviews/qpbt-035-pr023-review-a11.md#F-LPR023-004",
+        "workflow/reviews/qpbt-035-contract-review-repair-a12.md#F-LPR023-004",
+        "blueprint/metadata/nodes.json#F06-CL",
+        "blueprint/metadata/nodes.json#F07A-DETYPING",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-626",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:628-660",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:662-712"
+      ],
+      "owned_paths": [
+        "blueprint/check.py",
+        "blueprint/tests/test_check.py",
+        "blueprint/metadata/nodes.json",
+        "blueprint/generated/graph.json",
+        "blueprint/generated/graph.dot",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/chapter-03-entries.tex"
+      ],
+      "created_at": "2026-09-01T16:45:00Z",
+      "updated_at": "2026-09-01T16:49:26.525543Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     }
   ]
 }
