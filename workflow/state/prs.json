@@ -5909,6 +5909,27 @@
           "focused_tests": "76/76",
           "aggregate_tests": "342/342",
           "adversarial_replays": 2
+        },
+        {
+          "id": "review-qpbt-034-pr022-a04-resolution",
+          "reviewer_session_id": "i034-reviewer-a04-pr022-resolution",
+          "verdict": "approve",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "started_at": "2026-09-01T13:55:45.387289Z",
+          "completed_at": "2026-09-01T14:02:44.259621Z",
+          "result_path": "workflow/reviews/qpbt-034-pr022-resolution-a04.md",
+          "finding_ids": [],
+          "resolved_finding_ids": [
+            "F-LPR022-001",
+            "F-LPR022-002"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "be8edc8454ea5a3e792cd4619434a29b44caa85e714a464e65e25c717e5636b9",
+          "manifest_sha256": "2f81f811a8043caf7a76b2e84cdc9830b395ac6a5fc600790c3fdd904ad925d5",
+          "adversarial_replays": "2/2",
+          "focused_tests": "77/77 workflow; 64/64 local-agent",
+          "aggregate_tests": "344/344"
         }
       ],
       "findings": [
@@ -5918,10 +5939,10 @@
           "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
           "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
           "severity": "high",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Changed head f672839 scopes prelaunch confirmation to codex-collaboration and preserves the governed codex-cli null-ID lease through real runner-ID import; independent replay and all suites passed.",
+          "resolved_by_review_id": "review-qpbt-034-pr022-a04-resolution",
           "summary": "Unconditional launch confirmation blocks the governed codex-cli issue-first null-ID lease before the real external ID exists.",
           "path": "scripts/workflow.py",
           "line": 1824,
@@ -5933,10 +5954,10 @@
           "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
           "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
           "severity": "medium",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Changed head f672839 catches BaseException, restores exact sessions/event snapshots, re-raises, and passes independent KeyboardInterrupt injection at all five publication boundaries with deterministic retry.",
+          "resolved_by_review_id": "review-qpbt-034-pr022-a04-resolution",
           "summary": "Dispatch rollback catches Exception rather than BaseException, so KeyboardInterrupt can leave a partially published transaction that still validates.",
           "path": "scripts/workflow.py",
           "line": 1918,
@@ -5946,7 +5967,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T13:15:00Z",
-      "updated_at": "2026-09-01T13:51:27.478329Z",
+      "updated_at": "2026-09-01T14:06:16.075497Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -5965,7 +5986,7 @@
         "i034-orchestrator-a03-live-admission-fixes"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Obtain a fresh immutable changed-head resolution review that confirms F-LPR022-001 and F-LPR022-002 before formal adoption."
+      "unexecuted_gate": "Fresh changed-head review approved and resolved both findings; formal no-byte-change adoption remains before approval and guarded integration."
     },
     {
       "id": "LPR-023",

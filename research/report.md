@@ -29,7 +29,7 @@ availability reasons rather than receiving estimates.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 112 terminal attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | source and blueprint acceptance chain closed; LPR-018 has three confirmed findings and supplemental QPBT-028/029/030 isolation work continues off the Lean critical path |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 40 issued attempts, 39 terminal and 1 active; peak concurrency 3 | collaboration usage unavailable | source and API audits archived; expanded-scope QPBT-023 contract continuation active |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 191 issued attempts: 189 terminal and 2 active sessions; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files are reviewed, merged, and combined-build clean; the four-file callable contract and the admission repair are both complete and under concurrent independent review |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 192 issued attempts: 190 terminal and 2 active sessions; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files are reviewed, merged, and combined-build clean; the callable contract review and no-byte-change adoption of the approved admission repair are running concurrently |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
@@ -1287,8 +1287,11 @@ medium finding: confirmation was incorrectly applied to the governed
 rollback. A03 repaired both findings at changed report head
 `f672839e2d221cba44e70db6ab523eebdd4d0d4a`: the governed CLI regression passed
 1/1, the five-boundary interrupt matrix passed, focused suites passed 77/77 and
-64/64, and the aggregate passed 344/344. LPR-022 remains unactivated while a
-fresh resolution reviewer checks both dispositions.
+64/64, and the aggregate passed 344/344. A fresh resolution reviewer then
+approved the exact changed head with no new findings after independently
+re-running both adversarial cases and all 344 aggregate tests. Both findings
+are formally resolved; LPR-022 remains unactivated only while a separate
+no-byte-change integrator authenticates the approved bytes.
 
 QPBT-035 A01 ran for `887.256` coordinator-measured seconds and stopped before
 contract edits when it found that the closed blueprint validator admitted only
