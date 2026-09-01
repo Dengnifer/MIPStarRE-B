@@ -58,7 +58,8 @@
       "issue_ids": [
         "QPBT-010",
         "QPBT-002",
-        "QPBT-012"
+        "QPBT-012",
+        "QPBT-026"
       ],
       "started_at": "2026-08-30T17:33:51.133961Z",
       "ended_at": null,
@@ -69,7 +70,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; available external-session usage is recorded per session"
       },
-      "subagents_issued": 65,
+      "subagents_issued": 72,
       "max_concurrency": 4,
       "outputs": [
         "workflow/reviews/stage-02-split-design-recon.md",
@@ -81,7 +82,8 @@
         "scripts/reference_source.py",
         "tests/test_reference_source.py",
         "workflow/reviews/qpbt-012-nested-codex-hardening.md",
-        "workflow/reviews/stage-02-03-postintegration-acceptance-fcd1aa9.md"
+        "workflow/reviews/stage-02-03-postintegration-acceptance-fcd1aa9.md",
+        "workflow/reviews/qpbt-026-disclosure-preflight-a01.md"
       ],
       "incident_ids": [
         "INC-021",

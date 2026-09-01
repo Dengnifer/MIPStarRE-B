@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 16,
+  "next_sequence": 17,
   "pull_requests": [
     {
       "id": "LPR-001",
@@ -3957,6 +3957,192 @@
         "proofwidgets_build_present": true,
         "matching_failure_envelopes": 0
       }
+    },
+    {
+      "id": "LPR-016",
+      "title": "feat(review): require exact disclosure preflight",
+      "status": "changes_requested",
+      "issue_ids": [
+        "QPBT-026"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-026-disclosure-a01",
+      "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+      "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+      "implementer_session_ids": [
+        "i026-integrator-a02-pr016-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-026-focused-5d6164e",
+          "name": "exact-head disclosure preflight focused tests",
+          "command": "python3 -m unittest discover -s tests -p 'test_local_agent.py'",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "completed_at": "2026-08-31T22:09:30Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a01.md",
+          "tests": "51/51",
+          "seconds": 4.126
+        },
+        {
+          "id": "check-qpbt-026-compile-5d6164e",
+          "name": "exact-head Python compile check",
+          "command": "python3 -m compileall -q scripts/local_agent.py tests/test_local_agent.py",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "completed_at": "2026-08-31T22:09:30Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a01.md"
+        },
+        {
+          "id": "check-qpbt-026-validate-5d6164e",
+          "name": "exact-head workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "completed_at": "2026-08-31T22:09:30Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a01.md"
+        },
+        {
+          "id": "check-qpbt-026-diff-5d6164e",
+          "name": "exact-head SHA-bound diff hygiene",
+          "command": "git diff --check ea584e9e894391773e09ddad2ce4d082497c7913..5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "completed_at": "2026-08-31T22:09:30Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a01.md"
+        },
+        {
+          "id": "check-qpbt-026-identity-5d6164e",
+          "name": "final candidate commit tree and worktree identity",
+          "command": "git rev-parse HEAD HEAD^{tree}; git status --porcelain",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "completed_at": "2026-08-31T22:09:30Z",
+          "result_path": "workflow/reviews/qpbt-026-disclosure-preflight-a01.md",
+          "tree_sha": "7af3fb789c5a4438482599b25e0d42a2088bbba6",
+          "worktree_clean": true
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-026-pr016-a03-immutable",
+          "reviewer_session_id": "i026-reviewer-a03-pr016-immutable",
+          "verdict": "request_changes",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "started_at": "2026-08-31T22:13:24.973728Z",
+          "completed_at": "2026-08-31T22:19:04.929236Z",
+          "result_path": "workflow/reviews/qpbt-026-review-a03-pr016-immutable.md",
+          "finding_ids": [
+            "F-LPR016-001",
+            "F-LPR016-002",
+            "F-LPR016-003"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "f3bc41edeb9c1561f610fcfd78bd58ca38920f2d306cdb0161b9313c9e9e8eb4",
+          "acceptance_commands": 5
+        },
+        {
+          "id": "review-qpbt-026-pr016-a04-supplemental",
+          "reviewer_session_id": "i026-reviewer-a04-pr016-supplemental",
+          "verdict": "request_changes",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "started_at": "2026-09-01T02:04:56.709785Z",
+          "completed_at": "2026-09-01T02:05:34.660981Z",
+          "result_path": "workflow/reviews/qpbt-026-review-a04-supplemental.md",
+          "finding_ids": [
+            "F-LPR016-004"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "31594eca6cdf8730e905bfe5af5a15672109da9ad9159c3cc38aa1158bbbe602",
+          "acceptance_commands": 0,
+          "validation_inherited_from_review_id": "review-qpbt-026-pr016-a03-immutable"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F-LPR016-001",
+          "introduced_review_id": "review-qpbt-026-pr016-a03-immutable",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Validated disclosure authorization is copied into the review target, prompt, and result envelope, contrary to the no-echo protocol.",
+          "path": "scripts/local_agent.py",
+          "line": 2885
+        },
+        {
+          "id": "F-LPR016-002",
+          "introduced_review_id": "review-qpbt-026-pr016-a03-immutable",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Omitting a custom transport profile bypasses the required disclosure authorization before a default-provider model-backed review and lease claim.",
+          "path": "scripts/local_agent.py",
+          "line": 697
+        },
+        {
+          "id": "F-LPR016-003",
+          "introduced_review_id": "review-qpbt-026-pr016-a03-immutable",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Commit-target head SHA drift is checked only after the bound reviewer lease is claimed.",
+          "path": "scripts/local_agent.py",
+          "line": 681
+        },
+        {
+          "id": "F-LPR016-004",
+          "introduced_review_id": "review-qpbt-026-pr016-a04-supplemental",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Credential-path rejection checks only an incomplete basename pattern, allowing common nested key and credential paths despite exclude_credentials.",
+          "path": "scripts/local_agent.py",
+          "line": 642
+        }
+      ],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-08-31T22:10:00Z",
+      "updated_at": "2026-09-01T02:24:20.176572Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/review.md",
+        "scripts/local_agent.py",
+        "tests/test_local_agent.py",
+        "workflow/reviews/qpbt-026-disclosure-preflight-a01.md"
+      ],
+      "motivation": "INC-045 showed that endpoint/model authorization without an exact private evidence scope cannot safely launch an external reviewer.",
+      "description": "Require a versioned non-secret authorization record that exactly binds endpoint, model, wire API, immutable revision identity, and private file paths before any external disclosure or session lease.",
+      "testing": "exact-head focused local-agent tests; Python compileall; workflow validation; SHA-bound diff hygiene; final commit/tree identity",
+      "addresses": "QPBT-026",
+      "provenance_session_ids": [
+        "i026-orchestrator-a01-disclosure-preflight"
+      ],
+      "requested_external_review": false,
+      "unexecuted_gate": "A fresh independent immutable local reviewer must approve the exact head before integration; no external endpoint is contacted without explicit file-scope authorization."
     }
   ]
 }
