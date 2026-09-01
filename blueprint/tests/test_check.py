@@ -309,6 +309,372 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertNotIn("sampler", complexity["statement"].lower())
         self.assertNotIn("question/answer", complexity["statement"].lower())
 
+    def test_direct_sum_detyping_and_finiteness_contracts_are_exact(self) -> None:
+        by_id = {node["id"]: node for node in self.nodes["nodes"]}
+
+        f06 = by_id["F06-CL"]
+        self.assertIn("MIPStarRE.QPBT.CLSampler.sample_directSum", f06["lean"]["names"])
+        self.assertEqual(check.F06_SOURCE_ANCHOR, f06["source"])
+        self.assertEqual("faithful-boundary", f06["fidelity"])
+        self.assertEqual("faithful boundary", f06["integrity"]["verdict"])
+        for term in check.F06_EXECUTABLE_OWNER_TERMS:
+            self.assertIn(term, f06["boundary_hypotheses"].lower())
+
+        executable_cl = by_id[check.EXECUTABLE_CL_OWNER_ID]
+        self.assertEqual(
+            check.EXECUTABLE_CL_SOURCE_ANCHORS,
+            [executable_cl["source"], *executable_cl["additional_sources"]],
+        )
+        self.assertEqual(check.EXECUTABLE_CL_PREREQUISITES,
+                         executable_cl["prerequisites"])
+        self.assertEqual(check.EXECUTABLE_CL_LEAN_NAMES,
+                         executable_cl["lean"]["names"])
+        self.assertEqual(check.EXECUTABLE_CL_IMPLEMENTATION_CONTRACT,
+                         executable_cl["implementation_contract"])
+        self.assertEqual(check.EXECUTABLE_CL_CONTRACT,
+                         check.executable_cl_contract(executable_cl))
+
+        f07 = by_id["F07-TYPED"]
+        self.assertEqual(check.TYPED_SOURCE_ANCHOR, f07["source"])
+        self.assertEqual(check.TYPED_PREREQUISITES, f07["prerequisites"])
+        self.assertEqual(check.TYPED_LEAN_NAMES, f07["lean"]["names"])
+        self.assertEqual(check.F07_FINITENESS_CONTRACT,
+                         check.f07_finiteness_contract(f07))
+        self.assertIn(
+            "Among question/answer content fibers, only the sampler carrier is asserted finite.",
+            f07["statement"],
+        )
+
+        game_semantics = by_id[check.GAME_SEMANTICS_OWNER_ID]
+        self.assertEqual(
+            check.GAME_SEMANTICS_SOURCE_ANCHORS,
+            [game_semantics["source"], *game_semantics["additional_sources"]],
+        )
+        self.assertEqual(check.GAME_SEMANTICS_PREREQUISITES,
+                         game_semantics["prerequisites"])
+        self.assertEqual(check.GAME_SEMANTICS_LEAN_NAMES,
+                         game_semantics["lean"]["names"])
+
+        detyping = by_id[check.DETYPING_OWNER_ID]
+        self.assertEqual(check.DETYPING_SOURCE_ANCHOR, detyping["source"])
+        self.assertEqual(check.DETYPING_PREREQUISITES, detyping["prerequisites"])
+        self.assertEqual(check.DETYPING_LEAN_NAMES, detyping["lean"]["names"])
+        self.assertFalse(any(dependency.startswith(("K03", "K04"))
+                             for dependency in detyping["prerequisites"]))
+        for term in check.F07A_EXECUTABLE_OWNER_TERMS:
+            self.assertIn(term, detyping["boundary_hypotheses"].lower())
+        self.assertEqual(check.F07A_LEAN_ASSUMPTIONS,
+                         detyping["integrity"]["lean_assumptions"])
+
+        for node_id, contract in check.NON_DETYPING_COMPLEXITY_CONTRACTS.items():
+            node = by_id[node_id]
+            self.assertEqual(contract["generated_lines"],
+                             node["source"]["generated_lines"])
+            self.assertEqual(contract["lean_names"], node["lean"]["names"])
+            ownership_text = " ".join(
+                str(node[field]) for field in
+                ("statement", "encoding", "boundary_hypotheses")
+            ).lower()
+            self.assertNotIn("detyp", ownership_text)
+
+        for mutation, phrase in (
+            ("missing_theorem", "direct-sum product-distribution theorem"),
+            ("missing_game_owner", "missing exact game-semantics owner"),
+            ("wrong_game_source", "game-semantics source ranges must remain exact"),
+            ("wrong_game_dependencies", "game-semantics prerequisites must remain exact"),
+            ("wrong_game_names", "game-semantics callable names must remain exact"),
+            ("wrong_typed_source", "typed source range must remain exact"),
+            ("wrong_typed_names", "typed callable names must remain exact"),
+            ("missing_owner", "missing exact detyping owner"),
+            ("wrong_source", "detyping source range must remain exact"),
+            ("wrong_dependencies", "detyping prerequisites must remain exact"),
+            ("wrong_names", "detyping callable names must remain exact"),
+            ("finite_fibers", "generic dependent-fiber finiteness contract must remain exact"),
+            ("k03_detyping", "must not own detyping"),
+            ("k04_names", "non-detyping callable ownership must remain exact"),
+        ):
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(self.nodes)
+                bad_by_id = {node["id"]: node for node in bad["nodes"]}
+                if mutation == "missing_theorem":
+                    bad_by_id["F06-CL"]["lean"]["names"].remove(
+                        "MIPStarRE.QPBT.CLSampler.sample_directSum"
+                    )
+                elif mutation == "missing_game_owner":
+                    bad["nodes"].remove(bad_by_id[check.GAME_SEMANTICS_OWNER_ID])
+                elif mutation == "wrong_game_source":
+                    bad_by_id[check.GAME_SEMANTICS_OWNER_ID][
+                        "additional_sources"
+                    ][1]["generated_lines"] = [127, 190]
+                elif mutation == "wrong_game_dependencies":
+                    bad_by_id[check.GAME_SEMANTICS_OWNER_ID]["prerequisites"] = [
+                        "F04-DISTANCE"
+                    ]
+                elif mutation == "wrong_game_names":
+                    bad_by_id[check.GAME_SEMANTICS_OWNER_ID]["lean"]["names"].pop()
+                elif mutation == "wrong_typed_source":
+                    bad_by_id["F07-TYPED"]["source"]["generated_lines"] = [57, 194]
+                elif mutation == "wrong_typed_names":
+                    bad_by_id["F07-TYPED"]["lean"]["names"].remove(
+                        "MIPStarRE.QPBT.TypedSampler.sample_downsize"
+                    )
+                elif mutation == "missing_owner":
+                    bad["nodes"].remove(bad_by_id[check.DETYPING_OWNER_ID])
+                elif mutation == "wrong_source":
+                    bad_by_id[check.DETYPING_OWNER_ID]["source"]["generated_lines"] = [360, 579]
+                elif mutation == "wrong_dependencies":
+                    bad_by_id[check.DETYPING_OWNER_ID]["prerequisites"] = ["F07-TYPED"]
+                elif mutation == "wrong_names":
+                    bad_by_id[check.DETYPING_OWNER_ID]["lean"]["names"].pop()
+                elif mutation == "k03_detyping":
+                    bad_by_id["K03-INTRO-COMPLEXITY"]["statement"] += (
+                        " It also owns detyping."
+                    )
+                elif mutation == "k04_names":
+                    bad_by_id["K04-GAME-COMPLEXITY"]["lean"]["names"] = [
+                        "MIPStarRE.QPBT.detyping_complexity"
+                    ]
+                else:
+                    bad_by_id["F07-TYPED"]["boundary_hypotheses"] += " Finite dependent fibers."
+                self.assertTrue(any(phrase in error for error in self.errors(nodes=bad)))
+
+    def test_executable_cl_contract_is_fail_closed_and_adversarial(self) -> None:
+        cases = (
+            ("missing_owner", "missing exact executable CL owner"),
+            ("wrong_source", "executable CL source anchors must remain exact"),
+            ("wrong_dependencies", "executable CL prerequisites must remain exact"),
+            ("wrong_module", "executable CL module must remain exact"),
+            ("wrong_names", "executable CL callable names must remain exact"),
+            ("wrong_import", "implementation contract must remain exact"),
+            ("wrong_manifest", "implementation contract must remain exact"),
+            ("wrong_kind", "node kind and fidelity must remain exact"),
+            ("six_modes", "executable CL semantic contract must remain exact"),
+            ("opaque_runtime", "executable CL semantic contract must remain exact"),
+            ("obligation_input", "executable CL semantic contract must remain exact"),
+            ("fabricated_machine", "executable CL semantic contract must remain exact"),
+            ("wrong_dimension", "executable CL semantic contract must remain exact"),
+        )
+        for mutation, phrase in cases:
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(self.nodes)
+                by_id = {node["id"]: node for node in bad["nodes"]}
+                node = by_id[check.EXECUTABLE_CL_OWNER_ID]
+                if mutation == "missing_owner":
+                    bad["nodes"].remove(node)
+                elif mutation == "wrong_source":
+                    node["additional_sources"][2]["generated_lines"] = [662, 711]
+                elif mutation == "wrong_dependencies":
+                    node["prerequisites"] = []
+                elif mutation == "wrong_module":
+                    node["lean"]["module"] = "MIPStarRE.QPBT.Game.Detyping"
+                elif mutation == "wrong_names":
+                    node["lean"]["names"].remove(
+                        "MIPStarRE.QPBT.ExecutableCLSampler.downsize_time"
+                    )
+                elif mutation == "wrong_import":
+                    node["implementation_contract"]["imports"].remove(
+                        "Mathlib.Computability.TuringMachine.Computable"
+                    )
+                elif mutation == "wrong_manifest":
+                    node["implementation_contract"]["signature_manifest"]["sha256"] = (
+                        "0" * 64
+                    )
+                elif mutation == "wrong_kind":
+                    node["kind"] = "lemma"
+                elif mutation == "six_modes":
+                    node["statement"] = node["statement"].replace(
+                        "distinct dimension, marginal, linear, and factor query modes",
+                        "six query modes",
+                    )
+                elif mutation == "opaque_runtime":
+                    node["integrity"]["lean_conclusion"] = (
+                        "An unspecified executable runtime contract."
+                    )
+                elif mutation == "obligation_input":
+                    node["boundary_hypotheses"] += (
+                        " A caller may supply any missing correctness obligation."
+                    )
+                elif mutation == "fabricated_machine":
+                    node["encoding"] = node["encoding"].replace(
+                        "packSixTapes is an injective administrative encoding only.",
+                        "an axiomatized one-tape machine.",
+                    )
+                else:
+                    node["integrity"]["paper_conclusion"] = (
+                        node["integrity"]["paper_conclusion"].replace(
+                            "dimension s(n) log q(n)", "dimension s(n) + log q(n)"
+                        )
+                    )
+                self.assertTrue(any(
+                    phrase in error for error in self.errors(nodes=bad)
+                ))
+
+    def test_executable_cl_source_fidelity_repairs_are_fail_closed(self) -> None:
+        node_id = check.EXECUTABLE_CL_OWNER_ID
+        by_id = {node["id"]: node for node in self.nodes["nodes"]}
+        node = by_id[node_id]
+        self.assertIn("0 < n", node["integrity"]["lean_assumptions"])
+        self.assertIn("1 <= level", node["integrity"]["lean_conclusion"])
+        self.assertIn("RuntimeBigO", node["integrity"]["lean_conclusion"])
+        self.assertIn("valid-query finite maximum", node["boundary_hypotheses"])
+        self.assertIn("ignored-tape semantics", node["boundary_hypotheses"])
+        self.assertIn("dependent u/y domains", node["integrity"]["lean_assumptions"])
+        self.assertIn("exact PMF.map pushforward", node["integrity"]["lean_conclusion"])
+
+        mutations = (
+            ("statement", "positive-index", "all-index"),
+            ("encoding", "canonical field codec", "arbitrary caller codec"),
+            ("encoding", "dependent subtypes", "untyped strings"),
+            ("boundary_hypotheses", "valid-query finite maximum", "upper-bound field"),
+            ("boundary_hypotheses", "ignored-tape semantics", "one-tape serialization"),
+            ("integrity.lean_conclusion", "RuntimeBigO", "IsBigO Filter.atTop"),
+            ("integrity.lean_conclusion", "exact PMF.map pushforward", "asymptotic law"),
+        )
+        for field, old, new in mutations:
+            with self.subTest(field=field, old=old):
+                bad = copy.deepcopy(self.nodes)
+                target = next(item for item in bad["nodes"] if item["id"] == node_id)
+                container = target
+                key = field
+                if "." in field:
+                    parent, key = field.split(".", 1)
+                    container = target[parent]
+                self.assertIn(old, container[key])
+                container[key] = container[key].replace(old, new, 1)
+                self.assertTrue(any(
+                    "executable CL semantic contract must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        for name in (
+            "MIPStarRE.QPBT.RuntimeBigO",
+            "MIPStarRE.QPBT.CLQueryDecomposition",
+            "MIPStarRE.QPBT.CLSamplerQuery.tapes",
+            "MIPStarRE.QPBT.ExecutableCLSampler.time_eq_validQueryMax",
+            "MIPStarRE.QPBT.ExecutableCLSampler.sample_downsize",
+        ):
+            with self.subTest(name=name):
+                bad = copy.deepcopy(self.nodes)
+                target = next(item for item in bad["nodes"] if item["id"] == node_id)
+                target["lean"]["names"].remove(name)
+                self.assertTrue(any(
+                    "executable CL callable names must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        no_asymptotics = copy.deepcopy(self.nodes)
+        executable = next(item for item in no_asymptotics["nodes"] if item["id"] == node_id)
+        executable["implementation_contract"]["imports"].append(
+            "Mathlib.Analysis.Asymptotics.Defs"
+        )
+        self.assertTrue(any(
+            "implementation contract must remain exact" in error
+            for error in self.errors(nodes=no_asymptotics)
+        ))
+
+    def test_typed_finiteness_and_executable_ownership_wording_is_adversarial(self) -> None:
+        finiteness_mutations = (
+            ("statement", " Finite typed samplers and deciders are exposed."),
+            ("encoding", " All typed question and answer families are finite."),
+            ("boundary_hypotheses", " Dependent decider fibers are finite."),
+            ("lean_assumptions", " Finite typed questions, answers, and deciders are assumed."),
+            ("lean_conclusion", " The generic interfaces remain pointwise finite."),
+        )
+        for field, phrase in finiteness_mutations:
+            with self.subTest(field=field):
+                bad = copy.deepcopy(self.nodes)
+                f07 = next(node for node in bad["nodes"] if node["id"] == "F07-TYPED")
+                target = f07["integrity"] if field.startswith("lean_") else f07
+                target[field] += phrase
+                self.assertTrue(any(
+                    "generic dependent-fiber finiteness contract must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        conjoined_with_consumer = copy.deepcopy(self.nodes)
+        f07 = next(node for node in conjoined_with_consumer["nodes"]
+                   if node["id"] == "F07-TYPED")
+        f07["boundary_hypotheses"] = f07["boundary_hypotheses"].replace(
+            "required by the mathematical game consumer.",
+            "required by the mathematical game consumer while finite typed samplers "
+            "and deciders are exposed.",
+        )
+        self.assertTrue(any(
+            "generic dependent-fiber finiteness contract must remain exact" in error
+            for error in self.errors(nodes=conjoined_with_consumer)
+        ))
+
+        hidden_after_disclaimer = copy.deepcopy(self.nodes)
+        f07 = next(node for node in hidden_after_disclaimer["nodes"]
+                   if node["id"] == "F07-TYPED")
+        f07["boundary_hypotheses"] = f07["boundary_hypotheses"].replace(
+            "without pointwise finiteness assumptions.",
+            "without pointwise finiteness assumptions but dependent decider fibers "
+            "are finite.",
+        )
+        self.assertTrue(any(
+            "generic dependent-fiber finiteness contract must remain exact" in error
+            for error in self.errors(nodes=hidden_after_disclaimer)
+        ))
+
+        finite_f07a = copy.deepcopy(self.nodes)
+        detyping = next(node for node in finite_f07a["nodes"]
+                        if node["id"] == check.DETYPING_OWNER_ID)
+        detyping["integrity"]["lean_assumptions"] = (
+            "F07 finite typed interfaces, F04A game semantics, and a machine model."
+        )
+        self.assertTrue(any(
+            "dependent-fiber assumptions must remain exact" in error
+            for error in self.errors(nodes=finite_f07a)
+        ))
+
+        wrong_fidelity = copy.deepcopy(self.nodes)
+        next(node for node in wrong_fidelity["nodes"]
+             if node["id"] == "F06-CL")["fidelity"] = "exact"
+        self.assertTrue(any(
+            "fidelity must match its faithful-boundary integrity verdict" in error
+            for error in self.errors(nodes=wrong_fidelity)
+        ))
+
+        false_deferral = copy.deepcopy(self.nodes)
+        f06 = next(node for node in false_deferral["nodes"] if node["id"] == "F06-CL")
+        f06["boundary_hypotheses"] = (
+            "All spaces and randomness are finite. Raw Turing strings, executable "
+            "sampler interfaces, and efficiency claims are deferred to K03-K04."
+        )
+        self.assertTrue(any(
+            "generic executable ownership must remain assigned only to F06A" in error
+            for error in self.errors(nodes=false_deferral)
+        ))
+
+        false_f07a_ownership = copy.deepcopy(self.nodes)
+        f06 = next(node for node in false_f07a_ownership["nodes"]
+                   if node["id"] == "F06-CL")
+        f06["boundary_hypotheses"] = f06["boundary_hypotheses"].replace(
+            "F06A-EXECUTABLE-CL alone owns the binary-string representation, six-input "
+            "dimension/marginal/linear/factor query machine with explicit ignored tapes, "
+            "associated sampler distribution and step count, valid-query finite maximum "
+            "and global positive-index RuntimeBigO, executable downsizing transformation, "
+            "dimension s(n) * log q(n), associated downsized maps, and O(TIME_S(n) "
+            "log q(n)) runtime at conditionally-linear.tex:553-712.",
+            "F07A-DETYPING and QPBT-043 own the generic executable layer instead.",
+        )
+        self.assertTrue(any(
+            "generic executable ownership must remain assigned only to F06A" in error
+            for error in self.errors(nodes=false_f07a_ownership)
+        ))
+
+        vague_detyping = copy.deepcopy(self.nodes)
+        detyping = next(node for node in vague_detyping["nodes"]
+                        if node["id"] == check.DETYPING_OWNER_ID)
+        detyping["boundary_hypotheses"] = (
+            "The machine layer is deferred to later complexity work in K03 and K04."
+        )
+        self.assertTrue(any(
+            "executable representation and cost ownership must remain concrete" in error
+            for error in self.errors(nodes=vague_detyping)
+        ))
+
     def test_lean_api_compatibility_contract_is_explicit(self) -> None:
         by_id = {node["id"]: node for node in self.nodes["nodes"]}
 
@@ -418,6 +784,16 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertIn(r"\BlueprintField{Writer lane}{field}", rendered)
         self.assertIn(r"\BlueprintField{Owned Lean file}", rendered)
         self.assertIn(r"\BlueprintField{Signature manifest}", rendered)
+
+        self.assertEqual(
+            {"field", "approximation", "polynomial", "pauli", "types", "parameters"},
+            check.IMPLEMENTATION_WRITER_LANES,
+        )
+        for writer_lane in sorted(check.IMPLEMENTATION_WRITER_LANES):
+            with self.subTest(writer_lane=writer_lane):
+                admitted = copy.deepcopy(good)
+                admitted["nodes"][0]["implementation_contract"]["writer_lane"] = writer_lane
+                self.assertEqual([], self.errors(nodes=admitted))
 
         for field, value, phrase in (
             ("writer_lane", "unknown", "invalid implementation writer lane"),

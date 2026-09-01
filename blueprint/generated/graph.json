@@ -156,6 +156,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -218,6 +219,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -278,6 +280,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -337,6 +340,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -398,6 +402,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -460,6 +465,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -519,6 +525,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -578,6 +585,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -638,6 +646,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -702,6 +711,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -765,6 +775,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -825,6 +836,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -888,6 +900,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -950,6 +963,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -1141,6 +1155,7 @@
         "F04-ASYMPTOTIC",
         "F04-DISTANCE",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F09-LDT-GAME"
       ]
@@ -1230,7 +1245,7 @@
       "transitive_definitions": []
     },
     {
-      "boundary_hypotheses": "Natural m,d and the field data of F01; injectivity and linearity are proof obligations, not structure fields.",
+      "boundary_hypotheses": "Natural k,m and the concrete F01 field type only. No FieldData or chosen basis is required; interpolation, the evaluation formula, linearity, and injectivity are proved facts rather than structure fields or assumptions.",
       "chapter": "02",
       "consumers": [
         "A01-INDICATOR",
@@ -1239,18 +1254,58 @@
         "G02-GAME",
         "K03B-LOW-DEGREE-COMPLEXITY"
       ],
-      "encoding": "Polynomials use Fin m variables and a per-variable degree bound; codewords and indicators use finite function types.",
+      "encoding": "BooleanPoint m = Fin m -> ZMod 2 indexes codeword coordinates; FieldPoint k m = Fin m -> GaloisField 2 k is the evaluation domain. indicatorPolynomial y is the source product of X_i or 1-X_i factors, indicatorVector x is indexed by Boolean y, and lowDegreeEncode is a linear map into MvPolynomial.restrictDegree with bound one.",
       "fidelity": "exact",
       "gap_ids": [],
       "id": "F02-CODE",
-      "integrity": null,
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.RingTheory.MvPolynomial.Basic",
+          "MIPStarRE.QPBT.Basic.Field"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Basic/Polynomial.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "MvPolynomial.restrictDegree",
+          "MvPolynomial.eval",
+          "MvPolynomial.X",
+          "MvPolynomial.C"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F02-SIGNATURES -->",
+          "end_marker": "<!-- END F02-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a02.md",
+          "sha256": "4468d05a235d7ccaa2eb9b355da4e2687bbd2c0bb6444046ce24d276c6c8006e"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Basic/Polynomial.lean"
+        ],
+        "writer_lane": "polynomial"
+      },
+      "integrity": {
+        "lean_assumptions": "BooleanPoint m, FieldPoint k m, and the concrete GaloisField 2 k; no basis data.",
+        "lean_conclusion": "The individually degree-one polynomial subtype, the same evaluation and interpolation equations, a linear-map encoding, and injectivity derived from interpolation.",
+        "paper_assumptions": "A Boolean coordinate y in {0,1}^m, a field evaluation point x in F_q^m, and data a indexed by Boolean points.",
+        "paper_conclusion": "The indicator product, low-degree evaluation formula, Boolean interpolation g_a(y)=a_y, and linearity.",
+        "verdict": "exact"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Basic.Polynomial",
         "names": [
+          "MIPStarRE.QPBT.BooleanPoint",
+          "MIPStarRE.QPBT.FieldPoint",
           "MIPStarRE.QPBT.IndividualDegreePolynomial",
+          "MIPStarRE.QPBT.booleanPointToField",
+          "MIPStarRE.QPBT.evalIndividualDegreePolynomial",
+          "MIPStarRE.QPBT.indicatorPolynomial",
+          "MIPStarRE.QPBT.indicatorVector",
           "MIPStarRE.QPBT.lowDegreeEncode",
-          "MIPStarRE.QPBT.indicatorVector"
+          "MIPStarRE.QPBT.indicatorPolynomial_eval_boolean",
+          "MIPStarRE.QPBT.lowDegreeEncode_eval",
+          "MIPStarRE.QPBT.lowDegreeEncode_eval_boolean",
+          "MIPStarRE.QPBT.lowDegreeEncode_injective"
         ]
       },
       "prerequisites": [
@@ -1269,7 +1324,7 @@
         ],
         "path": "references/2001.04383v3/sections/dependencies/low-degree-code.tex"
       },
-      "statement": "Define individual-degree polynomials, evaluation, the linear low-degree encoding, and the one-hot indicator vector indexed by field points.",
+      "statement": "Define individual-degree polynomials, evaluation at field points, the linear low-degree encoding of data indexed by Boolean points, and the indicator vector evaluated at an arbitrary field point; prove Boolean interpolation and injectivity.",
       "status": "not-started",
       "title": "Individual-degree polynomials and indicator encoding",
       "transitive_definitions": [
@@ -1528,7 +1583,8 @@
       "chapter": "02",
       "consumers": [
         "E01-ORTHO",
-        "E02-MAGIC-SQUARE"
+        "E02-MAGIC-SQUARE",
+        "F04A-GAME-SEMANTICS"
       ],
       "encoding": "The finite value is the PMF-weighted off-diagonal sum of real inner products after explicit Alice/Bob local lifts. The paper-facing relation uses IsBigOAtTop; its derived triangle scale is Nat -> Real and is not clamped back to [0,1]. The named Law declaration freezes the theorem statement; its proof is a later node obligation, not a new assumption.",
       "fidelity": "faithful-boundary",
@@ -1824,7 +1880,100 @@
       ]
     },
     {
-      "boundary_hypotheses": "Characteristic two and a self-dual basis where invoked. Cross-basis commutation is available only when the proved phase is one.",
+      "additional_sources": [
+        {
+          "generated_lines": [
+            62,
+            81
+          ],
+          "label": "def:projective-strategy",
+          "original_lines": [
+            2945,
+            2964
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+        },
+        {
+          "generated_lines": [
+            126,
+            190
+          ],
+          "label": "def:comm-strategy",
+          "original_lines": [
+            3009,
+            3073
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+        }
+      ],
+      "boundary_hypotheses": "Question, answer, and coordinate carriers are explicit finite decidable types. Shared-space predicates use one coordinate type for both players. Canonical Fin dimensions represent arbitrary finite coordinate Hilbert spaces. QPBT-041 must first implement the accepted F04 foundation before QPBT-042 elaborates this node. No executable sampler, machine description, cost model, caller-supplied semantic obligation, placeholder declaration, or public bridge assumption enters this node.",
+      "chapter": "02",
+      "consumers": [
+        "F07A-DETYPING"
+      ],
+      "encoding": "Reuse the accepted PureStrategy and MeasurementConsistentOn declarations. FiniteGame stores a PMF and Bool predicate. FiniteGameStrategy is a one-field game-indexed wrapper, not a second strategy representation. Quantify all finite Hilbert coordinates canonically by Fin dimensions, define game value by real sSup, Schmidt rank by Matrix.rank of the coefficient matrix, and Ent by WithTop Nat sInf so the empty attainable set is infinity.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [],
+      "id": "F04A-GAME-SEMANTICS",
+      "integrity": {
+        "lean_assumptions": "Explicit Fintype/DecidableEq carriers, Mathlib PMF, the reviewed PureStrategy and MeasurementConsistentOn interfaces, and canonical Fin coordinate representatives for the dimension-varying extrema.",
+        "lean_conclusion": "The same formulas, predicates, supremum, matrix rank, and extended-natural minimum, with the game-strategy association represented by a data-free wrapper.",
+        "paper_assumptions": "Finite question and answer alphabets, a question distribution, Boolean decision predicate, normalized finite-dimensional pure tensor strategies with POVMs, and a common local Hilbert space for commuting/consistent/PCC predicates.",
+        "paper_conclusion": "Exact fixed-strategy and game values; projective, symmetric, commuting, consistent, PCC, and SPCC predicates; Schmidt rank; and the minimum rank requirement or infinity.",
+        "verdict": "faithful boundary"
+      },
+      "kind": "definition",
+      "lean": {
+        "module": "MIPStarRE.QPBT.Game.Semantics",
+        "names": [
+          "MIPStarRE.QPBT.FiniteGame",
+          "MIPStarRE.QPBT.FiniteGameStrategy",
+          "MIPStarRE.QPBT.strategyValue",
+          "MIPStarRE.QPBT.StrategyWinsWithProbability",
+          "MIPStarRE.QPBT.FiniteDimensionalGameStrategy",
+          "MIPStarRE.QPBT.FiniteDimensionalGameStrategy.value",
+          "MIPStarRE.QPBT.gameValue",
+          "MIPStarRE.QPBT.ProjectiveStrategy",
+          "MIPStarRE.QPBT.SymmetricGame",
+          "MIPStarRE.QPBT.SymmetricStrategy",
+          "MIPStarRE.QPBT.SupportCommutingStrategy",
+          "MIPStarRE.QPBT.ConsistentStrategy",
+          "MIPStarRE.QPBT.PCCStrategy",
+          "MIPStarRE.QPBT.SPCCStrategy",
+          "MIPStarRE.QPBT.schmidtRank",
+          "MIPStarRE.QPBT.FiniteDimensionalGameStrategy.schmidtRank",
+          "MIPStarRE.QPBT.entanglementRequirement",
+          "MIPStarRE.QPBT.HasValueOnePCCStrategy"
+        ]
+      },
+      "prerequisites": [
+        "F04-CONSISTENCY"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          4,
+          51
+        ],
+        "label": "def:game",
+        "original_lines": [
+          2887,
+          2934
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+      },
+      "statement": "Define finite two-player one-round games; a game-indexed wrapper around the established finite pure tensor strategy; exact strategy and supremal game values; projective, symmetric, support-commuting, consistent, PCC, and SPCC predicates; coefficient-matrix Schmidt rank; and the extended-natural entanglement requirement.",
+      "status": "not-started",
+      "title": "Finite two-player game and quantum strategy semantics",
+      "transitive_definitions": [
+        "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
+        "F04-DISTANCE"
+      ]
+    },
+    {
+      "boundary_hypotheses": "Characteristic two only. The source's self-dual basis, EPR identities, and qudit-to-qubit conversion are confined to F10. Cross-basis commutation is available only after proving that the displayed negative trace phase is one.",
       "chapter": "02",
       "consumers": [
         "A05-EXPANDED",
@@ -1832,21 +1981,67 @@
         "F10-PAULI-BINARY",
         "G02-GAME"
       ],
-      "encoding": "Qudit registers are finite functions; phases are additive characters induced by field trace; tensor powers use finite product carriers.",
+      "encoding": "Operators are Complex matrices indexed by the concrete field; tensor registers use Fin n -> GaloisField 2 k. Phases are ZMod.stdAddChar applied to fieldTrace, and Fourier inversion uses the explicit inverse field-cardinality normalization. F05 uses the integrated raw Op/Measurement API and not the unfinished BinaryObservable surface.",
       "fidelity": "repaired-internal",
       "gap_ids": [
         "G09"
       ],
       "id": "F05-PAULI",
-      "integrity": null,
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Analysis.Fourier.FiniteAbelian.Orthogonality",
+          "Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar",
+          "MIPStarRE.QPBT.Basic.Field",
+          "MIPStarRE.QPBT.Basic.Approximation"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Basic/Pauli.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "ZMod.stdAddChar",
+          "AddChar.expect_eq_ite",
+          "MIPStarRE.QPBT.fieldTrace",
+          "MIPStarRE.Quantum.Op",
+          "MIPStarRE.Quantum.Measurement"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F05-SIGNATURES -->",
+          "end_marker": "<!-- END F05-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a02.md",
+          "sha256": "2046e1a3784f6bf10a1a7c71b279bd41d5c27ed3424e20797cf7c5bba95b4aa7"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Basic/Pauli.lean"
+        ],
+        "writer_lane": "pauli"
+      },
+      "integrity": {
+        "lean_assumptions": "Concrete GaloisField 2 k with derived finite instances and the qualified raw finite matrix/measurement API.",
+        "lean_conclusion": "The same core equations with X*Z = psi(-trace(a*b)) \u2022 (Z*X); false arbitrary cross-basis commutation is absent and F10 owns binary conversion.",
+        "paper_assumptions": "A characteristic-two finite field for core Pauli algebra; the selected basis is used only by the later binary conversion.",
+        "paper_conclusion": "Generalized Pauli matrices, product laws, projector Fourier/inversion equations, and the single/multi-register twisted phase.",
+        "verdict": "documented mismatch"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Basic.Pauli",
         "names": [
+          "MIPStarRE.QPBT.PauliBasis",
           "MIPStarRE.QPBT.pauliX",
           "MIPStarRE.QPBT.pauliZ",
+          "MIPStarRE.QPBT.pauliObservable",
           "MIPStarRE.QPBT.pauliProjector",
-          "MIPStarRE.QPBT.pauli_twistedCommutation"
+          "MIPStarRE.QPBT.pauli_mul",
+          "MIPStarRE.QPBT.pauli_sq",
+          "MIPStarRE.QPBT.pauli_twistedCommutation",
+          "MIPStarRE.QPBT.pauliObservable_eq_sum_projectors",
+          "MIPStarRE.QPBT.pauliProjector_eq_expect_observables",
+          "MIPStarRE.QPBT.fieldDotProduct",
+          "MIPStarRE.QPBT.pauliTensor",
+          "MIPStarRE.QPBT.pauliTensorProjector",
+          "MIPStarRE.QPBT.pauliTensor_twistedCommutation",
+          "MIPStarRE.QPBT.pauliTensor_eq_sum_projectors",
+          "MIPStarRE.QPBT.pauliTensorProjector_eq_expect_observables"
         ]
       },
       "prerequisites": [
@@ -1857,16 +2052,16 @@
       "source": {
         "generated_lines": [
           1,
-          214
+          110
         ],
         "label": "sec:generalized-pauli",
         "original_lines": [
           1949,
-          2162
+          2058
         ],
         "path": "references/2001.04383v3/sections/dependencies/pauli.tex"
       },
-      "statement": "Define generalized Pauli X/Z operators and projectors, Fourier inversion, EPR identities, and the exact trace-valued twisted commutation phase.",
+      "statement": "Define single- and multi-register generalized Pauli X/Z operators and projectors, their product laws and Fourier inversion, and the exact trace-valued twisted commutation phase; defer EPR and qudit-to-qubit conversion to F10.",
       "status": "paper-gap",
       "title": "Generalized Pauli and Fourier algebra",
       "transitive_definitions": [
@@ -1875,23 +2070,67 @@
       ]
     },
     {
-      "boundary_hypotheses": "All spaces and randomness are finite; efficiency claims are deferred to K03-K04.",
+      "boundary_hypotheses": "All mathematical spaces and randomness in this node are finite. F01 FieldData is consumed only for mathematical downsizing and remains owned by F01. F06 ends at conditionally-linear.tex:552 and retains exactly its mathematical callables. F06A-EXECUTABLE-CL alone owns the binary-string representation, six-input dimension/marginal/linear/factor query machine with explicit ignored tapes, associated sampler distribution and step count, valid-query finite maximum and global positive-index RuntimeBigO, executable downsizing transformation, dimension s(n) * log q(n), associated downsized maps, and O(TIME_S(n) log q(n)) runtime at conditionally-linear.tex:553-712. F07A-DETYPING, QPBT-043, K03, and K04 own none of that generic executable layer.",
       "chapter": "02",
       "consumers": [
-        "F07-TYPED"
+        "F06A-EXECUTABLE-CL"
       ],
-      "encoding": "Finite vector spaces use coordinate functions and samplers return explicit finite PMFs.",
-      "fidelity": "exact",
+      "encoding": "The certificate is indexed by the current coordinate register, level, and realized function. Level zero certifies only the zero map; a successor partitions the register into disjoint complementary head/tail sets, applies a supported linear head map, and selects a recursively certified tail function by an element of the head-map range. Samplers map one uniform ambient vector to an explicit pair PMF. CLSampler.sample_directSum identifies the summed sampler with the independent product PMF after reindexing both left/right outputs by Fin.append.",
+      "fidelity": "faithful-boundary",
       "gap_ids": [],
       "id": "F06-CL",
-      "integrity": null,
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Probability.Distributions.Uniform",
+          "MIPStarRE.QPBT.Basic.Field"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Game/Types.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "PMF.uniformOfFintype",
+          "PMF.bind",
+          "PMF.map",
+          "Fin.append",
+          "MIPStarRE.QPBT.FieldData.coordinates",
+          "GaloisField.equivZmodP"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F06-A04-SIGNATURES -->",
+          "end_marker": "<!-- END F06-A04-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a04.md",
+          "sha256": "120d85e82d04ef226509ff6ff2b0f70776b65db537ba76a74c8307312b203461"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Game/Types.lean"
+        ],
+        "writer_lane": "types"
+      },
+      "integrity": {
+        "lean_assumptions": "Concrete characteristic-two field vectors, finite coordinate registers, and the recursive certificate; independent component PMFs combined by bind/map; F01 FieldData only at downsize.",
+        "lean_conclusion": "The same mathematical operations, including an exact PMF equality after Fin.append reindexing and normalized downsize pushforward. F06A exclusively owns the subsequent generic executable sampler/query/downsize layer.",
+        "paper_assumptions": "A finite coordinate field space and recursively selected complementary register subspaces; independent uniform coordinates across direct-sum factors; a selected basis only for downsizing.",
+        "paper_conclusion": "The mathematical conditionally-linear functions and distributions through the downsize pushforward at conditionally-linear.tex:1-552.",
+        "verdict": "faithful boundary"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Game.Types",
         "names": [
+          "MIPStarRE.QPBT.FieldVector",
+          "MIPStarRE.QPBT.restrictVector",
+          "MIPStarRE.QPBT.ConditionallyLinearCertificate",
           "MIPStarRE.QPBT.ConditionallyLinearMap",
+          "MIPStarRE.QPBT.ConditionallyLinearMap.raiseLevel",
+          "MIPStarRE.QPBT.ConditionallyLinearMap.directSum",
+          "MIPStarRE.QPBT.downsizeVector",
+          "MIPStarRE.QPBT.ConditionallyLinearMap.downsize",
           "MIPStarRE.QPBT.CLSampler",
-          "MIPStarRE.QPBT.CLSampler.sample"
+          "MIPStarRE.QPBT.CLSampler.sample",
+          "MIPStarRE.QPBT.CLSampler.directSum",
+          "MIPStarRE.QPBT.CLSampler.sample_directSum",
+          "MIPStarRE.QPBT.CLSampler.downsize",
+          "MIPStarRE.QPBT.CLSampler.sample_downsize"
         ]
       },
       "prerequisites": [
@@ -1901,16 +2140,16 @@
       "source": {
         "generated_lines": [
           1,
-          715
+          552
         ],
         "label": "sec:linear",
         "original_lines": [
           2163,
-          2877
+          2714
         ],
         "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex"
       },
-      "statement": "Define conditionally-linear maps, their finite distributions, direct sums, downsizing, and executable conditionally-linear samplers.",
+      "statement": "Define recursively certified conditionally-linear maps, their finite distributions, level raising, direct sums, and basis-mediated downsizing, together with mathematical conditionally-linear samplers.",
       "status": "not-started",
       "title": "Conditionally-linear maps and samplers",
       "transitive_definitions": [
@@ -1918,25 +2157,243 @@
       ]
     },
     {
-      "boundary_hypotheses": "Finite type graph and finite fibers; detyping equivalences are proved, not coerced definitionally.",
+      "additional_sources": [
+        {
+          "generated_lines": [
+            150,
+            281
+          ],
+          "label": "lem:cl-kth",
+          "original_lines": [
+            2312,
+            2443
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex"
+        },
+        {
+          "generated_lines": [
+            409,
+            430
+          ],
+          "label": "lem:cl-downsize",
+          "original_lines": [
+            2571,
+            2592
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex"
+        },
+        {
+          "generated_lines": [
+            616,
+            626
+          ],
+          "label": "def:sampler-sample",
+          "original_lines": [
+            2778,
+            2788
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex"
+        },
+        {
+          "generated_lines": [
+            628,
+            660
+          ],
+          "label": "def:downsize_sampler",
+          "original_lines": [
+            2790,
+            2822
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex"
+        },
+        {
+          "generated_lines": [
+            662,
+            712
+          ],
+          "label": "lem:downsize_sampler",
+          "original_lines": [
+            2824,
+            2874
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex"
+        },
+        {
+          "generated_lines": [
+            1,
+            35
+          ],
+          "label": "sec:prelim",
+          "original_lines": [
+            898,
+            932
+          ],
+          "path": "references/2001.04383v3/sections/top-level/preliminaries.tex"
+        },
+        {
+          "generated_lines": [
+            37,
+            95
+          ],
+          "label": "sec:tms",
+          "original_lines": [
+            934,
+            992
+          ],
+          "path": "references/2001.04383v3/sections/top-level/preliminaries.tex"
+        },
+        {
+          "generated_lines": [
+            96,
+            143
+          ],
+          "label": "thm:universal-tm",
+          "original_lines": [
+            993,
+            1040
+          ],
+          "path": "references/2001.04383v3/sections/top-level/preliminaries.tex"
+        },
+        {
+          "generated_lines": [
+            234,
+            263
+          ],
+          "label": "sec:ff-representations",
+          "original_lines": [
+            1550,
+            1579
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/finite-fields.tex"
+        },
+        {
+          "generated_lines": [
+            283,
+            307
+          ],
+          "label": "lem:efficient_basis",
+          "original_lines": [
+            1599,
+            1623
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/finite-fields.tex"
+        },
+        {
+          "generated_lines": [
+            350,
+            401
+          ],
+          "label": "lem:efficient_arithmetic",
+          "original_lines": [
+            1666,
+            1717
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/finite-fields.tex"
+        },
+        {
+          "generated_lines": [
+            403,
+            411
+          ],
+          "label": "rmk:tm_fields",
+          "original_lines": [
+            1719,
+            1727
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/finite-fields.tex"
+        }
+      ],
+      "boundary_hypotheses": "The executable sampler is supplied as the source-defined machine together with intrinsic semantic correctness data; no theorem asserts that every mathematical CLSampler has an executable realization. Its associated maps and decomposition choices are data-valued and include the exact F06 lem:cl-kth laws. The machine has six logical input tapes with explicit ignored-tape semantics; any FinTM2 packing is injective administration and cannot replace the six-tape boundary. Every paper-labelled pointwise claim carries 0 < n, and downsizing carries 1 <= level. TIME_S(n) is the exact valid-query finite maximum of per-input operational steps over the valid query subtype, not an arbitrary upper-bound field. RuntimeBigO is global over positive indices. The source's omitted linear u/y quantifiers and the prefix/downsize index typos are preserved as explicit paper-gap notes A02-004/A02-006 and repaired only at the dependent Lean boundary. F01's source-coherent codec construction and table algorithm remain the tracked G16/K03A proof obligation, never a public codec-correctness input. The compiler-cost proof must account for parsing, prefix inversion, simulation, and ordered log-q factor-block output; it may not use a generic obligation. F06A alone owns def:sampler, def:sampler-sample, def:downsize_sampler, and lem:downsize_sampler. F06 owns only conditionally-linear.tex:1-552; F07A-DETYPING, QPBT-043, K03, and K04 own none of the generic executable sampler, query, distribution, downsize, dimension, or runtime clauses. No generic Hypotheses, Assumptions, bridge, residual, repair, witness, package, producer, arbitrary implication input, or fabricated Turing theorem is permitted.",
       "chapter": "02",
       "consumers": [
-        "F08-MAGIC-GAME",
-        "F09-LDT-GAME",
-        "G02-GAME"
+        "F07-TYPED"
       ],
-      "encoding": "Use dependent sums for heterogeneous carriers and a finite edge PMF including self-loops.",
-      "fidelity": "exact",
+      "encoding": "For every positive n, q(n) = 2^(exponent n) with Odd (exponent n), and Nat.log 2 (q(n)) is the paper's log q(n). The canonical field codec is the F01-selected basis/table representation, with fixed coordinate order; no caller-supplied codec or coherence premise is accepted. SixTapeInput is Fin 6 -> List Bool. CLSamplerQuery has exactly four constructors and its tapes expose the paper layouts: dimension reads tapes 0-1 and ignores 2-5; marginal and factor read 0-4 and ignore tape 5; linear reads all 0-5. stage.val encodes paper j = stage.val + 1. packSixTapes is an injective administrative encoding only. CLQueryDecomposition carries selected marginals, prefix-range-indexed factors, factor-space linear maps, and the lem:cl-kth realization proofs as data. Valid linear u and y are dependent subtypes; malformed encodings and index zero are outside the paper contract. The sampler PMF is exactly CLSampler.sample from one shared uniform seed.",
+      "fidelity": "faithful-boundary",
       "gap_ids": [],
-      "id": "F07-TYPED",
-      "integrity": null,
+      "id": "F06A-EXECUTABLE-CL",
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Computability.TuringMachine.Computable",
+          "Mathlib.Data.Nat.Log",
+          "Mathlib.Probability.Distributions.Uniform",
+          "MIPStarRE.QPBT.Basic.Field"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Game/Types.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "Computability.Encoding",
+          "Computability.encodeNat",
+          "Nat.log",
+          "StateTransition.EvalsToInTime",
+          "Turing.FinTM2",
+          "Turing.TM2OutputsInTime",
+          "MIPStarRE.QPBT.CLSampler.downsize",
+          "MIPStarRE.QPBT.CLSampler.sample_downsize",
+          "MIPStarRE.QPBT.FieldData.coordinates",
+          "MIPStarRE.QPBT.downsizeVector"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F06A-A04-SIGNATURES -->",
+          "end_marker": "<!-- END F06A-A04-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-048-source-fidelity-repair-a04.md",
+          "sha256": "39edc25942ba55981a952685cf65695e3734631ac7abaa683179383603331bcd"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Game/Types.lean"
+        ],
+        "writer_lane": "types"
+      },
+      "integrity": {
+        "lean_assumptions": "An exponent family with Odd (exponent n) guarded by 0 < n, the canonical F01 source-coherent coordinate codec, an explicit Fin 6 binary query boundary with ignored tapes, data-valued nonunique CLQueryDecomposition records whose dependent u/y domains satisfy the F06 laws, an operational six-input machine, exact per-input step witnesses, and a proved finite valid-query maximum; no executable-realization, codec-coherence, runtime, bridge, or arbitrary obligation premise is added to a paper theorem.",
+        "lean_conclusion": "The exact four encoded query results compute through six-tape operational run witnesses, with ignored tapes and dependent valid-query domains; associated, sample, and time_eq_validQueryMax are callable. Downsize has the canonical binary codec, dimension s(n)*Nat.log 2(Q.fieldSize n), exact pointwise map correspondence for every 0 < n, exact PMF.map pushforward from one shared sampler law, and a proved global-positive RuntimeBigO compiler-cost theorem under 1 <= level. The G16/K03A representation-coherence obligation remains tracked and is not exposed as a public input.",
+        "paper_assumptions": "Positive integers n with an admissible field size function q(n), a dimension function s(n), one ell-level six-input Turing sampler whose four query modes return chosen marginal maps, linear maps, and factor indicators for associated Alice/Bob CL functions, and ell >= 1 for executable downsizing.",
+        "paper_conclusion": "The sampler has associated CL maps, chosen decompositions, exact distribution, and TIME_S(n); its executable downsize has field size 2, dimension s(n) log q(n), associated downsized CL maps, exact sampler-law pushforward, and global positive-index runtime O(TIME_S(n) log q(n)).",
+        "verdict": "faithful boundary"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Game.Types",
         "names": [
-          "MIPStarRE.QPBT.TypeGraph",
-          "MIPStarRE.QPBT.TypedSampler",
-          "MIPStarRE.QPBT.TypedDecider"
+          "MIPStarRE.QPBT.AdmissibleFieldFamily",
+          "MIPStarRE.QPBT.AdmissibleFieldFamily.fieldSize",
+          "MIPStarRE.QPBT.AdmissibleFieldFamily.fieldData",
+          "MIPStarRE.QPBT.AdmissibleFieldFamily.fieldCodec",
+          "MIPStarRE.QPBT.binaryFieldFamily",
+          "MIPStarRE.QPBT.RuntimeBigO",
+          "MIPStarRE.QPBT.SixTapeInput",
+          "MIPStarRE.QPBT.CLQueryDecomposition",
+          "MIPStarRE.QPBT.CLSamplerSide",
+          "MIPStarRE.QPBT.CLSampler.side",
+          "MIPStarRE.QPBT.CLStage.pred",
+          "MIPStarRE.QPBT.CLStage.castLE",
+          "MIPStarRE.QPBT.CLStage.last",
+          "MIPStarRE.QPBT.CLSamplerQuery",
+          "MIPStarRE.QPBT.CLSamplerQuery.index",
+          "MIPStarRE.QPBT.CLSamplerQuery.tapes",
+          "MIPStarRE.QPBT.CLSamplerQuery.expectedOutput",
+          "MIPStarRE.QPBT.packSixTapes",
+          "MIPStarRE.QPBT.packSixTapes_injective",
+          "MIPStarRE.QPBT.IndexedSixInputBitMachine",
+          "MIPStarRE.QPBT.IndexedSixInputBitMachine.output",
+          "MIPStarRE.QPBT.IndexedSixInputBitMachine.steps",
+          "MIPStarRE.QPBT.IndexedSixInputBitMachine.run_in_time",
+          "MIPStarRE.QPBT.ExecutableCLSampler",
+          "MIPStarRE.QPBT.ExecutableCLSampler.associated",
+          "MIPStarRE.QPBT.ExecutableCLSampler.decomposition",
+          "MIPStarRE.QPBT.ExecutableCLSampler.machine",
+          "MIPStarRE.QPBT.ExecutableCLSampler.correct",
+          "MIPStarRE.QPBT.ExecutableCLSampler.time",
+          "MIPStarRE.QPBT.ExecutableCLSampler.time_eq_validQueryMax",
+          "MIPStarRE.QPBT.ExecutableCLSampler.sample",
+          "MIPStarRE.QPBT.ExecutableCLSampler.dimension",
+          "MIPStarRE.QPBT.ExecutableCLSampler.associatedMap",
+          "MIPStarRE.QPBT.ExecutableCLSampler.downsize",
+          "MIPStarRE.QPBT.ExecutableCLSampler.downsize_dimension",
+          "MIPStarRE.QPBT.ExecutableCLSampler.downsize_associated",
+          "MIPStarRE.QPBT.ExecutableCLSampler.sample_downsize",
+          "MIPStarRE.QPBT.ExecutableCLSampler.downsize_time"
         ]
       },
       "prerequisites": [
@@ -1945,22 +2402,184 @@
       "public": false,
       "source": {
         "generated_lines": [
-          1,
-          582
+          553,
+          615
         ],
-        "label": "sec:types",
+        "label": "def:sampler",
         "original_lines": [
-          3567,
-          4148
+          2715,
+          2777
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex"
+      },
+      "statement": "Define an admissible positive-index field family and its canonical source-coherent binary field-vector codec. Define a genuine six-input Turing sampler with distinct dimension, marginal, linear, and factor query modes, explicit ignored-tape behavior, data-valued chosen CL decompositions with dependent valid prefix and factor domains, its associated maps and exact sampler PMF, and an exact finite maximum TIME_S(n) over valid queries. Define executable downsizing and prove field size 2, dimension s(n) * log q(n), associated downsized maps, exact PMF pushforward, and the global positive-index RuntimeBigO compiler-cost bound.",
+      "status": "not-started",
+      "title": "Executable conditionally-linear samplers",
+      "transitive_definitions": [
+        "F01-FIELD",
+        "F06-CL"
+      ]
+    },
+    {
+      "boundary_hypotheses": "The type index and ordered-edge support are finite. Finiteness is asserted only for the constant FieldVector question-content carrier used by TypedSampler. TypedQuestion and TypedDecider admit arbitrary dependent question and answer fibers without pointwise finiteness assumptions. G02 alone supplies the pointwise finite question and answer families required by the mathematical game consumer. F06A-EXECUTABLE-CL is the sole generic six-input sampler/query/downsize machine base. The mathematical typed downsizing callables here do not claim the typed Turing representation or runtime equation. Typed verifier/game, executable typed interfaces, graph simulation, detyping, and typed/detyping cost clauses are owned by F07A-DETYPING and frozen by QPBT-043; F07A, K03, and K04 own none of F06A's generic clauses.",
+      "chapter": "02",
+      "consumers": [
+        "F07A-DETYPING",
+        "F08-MAGIC-GAME",
+        "F09-LDT-GAME",
+        "G02-GAME"
+      ],
+      "encoding": "TypeGraph stores a nonempty symmetric Finset of ordered endpoints: a loop occurs once and each non-loop occurs in both orientations. Its uniform PMF therefore has the paper denominator 2m-k. Typed questions use Sigma fibers, and TypedDecider is total over every type pair without erasing question or answer fibers. TypedSampler.downsize retains the graph and level, downsizes both CL families pointwise, and sample_downsize is the exact PMF pushforward.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [],
+      "id": "F07-TYPED",
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Probability.Distributions.Uniform",
+          "MIPStarRE.QPBT.Basic.Field"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Game/Types.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "PMF.uniformOfFinset",
+          "PMF.uniformOfFinset_apply",
+          "PMF.map",
+          "Sigma",
+          "MIPStarRE.QPBT.ConditionallyLinearMap.downsize",
+          "MIPStarRE.QPBT.downsizeVector"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F07-A07-SIGNATURES -->",
+          "end_marker": "<!-- END F07-A07-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "sha256": "99cfe240da252a94527d50c53d39a9673ee8d673cf6eba9730fb1a7e92df9d46"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Game/Types.lean"
+        ],
+        "writer_lane": "types"
+      },
+      "integrity": {
+        "lean_assumptions": "F06A's exact generic executable base; a nonempty symmetric finite ordered-edge support and certified maps on the constant FieldVector carrier; FieldData only for downsizing; generic sigma/dependent question, answer, and decider fibers carry no pointwise finiteness assumption.",
+        "lean_conclusion": "A uniform ordered-edge PMF preserving loop/orientation weight, its callable type marginal, a graph-preserving pointwise downsizing operation with exact PMF pushforward, and a total dependent decider over arbitrary fibers. Generic executable behavior is inherited only from F06A; typed executable representation and costs remain explicit F07A-DETYPING/QPBT-043 obligations.",
+        "paper_assumptions": "A finite type set, an undirected graph that may contain self-loops, typed CL families over the generic executable sampler, executable typed sampler/decider data, and a selected field basis for downsizing.",
+        "paper_conclusion": "Graph distribution, typed sampler distribution, typed downsizing with pointwise downsized CL functions and its field/dimension/runtime relations, and a total typed decider.",
+        "verdict": "faithful boundary"
+      },
+      "kind": "definition",
+      "lean": {
+        "module": "MIPStarRE.QPBT.Game.Types",
+        "names": [
+          "MIPStarRE.QPBT.TypeGraph",
+          "MIPStarRE.QPBT.TypeGraph.distribution",
+          "MIPStarRE.QPBT.TypeGraph.distribution_apply",
+          "MIPStarRE.QPBT.TypedQuestion",
+          "MIPStarRE.QPBT.TypedSampler",
+          "MIPStarRE.QPBT.TypedSampler.sample",
+          "MIPStarRE.QPBT.TypedSampler.sample_types",
+          "MIPStarRE.QPBT.TypedSampler.downsize",
+          "MIPStarRE.QPBT.TypedSampler.sample_downsize",
+          "MIPStarRE.QPBT.TypedDecider",
+          "MIPStarRE.QPBT.TypedDecider.accepts"
+        ]
+      },
+      "prerequisites": [
+        "F06A-EXECUTABLE-CL"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          57,
+          195
+        ],
+        "label": "def:typed-sampler",
+        "original_lines": [
+          3623,
+          3761
         ],
         "path": "references/2001.04383v3/sections/dependencies/types.tex"
       },
-      "statement": "Define type graphs, heterogeneous typed questions/answers, typed samplers and deciders, and their graph-distribution semantics.",
+      "statement": "Define finite type and edge support and its graph-distribution semantics. Define a typed sampler on the constant FieldVector question-content carrier. Define heterogeneous typed questions and answers and total dependent deciders over arbitrary fibers. Define mathematical typed-sampler downsizing and its PMF theorem. Among question/answer content fibers, only the sampler carrier is asserted finite.",
       "status": "not-started",
       "title": "Typed samplers, deciders, and graph distributions",
       "transitive_definitions": [
         "F01-FIELD",
-        "F06-CL"
+        "F06-CL",
+        "F06A-EXECUTABLE-CL"
+      ]
+    },
+    {
+      "boundary_hypotheses": "The graph is nonempty, as required by the source denominator and soundness weakening. This node depends exactly on the generic finite game/strategy/value/PCC/Schmidt-rank/entanglement semantics and F07 typed interfaces. Its executable ownership is limited to source clauses in types.tex:197-579 and transitive typed interfaces from F07: canonical binary-string pair parsing, sampler and decider step counts, typed downsizing and detyping runtime bounds, and description computability. QPBT-043 must freeze this typed/detyping machine model. F06A-EXECUTABLE-CL alone owns the generic six-input CL sampler/query/downsize layer from conditionally-linear.tex:553-712; this node, K03, and K04 own none of those generic clauses. No conclusion may be replaced by a caller-supplied obligation.",
+      "chapter": "02",
+      "consumers": [],
+      "encoding": "TypedNormalFormVerifier and its game own types.tex:197-220. The graph names separately expose neighbor/vertex encodings, the two-level CL sampler, the rejection event, its exact ordered-edge-cardinality over 16^|Type| probability, and the conditioned type PMF equality. detypeCL and the three detype methods own all four transformations. Separate theorem names retain PCC value-one completeness, the exact 16^|Type| soundness and entanglement loss, level plus two, dimension 4|Type|+s(n), both runtime bounds, and description computability.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [],
+      "id": "F07A-DETYPING",
+      "integrity": {
+        "lean_assumptions": "F07 typed interfaces with unrestricted dependent question, answer, and decider fibers; F04A generic finite quantum-game semantics; F06A only as the transitive generic sampler base; the exact graph-event layer owned here; and the types.tex:197-579 typed/detyping executable representation and cost model to be frozen by QPBT-043.",
+        "lean_conclusion": "Every mathematical and typed/detyping executable clause in this node has a distinct callable owner, exact source range, and exact dependency edge; signatures remain a faithful boundary until that machine/cost layer elaborates. The generic conditionally-linear.tex:553-712 executable layer is owned only by F06A and is outside this node.",
+        "paper_assumptions": "A finite nonempty type graph, indexed typed CL sampler and typed decider forming a typed normal-form verifier, finite-game strategies and value, PCC predicates, Schmidt rank, and a machine cost model.",
+        "paper_conclusion": "Exact graph-event probability and conditioned graph law; canonical detyped CL functions, sampler, decider, and verifier; PCC value-one completeness; value and Ent soundness with error factor 16^|Type|; level plus two; dimension 4|Type|+s(n); sampler/decider time and description bounds.",
+        "verdict": "faithful boundary"
+      },
+      "kind": "lemma",
+      "lean": {
+        "module": "MIPStarRE.QPBT.Game.Detyping",
+        "names": [
+          "MIPStarRE.QPBT.TypedNormalFormVerifier",
+          "MIPStarRE.QPBT.TypedNormalFormVerifier.game",
+          "MIPStarRE.QPBT.TypeGraph.neighborIndicator",
+          "MIPStarRE.QPBT.TypeGraph.vertexEncoding",
+          "MIPStarRE.QPBT.TypeGraph.graphSampler",
+          "MIPStarRE.QPBT.TypeGraph.graphEvent",
+          "MIPStarRE.QPBT.TypeGraph.graphEvent_probability",
+          "MIPStarRE.QPBT.TypeGraph.graphEvent_conditioned_types",
+          "MIPStarRE.QPBT.detypeCL",
+          "MIPStarRE.QPBT.TypedSampler.detype",
+          "MIPStarRE.QPBT.TypedDecider.detype",
+          "MIPStarRE.QPBT.TypedNormalFormVerifier.detype",
+          "MIPStarRE.QPBT.detyping_complete",
+          "MIPStarRE.QPBT.detyping_sound",
+          "MIPStarRE.QPBT.detyping_entanglement",
+          "MIPStarRE.QPBT.detyping_level",
+          "MIPStarRE.QPBT.detyping_dimension",
+          "MIPStarRE.QPBT.detyping_sampler_time",
+          "MIPStarRE.QPBT.detyping_decider_time",
+          "MIPStarRE.QPBT.detyping_descriptions_time"
+        ]
+      },
+      "prerequisites": [
+        "F04A-GAME-SEMANTICS",
+        "F07-TYPED"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          197,
+          579
+        ],
+        "label": "lem:detyping-verifiers",
+        "original_lines": [
+          3763,
+          4145
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/types.tex"
+      },
+      "statement": "Define typed normal-form verifiers and their indexed games, the graph CL sampler and rejection event, prove the exact event probability and conditional graph distribution, define detyped CL functions, samplers, deciders, and verifiers, then prove completeness, value and entanglement soundness, level/dimension relations, runtime bounds, and description computability.",
+      "status": "not-started",
+      "title": "Graph simulation and typed-verifier detyping",
+      "transitive_definitions": [
+        "F01-FIELD",
+        "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
+        "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
+        "F06-CL",
+        "F06A-EXECUTABLE-CL",
+        "F07-TYPED"
       ]
     },
     {
@@ -2006,6 +2625,7 @@
         "F01-FIELD",
         "F03-MEASUREMENT",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED"
       ]
     },
@@ -2056,6 +2676,7 @@
         "F02-CODE",
         "F03-MEASUREMENT",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED"
       ]
     },
@@ -2120,6 +2741,29 @@
       "fidelity": "exact",
       "gap_ids": [],
       "id": "G01-PARAMETERS",
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "MIPStarRE.QPBT.Basic.Field"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Game/Parameters.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "Odd",
+          "Dvd.dvd",
+          "Nat.pow"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN G01-SIGNATURES -->",
+          "end_marker": "<!-- END G01-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-035-q014-contract-a02.md",
+          "sha256": "587cb393eff88db0291303da834e483e13f44eda8c2c286e2ab48721120386cb"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Game/Parameters.lean"
+        ],
+        "writer_lane": "parameters"
+      },
       "integrity": {
         "lean_assumptions": "A project-owned Parameters value.",
         "lean_conclusion": "Parameters.Admissible is exactly the existential odd-exponent equality and Nat divisibility conjunction.",
@@ -2217,6 +2861,7 @@
         "F03-MEASUREMENT",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS"
@@ -2269,6 +2914,7 @@
         "F03-MEASUREMENT",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -2328,6 +2974,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -2387,6 +3034,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -2448,6 +3096,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -2609,6 +3258,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -2671,6 +3321,7 @@
         "F04-ASYMPTOTIC",
         "F04-DISTANCE",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F09-LDT-GAME"
       ]
@@ -2723,6 +3374,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -2778,6 +3430,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -2831,6 +3484,7 @@
         "F04-ASYMPTOTIC",
         "F04-DISTANCE",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F09-LDT-GAME"
       ]
@@ -2883,6 +3537,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -2940,6 +3595,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "G01-PARAMETERS",
@@ -2996,6 +3652,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -3063,6 +3720,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -3124,6 +3782,7 @@
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
+        "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
@@ -3135,7 +3794,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "686874d7f8594af2d28c1b1866e95da7d084dc3274bf2a4cdd0811ce5c3727b0",
+  "source_sha256": "e8311a149d575fdbc5f25f3eaa4b6dc326683671d8ed1938262501f2f30c66c1",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
@@ -3155,9 +3814,12 @@
     "E01-ORTHO",
     "E02-MAGIC-SQUARE",
     "F04-DISTANCE-LAWS",
+    "F04A-GAME-SEMANTICS",
     "F05-PAULI",
     "F06-CL",
+    "F06A-EXECUTABLE-CL",
     "F07-TYPED",
+    "F07A-DETYPING",
     "F08-MAGIC-GAME",
     "F09-LDT-GAME",
     "E04-TENSOR-CODE",

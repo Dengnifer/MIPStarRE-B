@@ -4,7 +4,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/appendix-apply-classical-ldt.tex:26-52 [original 14032-14058], label lem:qld-4-12}}
 \BlueprintField{Statement}{Postprocess each joint point measurement along alpha*a+beta*b to obtain projective scalar measurements with self-consistency and point consistency.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Analysis.RestrictedLines}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.combinedPointMeasurements}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
 \BlueprintField{Prerequisites}{\seqsplit{A07-JOINT}}
 \BlueprintField{Consumers}{\seqsplit{A10-COMBINED-LINE, R04-RESTRICTED-CLAIMS}}
 \BlueprintField{Encoding}{Measurement postprocessing along a finite field-linear map.}
@@ -23,7 +23,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/appendix-apply-classical-ldt.tex:53-70 [original 14059-14076], label lem:qld-4-13}}
 \BlueprintField{Statement}{For each line in the combined point space, construct a bounded-degree polynomial POVM consistent with scalar-combined point measurements.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Analysis.RestrictedLines}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.combinedLineMeasurements}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
 \BlueprintField{Prerequisites}{\seqsplit{A08-XZ-LINES, A09-COMBINED-POINT}}
 \BlueprintField{Consumers}{\seqsplit{R03-RESTRICTED}}
 \BlueprintField{Encoding}{Combined points have dimension 2*m+2; line polynomials carry the paper's degree bound.}
@@ -42,7 +42,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/appendix-apply-classical-ldt.tex:71-95 [original 14077-14101], label def:ith-restricted-line}}
 \BlueprintField{Statement}{Define each restricted axis-parallel line distribution as a normalized finite conditional distribution with explicit support and marginal formulas.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Analysis.RestrictedLines}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.restrictedAxisLineDistribution}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
 \BlueprintField{Prerequisites}{\seqsplit{A10-COMBINED-LINE}}
 \BlueprintField{Consumers}{\seqsplit{A11-SUBLINES}}
 \BlueprintField{Encoding}{Use a finite PMF conditioned on a nonempty support event, with axes indexed by Fin (2*m+2).}
@@ -56,7 +56,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/appendix-apply-classical-ldt.tex:96-172 [original 14102-14178], label lem:qld-sublines}}
 \BlueprintField{Statement}{Construct a coupling of a combined line and its X/Z projected lines with all three stated marginals, including the omitted axis-projection property.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Analysis.RestrictedLines}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.restrictedSublineCoupling}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME, R03-RESTRICTED}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME, R03-RESTRICTED}}
 \BlueprintField{Prerequisites}{\seqsplit{R03-RESTRICTED}}
 \BlueprintField{Consumers}{\seqsplit{R04-RESTRICTED-CLAIMS}}
 \BlueprintField{Encoding}{A finite joint PMF with separately proved pushforward equalities for every marginal.}
@@ -75,7 +75,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/appendix-apply-classical-ldt.tex:173-299 [original 14179-14305], label claim:17-1}}
 \BlueprintField{Statement}{Prove Claims A.18-A.20 with corrected point/basis indices, retained expectations, mixture weights, and the complement of the bad-event estimate.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Analysis.RestrictedLines}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.restrictedClaimOne},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.restrictedClaimTwo},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.restrictedClaimThree}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME, R03-RESTRICTED}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME, R03-RESTRICTED}}
 \BlueprintField{Prerequisites}{\seqsplit{A09-COMBINED-POINT, A11-SUBLINES}}
 \BlueprintField{Consumers}{\seqsplit{A12-GLOBAL}}
 \BlueprintField{Encoding}{Every expectation names its PMF and every event complement is expressed explicitly.}

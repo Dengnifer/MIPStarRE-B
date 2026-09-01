@@ -24,6 +24,13 @@
 \BlueprintField{Encoding}{Define a project-owned Parameters structure for q,m,d and Parameters.Admissible params := Exists fun k : Nat => Odd k /\textbackslash{} params.q = 2\textasciicircum{}k /\textbackslash{} Dvd.dvd params.m params.q. This is not an alias of LDT.Parameters.}
 \BlueprintField{Boundary hypotheses}{The witness k, Odd k, exact equality q=2\textasciicircum{}k, and Nat divisibility Dvd.dvd m q are explicit. Positivity and characteristic-two field data are derived rather than added as caller assumptions.}
 \BlueprintField{Status}{not-started; exact; gaps none}
+\BlueprintField{Writer lane}{parameters}
+\BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Game/Parameters.lean}}
+\BlueprintField{Exact imports}{\seqsplit{MIPStarRE.QPBT.Basic.Field}}
+\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-035-q014-contract-a02.md [587cb393eff88db0291303da834e483e13f44eda8c2c286e2ab48721120386cb]}}
+\BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Game/Parameters.lean}}
+\BlueprintField{Allowed minimal sorries}{none}
+\BlueprintField{Proof-complete sorries}{0}
 \BlueprintField{Paper assumptions}{A tuple (q,m,d).}
 \BlueprintField{Lean assumptions}{A project-owned Parameters value.}
 \BlueprintField{Paper conclusion}{Admissible means q=2\textasciicircum{}k for an odd k and m divides q.}
@@ -37,7 +44,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex:2-328 [original 5048-5374], label sec:qld-game}}
 \BlueprintField{Statement}{Define the heterogeneous question distribution, answer families, conditionally-linear sampler, gamma phase, and the seven verifier checks of the QPBT game.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Verifier}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.QuestionType},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.Question},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.Answer},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliBasisGame},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.accepts}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS}}
 \BlueprintField{Prerequisites}{\seqsplit{F02-CODE, F05-PAULI, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS}}
 \BlueprintField{Consumers}{\seqsplit{G03-COMPLETENESS, K04-GAME-COMPLEXITY, N01-NAIMARK}}
 \BlueprintField{Encoding}{Question and answer carriers are sigma types over the paper's type graph. Explicit finite codecs embed each dependent answer fiber into one uniform finite POVM alphabet and decode it back; every decider edge is a constructor, preventing omitted cases. The question distribution is a PMF, so normalization is bundled.}
@@ -56,7 +63,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex:334-526 [original 5380-5572], label lem:pauli-completeness}}
 \BlueprintField{Statement}{For every admissible parameter tuple, the QPBT game has a symmetric projective commuting/consistent strategy of value one.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Completeness}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliCompleteness}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
 \BlueprintField{Prerequisites}{\seqsplit{G02-GAME}}
 \BlueprintField{Consumers}{\seqsplit{none}}
 \BlueprintField{Encoding}{Construct the finite EPR tensor state and each typed measurement explicitly; value one is equality of acceptance probability.}
