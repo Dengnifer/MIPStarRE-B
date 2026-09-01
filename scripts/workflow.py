@@ -65,6 +65,9 @@ ACTIVE_SESSION_STATUSES = {"issued", "running"}
 # as an authority by accident.
 DISPATCHABLE_ISSUE_STATUSES = {"planned", "ready", "in_progress", "review"}
 COORDINATOR_ROLE = "coordinator"
+ACTIVE_EXTERNAL_ID_ERROR = (
+    "active sessions require a non-empty immutable external thread identity"
+)
 DISPATCH_IMMUTABLE_FIELDS = {
     "name",
     "backend",
@@ -1076,12 +1079,21 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
         if parent == session.get("id"):
             errors.append(f"{loc}.parent_session_id: session cannot parent itself")
         external_id = session.get("external_id")
-        if external_id is not None and (not isinstance(external_id, str) or not external_id):
+        if external_id is not None and (
+            not isinstance(external_id, str) or not external_id.strip()
+        ):
             errors.append(f"{loc}.external_id: expected null or a non-empty string")
         elif isinstance(external_id, str):
             if external_id in external_ids:
                 errors.append(f"sessions.json.issued: duplicate external_id {external_id!r}")
             external_ids.add(external_id)
+        if (
+            isinstance(session_status, str)
+            and session_status in ACTIVE_SESSION_STATUSES
+            and session.get("backend") == "codex-collaboration"
+            and external_id is None
+        ):
+            errors.append(f"{loc}.external_id: {ACTIVE_EXTERNAL_ID_ERROR}")
         attempt = session.get("attempt")
         if not _is_int(attempt) or attempt < 1:
             errors.append(f"{loc}.attempt: expected a positive integer")
@@ -1762,16 +1774,21 @@ class WorkflowStore:
         stage_id: str | None = None,
         session_ids: Sequence[str] | None = None,
         session_overrides: Mapping[str, Mapping[str, Any]] | None = None,
+        launch_confirmations: Mapping[str, str] | None = None,
         dry_run: bool = False,
     ) -> dict[str, Any]:
-        """Plan and atomically issue the available session prefix.
+        """Plan and atomically confirm the available launched-session prefix.
 
         The planner is evaluated while holding the same exclusive lock used by
         all other state mutations.  A batch with a blocked member is left
         untouched.  When only capacity is exhausted, the deterministic available
         prefix is issued as one atomic transaction and the remainder stays
         planned.  Callers can use ``dry_run`` to inspect the queue without a
-        write.
+        write.  A mutating collaboration call requires one backend-returned
+        external thread identity for every admitted collaboration session; the
+        CLI deliberately cannot create or verify those backend identities
+        itself.  Governed Codex CLI sessions retain their issue-first launch
+        lease and import the real external identity after the runner returns.
         """
 
         with self._lock(exclusive=True):
@@ -1781,33 +1798,71 @@ class WorkflowStore:
             # new event.  This check also makes the timestamp guard's input
             # trustworthy before any ledger replacement occurs.
             validate_event_log(self.events_path, documents)
+            confirmations = _normalize_launch_confirmations(launch_confirmations)
+            if dry_run and confirmations:
+                raise WorkflowError(
+                    "dry-run cannot confirm launched threads; preflight before backend launch"
+                )
+            effective_overrides = _merge_launch_confirmations(
+                session_overrides,
+                confirmations,
+            )
             plan = plan_dispatch(
                 documents,
                 capacity=capacity,
                 stage_id=stage_id,
                 session_ids=session_ids,
-                session_overrides=session_overrides,
+                session_overrides=effective_overrides,
             )
             # A blocked candidate invalidates the requested batch.  Capacity-only
             # queueing is different: issue the deterministic available prefix as
             # one atomic transaction and leave the remainder planned.
-            if dry_run or plan["status"] == "blocked" or not plan["dispatchable"]:
+            if dry_run or plan["status"] == "blocked":
                 plan["dry_run"] = dry_run
                 plan["issued"] = []
                 return plan
 
             selected_ids = list(plan["dispatchable"])
-            overrides = dict(session_overrides or {})
+            overrides = dict(effective_overrides)
             planned_by_id = {
                 session["id"]: session
                 for session in documents["sessions.json"]["planned"]
             }
-            issued = copy.deepcopy(documents["sessions.json"]["issued"])
-            batch_timestamp = self._batch_event_timestamp()
             materialized = [
                 _dispatch_record(planned_by_id[session_id], overrides.get(session_id))
                 for session_id in selected_ids
             ]
+            materialized_by_id = {session["id"]: session for session in materialized}
+            confirmation_required_ids = {
+                session["id"]
+                for session in materialized
+                if session.get("backend") == "codex-collaboration"
+            }
+            confirmed_ids = set(confirmations)
+            confirmation_blocks = [
+                {"id": session_id, "reason": "backend-launch-unconfirmed"}
+                for session_id in sorted(confirmation_required_ids - confirmed_ids)
+            ] + [
+                {"id": session_id, "reason": "launch-confirmation-not-admitted"}
+                for session_id in sorted(confirmed_ids - confirmation_required_ids)
+            ]
+            if confirmation_blocks:
+                plan["status"] = "blocked"
+                plan["blocked"] = sorted(
+                    [*plan["blocked"], *confirmation_blocks],
+                    key=lambda item: (str(item.get("id")), str(item.get("reason"))),
+                )
+                plan["blocked_batch_unchanged"] = True
+                plan["dry_run"] = False
+                plan["issued"] = []
+                return plan
+            if not selected_ids:
+                plan["dry_run"] = False
+                plan["issued"] = []
+                return plan
+
+            issued = copy.deepcopy(documents["sessions.json"]["issued"])
+            batch_timestamp = self._batch_event_timestamp()
             remaining_planned = [
                 session
                 for session in documents["sessions.json"]["planned"]
@@ -1838,6 +1893,7 @@ class WorkflowStore:
                             "dispatch_backend_scope": plan["backend_scope"],
                             "dispatch_stage_id": stage_id,
                             "dispatch_batch_timestamp": batch_timestamp,
+                            "external_id": materialized_by_id[session_id]["external_id"],
                         },
                         lock_held=True,
                         timestamp=batch_timestamp,
@@ -1853,6 +1909,9 @@ class WorkflowStore:
                         "stage_id": stage_id,
                         "admitted_session_ids": selected_ids,
                         "queued_session_ids": [item["id"] for item in plan["queued"]],
+                        "launch_confirmed_session_ids": sorted(
+                            confirmation_required_ids
+                        ),
                         "atomic_batch": True,
                         "request_atomic": True,
                         "blocked_batch_unchanged": False,
@@ -1864,7 +1923,7 @@ class WorkflowStore:
                 # Check the post-append lifecycle while the lock is still held;
                 # an injected or malformed writer is handled by the rollback.
                 validate_event_log(self.events_path, documents)
-            except Exception:
+            except BaseException:
                 self._restore_dispatch_transaction(
                     sessions_path=sessions_path,
                     sessions_bytes=sessions_bytes,
@@ -1918,6 +1977,48 @@ def _dispatch_capacity(capacity: int | None) -> int:
     if not _is_int(capacity) or capacity < 0:
         raise WorkflowError("dispatch capacity must be a non-negative integer")
     return capacity
+
+
+def _normalize_launch_confirmations(
+    confirmations: Mapping[str, str] | None,
+) -> dict[str, str]:
+    """Validate caller attestations of backend-returned external identities."""
+
+    if confirmations is not None and not isinstance(confirmations, Mapping):
+        raise WorkflowError("launch confirmations must map session IDs to external IDs")
+    normalized = dict(confirmations or {})
+    for session_id, external_id in normalized.items():
+        if not isinstance(session_id, str) or not session_id.strip():
+            raise WorkflowError("launch confirmation session IDs must be non-empty strings")
+        if not isinstance(external_id, str) or not external_id.strip():
+            raise WorkflowError(
+                f"launch confirmation for {session_id!r} requires a non-empty external ID"
+            )
+    return normalized
+
+
+def _merge_launch_confirmations(
+    session_overrides: Mapping[str, Mapping[str, Any]] | None,
+    confirmations: Mapping[str, str],
+) -> dict[str, dict[str, Any]]:
+    """Bind explicit launch confirmations into dispatch materialization."""
+
+    if session_overrides is not None and not isinstance(session_overrides, Mapping):
+        raise WorkflowError("dispatch overrides must map session IDs to objects")
+    merged: dict[str, dict[str, Any]] = {}
+    for session_id, override in (session_overrides or {}).items():
+        if not isinstance(override, Mapping):
+            raise WorkflowError("dispatch overrides must map session IDs to objects")
+        merged[session_id] = copy.deepcopy(dict(override))
+    for session_id, external_id in confirmations.items():
+        override = merged.setdefault(session_id, {})
+        supplied = override.get("external_id")
+        if supplied is not None and supplied != external_id:
+            raise WorkflowError(
+                f"launch confirmation for {session_id!r} conflicts with dispatch external_id"
+            )
+        override["external_id"] = external_id
+    return merged
 
 
 def _issue_stage_membership(documents: Mapping[str, Any]) -> dict[str, list[str]]:
@@ -2070,6 +2171,7 @@ def _candidate_validation_errors(
     candidate: Mapping[str, Any],
     *,
     ignore_active_ownership: bool = False,
+    allow_unconfirmed_external_id: bool = False,
 ) -> list[str]:
     """Validate one materialized candidate against an otherwise valid snapshot."""
 
@@ -2089,6 +2191,10 @@ def _candidate_validation_errors(
                 for detail in errors
                 if "active writable ownership overlap" not in detail
             ]
+        if allow_unconfirmed_external_id:
+            errors = [
+                detail for detail in errors if ACTIVE_EXTERNAL_ID_ERROR not in detail
+            ]
         return sorted(errors)
     return []
 
@@ -2096,6 +2202,8 @@ def _candidate_validation_errors(
 def _batch_validation_errors(
     documents: Mapping[str, Any],
     candidates: Sequence[Mapping[str, Any]],
+    *,
+    allow_unconfirmed_external_id: bool = False,
 ) -> list[str]:
     """Validate all candidates together before an atomic batch replacement."""
 
@@ -2114,7 +2222,12 @@ def _batch_validation_errors(
     try:
         validate_documents(candidate_documents)
     except ValidationError as error:
-        return sorted(error.errors)
+        errors = list(error.errors)
+        if allow_unconfirmed_external_id:
+            errors = [
+                detail for detail in errors if ACTIVE_EXTERNAL_ID_ERROR not in detail
+            ]
+        return sorted(errors)
     return []
 
 
@@ -2264,6 +2377,7 @@ def plan_dispatch(
             documents,
             candidate,
             ignore_active_ownership=True,
+            allow_unconfirmed_external_id=True,
         )
         if errors:
             blocked.append(
@@ -2360,7 +2474,11 @@ def plan_dispatch(
     # dispatch attempt, so its materialization override cannot poison an
     # otherwise admissible capacity-one prefix.
     hypothetical = eligible[:available]
-    batch_errors = _batch_validation_errors(documents, hypothetical)
+    batch_errors = _batch_validation_errors(
+        documents,
+        hypothetical,
+        allow_unconfirmed_external_id=True,
+    )
     if batch_errors:
         blocked.extend(
             {
@@ -2417,6 +2535,10 @@ def plan_dispatch(
         "request_atomic": True,
         "blocked_batch_unchanged": bool(blocked),
         "all_or_nothing": not bool(queued) and not bool(blocked),
+        "launch_confirmation_required": any(
+            candidate.get("backend") == "codex-collaboration"
+            for candidate in hypothetical
+        ),
     }
 
 
@@ -2726,6 +2848,24 @@ def _load_dispatch_overrides(
     raise WorkflowError("dispatch overrides must be an object or list")
 
 
+def _parse_launch_confirmation_assignments(
+    assignments: Sequence[str] | None,
+) -> dict[str, str]:
+    """Parse repeated ``SESSION_ID=EXTERNAL_ID`` launch confirmations."""
+
+    confirmations: dict[str, str] = {}
+    for assignment in assignments or []:
+        session_id, separator, external_id = assignment.partition("=")
+        if not separator or not session_id.strip() or not external_id.strip():
+            raise WorkflowError(
+                "launch confirmations must use SESSION_ID=EXTERNAL_ID with non-empty values"
+            )
+        if session_id in confirmations:
+            raise WorkflowError(f"duplicate launch confirmation for {session_id!r}")
+        confirmations[session_id] = external_id
+    return confirmations
+
+
 def _elapsed_seconds(started_at: Any, ended_at: str) -> float | None:
     if not isinstance(started_at, str):
         return None
@@ -2830,6 +2970,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="explicit active non-coordinator session capacity (required)",
     )
     issue_session.add_argument("--stage", help="optional stage scope for the dispatch")
+    issue_session.add_argument(
+        "--launched-external-id",
+        help="immutable external thread ID returned by the already-successful backend launch",
+    )
     issue_session.add_argument("--json")
     issue_session.add_argument("--file")
 
@@ -2866,6 +3010,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="return the deterministic plan without issuing sessions",
+    )
+    dispatch.add_argument(
+        "--confirm-launched",
+        action="append",
+        default=[],
+        metavar="SESSION_ID=EXTERNAL_ID",
+        help="confirm one already-launched backend thread (repeatable)",
     )
     return parser
 
@@ -2994,6 +3145,11 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             stage_id=arguments.stage,
             session_ids=[arguments.id],
             session_overrides={arguments.id: additions},
+            launch_confirmations=(
+                {arguments.id: arguments.launched_external_id}
+                if arguments.launched_external_id is not None
+                else None
+            ),
         )
         if result.get("status") != "issued":
             # Queue/block responses retain the planner envelope so callers can
@@ -3025,6 +3181,9 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             stage_id=arguments.stage,
             session_ids=arguments.session_ids,
             session_overrides=overrides,
+            launch_confirmations=_parse_launch_confirmation_assignments(
+                arguments.confirm_launched
+            ),
             dry_run=arguments.dry_run,
         )
     raise WorkflowError(f"unsupported command {arguments.command!r}")

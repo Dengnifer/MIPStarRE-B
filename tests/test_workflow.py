@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -130,6 +131,22 @@ def planned_session(
     record["external_id"] = None
     record["archive_status"] = "not_requested"
     record["outcome_path"] = None
+    return record
+
+
+def launch_confirmations(*sessions: dict[str, object]) -> dict[str, str]:
+    return {
+        str(session["id"]): f"launched-{session['id']}"
+        for session in sessions
+    }
+
+
+def collaboration_planned_session(
+    session_id: str,
+    **arguments: object,
+) -> dict[str, object]:
+    record = planned_session(session_id, **arguments)  # type: ignore[arg-type]
+    record["backend"] = "codex-collaboration"
     return record
 
 
@@ -413,6 +430,87 @@ class WorkflowValidationTests(unittest.TestCase):
         result = workflow.plan_dispatch(state, capacity=2, stage_id="STAGE-01")
         self.assertEqual("stage", result["capacity_scope"])
         self.assertEqual("all", result["backend_scope"])
+
+    def test_active_count_includes_each_nested_non_coordinator_session(self) -> None:
+        state = documents()
+        coordinator = issued_session(
+            "i001-coordinator-a01-nested-root",
+            issue_id="QPBT-001",
+            role="coordinator",
+            status="running",
+            read_only=False,
+            owned_paths=["workflow/"],
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        parent = issued_session(
+            "i002-reviewer-a01-nested-parent",
+            role="reviewer",
+            status="running",
+            read_only=True,
+            started_at=REVIEW_STARTED,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        child = issued_session(
+            "i002-reviewer-a02-nested-child",
+            role="reviewer",
+            status="issued",
+            read_only=True,
+            started_at=None,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        parent["parent_session_id"] = coordinator["id"]
+        child["parent_session_id"] = parent["id"]
+        candidate = planned_session("i002-reviewer-a03-nested-queued")
+        state["sessions.json"]["issued"] = [coordinator, parent, child]
+        state["sessions.json"]["planned"] = [candidate]
+
+        self.assertEqual(
+            2,
+            workflow.active_non_coordinator_count(state, stage_id="STAGE-01"),
+        )
+        result = workflow.plan_dispatch(
+            state,
+            capacity=2,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+        )
+        self.assertEqual([], result["dispatchable"])
+        self.assertEqual(
+            [{"id": candidate["id"], "reason": "capacity-exhausted"}],
+            result["queued"],
+        )
+
+    def test_active_issued_session_requires_external_thread_identity(self) -> None:
+        state = documents()
+        active = issued_session(
+            "i002-reviewer-a01-unconfirmed-active",
+            role="reviewer",
+            status="issued",
+            read_only=True,
+            started_at=None,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        active["backend"] = "codex-collaboration"
+        active["external_id"] = None
+        state["sessions.json"]["issued"] = [active]
+        with self.assertRaisesRegex(
+            workflow.ValidationError,
+            "active sessions require a non-empty immutable external thread identity",
+        ):
+            workflow.validate_documents(state)
+
+        active["status"] = "archived"
+        active["started_at"] = REVIEW_STARTED
+        active["ended_at"] = REVIEW_ENDED
+        active["elapsed_seconds"] = 60.0
+        active["archive_status"] = "archived"
+        active["outcome_path"] = ".workflow-runtime/runs/legacy/result.json"
+        workflow.validate_documents(state)
 
     def test_stage_count_ignores_active_issue_without_stage_mapping(self) -> None:
         state = documents()
@@ -1304,8 +1402,8 @@ class WorkflowStoreTests(unittest.TestCase):
         self.assertFalse(self.runtime.exists())
 
     def test_dispatch_batch_issues_available_prefix_when_capacity_is_exhausted(self) -> None:
-        first = planned_session("i002-reviewer-a01-batch")
-        second = planned_session("i002-reviewer-a02-batch")
+        first = collaboration_planned_session("i002-reviewer-a01-batch")
+        second = collaboration_planned_session("i002-reviewer-a02-batch")
         state = documents()
         state["sessions.json"]["planned"] = [second, first]
         (self.state_dir / "sessions.json").write_text(
@@ -1316,6 +1414,7 @@ class WorkflowStoreTests(unittest.TestCase):
             capacity=1,
             stage_id="STAGE-01",
             session_ids=[second["id"], first["id"]],
+            launch_confirmations=launch_confirmations(first),
         )
         self.assertEqual("issued", queued["status"])
         self.assertEqual([first["id"]], queued["issued"])
@@ -1336,8 +1435,8 @@ class WorkflowStoreTests(unittest.TestCase):
         self.assertTrue(events[-1]["payload"]["atomic_batch"])
 
     def test_dispatch_batch_issues_sorted_candidates_atomically_and_records_events(self) -> None:
-        first = planned_session("i002-reviewer-a01-batch")
-        second = planned_session("i002-reviewer-a02-batch")
+        first = collaboration_planned_session("i002-reviewer-a01-batch")
+        second = collaboration_planned_session("i002-reviewer-a02-batch")
         state = documents()
         state["sessions.json"]["planned"] = [second, first]
         (self.state_dir / "sessions.json").write_text(
@@ -1348,6 +1447,7 @@ class WorkflowStoreTests(unittest.TestCase):
             capacity=2,
             stage_id="STAGE-01",
             session_ids=[second["id"], first["id"]],
+            launch_confirmations=launch_confirmations(first, second),
         )
         self.assertEqual("issued", issued["status"])
         self.assertEqual([first["id"], second["id"]], issued["issued"])
@@ -1439,6 +1539,150 @@ class WorkflowStoreTests(unittest.TestCase):
         self.assertTrue(result["dry_run"])
         self.assertEqual([], self.store.validate()["sessions.json"]["issued"])
 
+    def test_backend_launch_rejection_leaves_exact_bytes_and_retry_deterministic(self) -> None:
+        candidate = collaboration_planned_session("i002-reviewer-a01-launch-rejected")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+
+        first = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+            dry_run=True,
+        )
+        # A backend rejection means no confirmation call exists. Repeating the
+        # preflight must select the same planned work without durable effects.
+        second = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+            dry_run=True,
+        )
+        self.assertEqual(first, second)
+        self.assertEqual([candidate["id"]], first["dispatchable"])
+        self.assertTrue(first["launch_confirmation_required"])
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+        unconfirmed = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+        )
+        self.assertEqual("blocked", unconfirmed["status"])
+        self.assertEqual("backend-launch-unconfirmed", unconfirmed["blocked"][0]["reason"])
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+        external_id = "collaboration-thread-returned-by-backend"
+        issued = workflow.run_cli(
+            workflow.build_parser().parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "dispatch",
+                    "--capacity",
+                    "1",
+                    "--stage",
+                    "STAGE-01",
+                    "--session-id",
+                    str(candidate["id"]),
+                    "--confirm-launched",
+                    f"{candidate['id']}={external_id}",
+                ]
+            )
+        )
+        self.assertEqual("issued", issued["status"])
+        loaded = self.store.validate()["sessions.json"]["issued"]
+        self.assertEqual(external_id, loaded[0]["external_id"])
+        issuance = [
+            json.loads(line)
+            for line in self.events.read_text(encoding="utf-8").splitlines()
+            if line and json.loads(line)["event"] == "session.issued"
+        ]
+        self.assertEqual(external_id, issuance[-1]["payload"]["external_id"])
+
+    def test_generic_external_id_cannot_bypass_launch_confirmation(self) -> None:
+        candidate = collaboration_planned_session("i002-reviewer-a01-fabricated-override")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+
+        result = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[candidate["id"]],
+            session_overrides={
+                str(candidate["id"]): {"external_id": "unconfirmed-generic-value"}
+            },
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual("backend-launch-unconfirmed", result["blocked"][0]["reason"])
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_confirmation_for_queued_session_fails_closed_then_admitted_prefix_issues(self) -> None:
+        first = collaboration_planned_session("i002-reviewer-a01-confirmed-prefix")
+        second = collaboration_planned_session("i002-reviewer-a02-confirmed-queued")
+        state = documents()
+        state["sessions.json"]["planned"] = [second, first]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+
+        preflight = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[second["id"], first["id"]],
+            dry_run=True,
+        )
+        self.assertEqual([first["id"]], preflight["dispatchable"])
+        self.assertEqual(
+            [{"id": second["id"], "reason": "capacity-exhausted"}],
+            preflight["queued"],
+        )
+
+        stale = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[second["id"], first["id"]],
+            launch_confirmations=launch_confirmations(second),
+        )
+        self.assertEqual("blocked", stale["status"])
+        self.assertEqual(
+            ["backend-launch-unconfirmed", "launch-confirmation-not-admitted"],
+            [entry["reason"] for entry in stale["blocked"]],
+        )
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+        admitted = self.store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[second["id"], first["id"]],
+            launch_confirmations=launch_confirmations(first),
+        )
+        self.assertEqual([first["id"]], admitted["issued"])
+        loaded = self.store.validate()["sessions.json"]
+        self.assertEqual([second["id"]], [row["id"] for row in loaded["planned"]])
+        self.assertIsNone(loaded["planned"][0]["external_id"])
+
+    def test_launch_confirmation_parser_rejects_duplicates_and_malformed_values(self) -> None:
+        with self.assertRaisesRegex(workflow.WorkflowError, "duplicate launch confirmation"):
+            workflow._parse_launch_confirmation_assignments(["session=one", "session=two"])
+        for malformed in ("session", "=external", "session="):
+            with self.subTest(malformed=malformed):
+                with self.assertRaisesRegex(workflow.WorkflowError, "SESSION_ID=EXTERNAL_ID"):
+                    workflow._parse_launch_confirmation_assignments([malformed])
+
     def test_dispatch_store_rejects_unknown_capacity_without_mutation(self) -> None:
         candidate = planned_session("i002-reviewer-a01-unknown-capacity")
         state = documents()
@@ -1504,7 +1748,7 @@ class WorkflowStoreTests(unittest.TestCase):
         self.assertEqual(before_events, self.events.read_bytes())
 
     def test_dispatch_rolls_back_state_and_events_when_event_append_fails(self) -> None:
-        candidate = planned_session("i002-reviewer-a01-event-rollback")
+        candidate = collaboration_planned_session("i002-reviewer-a01-event-rollback")
         state = documents()
         state["sessions.json"]["planned"] = [candidate]
         sessions_path = self.state_dir / "sessions.json"
@@ -1528,6 +1772,7 @@ class WorkflowStoreTests(unittest.TestCase):
                     capacity=1,
                     stage_id="STAGE-01",
                     session_ids=[candidate["id"]],
+                    launch_confirmations=launch_confirmations(candidate),
                 )
         finally:
             self.store.append_event = original_append_event  # type: ignore[method-assign]
@@ -1537,6 +1782,118 @@ class WorkflowStoreTests(unittest.TestCase):
         loaded = self.store.validate()
         self.assertEqual([candidate["id"]], [row["id"] for row in loaded["sessions.json"]["planned"]])
         self.assertEqual([], loaded["sessions.json"]["issued"])
+
+    def test_dispatch_rolls_back_keyboard_interrupt_at_every_publication_boundary(self) -> None:
+        baseline_events = self.events.read_bytes()
+        boundaries = (
+            "sessions-json",
+            "session-issued-1",
+            "session-issued-2",
+            "sessions-dispatched",
+            "post-publication-audit",
+        )
+        for boundary in boundaries:
+            with self.subTest(boundary=boundary):
+                first = collaboration_planned_session(
+                    "i002-reviewer-a01-interrupt-first"
+                )
+                second = collaboration_planned_session(
+                    "i002-reviewer-a02-interrupt-second"
+                )
+                state = documents()
+                state["sessions.json"]["planned"] = [second, first]
+                sessions_path = self.state_dir / "sessions.json"
+                sessions_path.write_text(
+                    json.dumps(state["sessions.json"]), encoding="utf-8"
+                )
+                self.events.write_bytes(baseline_events)
+                before_sessions = sessions_path.read_bytes()
+                before_events = self.events.read_bytes()
+                preflight = self.store.dispatch_sessions(
+                    capacity=2,
+                    stage_id="STAGE-01",
+                    session_ids=[second["id"], first["id"]],
+                    dry_run=True,
+                )
+
+                original_atomic_write = workflow.atomic_write_json
+                original_append_event = self.store.append_event
+                original_validate_event_log = workflow.validate_event_log
+                append_calls = 0
+
+                def interrupt_after_sessions_write(path: Path, value: object) -> None:
+                    original_atomic_write(path, value)
+                    if path == sessions_path:
+                        raise KeyboardInterrupt
+
+                def interrupt_after_event(
+                    event: str, payload: object, **kwargs: object
+                ) -> None:
+                    nonlocal append_calls
+                    original_append_event(event, payload, **kwargs)  # type: ignore[arg-type]
+                    append_calls += 1
+                    expected_call = {
+                        "session-issued-1": 1,
+                        "session-issued-2": 2,
+                        "sessions-dispatched": 3,
+                    }.get(boundary)
+                    if append_calls == expected_call:
+                        raise KeyboardInterrupt
+
+                def interrupt_after_audit(*args: object, **kwargs: object) -> None:
+                    original_validate_event_log(*args, **kwargs)  # type: ignore[arg-type]
+                    published_events = [
+                        json.loads(line)
+                        for line in self.events.read_text(encoding="utf-8").splitlines()
+                        if line
+                    ]
+                    if published_events[-1]["event"] == "sessions.dispatched":
+                        raise KeyboardInterrupt
+
+                if boundary == "sessions-json":
+                    patcher = mock.patch.object(
+                        workflow,
+                        "atomic_write_json",
+                        side_effect=interrupt_after_sessions_write,
+                    )
+                elif boundary == "post-publication-audit":
+                    patcher = mock.patch.object(
+                        workflow,
+                        "validate_event_log",
+                        side_effect=interrupt_after_audit,
+                    )
+                else:
+                    patcher = mock.patch.object(
+                        self.store,
+                        "append_event",
+                        side_effect=interrupt_after_event,
+                    )
+
+                with patcher, self.assertRaises(KeyboardInterrupt):
+                    self.store.dispatch_sessions(
+                        capacity=2,
+                        stage_id="STAGE-01",
+                        session_ids=[second["id"], first["id"]],
+                        launch_confirmations=launch_confirmations(first, second),
+                    )
+
+                self.assertEqual(before_sessions, sessions_path.read_bytes())
+                self.assertEqual(before_events, self.events.read_bytes())
+                self.store.validate()
+                retry_preflight = self.store.dispatch_sessions(
+                    capacity=2,
+                    stage_id="STAGE-01",
+                    session_ids=[second["id"], first["id"]],
+                    dry_run=True,
+                )
+                self.assertEqual(preflight, retry_preflight)
+                retried = self.store.dispatch_sessions(
+                    capacity=2,
+                    stage_id="STAGE-01",
+                    session_ids=[second["id"], first["id"]],
+                    launch_confirmations=launch_confirmations(first, second),
+                )
+                self.assertEqual([first["id"], second["id"]], retried["issued"])
 
     def test_issue_session_wrapper_honors_capacity_and_authority_checks(self) -> None:
         candidate = planned_session("i002-reviewer-a01-legacy-wrapper")
@@ -1598,6 +1955,7 @@ class WorkflowStoreTests(unittest.TestCase):
         # admission metadata remains available on the dispatch command.
         self.assertEqual(candidate["id"], issued["id"])
         self.assertEqual("issued", issued["status"])
+        self.assertIsNone(issued["external_id"])
         self.assertNotIn("dispatchable", issued)
         self.assertNotIn("queued", issued)
         self.assertEqual(
