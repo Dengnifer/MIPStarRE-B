@@ -32,6 +32,40 @@
       },
       "archive_status": "not_requested",
       "outcome_path": null
+    },
+    {
+      "id": "i039-orchestrator-a01-parameters",
+      "name": "i039-orchestrator-a01-parameters",
+      "role": "orchestrator",
+      "issue_id": "QPBT-039",
+      "attempt": 1,
+      "priority": 2,
+      "backend": "codex-collaboration",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "read_only": false,
+      "base_revision": "70c636007f2e724d4c7a890f7520a51335ba73e4",
+      "base_revision_reason": "Current pushed main checkpoint with QPBT-035 integration and QPBT-052 review handoff.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-039-parameters-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Parameters.lean",
+        "workflow/reviews/qpbt-039-parameters-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-039, G01 metadata and exact signature marker, pinned qpbt-game-and-soundness source, Field.lean, and existing project APIs. Implement the exact Parameters contract with no sorry/axiom/constant/public obligation, run scoped Lean and required cache/build/debt/sync gates, and write an immutable findings-first report.",
+      "result_envelope_path": "workflow/reviews/qpbt-039-parameters-a01.md",
+      "dispatch_condition": "QPBT-035 is done; begin when a writer slot is free after the queued QPBT-052 reviewer.",
+      "status": "planned",
+      "external_id": null,
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "pr_id": null
     }
   ],
   "issued": [

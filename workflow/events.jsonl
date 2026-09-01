@@ -3313,3 +3313,5 @@
 {"schema_version":1,"timestamp":"2026-09-01T22:17:26.199991Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"archived","session_id":"i052-orchestrator-a03-release-contract-repair"}}
 {"schema_version":1,"timestamp":"2026-09-01T22:17:55.872821Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-025","fields":["head_sha","checks","changed_paths","provenance_session_ids","testing","unexecuted_gate"]}}
 {"schema_version":1,"timestamp":"2026-09-01T22:18:46.601722Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i052-reviewer-a04-release-contract"}}
+{"schema_version":1,"timestamp":"2026-09-01T22:20:42.829610Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i039-orchestrator-a01-parameters"}}
+{"schema_version":1,"timestamp":"2026-09-01T22:21:30.008622Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i039-orchestrator-a01-parameters","fields":["base_revision"]}}
