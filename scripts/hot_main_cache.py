@@ -1044,7 +1044,14 @@ def default_runtime_dir(repo_root: Path) -> Path:
 def git_resolved_path(repo_root: Path, argument: str) -> Path:
     command = ["git", "-C", str(repo_root), "rev-parse", argument]
     try:
-        result = subprocess.run(command, text=True, capture_output=True, check=False, shell=False)
+        result = subprocess.run(
+            command,
+            text=True,
+            capture_output=True,
+            check=False,
+            shell=False,
+            env=_trusted_git_environment(),
+        )
     except OSError as error:
         raise CacheError(f"could not run git: {error}") from error
     if result.returncode != 0:
