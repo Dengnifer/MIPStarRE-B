@@ -1784,9 +1784,11 @@ class WorkflowStore:
         untouched.  When only capacity is exhausted, the deterministic available
         prefix is issued as one atomic transaction and the remainder stays
         planned.  Callers can use ``dry_run`` to inspect the queue without a
-        write.  A mutating call requires one backend-returned external thread
-        identity for every admitted session; the CLI deliberately cannot create
-        or verify those backend identities itself.
+        write.  A mutating collaboration call requires one backend-returned
+        external thread identity for every admitted collaboration session; the
+        CLI deliberately cannot create or verify those backend identities
+        itself.  Governed Codex CLI sessions retain their issue-first launch
+        lease and import the real external identity after the runner returns.
         """
 
         with self._lock(exclusive=True):
@@ -1821,14 +1823,28 @@ class WorkflowStore:
                 return plan
 
             selected_ids = list(plan["dispatchable"])
+            overrides = dict(effective_overrides)
+            planned_by_id = {
+                session["id"]: session
+                for session in documents["sessions.json"]["planned"]
+            }
+            materialized = [
+                _dispatch_record(planned_by_id[session_id], overrides.get(session_id))
+                for session_id in selected_ids
+            ]
+            materialized_by_id = {session["id"]: session for session in materialized}
+            confirmation_required_ids = {
+                session["id"]
+                for session in materialized
+                if session.get("backend") == "codex-collaboration"
+            }
             confirmed_ids = set(confirmations)
-            selected_id_set = set(selected_ids)
             confirmation_blocks = [
                 {"id": session_id, "reason": "backend-launch-unconfirmed"}
-                for session_id in sorted(selected_id_set - confirmed_ids)
+                for session_id in sorted(confirmation_required_ids - confirmed_ids)
             ] + [
                 {"id": session_id, "reason": "launch-confirmation-not-admitted"}
-                for session_id in sorted(confirmed_ids - selected_id_set)
+                for session_id in sorted(confirmed_ids - confirmation_required_ids)
             ]
             if confirmation_blocks:
                 plan["status"] = "blocked"
@@ -1845,18 +1861,8 @@ class WorkflowStore:
                 plan["issued"] = []
                 return plan
 
-            overrides = dict(effective_overrides)
-            planned_by_id = {
-                session["id"]: session
-                for session in documents["sessions.json"]["planned"]
-            }
             issued = copy.deepcopy(documents["sessions.json"]["issued"])
             batch_timestamp = self._batch_event_timestamp()
-            materialized = [
-                _dispatch_record(planned_by_id[session_id], overrides.get(session_id))
-                for session_id in selected_ids
-            ]
-            materialized_by_id = {session["id"]: session for session in materialized}
             remaining_planned = [
                 session
                 for session in documents["sessions.json"]["planned"]
@@ -1903,7 +1909,9 @@ class WorkflowStore:
                         "stage_id": stage_id,
                         "admitted_session_ids": selected_ids,
                         "queued_session_ids": [item["id"] for item in plan["queued"]],
-                        "launch_confirmed_session_ids": selected_ids,
+                        "launch_confirmed_session_ids": sorted(
+                            confirmation_required_ids
+                        ),
                         "atomic_batch": True,
                         "request_atomic": True,
                         "blocked_batch_unchanged": False,
@@ -1915,7 +1923,7 @@ class WorkflowStore:
                 # Check the post-append lifecycle while the lock is still held;
                 # an injected or malformed writer is handled by the rollback.
                 validate_event_log(self.events_path, documents)
-            except Exception:
+            except BaseException:
                 self._restore_dispatch_transaction(
                     sessions_path=sessions_path,
                     sessions_bytes=sessions_bytes,
@@ -2527,7 +2535,10 @@ def plan_dispatch(
         "request_atomic": True,
         "blocked_batch_unchanged": bool(blocked),
         "all_or_nothing": not bool(queued) and not bool(blocked),
-        "launch_confirmation_required": bool(hypothetical),
+        "launch_confirmation_required": any(
+            candidate.get("backend") == "codex-collaboration"
+            for candidate in hypothetical
+        ),
     }
 
 

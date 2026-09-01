@@ -8,7 +8,7 @@ collaboration workers were visible. The caller-supplied aggregate capacity and
 the backend's effective live admission limit had drifted, and the old ordering
 durably issued a session before it knew whether an external thread existed.
 
-QPBT-034 changes collaboration admission to a spawn-first,
+QPBT-034 changes `codex-collaboration` admission to a spawn-first,
 confirm-at-dispatch boundary. A deterministic `dispatch --dry-run` preflights
 one exact candidate without changing canonical bytes. The backend then receives
 only a bootstrap prompt. Rejection produces no confirmation call and therefore
@@ -17,14 +17,16 @@ which the root coordinator must pass explicitly through `--confirm-launched`;
 the legacy wrapper uses `--launched-external-id`. Generic dispatch JSON cannot
 serve as confirmation. The locked confirmation transaction reruns every local
 admission check, binds the ID into the active record and issuance event, and
-retains the existing state/event rollback on any append or audit failure. A
+retains the state/event transaction across any append or audit failure. A
 post-spawn confirmation failure requires immediate interruption of the inert
 bootstrap thread before deterministic retry.
 
-Every dispatcher issuance now requires a confirmed non-empty immutable external
-identity, and active collaboration rows enforce the invariant during schema
-validation. Terminal legacy rows and the separate Codex CLI launch-lease
-transport remain compatible. Nested parents and children each consume one
+Only collaboration issuance requires the prelaunch confirmation, and active
+collaboration rows enforce the invariant during schema validation. Governed
+`codex-cli` rows remain capacity-gated but are issued with a null ID; their
+launch lease claims authority before running and imports the actual runner-returned
+ID without invention. Terminal legacy rows remain compatible. Nested parents
+and children each consume one
 non-coordinator slot, and nested launch uses the same root-confirmed bootstrap
 sequence. Focused regressions cover the
 three-rejection ordering class through a no-confirmation backend rejection,
@@ -33,6 +35,14 @@ bypass rejection, queued confirmation drift, identity-bound issuance, nested
 slot accounting, parser failures, and preservation of the prior transaction
 rollback test. Aggregate evidence and independent immutable review remain
 required before activation.
+
+The A03 repair resolves the first immutable review's two findings. A governed
+fake-runner integration covers null-ID CLI dispatch, claim, execution, and
+terminal ID import. Dispatch rollback now catches `BaseException`, restores the
+exact sessions/event snapshots, and re-raises. `KeyboardInterrupt` regressions
+exercise publication of `sessions.json`, each of two `session.issued` events,
+the `sessions.dispatched` summary, and the post-publication audit; every case
+validates exact bytes and the same deterministic retry plan.
 
 ## 0.1.8 candidate (QPBT-027) - 2026-09-01
 

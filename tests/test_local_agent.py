@@ -548,6 +548,86 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(terminal_bytes, (sessions.read_bytes(), events.read_bytes()))
         local_agent._session_store(self.root).validate()
 
+    def test_dispatch_then_governed_exec_imports_real_codex_cli_thread_id(self) -> None:
+        session_id = "i002-prover-a01-dispatch-governed-cli"
+        worktree = self.root / f"worktree-{session_id}"
+        worktree.mkdir()
+        git(worktree, "init", "-b", "main", ".")
+        write(worktree / "tracked.txt", "base\n")
+        git(worktree, "add", ".")
+        git(worktree, "commit", "-m", "base")
+        base_revision = git(worktree, "rev-parse", "HEAD")
+
+        state = test_workflow.documents()
+        planned = test_workflow.planned_session(
+            session_id,
+            role="prover",
+            read_only=False,
+            worktree=str(worktree),
+            owned_paths=["tracked.txt"],
+        )
+        planned["base_revision"] = base_revision
+        self.assertEqual("codex-cli", planned["backend"])
+        self.assertIsNone(planned["external_id"])
+        state["sessions.json"]["planned"] = [planned]
+        state_dir = self.root / "workflow" / "state"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        for filename, document in state.items():
+            write(state_dir / filename, json.dumps(document) + "\n")
+        bootstrap_event = {
+            "schema_version": 1,
+            "timestamp": test_workflow.NOW,
+            "event": "bootstrap",
+            "actor": "test",
+            "pid": 1,
+            "payload": {},
+        }
+        write(
+            self.root / "workflow" / "events.jsonl",
+            json.dumps(bootstrap_event) + "\n",
+        )
+
+        store = local_agent.workflow_state.WorkflowStore(
+            state_dir,
+            self.runtime,
+            self.root / "workflow" / "events.jsonl",
+        )
+        dispatched = store.dispatch_sessions(
+            capacity=1,
+            stage_id="STAGE-01",
+            session_ids=[session_id],
+        )
+        self.assertEqual("issued", dispatched["status"])
+        self.assertFalse(dispatched["launch_confirmation_required"])
+        issued = store.validate()["sessions.json"]["issued"][0]
+        self.assertEqual("issued", issued["status"])
+        self.assertIsNone(issued["external_id"])
+
+        runner = FakeRunner(codex_events("governed proof complete"))
+        envelope = local_agent.run_exec(
+            alias=session_id,
+            prompt="prove the governed test obligation",
+            cwd=worktree,
+            runtime_dir=self.runtime,
+            runner=runner,
+            session_id=session_id,
+            workflow_root=self.root,
+            base_revision=base_revision,
+            owned_paths=planned["owned_paths"],
+            role="prover",
+            issue_id="QPBT-002",
+            parent_session_id=None,
+        )
+
+        self.assertEqual(THREAD_ID, envelope["external_id"])
+        self.assertEqual(1, len(runner.calls))
+        terminal = store.validate()["sessions.json"]["issued"][0]
+        self.assertEqual("finished", terminal["status"])
+        self.assertEqual(THREAD_ID, terminal["external_id"])
+        self.assertEqual(planned["result_envelope_path"], terminal["outcome_path"])
+        result_path = self.root / str(planned["result_envelope_path"])
+        self.assertEqual(THREAD_ID, json.loads(result_path.read_text())["external_id"])
+
     def test_real_store_recovery_is_idempotent_and_rejects_conflict(self) -> None:
         session_id = "i002-prover-a01-recovery"
         record = self.real_issued_ledger(session_id)

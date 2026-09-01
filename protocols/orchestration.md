@@ -27,15 +27,16 @@ mathematical or operational result, not merely "cleanup", "phase", or
 Run `python3 scripts/workflow.py ready` to compute dispatchable work rather than
 inferring readiness from list order.
 
-For session admission, use the following spawn-first, confirm-at-dispatch
-sequence. The workflow CLI has no collaboration-tool access and must never
-pretend that it launched or independently verified an external thread.
+For `codex-collaboration` session admission, use the following spawn-first,
+confirm-at-dispatch sequence. The workflow CLI has no collaboration-tool access
+and must never pretend that it launched or independently verified an external
+thread.
 
 1. Run `python3 scripts/workflow.py dispatch --dry-run --capacity N` with an
    exact stage and `--session-id`. For collaboration work, preflight exactly one
    session at a time. The result is a deterministic eligibility and local-slot
    check; it writes neither session state nor events.
-2. Ask the actual backend to create that one thread with a bootstrap-only
+2. Ask the collaboration backend to create that one thread with a bootstrap-only
    prompt. The bootstrap may acknowledge and become idle, but it must not read
    project files, run tools, or receive the task packet yet. If backend creation
    is rejected, do not run the confirmation command. The planned row and exact
@@ -43,9 +44,10 @@ pretend that it launched or independently verified an external thread.
    preflight after a live slot is released.
 3. Copy the immutable thread identity returned by that successful backend call
    exactly into `dispatch --confirm-launched SESSION_ID=EXTERNAL_ID`, repeating
-   the same capacity, stage, ID, and materialization authority. The legacy
-   single-session wrapper uses `--launched-external-id EXTERNAL_ID`. A generic
-   `external_id` override is not launch confirmation. The coordinator attests
+   the same capacity, stage, ID, and materialization authority. Collaboration
+   callers of the legacy single-session wrapper use
+   `--launched-external-id EXTERNAL_ID`. A generic `external_id` override is not
+   launch confirmation. The coordinator attests
    that the value came from the just-completed backend call; the CLI validates
    shape, uniqueness, admission, and immutability but cannot prove backend
    existence. Never invent an ID.
@@ -58,17 +60,24 @@ pretend that it launched or independently verified an external thread.
 5. Only after canonical confirmation may the coordinator deliver the full task
    packet and move the session through the launch lease to `running`.
 
-Every session newly issued through the dispatcher requires a confirmed,
-non-empty immutable external thread identity. Active collaboration rows enforce
-that invariant at schema validation too; terminal legacy rows and the separate
-Codex CLI launch-lease transport retain their existing compatibility. Confirm
-one collaboration launch before attempting the next, so the ledger catches up
-with live occupancy between backend calls.
+Every collaboration session newly issued through the dispatcher requires a
+confirmed, non-empty immutable external thread identity. Active collaboration
+rows enforce that invariant at schema validation too. Confirm one collaboration
+launch before attempting the next, so the ledger catches up with live occupancy
+between backend calls.
 Nested launches follow the same boundary: the root coordinator preflights the
 planned child, the parent creates only its bootstrap thread and returns the
 external ID, the root confirms it, and only then does the parent send the child
 task. Every active parent and child other than the root coordinator consumes
 one aggregate slot; nesting does not create free capacity.
+
+Governed `codex-cli` launch retains its distinct issue-first lease. Capacity,
+dependency, stage, and ownership checks first issue the CLI row with
+`external_id: null` and no launch confirmation. The governed launcher then
+claims that exact authority, revalidates its worktree, runs Codex, and imports
+the real external ID returned in the terminal envelope. The import sets the ID
+once and rejects a conflict. Never pass an invented prelaunch ID merely to make
+a CLI row dispatchable.
 
 The dispatcher holds the workflow lock for each confirmation transaction. The
 explicit capacity is an aggregate ceiling across all backends in the selected
@@ -81,6 +90,9 @@ Cross-candidate materialization conflicts are checked for the admitted prefix,
 queued rows are revalidated on a later attempt, and ownership conflicts are
 checked across the whole selected set. The result's `request_atomic` and
 `blocked_batch_unchanged` fields identify the transaction boundary explicitly.
+Any `BaseException` during sessions publication, an issuance or summary event,
+or the post-publication audit restores the exact pre-dispatch sessions/event
+bytes and is re-raised. A retry therefore observes the same deterministic plan.
 `backend_scope: all` is one local-service ceiling: active sessions are summed
 across every backend, never multiplied by backend count. An unknown capacity is
 rejected after deterministic dependency and ownership diagnostics, without a
