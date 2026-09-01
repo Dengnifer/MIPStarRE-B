@@ -28,7 +28,7 @@ availability reasons rather than receiving estimates.
 | --- | --- | --- | --- | ---: | --- | --- |
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 110 terminal attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | source and blueprint acceptance chain closed; supplemental QPBT-028/029/030 isolation work continues off the Lean critical path |
-| 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 38 issued attempts, 36 terminal and 2 active; peak concurrency 3 | collaboration usage unavailable | QPBT-023 contract orchestrator and source-fidelity scout active; exact Lean API scout queued behind the singleton cache |
+| 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 39 issued attempts, 37 terminal and 2 active; peak concurrency 3 | collaboration usage unavailable | source-fidelity audit archived; QPBT-023 contract orchestrator and exact Lean API elaboration scout active |
 | 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 174 issued attempts, 173 terminal and 1 active; peak concurrency 4 | collaboration usage unavailable | QPBT-004 exact-base cache/foundation closure active; first two disjoint Lean files are queued behind QPBT-004 and QPBT-023 |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
@@ -36,7 +36,7 @@ availability reasons rather than receiving estimates.
 
 ## Schedule estimates
 
-The snapshot below was updated at 2026-09-01 16:09 +08. Ranges are wall-clock
+The snapshot below was updated at 2026-09-01 16:34 +08. Ranges are wall-clock
 forecasts with the root coordinator plus three safe worker lanes, not token or
 person-hour estimates. The lanes are allocated to one critical-path writer,
 one fresh source/fidelity reviewer, and one independent API/cache or disjoint
@@ -46,9 +46,9 @@ hot-main build remains a singleton.
 | Stage | Measured elapsed at snapshot | Estimated remaining wall time | Dominant assumption |
 | --- | ---: | ---: | --- |
 | 1. Workflow skeleton | 15 h 53 min (complete) | 0 | Acceptance and independent review are complete. |
-| 2. Source split | 38 h 36 min | 1-3 working weeks on an independent lane | QPBT-029 must complete exact capture/projection and QPBT-030 must build and test pinned reviewer/broker isolation; the explicit supplemental-review disposition means this no longer delays Lean dispatch. |
-| 3. Lean blueprint | 36 h 24 min | 2-6 hours | Finish the active source/API probes, freeze F01/F03/F04 callable contracts, and obtain immutable contract review. |
-| 4A. Minimal skeleton | 36 h 24 min | first authored-file dispatch in 2-6 hours; full stage 6-16 weeks | One exact-base singleton warm is active. Once QPBT-004 and QPBT-023 close, `Field.lean` and `Approximation.lean` can start in disjoint worktrees. The self-dual-normal-basis theorem dominates completion risk. |
+| 2. Source split | 39 h 01 min | 1-3 working weeks on an independent lane | QPBT-029 must complete exact capture/projection and QPBT-030 must build and test pinned reviewer/broker isolation; the explicit supplemental-review disposition means this no longer delays Lean dispatch. |
+| 3. Lean blueprint | 36 h 49 min | 4-8 hours; 8-12 hours if review exposes a redesign | Finish exact API elaboration, incorporate five source-audit dispositions, freeze F01/F03/F04 callable contracts, and obtain two parallel immutable reviews. |
+| 4A. Minimal skeleton | 36 h 49 min | first authored-file dispatch in 4-8 hours; full stage 6-16 weeks | The exact-base cache is READY and QPBT-004 is on its terminal validation ladder. Once QPBT-004 and QPBT-023 close, `Field.lean` and `Approximation.lean` can start in disjoint worktrees. The self-dual-normal-basis theorem dominates completion risk. |
 | 4B. Complete skeleton | not started | 4-10 weeks | All 48 blueprint declarations receive reviewed signatures; tracked `sorry` is allowed but no assumptions hide proof debt. |
 | 4C. Proofs | not started | 18-48 months | External theorem boundaries are admissible where declared and the rigidity/LDT dependencies do not require foundational redevelopment. |
 | 5. Final audit | not started | 3-8 weeks | Statements remain stable and full build/declaration synchronization does not expose late source gaps. |
@@ -1112,25 +1112,40 @@ QPBT-004 and QPBT-023 were dispatched in parallel from immutable base
 `942f9438b991ece8942815db16c019b92d9cdd8e`. QPBT-004 owns the one authorized
 cache action: an exact-base singleton warm for key
 `4a5d9cf4d7de3d89c9bf7805d59f5c1739b39fd56d66b19b2454941da8873807`.
-The filesystem lock proves that the warm started; at this checkpoint it is
-still running with zero retries and no competing invocation. QPBT-023 runs the
-source-fidelity scout concurrently. Its pinned-API elaboration scout is planned
-but cannot start until the source scout is archived and that exact cache is
-READY, so it will seed a private worktree rather than compile main again.
+The singleton warm completed successfully in `1039.829438` seconds, including
+`884.495783` build seconds, with one miss, one build, zero lock wait, and zero
+retry. QPBT-004 then seeded its private worktree from that key in `267.003357`
+seconds and type-checked `MIPStarRE.lean` in `35.71` seconds. QPBT-023's
+source-fidelity scout was imported and archived, after which the pinned-API
+elaboration scout received its own private seed from the same key in
+`227.927544` seconds with a cache hit and zero builds.
 
 This wave uses the measured four-session ceiling exactly: root coordinator,
 two issue orchestrators, and one nested scout. The first code-writing wave is
 already specified as two independent issue worktrees owning only
 `MIPStarRE/QPBT/Basic/Field.lean` and
 `MIPStarRE/QPBT/Basic/Approximation.lean`. They will be issued together after
-QPBT-004 and QPBT-023 pass review and close. The current measured forecast from
-the 16:09 +08 checkpoint to that dispatch is 2-6 hours; it is a wall-clock
+QPBT-004 and QPBT-023 pass review and close. A02 found five material gaps in the
+earlier callable proposal, including finite numeric distance versus indexed
+Big-O relations and missing local tensor/isometry adapters. The updated
+forecast from the 16:34 +08 checkpoint is 4-8 hours, with an 8-12 hour residual
+case if immutable review requires an API/source redesign. This is a wall-clock
 forecast, not a token or person-hour estimate.
 
-The ledger now contains 357 issued sessions including the long-lived root:
-353 terminal metrics, three active non-coordinator sessions, and the root.
-QPBT-023 also has one planned API scout. Collaboration token usage remains
+The ledger now contains 358 issued sessions including the long-lived root:
+354 terminal metrics, three active non-coordinator sessions, and the root.
+QPBT-023's API scout is active. Collaboration token usage remains
 unavailable and is recorded as JSON `null`; no per-session estimate is made.
 Separately, QPBT-028 produced partial fail-closed candidate `7e7fe07e` and
 LPR-018 is ready for a fresh immutable security review, but that review is
 deferred behind the Lean critical lane while all worker slots are occupied.
+
+The first A03 seed attempt used a standalone detached clone and failed closed
+before copying because the cache protocol accepts only worktrees registered by
+the primary repository. The clone was retained under a distinct `/tmp` audit
+path; root created an exact detached linked worktree and the one corrective seed
+succeeded. This is one worktree-shape error and does not yet meet the
+third-occurrence threshold for a protocol issue. A03 subsequently materialized
+the exact pinned upstream source locally from the authenticated archive because
+the cache seed intentionally carries build artifacts rather than an authored
+ignored source checkout. No network request or second build occurred.
