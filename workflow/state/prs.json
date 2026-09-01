@@ -4653,7 +4653,7 @@
     {
       "id": "LPR-017",
       "title": "fix(review): permit append-only finding reconfirmation",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-027"
       ],
@@ -4844,6 +4844,23 @@
           "report_sha256": "2fd2a123a2ed32b34d674509f4faf78fe398ee44add61270db570bd46a30d58e",
           "acceptance_commands": 6,
           "safe_adversarial_reproductions": 1
+        },
+        {
+          "id": "review-qpbt-027-pr017-a11-immutable",
+          "reviewer_session_id": "i027-reviewer-a11-pr017-immutable",
+          "verdict": "approve",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "2c6b1f1d0be89d09bad2f60e074cf106be99fd46",
+          "started_at": "2026-09-01T05:25:19.939864Z",
+          "completed_at": "2026-09-01T05:37:06.015196Z",
+          "result_path": "workflow/reviews/qpbt-027-review-a11-pr017-immutable.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "2d8296adc252e0c3fe39a889fad9e9143bf9e194d365077e67fbef2f5ca21331",
+          "resolved_finding_ids": [
+            "F-LPR017-001"
+          ],
+          "adversarial_cases": 27
         }
       ],
       "findings": [
@@ -4853,10 +4870,10 @@
           "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
           "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
           "severity": "high",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A11 verified the A05 complete-candidate suffix authorization at exact current head 2c6b1f1; 70/70 workflow, 323/323 aggregate, 12/12 public assignment-order, and 15/15 adversarial cases passed.",
+          "resolved_by_review_id": "review-qpbt-027-pr017-a11-immutable",
           "summary": "Public PR updates can newly append a reconfirmation already stale against the current PR base/head, after which append-only immutability locks in false historical evidence.",
           "path": "scripts/workflow.py",
           "line": 2480
@@ -4865,7 +4882,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T04:34:43.606227Z",
-      "updated_at": "2026-09-01T05:11:52.321279Z",
+      "updated_at": "2026-09-01T05:39:29.800828Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -4876,7 +4893,7 @@
       ],
       "motivation": "Remove the ledger contradiction that made honest approval impossible after a resolved finding's PR head advanced.",
       "description": "Preserve immutable finding resolutions and append later approving review references only when exact-current at append time; public updates assemble a complete candidate, authorize only new suffix evidence including new findings, retain legitimate historical prefixes, and fail closed across malformed and multi-field cases.",
-      "testing": "70/70 exact-head workflow tests; 323/323 dependency-free aggregate tests; compileall; workflow validation/checker; exact direct-parent three-path fix and total six-path candidate identity",
+      "testing": "70/70 exact-head workflow tests; 323/323 dependency-free aggregate tests; compileall; workflow validation/checker; A11 formal approval; 12/12 public assignment-order probes and 15/15 adversarial cases; exact six-path identity",
       "addresses": "QPBT-027",
       "provenance_session_ids": [
         "i027-orchestrator-a01-finding-reconfirm",
@@ -4884,10 +4901,15 @@
         "i027-integrator-a03-pr017-bind",
         "i027-fixer-a05-stale-append-guard",
         "i027-tester-a06-stale-append-contract",
-        "i027-scout-a07-integration-order"
+        "i027-scout-a07-integration-order",
+        "i027-reviewer-a08-pr017-immutable",
+        "i027-scout-a09-pr017-integration",
+        "i027-scout-a10-postreview-ledger",
+        "i027-reviewer-a11-pr017-immutable",
+        "i027-scout-a12-recovery-merge"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Fresh independent immutable reviewer must resolve F-LPR017-001 and approve exact base 506ac7a7 / head 2c6b1f1 before true-merge integration."
+      "unexecuted_gate": "A11 approved exact base 506ac7a7 / head 2c6b1f1 and resolved F-LPR017-001. Commit approved state, rerun exact first-parent merge preview, then true-merge and run post-integration activation gates."
     }
   ]
 }
