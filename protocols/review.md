@@ -32,26 +32,40 @@ attempt never confers approval and cannot be resumed as the approving reviewer.
 
 ## External disclosure preflight
 
-Before an external model-backed reviewer starts, record the exact endpoint
-origin, model identifier, wire protocol, evidence scope, and explicit user
-authorization. Never record an API key or authentication token. Changing the
-endpoint, model, or evidence scope invalidates the authorization binding and
-requires a new preflight decision. A rejected launch is terminal and cannot be
-routed through a different persistence or network path.
+Transport trust and content-disclosure authorization are separate decisions.
+Official OpenAI transport and `https://api.finite-dimensional.space` are
+standing trusted Codex transports for this repository. That trust authorizes no
+repository content: before any model-backed reviewer starts, record the exact
+endpoint origin, model identifier, wire protocol, immutable evidence scope, and
+explicit content-disclosure authorization. Never record an API key or
+authentication token. Changing the endpoint, model, or evidence scope
+invalidates the per-review authorization binding and requires a new preflight
+decision. A rejected launch is terminal and cannot be routed through a different
+persistence or network path.
 
 The authorization is a version-1 JSON record with exactly these non-secret
 fields: `authorized`, endpoint origin, model, `wire_api`, immutable `base_sha`,
 `head_sha`, and `tree_sha`, plus the sorted `private_file_paths` list and true
 `exclude_credentials`/`exclude_unrelated_contents` controls. For a committed
 review, the wrapper resolves the source HEAD and tree, verifies ancestry and a
-clean worktree, computes the exact changed-path set, and compares every field
-before loading task/context files, preparing evidence, probing persistence, or
-claiming a reviewer lease. Missing or mismatched authorization fails closed;
-uncommitted targets cannot be externally disclosed through this gate. Credential
-or secret-looking paths are rejected, and authorization contents are never
-copied into prompts, envelopes, or logs.
+clean worktree, computes both sides of the exact changed-path set without rename
+detection, and compares every field before loading task/context files, preparing
+evidence, probing persistence, or claiming a reviewer lease. Missing or
+mismatched authorization fails closed;
+uncommitted targets cannot be externally disclosed through this gate. The full
+normalized repository-relative path is screened for sensitive directories and
+common credential, private-key, and certificate forms. Raw and normalized
+authorization mappings remain internal to preflight and are never copied into
+targets, prompts, envelopes, or logs.
 
-Custom reviewer transport is an explicit, non-secret all-or-none profile: the
+Path screening distinguishes private containers from ordinary public
+certificate material: `.pem`, `.key`, `.p12`, `.pfx`, `.jks`, `.keystore`, and
+`.kdbx` fail closed, while `.crt` and `.cer` are not rejected merely by
+extension. High-signal credential dot-directories, service-account artifacts,
+`.npmrc`, and `.pypirc` are rejected without treating generic `keys`, `auth`,
+`private`, or `certs` directories as credentials by themselves.
+
+Reviewer transport is a mandatory, explicit, non-secret all-or-none profile: the
 model-provider key, provider display name, HTTPS base URL, `responses` wire API,
 and the provider's `requires_openai_auth` boolean. The wrapper keeps
 `--ignore-user-config` and injects the validated profile as top-level CLI
@@ -59,13 +73,24 @@ configuration overrides before `exec`; authentication still comes from the
 Codex credential store and is never read or recorded by the wrapper. Provider
 keys must be safe dotted-config components, and endpoint URLs with userinfo,
 credentials, queries, fragments, or non-HTTPS schemes fail before evidence
-dispatch.
+dispatch. Omitting the profile never means local execution: it would inherit an
+unknown user-configured destination, so the wrapper rejects it before loading
+authorization, task, or context files, probing persistence, or claiming a lease.
 
-For the Stage 1 bootstrap review, the authorized profile is
+Library tests may opt into `offline_test_mode` only with an injected runner and
+an injected Codex capability record. That mode substitutes a non-`codex`
+executable marker, accepts no transport or authorization data, and has no CLI
+switch. It tests deterministic harness and envelope behavior but cannot dispatch
+a model-backed reviewer. The post-persistence helper additionally requires an
+opaque successful-preflight token so internal callers cannot bypass the gate.
+
+The standing trusted Stage 1 bootstrap transport profile is
 `gpt-5.6-sol` over the Responses protocol at
-`https://api.finite-dimensional.space`. The disclosure scope is the frozen
-Stage 1 repository evidence read by the reviewer; ignored paper payloads,
-runtime files, and credentials are excluded.
+`https://api.finite-dimensional.space`. Version-1 authorization does not bind an
+uncommitted snapshot, so the current launcher refuses that external dispatch.
+Bootstrap harness behavior remains testable only through the non-transmitting
+offline mode until a separately reviewed immutable-snapshot authorization schema
+exists; ignored paper payloads, runtime files, and credentials remain excluded.
 
 Before spending a frozen full-evidence attempt, a minimal read-only prompt must
 receive a complete response through that exact endpoint/model profile within
@@ -89,15 +114,16 @@ attempt; if this gate fails, fix the packet before spending a full reviewer
 session rather than treating a tiny successful canary as evidence that a large
 prompt will complete.
 
-The unborn Stage 1 review passes `--bootstrap-snapshot-digest` with the exact
-digest printed by the freeze tool. The launcher accepts this phase contract
-only with `--uncommitted` while `HEAD` is unborn. It independently runs the
-bootstrap verifier, matches the digest, requires an unsealed Stage 1 manifest,
+The offline unborn Stage 1 harness passes `--bootstrap-snapshot-digest` with the
+exact digest printed by the freeze tool. Harness construction accepts this phase
+contract only with `--uncommitted` while `HEAD` is unborn. It independently runs
+the bootstrap verifier, matches the digest, requires an unsealed Stage 1 manifest,
 and compares the manifest's terminal-evidence contract with the tool's fixed
 allowlist and rule. After evidence capture it repeats verification, byte-matches
 the copied freeze manifest, and binds every captured core path and hash to the
-verified freeze before dispatch. The trusted phase record has an exact key set
-and constant values; extra, missing, or changed fields fail before prompt
+verified freeze before invoking the offline test double. The trusted phase
+record has an exact key set and constant values; extra, missing, or changed
+fields fail before prompt
 serialization. Only then does built-in trusted prompt text explain the
 unavoidable ordering: the current reviewer's terminal lifecycle fields, final
 report, and seal are completed after an approving reviewer returns, so their

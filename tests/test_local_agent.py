@@ -170,6 +170,14 @@ class TimeoutRunner:
         )
 
 
+def run_offline_review(**arguments: object) -> dict[str, object]:
+    """Exercise review construction with a runner that cannot invoke Codex."""
+
+    arguments.setdefault("runner", FakeRunner(""))
+    arguments["offline_test_mode"] = True
+    return local_agent.run_review(**arguments)
+
+
 class AliasAndPromptTests(unittest.TestCase):
     def test_alias_is_stable_and_bounded(self) -> None:
         self.assertEqual(
@@ -896,6 +904,27 @@ class RuntimeTests(unittest.TestCase):
             },
             envelope["transport_profile"],
         )
+        envelope_text = json.dumps(envelope, sort_keys=True)
+        result_text = (Path(envelope["prompt_path"]).parent / "result.json").read_text(
+            encoding="utf-8"
+        )
+        for forbidden_key in (
+            "disclosure_authorization",
+            "endpoint_origin",
+            "private_file_paths",
+            "exclude_credentials",
+            "exclude_unrelated_contents",
+        ):
+            self.assertNotIn(forbidden_key, envelope_text)
+            self.assertNotIn(forbidden_key, result_text)
+            self.assertNotIn(
+                forbidden_key,
+                Path(envelope["prompt_path"]).read_text(encoding="utf-8"),
+            )
+            self.assertNotIn(
+                forbidden_key,
+                Path(envelope["event_log_path"]).read_text(encoding="utf-8"),
+            )
         self.assertEqual(base, envelope["review_target"]["resolved_base_sha"])
         self.assertEqual(head, envelope["review_target"]["resolved_head_sha"])
         self.assertRegex(envelope["review_target"]["synthetic_commit_sha"], r"^[0-9a-f]{40}$")
@@ -916,7 +945,7 @@ class RuntimeTests(unittest.TestCase):
             "mkdtemp",
             side_effect=PermissionError(13, secret),
         ):
-            envelope = local_agent.run_review(
+            envelope = run_offline_review(
                 alias="i012-reviewer-a01-persistence",
                 prompt="untrusted repository evidence",
                 cwd=self.root,
@@ -961,23 +990,66 @@ class RuntimeTests(unittest.TestCase):
                 "--uncommitted",
             ]
         )
-        failed_probe = {
-            "status": "failed",
-            "classification": "outer-host-codex-persistence-unwritable",
-            "root_source": "CODEX_HOME",
-            "private_probe": True,
-            "cleanup_complete": True,
-            "error_type": "PermissionError",
-            "errno": 13,
-        }
         with mock.patch.object(
-            local_agent, "_probe_codex_persistence", return_value=failed_probe
-        ), mock.patch.object(local_agent, "_packet_from_arguments") as packet:
-            envelope = local_agent.run_cli(arguments)
+            local_agent, "_probe_codex_persistence"
+        ) as probe, mock.patch.object(
+            local_agent, "_packet_from_arguments"
+        ) as packet, self.assertRaisesRegex(
+            local_agent.AgentError, "explicit disclosure destination profile"
+        ):
+            local_agent.run_cli(arguments)
+        probe.assert_not_called()
         packet.assert_not_called()
-        self.assertEqual("failed", envelope["status"])
-        self.assertFalse(envelope["repository_evidence_prepared"])
         self.assertFalse((self.runtime / "review-harnesses").exists())
+
+    def test_review_cli_missing_authorization_precedes_packet_and_probe(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        head = commit_change(repo)
+        parser = local_agent.build_parser()
+        arguments = parser.parse_args(
+            [
+                "--repo-root",
+                str(self.root),
+                "review",
+                "--issue",
+                "QPBT-026",
+                "--attempt",
+                "5",
+                "--slug",
+                "missing-authorization",
+                "--task-file",
+                "must-not-be-read.md",
+                "--cwd",
+                str(repo),
+                "--base",
+                "main",
+                "--base-sha",
+                base,
+                "--head-sha",
+                head,
+                "--model",
+                "gpt-5.6-sol",
+                "--model-provider",
+                "OpenAI",
+                "--provider-name",
+                "OpenAI",
+                "--provider-base-url",
+                "https://api.finite-dimensional.space",
+                "--wire-api",
+                "responses",
+                "--provider-requires-openai-auth",
+            ]
+        )
+        with mock.patch.object(
+            local_agent, "_probe_codex_persistence"
+        ) as probe, mock.patch.object(
+            local_agent, "_packet_from_arguments"
+        ) as packet, self.assertRaisesRegex(
+            local_agent.AgentError, "explicit disclosure authorization"
+        ):
+            local_agent.run_cli(arguments)
+        probe.assert_not_called()
+        packet.assert_not_called()
 
     def test_review_cli_success_probes_exactly_once_before_packet_loading(self) -> None:
         parser = local_agent.build_parser()
@@ -997,6 +1069,17 @@ class RuntimeTests(unittest.TestCase):
                 "--context-file",
                 "context.md",
                 "--uncommitted",
+                "--model",
+                "gpt-5.6-sol",
+                "--model-provider",
+                "OpenAI",
+                "--provider-name",
+                "OpenAI",
+                "--provider-base-url",
+                "https://api.finite-dimensional.space",
+                "--wire-api",
+                "responses",
+                "--provider-requires-openai-auth",
             ]
         )
         available_probe = {
@@ -1032,6 +1115,10 @@ class RuntimeTests(unittest.TestCase):
             return {"status": "finished"}
 
         with mock.patch.object(
+            local_agent,
+            "_preflight_external_disclosure",
+            return_value=local_agent._DISCLOSURE_PREFLIGHT_TOKEN,
+        ), mock.patch.object(
             local_agent, "_probe_codex_persistence", side_effect=probe
         ) as probe_mock, mock.patch.object(
             local_agent, "_packet_from_arguments", side_effect=packet
@@ -1051,7 +1138,7 @@ class RuntimeTests(unittest.TestCase):
         stdout = codex_events(json.dumps({"verdict": "approve", "findings": []}))
         stderr = "ordinary provider failure\n"
         runner = FakeRunner(stdout, returncode=1, stderr=stderr)
-        envelope = local_agent.run_review(
+        envelope = run_offline_review(
             alias="i012-reviewer-a02-output-evidence",
             prompt="review",
             cwd=repo,
@@ -1290,10 +1377,295 @@ class RuntimeTests(unittest.TestCase):
             codex_capability=capability(native=False),
         )
         self.assertEqual(tree, result["review_target"]["target_tree_oid"])
-        self.assertEqual(
-            {key: value for key, value in authorization.items() if key != "authorized"},
-            result["review_target"]["disclosure_authorization"],
+        serialized = json.dumps(result, sort_keys=True)
+        self.assertNotIn("disclosure_authorization", serialized)
+        self.assertNotIn("endpoint_origin", serialized)
+        self.assertNotIn("private_file_paths", serialized)
+        self.assertNotIn("exclude_credentials", serialized)
+        self.assertNotIn("exclude_unrelated_contents", serialized)
+
+    def test_missing_profile_fails_before_unbound_or_bound_side_effects(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        head = commit_change(repo)
+        runner = FakeRunner("")
+        arguments = {
+            "alias": "i026-reviewer-a05-no-profile",
+            "prompt": "must not be prepared",
+            "cwd": repo,
+            "runtime_dir": self.runtime,
+            "target_kind": "base",
+            "target_value": "main",
+            "base_sha": base,
+            "head_sha": head,
+            "model": "gpt-5.6-sol",
+            "runner": runner,
+            "codex_capability": capability(native=False),
+        }
+        with mock.patch.object(
+            local_agent, "_probe_codex_persistence"
+        ) as probe, mock.patch.object(
+            local_agent, "_run_review_after_persistence_probe"
+        ) as prepare, self.assertRaisesRegex(
+            local_agent.AgentError, "explicit disclosure destination profile"
+        ):
+            local_agent.run_review(**arguments)
+        probe.assert_not_called()
+        prepare.assert_not_called()
+
+        with mock.patch.object(
+            local_agent, "claim_issued_session"
+        ) as claim, mock.patch.object(
+            local_agent, "_probe_codex_persistence"
+        ) as probe, self.assertRaisesRegex(
+            local_agent.AgentError, "explicit disclosure destination profile"
+        ):
+            local_agent.run_review(
+                **arguments,
+                session_id="i026-reviewer-a05-no-profile",
+                workflow_root=self.root,
+                issue_id="QPBT-026",
+            )
+        claim.assert_not_called()
+        probe.assert_not_called()
+
+        profile = {
+            "model_provider": "OpenAI",
+            "provider_name": "OpenAI",
+            "provider_base_url": "https://api.finite-dimensional.space",
+            "wire_api": "responses",
+            "requires_openai_auth": True,
+        }
+        with mock.patch.object(
+            local_agent, "claim_issued_session"
+        ) as claim, mock.patch.object(
+            local_agent, "_probe_codex_persistence"
+        ) as probe, self.assertRaisesRegex(
+            local_agent.AgentError, "explicit disclosure authorization"
+        ):
+            local_agent.run_review(
+                **arguments,
+                **profile,
+                session_id="i026-reviewer-a05-no-authorization",
+                workflow_root=self.root,
+                issue_id="QPBT-026",
+            )
+        claim.assert_not_called()
+        probe.assert_not_called()
+        self.assertEqual([], runner.calls)
+        self.assertFalse((self.runtime / "review-harnesses").exists())
+
+    def test_offline_test_mode_cannot_launch_codex(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        head = commit_change(repo)
+        with self.assertRaisesRegex(local_agent.AgentError, "injected runner"):
+            local_agent.run_review(
+                alias="i026-reviewer-a05-offline-default-runner",
+                prompt="review",
+                cwd=repo,
+                runtime_dir=self.runtime,
+                target_kind="base",
+                target_value="main",
+                base_sha=base,
+                head_sha=head,
+                dry_run=True,
+                offline_test_mode=True,
+            )
+        with self.assertRaisesRegex(local_agent.AgentError, "capability record"):
+            local_agent.run_review(
+                alias="i026-reviewer-a05-offline-no-capability",
+                prompt="review",
+                cwd=repo,
+                runtime_dir=self.runtime,
+                target_kind="base",
+                target_value="main",
+                base_sha=base,
+                head_sha=head,
+                dry_run=True,
+                runner=FakeRunner(""),
+                offline_test_mode=True,
+            )
+        result = run_offline_review(
+            alias="i026-reviewer-a05-offline-injected-runner",
+            prompt="review",
+            cwd=repo,
+            runtime_dir=self.runtime,
+            target_kind="base",
+            target_value="main",
+            base_sha=base,
+            head_sha=head,
+            dry_run=True,
+            codex_capability=capability(native=False),
         )
+        self.assertEqual(local_agent.OFFLINE_REVIEW_TEST_EXECUTABLE, result["command"][0])
+        self.assertTrue(result["offline_test_mode"])
+
+    def test_post_persistence_helper_requires_preflight_token(self) -> None:
+        runner = FakeRunner("")
+        with self.assertRaisesRegex(local_agent.AgentError, "completed disclosure preflight"):
+            local_agent._run_review_after_persistence_probe(
+                alias="i026-reviewer-a05-direct-helper",
+                prompt="must not dispatch",
+                cwd=self.root,
+                runtime_dir=self.runtime,
+                target_kind="uncommitted",
+                target_value=None,
+                base_sha=None,
+                head_sha=None,
+                model=None,
+                bootstrap_snapshot_digest=None,
+                timeout=30,
+                dry_run=False,
+                runner=runner,
+                codex_capability=capability(native=False),
+                transport_profile=None,
+                persistence_probe={"status": "available"},
+            )
+        self.assertEqual([], runner.calls)
+        self.assertFalse((self.runtime / "review-harnesses").exists())
+
+    def test_commit_head_mismatch_fails_before_lease_claim(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        head = commit_change(repo)
+        tree = git(repo, "rev-parse", f"{head}^{{tree}}")
+        profile = {
+            "model_provider": "OpenAI",
+            "provider_name": "OpenAI",
+            "provider_base_url": "https://api.finite-dimensional.space",
+            "wire_api": "responses",
+            "requires_openai_auth": True,
+        }
+        authorization = {
+            "schema_version": 1,
+            "authorized": True,
+            "endpoint_origin": profile["provider_base_url"],
+            "model": "gpt-5.6-sol",
+            "wire_api": "responses",
+            "base_sha": base,
+            "head_sha": head,
+            "tree_sha": tree,
+            "private_file_paths": ["code.txt"],
+            "exclude_credentials": True,
+            "exclude_unrelated_contents": True,
+        }
+        with mock.patch.object(
+            local_agent, "claim_issued_session"
+        ) as claim, mock.patch.object(
+            local_agent, "_prepare_committed_harness"
+        ) as prepare, self.assertRaisesRegex(
+            local_agent.AgentError, "head-sha does not match"
+        ):
+            local_agent.run_review(
+                alias="i026-reviewer-a05-commit-mismatch",
+                prompt="review",
+                cwd=repo,
+                runtime_dir=self.runtime,
+                target_kind="commit",
+                target_value=head,
+                base_sha=base,
+                head_sha=base,
+                model="gpt-5.6-sol",
+                disclosure_authorization=authorization,
+                session_id="i026-reviewer-a05-commit-mismatch",
+                workflow_root=self.root,
+                issue_id="QPBT-026",
+                runner=FakeRunner(""),
+                **profile,
+            )
+        claim.assert_not_called()
+        prepare.assert_not_called()
+
+    def test_disclosure_path_filter_rejects_nested_credentials_only(self) -> None:
+        common = {
+            "endpoint_origin": "https://api.finite-dimensional.space",
+            "model": "gpt-5.6-sol",
+            "wire_api": "responses",
+            "base_sha": "a" * 40,
+            "head_sha": "b" * 40,
+            "tree_sha": "c" * 40,
+        }
+
+        def authorization(path: str) -> dict[str, object]:
+            return {
+                "schema_version": 1,
+                "authorized": True,
+                **common,
+                "private_file_paths": [path],
+                "exclude_credentials": True,
+                "exclude_unrelated_contents": True,
+            }
+
+        denied = (
+            "keys/id_rsa",
+            ".ssh/authorized_keys",
+            "private/private_key.pem",
+            "certs/client.pem",
+            ".aws/config",
+            "credentials/config",
+            ".config/gcloud/application_default_credentials.json",
+            "nested/client.p12",
+            ".SSH/AUTHORIZED_KEYS",
+            ".credentials/config",
+            ".secrets/project.json",
+            ".gcloud/configurations/config_default",
+            ".npmrc",
+            ".pypirc",
+            "deploy/service-account.json",
+            "vault/project.kdbx",
+        )
+        for path in denied:
+            with self.subTest(denied=path), self.assertRaisesRegex(
+                local_agent.AgentError, "include credentials"
+            ):
+                local_agent.validate_review_disclosure_authorization(
+                    authorization(path), private_file_paths=[path], **common
+                )
+
+        invalid = ("./src/code.py", "src//code.py", "../code.py", "src\\code.py")
+        for path in invalid:
+            with self.subTest(invalid=path), self.assertRaisesRegex(
+                local_agent.AgentError, "paths are invalid"
+            ):
+                local_agent.validate_review_disclosure_authorization(
+                    authorization(path), private_file_paths=[path], **common
+                )
+
+        allowed = (
+            "src/keys.py",
+            "src/keys/map.py",
+            "docs/certificate-format.md",
+            "docs/passwordless-auth.md",
+            "src/tokenizer.py",
+            "src/secretary.py",
+            "src/key_value_store.py",
+            "src/auth/session.py",
+            "certs/ca.crt",
+            "certs/client.cer",
+            "config/public-settings.json",
+        )
+        for path in allowed:
+            with self.subTest(allowed=path):
+                local_agent.validate_review_disclosure_authorization(
+                    authorization(path), private_file_paths=[path], **common
+                )
+
+    def test_disclosure_scope_includes_both_sides_of_sensitive_rename(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        write(repo / ".ssh/authorized_keys", "synthetic test fixture\n")
+        git(repo, "add", ".ssh/authorized_keys")
+        git(repo, "commit", "-m", "add synthetic sensitive path")
+        base = git(repo, "rev-parse", "HEAD")
+        git(repo, "mv", ".ssh/authorized_keys", "public-key.txt")
+        git(repo, "commit", "-m", "rename synthetic sensitive path")
+        head = git(repo, "rev-parse", "HEAD")
+        resolved_base, resolved_head, _tree, paths = local_agent._review_disclosure_target(
+            cwd=repo,
+            target_kind="base",
+            target_value="main",
+            base_sha=base,
+            head_sha=head,
+        )
+        self.assertEqual((base, head), (resolved_base, resolved_head))
+        self.assertEqual([".ssh/authorized_keys", "public-key.txt"], paths)
 
     def test_review_timeout_preserves_partial_evidence_without_a_verdict(self) -> None:
         repo, base = initialize_review_repo(self.root)
@@ -1304,7 +1676,7 @@ class RuntimeTests(unittest.TestCase):
             "summary": "must not count",
         }
         runner = TimeoutRunner(codex_events(json.dumps(apparent_review)), "service stalled\n")
-        envelope = local_agent.run_review(
+        envelope = run_offline_review(
             alias="i001-reviewer-a01-timeout",
             prompt="review",
             cwd=repo,
@@ -1338,7 +1710,7 @@ class RuntimeTests(unittest.TestCase):
     def test_base_review_requires_immutable_shas(self) -> None:
         repo, _ = initialize_review_repo(self.root)
         with self.assertRaises(local_agent.AgentError):
-            local_agent.run_review(
+            run_offline_review(
                 alias="i001-reviewer-a01-review",
                 prompt="review",
                 cwd=repo,
@@ -1361,7 +1733,7 @@ class RuntimeTests(unittest.TestCase):
             "residual_risk": "none",
         }
         runner = InspectingRunner(codex_events(json.dumps(review)))
-        envelope = local_agent.run_review(
+        envelope = run_offline_review(
             alias="i001-reviewer-a01-native",
             prompt="review exact diff",
             cwd=repo,
@@ -1389,7 +1761,7 @@ class RuntimeTests(unittest.TestCase):
         git(repo, "add", ".")
         git(repo, "commit", "-m", "malicious head")
         head = git(repo, "rev-parse", "HEAD")
-        result = local_agent.run_review(
+        result = run_offline_review(
             alias="i001-reviewer-a01-malicious-head",
             prompt="ordinary request",
             cwd=repo,
@@ -1416,7 +1788,7 @@ class RuntimeTests(unittest.TestCase):
         repo, base = initialize_review_repo(self.root)
         first_head = commit_change(repo, "first\n")
         with self.assertRaisesRegex(local_agent.AgentError, "full immutable"):
-            local_agent.run_review(
+            run_offline_review(
                 alias="i001-reviewer-a01-short-sha",
                 prompt="review",
                 cwd=repo,
@@ -1431,7 +1803,7 @@ class RuntimeTests(unittest.TestCase):
         second_head = commit_change(repo, "second\n")
         self.assertNotEqual(first_head, second_head)
         with self.assertRaisesRegex(local_agent.AgentError, "requires source HEAD"):
-            local_agent.run_review(
+            run_offline_review(
                 alias="i001-reviewer-a01-wrong-head",
                 prompt="review",
                 cwd=repo,
@@ -1445,7 +1817,7 @@ class RuntimeTests(unittest.TestCase):
             )
         write(repo / "code.txt", "dirty\n")
         with self.assertRaisesRegex(local_agent.AgentError, "clean source working tree"):
-            local_agent.run_review(
+            run_offline_review(
                 alias="i001-reviewer-a01-dirty",
                 prompt="review",
                 cwd=repo,
@@ -1473,7 +1845,7 @@ class RuntimeTests(unittest.TestCase):
             "residual_risk": "none",
         }
         runner = InspectingRunner(codex_events(json.dumps(review)))
-        envelope = local_agent.run_review(
+        envelope = run_offline_review(
             alias="i001-reviewer-a01-bootstrap",
             prompt="review bootstrap",
             cwd=repo,
@@ -1524,7 +1896,7 @@ class RuntimeTests(unittest.TestCase):
             "_prepare_uncommitted_harness",
             side_effect=prepare_then_tamper,
         ), self.assertRaisesRegex(local_agent.AgentError, "file digest does not match"):
-            local_agent.run_review(
+            run_offline_review(
                 alias="i001-reviewer-a01-tampered-manifest",
                 prompt="review bootstrap",
                 cwd=repo,
@@ -1568,7 +1940,7 @@ class RuntimeTests(unittest.TestCase):
             "_prepare_uncommitted_harness",
             side_effect=prepare_then_mutate,
         ), self.assertRaisesRegex(local_agent.AgentError, "reviewed core changed"):
-            local_agent.run_review(
+            run_offline_review(
                 alias="i001-reviewer-a13-bootstrap-toctou",
                 prompt="review bootstrap",
                 cwd=repo,
@@ -1593,7 +1965,7 @@ class RuntimeTests(unittest.TestCase):
             "residual_risk": "none",
         }
         runner = FakeRunner(codex_events(json.dumps(review)))
-        envelope = local_agent.run_review(
+        envelope = run_offline_review(
             alias="i001-reviewer-a01-uncommitted",
             prompt="review worktree",
             cwd=repo,
@@ -1703,7 +2075,26 @@ class RuntimeTests(unittest.TestCase):
         )
         self.assertIs(no_auth_arguments.provider_requires_openai_auth, False)
 
-    def test_review_cli_wires_bootstrap_snapshot_digest(self) -> None:
+    def test_review_cli_rejects_uncommitted_bootstrap_before_packet(self) -> None:
+        authorization_path = self.root / "authorization.json"
+        write(
+            authorization_path,
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "authorized": True,
+                    "endpoint_origin": "https://api.finite-dimensional.space",
+                    "model": "gpt-5.6-sol",
+                    "wire_api": "responses",
+                    "base_sha": "a" * 40,
+                    "head_sha": "b" * 40,
+                    "tree_sha": "c" * 40,
+                    "private_file_paths": [],
+                    "exclude_credentials": True,
+                    "exclude_unrelated_contents": True,
+                }
+            ),
+        )
         parser = local_agent.build_parser()
         arguments = parser.parse_args(
             [
@@ -1719,22 +2110,37 @@ class RuntimeTests(unittest.TestCase):
                 "--uncommitted",
                 "--bootstrap-snapshot-digest",
                 "f" * 64,
+                "--model",
+                "gpt-5.6-sol",
+                "--model-provider",
+                "OpenAI",
+                "--provider-name",
+                "OpenAI",
+                "--provider-base-url",
+                "https://api.finite-dimensional.space",
+                "--wire-api",
+                "responses",
+                "--provider-requires-openai-auth",
+                "--disclosure-authorization-file",
+                str(authorization_path),
             ]
         )
         with mock.patch.object(
             local_agent,
             "_packet_from_arguments",
-            return_value=("i001-reviewer-a13-bootstrap-freeze", "prompt", self.root),
-        ), mock.patch.object(
+        ) as packet, mock.patch.object(
+            local_agent,
+            "_probe_codex_persistence",
+        ) as probe, mock.patch.object(
             local_agent,
             "_run_review_after_persistence_probe",
-            return_value={"status": "dry_run"},
-        ) as post_success:
+        ) as post_success, self.assertRaisesRegex(
+            local_agent.AgentError, "committed review target"
+        ):
             local_agent.run_cli(arguments)
-        self.assertEqual(
-            "f" * 64,
-            post_success.call_args.kwargs["bootstrap_snapshot_digest"],
-        )
+        packet.assert_not_called()
+        probe.assert_not_called()
+        post_success.assert_not_called()
 
     @mock.patch("local_agent._subprocess_run")
     def test_codex_capability_probe_fails_closed_on_selector_prompt_conflict(
@@ -1949,7 +2355,7 @@ class RuntimeTests(unittest.TestCase):
         ), mock.patch.object(local_agent, "_run_review_unbound") as child, self.assertRaisesRegex(
             local_agent.AgentError, "HEAD does not match"
         ):
-            local_agent.run_review(
+            run_offline_review(
                 alias=session_id, prompt="review", cwd=Path(record["worktree"]),
                 runtime_dir=self.runtime, target_kind="commit", target_value=record["base_revision"],
                 base_sha=record["base_revision"], head_sha=record["base_revision"],

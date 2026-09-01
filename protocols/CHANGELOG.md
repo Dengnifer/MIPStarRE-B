@@ -1,5 +1,30 @@
 # Protocol Changelog
 
+## 2026-09-01
+
+- QPBT-026 A05 closes four pre-integration disclosure findings. Every
+  model-backed review now requires an explicit validated transport profile and
+  exact version-1 authorization before packet loading, persistence probing, or
+  lease claim; inherited/default provider configuration is no longer treated as
+  local. Authorization validation returns only an opaque internal preflight
+  token, and no raw or normalized authorization mapping enters a target, prompt,
+  envelope, persisted result, or log. Commit target and declared-head resolution
+  share one preflight/capture implementation, so drift fails before lease claim.
+  Full normalized repository paths are screened for sensitive directories and
+  common key, credential, and private certificate/container forms, with rename
+  detection disabled so both sides of a rename remain in scope. A library-only
+  offline test mode requires injected runner/capability records, substitutes a
+  non-`codex` executable marker, accepts no transport data, and has no CLI flag.
+  Version-1 authorization remains committed-target-only; uncommitted bootstrap
+  dispatch now fails closed pending a separately reviewed snapshot schema.
+  Official OpenAI and `https://api.finite-dimensional.space` are standing
+  trusted Codex transports, but transport trust grants no content permission:
+  every external review still requires its own exact immutable manifest and
+  matching credential-excluding disclosure authorization.
+  Public `.crt`/`.cer` material and generic `keys`/`auth`/`private`/`certs`
+  paths remain allowed; high-signal credential dot-directories, service-account
+  artifacts, `.npmrc`, `.pypirc`, and private-container suffixes fail closed.
+
 ## 0.1.7 candidate (QPBT-021) - 2026-08-31
 
 QPBT-021 makes the pinned Mathlib source a first-class hot-cache input. The
