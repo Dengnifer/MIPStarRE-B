@@ -7109,7 +7109,7 @@
     {
       "id": "LPR-026",
       "title": "fix(cache): isolate Git diagnostics from ambient hooks",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-050"
       ],
@@ -7159,6 +7159,38 @@
           "manifest_sha256": "a3358d0d5ce28b5569eaaff61872f9f231c47d693c0df31996ef732e2b8319da",
           "candidate_tree": "1c1be2d9c9e7c790842fab47077055f929826c06",
           "parent_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7"
+        },
+        {
+          "id": "check-qpbt-050-integration-a03",
+          "name": "QPBT-050 guarded cache integration",
+          "command": "62 hot-cache tests; compileall; workflow/checker/diff; exact two-parent/path authentication",
+          "status": "passed",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "39e7a9f565335cf62c4687d5daab6f0644f0aa99",
+          "completed_at": "2026-09-01T21:22:39Z",
+          "result_path": "workflow/reviews/qpbt-050-guarded-integration-a03.md",
+          "integration_tree": "0454d9b3383c33cbf6af9a9832c3a65f39f4ecf8",
+          "parent_shas": [
+            "325bccca712f71a5d2da75bec7d6c0d50245d71e",
+            "c70267e3d65aeb3c47b4680ab53693c5b9ead6fa"
+          ],
+          "candidate_manifest_sha256": "a3358d0d5ce28b5569eaaff61872f9f231c47d693c0df31996ef732e2b8319da",
+          "report_sha256": "c24191474144b8c84d6bc19a6b65fb827263697ebd1a7ace949a19f35d4dc00a",
+          "canonical_base_sha": "325bccca712f71a5d2da75bec7d6c0d50245d71e"
+        },
+        {
+          "id": "check-qpbt-050-aggregate-a03",
+          "name": "QPBT-050 integrated aggregate workflow gate",
+          "command": "python3 -m unittest discover -s tests -p test_*.py",
+          "status": "passed",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "39e7a9f565335cf62c4687d5daab6f0644f0aa99",
+          "completed_at": "2026-09-01T21:34:30.000000Z",
+          "result_path": "workflow/reviews/qpbt-050-guarded-integration-a03.md",
+          "aggregate_tests": "360/360 passed",
+          "aggregate_seconds": 228.55,
+          "aggregate_attempts": 1,
+          "integration_sha": "39e7a9f565335cf62c4687d5daab6f0644f0aa99"
         }
       ],
       "reviews": [
@@ -7212,28 +7244,30 @@
           "required_change": "Pass _trusted_git_environment() to every git_resolved_path subprocess call used by seed admission and add a focused admission regression."
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "39e7a9f565335cf62c4687d5daab6f0644f0aa99",
+      "merged_at": "2026-09-01T21:35:30.887092Z",
       "created_at": "2026-09-02T03:40:01Z",
-      "updated_at": "2026-09-01T20:45:02.255789Z",
+      "updated_at": "2026-09-01T21:35:30.887092Z",
       "changed_paths": [
         "scripts/hot_main_cache.py",
         "tests/test_hot_main_cache.py",
         "workflow/reviews/qpbt-050-fsmonitor-hardening-a01.md",
         "workflow/reviews/qpbt-050-fsmonitor-repair-a02.md",
-        "workflow/reviews/qpbt-050-review-a03.md"
+        "workflow/reviews/qpbt-050-review-a03.md",
+        "workflow/reviews/qpbt-050-guarded-integration-a03.md"
       ],
       "motivation": "Close the ambient fsmonitor execution residual in cache admission diagnostics.",
       "description": "Run every Git identity and cleanliness diagnostic under the trusted Git environment and add hook suppression coverage.",
-      "testing": "A03 immutable security review approved; 62 hot-cache tests, compileall, checker, hostile Git probes, and diff checks passed.",
+      "testing": "A03 approval, guarded two-parent integration, 62/62 focused hot-cache tests, 360/360 aggregate workflow tests in 228.55s, compileall, checker, workflow validation, diff and exact path authentication passed.",
       "addresses": "QPBT-050",
       "provenance_session_ids": [
         "i050-orchestrator-a01-fsmonitor-hardening",
         "i050-orchestrator-a02-fsmonitor-repair",
-        "i050-reviewer-a03-fsmonitor-repair"
+        "i050-reviewer-a03-fsmonitor-repair",
+        "i050-integrator-a03-guarded-integration"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Guarded integration onto current main, then issue closure and cache gate re-evaluation."
+      "unexecuted_gate": "No unexecuted LPR-026 gates; production cache use remains governed by the separate current-main singleton protocol."
     }
   ]
 }
