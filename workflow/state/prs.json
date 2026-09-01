@@ -5496,7 +5496,7 @@
     {
       "id": "LPR-020",
       "title": "feat(QPBT/Basic): add finite-field leaf declarations",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-031"
       ],
@@ -5576,10 +5576,10 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "ff79fe3444eae7015def65039cac62ec213e8ed4",
+      "merged_at": "2026-09-01T12:24:15.302929Z",
       "created_at": "2026-09-01T12:00:00Z",
-      "updated_at": "2026-09-01T12:20:45.772545Z",
+      "updated_at": "2026-09-01T12:24:15.302929Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Basic/Field.lean",
         "workflow/reviews/qpbt-031-field-skeleton-a01.md"
@@ -5592,12 +5592,27 @@
         "i031-orchestrator-a01-field-skeleton"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Independent review and formal no-byte adoption passed; guarded integration remains pending."
+      "unexecuted_gate": "Completed: independent review approved the exact candidate, formal adoption passed, and guarded merge ff79fe3 preserved both candidate blobs.",
+      "post_integration_evidence": {
+        "integration_sha": "ff79fe3444eae7015def65039cac62ec213e8ed4",
+        "integration_tree": "87c31cc240bda87c69c0653a5c79120d237b2a6c",
+        "first_parent": "152d4d12c2eca74bfdf30dd674355833a2e61d2f",
+        "second_parent": "f5ed1cb3e10831b0230f7c28eeef4d94d0335b88",
+        "candidate_base": "259c73a368ef7403b4e36e190c9bf940497b300f",
+        "candidate_tree": "b3b368d5fb7cf2bb91c26890b3857cab7882e8b5",
+        "candidate_result_blobs": "2/2",
+        "merge_conflicts": 0,
+        "changed_paths": 2,
+        "review": "review-qpbt-031-a01-f01-field",
+        "binding_report": "workflow/reviews/qpbt-031-pr020-bind-a02.md",
+        "binding_report_sha256": "e2b9501101ad3e8d574e7a361a1ee11664e0d4dd3d760b383a959c198edc28a7",
+        "validation": "scoped Lean; private full build 8992 jobs; blueprint/source sync; axiom/debt scan; diff; workflow identity"
+      }
     },
     {
       "id": "LPR-021",
       "title": "feat(QPBT/Basic): add finite POVM family boundary",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-032"
       ],
@@ -5677,10 +5692,10 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "aa1f579d56b4476220d2d6ef4c69c3c06ae779e2",
+      "merged_at": "2026-09-01T12:24:15.946376Z",
       "created_at": "2026-09-01T12:00:01Z",
-      "updated_at": "2026-09-01T12:22:13.248134Z",
+      "updated_at": "2026-09-01T12:24:15.946376Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Basic/Approximation.lean",
         "workflow/reviews/qpbt-032-approximation-skeleton-a01.md"
@@ -5693,7 +5708,22 @@
         "i032-orchestrator-a01-approximation-skeleton"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Independent review and formal no-byte adoption passed; guarded integration remains pending."
+      "unexecuted_gate": "Completed: independent review approved the exact candidate, formal adoption passed, and guarded merge aa1f579 preserved both candidate blobs.",
+      "post_integration_evidence": {
+        "integration_sha": "aa1f579d56b4476220d2d6ef4c69c3c06ae779e2",
+        "integration_tree": "ee010f3013b09275ba098f2eefdae0c95c66b704",
+        "first_parent": "ff79fe3444eae7015def65039cac62ec213e8ed4",
+        "second_parent": "00b74473b04a72b57c7c7b9ebdfd9ad7ef17a99f",
+        "candidate_base": "259c73a368ef7403b4e36e190c9bf940497b300f",
+        "candidate_tree": "d47252b71d1cfa5df331c77f03f9b890c29ca770",
+        "candidate_result_blobs": "2/2",
+        "merge_conflicts": 0,
+        "changed_paths": 2,
+        "review": "review-qpbt-032-a01-f03-slice",
+        "binding_report": "workflow/reviews/qpbt-032-pr021-bind-a02.md",
+        "binding_report_sha256": "f1e0ecb1a557c93cbcc4afc86a2f41af4c3b9b1ea075c1a5e65cae05e38a9471",
+        "validation": "scoped Lean; target and private full build; blueprint/source sync; debt/import scan; diff; workflow identity"
+      }
     }
   ]
 }

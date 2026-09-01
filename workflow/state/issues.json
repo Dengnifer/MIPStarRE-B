@@ -1587,7 +1587,7 @@
       "title": "feat(QPBT/Basic): add finite-field leaf declarations",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-013",
       "dependency_ids": [
         "QPBT-004",
@@ -1614,16 +1614,36 @@
         "references/2001.04383v3/sections/dependencies/finite-fields.tex:1-412"
       ],
       "created_at": "2026-09-01T10:58:48Z",
-      "updated_at": "2026-09-01T11:49:41.866623Z",
+      "updated_at": "2026-09-01T12:24:33.850684Z",
       "blocked_reason": null,
-      "unblock_condition": "Dispatch one field orchestrator after QPBT-004, QPBT-023, and the exact current-main hot cache are verified."
+      "unblock_condition": null,
+      "completion_evidence": {
+        "pr_id": "LPR-020",
+        "head_sha": "f5ed1cb3e10831b0230f7c28eeef4d94d0335b88",
+        "integration_sha": "ff79fe3444eae7015def65039cac62ec213e8ed4",
+        "integration_tree": "87c31cc240bda87c69c0653a5c79120d237b2a6c",
+        "review": "review-qpbt-031-a01-f01-field",
+        "review_verdict": "approve",
+        "findings": 0,
+        "changed_path": "MIPStarRE/QPBT/Basic/Field.lean",
+        "scoped_lean": "passed",
+        "full_build": "passed (8992 jobs, 6.07s)",
+        "blueprint_sync": "passed",
+        "proof_debt": "exactly one blueprint-authorized G16 sorry; no other debt",
+        "candidate_blobs_preserved": "2/2",
+        "reports": [
+          "workflow/reviews/qpbt-031-field-skeleton-a01.md",
+          "workflow/reviews/qpbt-031-pr020-review-a01.md",
+          "workflow/reviews/qpbt-031-pr020-bind-a02.md"
+        ]
+      }
     },
     {
       "id": "QPBT-032",
       "title": "feat(QPBT/Basic): add finite POVM family boundary",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-013",
       "dependency_ids": [
         "QPBT-004",
@@ -1650,9 +1670,30 @@
         "references/2001.04383v3/sections/dependencies/measurements.tex:3-47"
       ],
       "created_at": "2026-09-01T10:58:48Z",
-      "updated_at": "2026-09-01T11:49:41.994256Z",
+      "updated_at": "2026-09-01T12:24:34.445491Z",
       "blocked_reason": null,
-      "unblock_condition": "Dispatch one measurement orchestrator after QPBT-004, QPBT-023, and the exact current-main hot cache are verified."
+      "unblock_condition": null,
+      "completion_evidence": {
+        "pr_id": "LPR-021",
+        "head_sha": "00b74473b04a72b57c7c7b9ebdfd9ad7ef17a99f",
+        "integration_sha": "aa1f579d56b4476220d2d6ef4c69c3c06ae779e2",
+        "integration_tree": "ee010f3013b09275ba098f2eefdae0c95c66b704",
+        "review": "review-qpbt-032-a01-f03-slice",
+        "review_verdict": "approve",
+        "findings": 0,
+        "changed_path": "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "scoped_lean": "passed",
+        "target_build": "passed",
+        "full_build": "passed (8992 jobs, 6.02s)",
+        "blueprint_sync": "passed",
+        "proof_debt": "none",
+        "candidate_blobs_preserved": "2/2",
+        "reports": [
+          "workflow/reviews/qpbt-032-approximation-skeleton-a01.md",
+          "workflow/reviews/qpbt-032-pr021-review-a01.md",
+          "workflow/reviews/qpbt-032-pr021-bind-a02.md"
+        ]
+      }
     }
   ]
 }

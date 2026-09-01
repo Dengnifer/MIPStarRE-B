@@ -2675,3 +2675,11 @@
 {"schema_version":1,"timestamp":"2026-09-01T12:22:12.694498Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-021","fields":["implementer_session_ids","unexecuted_gate"]}}
 {"schema_version":1,"timestamp":"2026-09-01T12:22:12.995566Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"ready","id":"LPR-021"}}
 {"schema_version":1,"timestamp":"2026-09-01T12:22:13.293988Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"approved","id":"LPR-021"}}
+{"schema_version":1,"timestamp":"2026-09-01T12:24:15.045455Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-020","fields":["integration_sha","unexecuted_gate","post_integration_evidence"]}}
+{"schema_version":1,"timestamp":"2026-09-01T12:24:15.348932Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"merged","id":"LPR-020"}}
+{"schema_version":1,"timestamp":"2026-09-01T12:24:15.677621Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-021","fields":["integration_sha","unexecuted_gate","post_integration_evidence"]}}
+{"schema_version":1,"timestamp":"2026-09-01T12:24:15.991278Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"merged","id":"LPR-021"}}
+{"schema_version":1,"timestamp":"2026-09-01T12:24:33.594919Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-031","fields":["completion_evidence","blocked_reason","unblock_condition"]}}
+{"schema_version":1,"timestamp":"2026-09-01T12:24:33.888175Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"done","id":"QPBT-031"}}
+{"schema_version":1,"timestamp":"2026-09-01T12:24:34.182263Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-032","fields":["completion_evidence","blocked_reason","unblock_condition"]}}
+{"schema_version":1,"timestamp":"2026-09-01T12:24:34.483085Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"done","id":"QPBT-032"}}
