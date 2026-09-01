@@ -27,7 +27,7 @@ availability reasons rather than receiving estimates.
 | Stage | Status | Start | End | Sessions issued | Token data | Key output |
 | --- | --- | --- | --- | ---: | --- | --- |
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
-| 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 83 issued attempts; peak concurrency 4 | collaboration usage unavailable; failed reviewers emitted no usage | local source review approved; QPBT-026 and QPBT-027 repairs active; QPBT-028 planned |
+| 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 108 issued attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | local source review approved; QPBT-026 and QPBT-027 complete; QPBT-028 writer plus two scouts active |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 36 terminal sessions; peak concurrency 3 | collaboration usage unavailable | full immutable blueprint approved; exact second-commit rehearsal passed; QPBT-023 tracks the newly found leaf-contract gap |
 | 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 173 Stage-4A issued attempts; peak concurrency 4 | collaboration usage unavailable | recipe-v5 cache accepted at `d73cce44`; QPBT-003 remains the critical dependency |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
@@ -36,7 +36,7 @@ availability reasons rather than receiving estimates.
 
 ## Schedule estimates
 
-The snapshot below was updated at 2026-09-01 12:05 +08. Ranges are wall-clock
+The snapshot below was updated at 2026-09-01 15:22 +08. Ranges are wall-clock
 forecasts with the root coordinator plus three safe worker lanes, not token or
 person-hour estimates. The lanes are allocated to one critical-path writer,
 one fresh source/fidelity reviewer, and one independent API/cache or disjoint
@@ -46,7 +46,7 @@ hot-main build remains a singleton.
 | Stage | Measured elapsed at snapshot | Estimated remaining wall time | Dominant assumption |
 | --- | ---: | ---: | --- |
 | 1. Workflow skeleton | 15 h 53 min (complete) | 0 | Acceptance and independent review are complete. |
-| 2. Source split | 34 h 31 min | 4-12 working days, then a user-dependent authorization window | Finish and review QPBT-026/QPBT-027, implement QPBT-028's exact-content and OS-isolation boundary, then authorize one exact immutable endpoint manifest or explicitly dispose the supplemental review gate. |
+| 2. Source split | 37 h 49 min | 2-6 working days, then a user-dependent authorization window | QPBT-026/QPBT-027 are complete. Implement, adversarially test, independently review, and integrate QPBT-028; then authorize one exact immutable endpoint manifest or explicitly dispose the supplemental review gate. |
 | 3. Lean blueprint | 32 h 20 min | 2-5 working days after Stage 2 | Freeze and independently review the F01/F03/F04 callable contracts and record the self-dual-basis gap. |
 | 4A. Minimal skeleton | 32 h 20 min | 6-16 weeks | The recipe-v5 main cache is accepted; the remaining critical gate is QPBT-003, including the callable-contract and self-dual-normal-basis boundary. |
 | 4B. Complete skeleton | not started | 4-10 weeks | All 48 blueprint declarations receive reviewed signatures; tracked `sorry` is allowed but no assumptions hide proof debt. |
@@ -1062,19 +1062,33 @@ three non-coordinator lanes while the root alone updates canonical state; the
 two writable sessions have disjoint worktrees and no build or cache action is
 duplicated.
 
-QPBT-028 records the next production boundary but is not yet dispatched. It
-must bind every outbound and tool-readable content unit in a version-2
-immutable manifest and enforce an OS filesystem, environment, and tool-egress
-boundary that denies an unmanifested host sentinel. It can be implemented and
-reviewed without contacting the endpoint. Only after that gate passes can one
-final exact LPR-001 manifest be presented for separate content authorization.
-Standing trust in `https://api.finite-dimensional.space` is transport trust;
-it does not authorize credentials, unrelated private content, or unspecified
-repository bytes.
+QPBT-026 and QPBT-027 are now complete. Exact activation object
+`8e2a645e272ba4de9d1218ca5a13bf86534b55fd` passed 70/70 workflow tests,
+63/63 local-agent tests, 336/336 aggregate tests in `187.177` seconds,
+compileall, workflow validation/checking, and the 26/26 deterministic acyclic
+blueprint gate. Fresh read-only A27 approved that exact object with no findings
+over a coordinator-measured `528.265`-second session. Main then fast-forwarded
+to it unchanged before the audit report and run ledger were imported. The
+superseded unreviewed object was never activated, and INC-050 records the
+prelaunch full-SHA error and successful authenticated replacement.
 
-The measured Stage 2 forecast is now 4-12 working days for the two current
-repairs, their independent reviews/integration, and QPBT-028. A final endpoint
-review should take hours once its exact manifest is authorized, but the wait
-for that authorization is externally unbounded and is not folded into the
-engineering estimate. Collaboration token usage for A14, A15, and the active
-writers is unavailable and remains JSON `null`; no estimate was substituted.
+QPBT-028 is now in progress. One sole writable orchestrator and two fresh
+read-only scouts occupy all three non-coordinator lanes: A02 maps every A10
+outbound/content channel to the version-2 manifest and adversarial tests; A03
+probes locally enforceable filesystem, environment, and descendant-tool egress
+isolation plus host-sentinel denial. All three are bound to exact base
+`1799fbaf8175157a4aca6841a179fcbd43d7f4ed` in separate worktrees. Stage 2 has
+issued 108 subagent attempts and retains peak concurrency four including root.
+No endpoint, network, GitHub, credential, Lean, Lake, or cache action is part of
+this reconnaissance.
+
+The measured Stage 2 engineering forecast is now 2-6 working days for QPBT-028
+implementation, adversarial testing, independent immutable review, and
+integration. A final endpoint review should take hours once its exact manifest
+is authorized, but the wait for that authorization is externally unbounded and
+is not folded into the engineering estimate. Standing trust in
+`https://api.finite-dimensional.space` is transport trust; it does not permit
+credentials, unrelated private content, or unspecified repository bytes.
+Collaboration token usage for A27 and the active QPBT-028 sessions is unavailable
+and remains JSON `null` with the backend availability reason; no estimate was
+substituted.
