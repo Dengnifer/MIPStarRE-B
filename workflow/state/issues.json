@@ -1859,7 +1859,7 @@
       "title": "Freeze callable contracts for the QPBT-014 Lean split",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "ready",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -1879,7 +1879,7 @@
         "Run blueprint unit, source-root, default declaration, generated-diff, and workflow checks; record statement-integrity tables and exact source hashes",
         "Obtain a fresh independent immutable mathematical/API review before guarded integration"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i035-orchestrator-a01-q014-contract",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md",
         "blueprint/metadata/nodes.json#F02-CODE",
@@ -1902,9 +1902,9 @@
         "blueprint/src/generated/chapter-03-entries.tex"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T13:00:57.767350Z",
+      "updated_at": "2026-09-01T13:03:14.715138Z",
       "blocked_reason": null,
-      "unblock_condition": "Ready immediately after QPBT-033; no Lean child may dispatch until this contract candidate is independently reviewed and merged."
+      "unblock_condition": null
     },
     {
       "id": "QPBT-037",

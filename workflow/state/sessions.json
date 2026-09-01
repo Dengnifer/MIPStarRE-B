@@ -19922,6 +19922,46 @@
       "outcome_path": null,
       "timing_quality": null,
       "status": "running"
+    },
+    {
+      "id": "i035-orchestrator-a01-q014-contract",
+      "name": "i035-orchestrator-a01-q014-contract",
+      "role": "orchestrator",
+      "issue_id": "QPBT-035",
+      "attempt": 1,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "dispatch_condition": "Dispatch immediately after QPBT-033 closes and an isolated exact-base worktree exists; this contract freeze is the sole blocker for the next three parallel Lean writers.",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "1c9abda5e4896cdf6c72e8e8131788dbd88b7c4a",
+      "base_revision_reason": "Exact validated checkpoint that imports the complete QPBT-033 split report and canonical QPBT-035 through QPBT-040 issue graph.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-035-q014-contract-a01",
+      "owned_paths": [
+        "blueprint/metadata/nodes.json",
+        "blueprint/generated/graph.json",
+        "blueprint/generated/graph.dot",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/chapter-03-entries.tex",
+        "workflow/reviews/qpbt-035-q014-contract-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-035, the complete QPBT-033 report, pinned F02/F05/F06/F07/G01 sources, G09, integrated Field.lean/Approximation.lean, and existing upstream/Mathlib APIs before edits. Resolve QPBT-033 findings 1-3,5,7 with exact callable imports/signatures and statement-integrity tables. Do not guess missing mathematical content or add public obligations. Seed this private worktree once from authenticated cache key d71a99abea8f7ebf5bda5194dfef088b06f526230caf5ccbca34d62d5b4267b9 (main commit 259c73a) and materialize the pinned local MIPStarRE archive with --replace-existing only if bounded temporary Lean signature probes require it; do not warm or run a full build. Edit only the owned blueprint paths and report, regenerate only owned deterministic outputs, run python3 -m unittest blueprint.tests.test_check, source-root/default blueprint checks, generated diff checks, workflow validation, signature probes needed to establish elaboration, and git diff --check. If generation changes an unowned path, stop and request exact ownership expansion rather than write it. Commit only owned paths on issue/qpbt-035-q014-contract-a01. Report exact head/tree, changed manifest/hashes, source hashes, each finding disposition, contract blocks, probe/test timings, cache/materialization metrics, token-null reason, topology, action counters, and reviewer checklist. No Lean source commits, canonical state/metrics/research edits, full build, endpoint/network/GitHub/credentials/nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-035-q014-contract-a01.md",
+      "external_id": "/root/i035_q014_contract",
+      "started_at": "2026-09-01T13:03:14.041182Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "timing_quality": null,
+      "status": "running"
     }
   ]
 }

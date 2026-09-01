@@ -29,7 +29,7 @@ availability reasons rather than receiving estimates.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 112 terminal attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | source and blueprint acceptance chain closed; LPR-018 has three confirmed findings and supplemental QPBT-028/029/030 isolation work continues off the Lean critical path |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 40 issued attempts, 39 terminal and 1 active; peak concurrency 3 | collaboration usage unavailable | source and API audits archived; expanded-scope QPBT-023 contract continuation active |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 185 issued attempts: 183 terminal and 2 active sessions; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files are reviewed, merged, and combined-build clean; the next four-file wave is being split while live-admission tooling proceeds off the critical path |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 186 issued attempts: 184 terminal and 2 active sessions; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files are reviewed, merged, and combined-build clean; the next callable contract is being frozen while live-admission tooling proceeds off the critical path |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
@@ -1247,7 +1247,27 @@ combined ancestry, source fidelity, and blob preservation with zero findings.
 Three attempted third-worker launches were rejected even though the durable
 planner had admitted them under capacity three. This recurrence is `INC-053`;
 QPBT-034 now tracks a live-backend admission handshake. Until that is fixed,
-the coordinator limits collaboration to two simultaneous workers. QPBT-033 is
-using one lane to preflight the next four-file QPBT-014 split; QPBT-034 uses the
-other lane for the isolated protocol/tooling repair without touching Lean or
-triggering a build.
+the coordinator limits collaboration to two simultaneous workers. QPBT-033
+used one lane to preflight the next four-file QPBT-014 split while QPBT-034 used
+the other for the isolated protocol/tooling repair without touching Lean or
+triggering a build. QPBT-035 replaced the completed preflight in the critical
+lane.
+
+QPBT-033 completed after a `1543.419`-second coordinator lifecycle window,
+which includes time queued behind the backend cap; physical activation timing
+is unavailable and is not invented. Its source-first audit found three
+dispatch blockers: incomplete callable signatures, omitted F06 ownership, and
+an orphan raw `BitVec`/already-discharged `FieldData` acceptance gate. Root read
+and authenticated the complete report at SHA-256
+`5b6e073865225ef6a8c70a78ce3ad43e2a41d26c1d19b42534e7ef01eb03f55c`.
+
+The accepted issue tree is QPBT-035 for one reviewed contract freeze;
+QPBT-036 through QPBT-039 for `Polynomial.lean`, `Pauli.lean`, `Types.lean`, and
+`Parameters.lean`; and QPBT-040 as the sole combined-snapshot build owner. The
+contract gate is active concurrently with QPBT-034. Once it closes, the three
+longer Lean writers can run together and Parameters queues behind the first
+available lane. The audited forecast for contract, four implementations,
+reviews, and combined validation is `17-41` active wall hours, approximately
+`1-4` calendar days with prompt three-wide dispatch. The contract itself is
+forecast at `4-8` hours; dispatching writers before it would risk incompatible
+APIs and repeated implementation rather than produce a real speed-up.
