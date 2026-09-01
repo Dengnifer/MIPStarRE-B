@@ -1101,7 +1101,7 @@
         "Obtain an independent immutable blueprint contract review",
         "Blueprint declaration synchronization, graph, source-root, and diff-integrity checks pass"
       ],
-      "owner_session_id": "i023-orchestrator-a01-leaf-contract",
+      "owner_session_id": "i023-orchestrator-a04-leaf-contract-continuation",
       "source_refs": [
         "references/2001.04383v3/QPBT_SOURCE_MAP.md",
         "workflow/reviews/stage-04a-q013-leaf-contract.md",
@@ -1110,7 +1110,7 @@
         "blueprint/metadata/nodes.json#F04-DISTANCE"
       ],
       "created_at": "2026-08-31T10:13:51Z",
-      "updated_at": "2026-09-01T08:01:11.242560Z",
+      "updated_at": "2026-09-01T09:28:56.358798Z",
       "blocked_reason": null,
       "unblock_condition": null
     },

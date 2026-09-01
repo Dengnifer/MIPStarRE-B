@@ -165,7 +165,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 39,
+      "subagents_issued": 40,
       "max_concurrency": 2,
       "outputs": [
         "workflow/reviews/stage-03-blueprint-lean-recon.md",

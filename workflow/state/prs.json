@@ -5237,12 +5237,75 @@
           "worktree_clean": true
         }
       ],
-      "reviews": [],
-      "findings": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-028-pr018-a06-authority",
+          "reviewer_session_id": "i028-reviewer-a06-pr018-authority",
+          "verdict": "request_changes",
+          "base_sha": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
+          "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e",
+          "started_at": "2026-09-01T09:12:52.952780Z",
+          "completed_at": "2026-09-01T09:18:21.524768Z",
+          "result_path": "workflow/reviews/qpbt-028-pr018-review-a06.md",
+          "finding_ids": [
+            "F-LPR018-001",
+            "F-LPR018-002",
+            "F-LPR018-003"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "8a876b5c91dfa2b762cf9d1cfc1c2bd82da2f05a798d6d0e543dfc17f3d5ac6e",
+          "focused_tests": "4/4",
+          "adversarial_cases": 6
+        }
+      ],
+      "findings": [
+        {
+          "id": "F-LPR018-001",
+          "introduced_review_id": "review-qpbt-028-pr018-a06-authority",
+          "base_sha": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
+          "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Malformed scalar types, a null model, and contradictory Git mode/object/representation authority can pass v2 structure validation.",
+          "path": "scripts/local_agent.py",
+          "line": 786
+        },
+        {
+          "id": "F-LPR018-002",
+          "introduced_review_id": "review-qpbt-028-pr018-a06-authority",
+          "base_sha": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
+          "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e",
+          "severity": "medium",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "A caller-fabricated isolation-success mapping is accepted without binding it to the probe or validating cross-field evidence.",
+          "path": "scripts/review_isolation.py",
+          "line": 227
+        },
+        {
+          "id": "F-LPR018-003",
+          "introduced_review_id": "review-qpbt-028-pr018-a06-authority",
+          "base_sha": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
+          "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e",
+          "severity": "medium",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "The projection-root symlink check resolves the path before testing is_symlink, so a caller-selected live symlink is accepted.",
+          "path": "scripts/review_isolation.py",
+          "line": 102
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T07:45:41.746204Z",
-      "updated_at": "2026-09-01T09:09:04.274874Z",
+      "updated_at": "2026-09-01T09:24:28.044053Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
