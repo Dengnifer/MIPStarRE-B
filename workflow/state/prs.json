@@ -4660,9 +4660,10 @@
       "base": "main",
       "head": "issue/qpbt-027-finding-reconfirm-a01",
       "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
-      "head_sha": "44ecdce96e5536407f89266b2be59820be56f01c",
+      "head_sha": "2c6b1f1d0be89d09bad2f60e074cf106be99fd46",
       "implementer_session_ids": [
-        "i027-integrator-a03-pr017-bind"
+        "i027-integrator-a03-pr017-bind",
+        "i027-fixer-a05-stale-append-guard"
       ],
       "checks": [
         {
@@ -4746,6 +4747,84 @@
           "commit_count": 1,
           "changed_paths": 5,
           "worktree_clean": true
+        },
+        {
+          "id": "check-qpbt-027-workflow-2c6b1f1",
+          "name": "A05 exact-head workflow module tests",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 tests/test_workflow.py",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "2c6b1f1d0be89d09bad2f60e074cf106be99fd46",
+          "completed_at": "2026-09-01T05:11:22.114674Z",
+          "result_path": "workflow/reviews/qpbt-027-stale-append-fix-a05.md",
+          "tests": "70/70",
+          "seconds": 0.845,
+          "root_reproduced": true
+        },
+        {
+          "id": "check-qpbt-027-aggregate-2c6b1f1",
+          "name": "A05 exact-head dependency-free aggregate tests",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py'",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "2c6b1f1d0be89d09bad2f60e074cf106be99fd46",
+          "completed_at": "2026-09-01T05:11:22.114674Z",
+          "result_path": "workflow/reviews/qpbt-027-stale-append-fix-a05.md",
+          "tests": "323/323",
+          "seconds": 187.166,
+          "fixer_seconds": 186.775,
+          "root_reproduced": true
+        },
+        {
+          "id": "check-qpbt-027-compile-2c6b1f1",
+          "name": "A05 exact-head Python compile check",
+          "command": "PYTHONPYCACHEPREFIX=/tmp/qpbt-027-root-a05-pycache python3 -m compileall -q scripts/workflow.py tests/test_workflow.py",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "2c6b1f1d0be89d09bad2f60e074cf106be99fd46",
+          "completed_at": "2026-09-01T05:11:22.114674Z",
+          "result_path": "workflow/reviews/qpbt-027-stale-append-fix-a05.md",
+          "root_reproduced": true
+        },
+        {
+          "id": "check-qpbt-027-validate-2c6b1f1",
+          "name": "A05 exact-head workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "2c6b1f1d0be89d09bad2f60e074cf106be99fd46",
+          "completed_at": "2026-09-01T05:11:22.114674Z",
+          "result_path": "workflow/reviews/qpbt-027-stale-append-fix-a05.md",
+          "valid": true,
+          "root_reproduced": true
+        },
+        {
+          "id": "check-qpbt-027-checker-2c6b1f1",
+          "name": "A05 exact-head aggregate workflow checker",
+          "command": "python3 scripts/check_workflow.py --skip-tests",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "2c6b1f1d0be89d09bad2f60e074cf106be99fd46",
+          "completed_at": "2026-09-01T05:11:22.114674Z",
+          "result_path": "workflow/reviews/qpbt-027-stale-append-fix-a05.md",
+          "root_reproduced": true
+        },
+        {
+          "id": "check-qpbt-027-identity-2c6b1f1",
+          "name": "A05 exact-head diff ancestry tree path and clean-worktree identity",
+          "command": "git diff --check 44ecdce..HEAD; git rev-parse HEAD HEAD^{tree} HEAD^; git merge-base --is-ancestor 44ecdce HEAD; git rev-list --count 44ecdce..HEAD; git diff --name-status --no-renames 44ecdce..HEAD; git status --porcelain",
+          "status": "passed",
+          "base_sha": "506ac7a7b57a2318e0764acfc2558dc62f9e50f0",
+          "head_sha": "2c6b1f1d0be89d09bad2f60e074cf106be99fd46",
+          "completed_at": "2026-09-01T05:11:22.114674Z",
+          "result_path": "workflow/reviews/qpbt-027-stale-append-fix-a05.md",
+          "tree_sha": "0c6fdd0f7ce5349b0f543e171871eb0ef292eab6",
+          "direct_fix_parent": "44ecdce96e5536407f89266b2be59820be56f01c",
+          "fix_commit_count": 1,
+          "total_commit_count": 2,
+          "fix_changed_paths": 3,
+          "total_changed_paths": 6,
+          "worktree_clean": true
         }
       ],
       "reviews": [
@@ -4786,25 +4865,29 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T04:34:43.606227Z",
-      "updated_at": "2026-09-01T04:51:14.393717Z",
+      "updated_at": "2026-09-01T05:11:52.321279Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
         "scripts/workflow.py",
         "tests/test_workflow.py",
-        "workflow/reviews/qpbt-027-finding-reconfirm-a01.md"
+        "workflow/reviews/qpbt-027-finding-reconfirm-a01.md",
+        "workflow/reviews/qpbt-027-stale-append-fix-a05.md"
       ],
       "motivation": "Remove the ledger contradiction that made honest approval impossible after a resolved finding's PR head advanced.",
-      "description": "Preserve immutable finding resolutions and append later approving review references that reconfirm them on the exact current base/head, with chronological, same-PR, independent-reviewer and fail-closed malformed-value validation.",
-      "testing": "8/8 focused reconfirmation cases; 67/67 workflow tests; 320/320 dependency-free aggregate tests; compileall; workflow validation/checker; exact diff, ancestry, tree, path, and clean-worktree identity",
+      "description": "Preserve immutable finding resolutions and append later approving review references only when exact-current at append time; public updates assemble a complete candidate, authorize only new suffix evidence including new findings, retain legitimate historical prefixes, and fail closed across malformed and multi-field cases.",
+      "testing": "70/70 exact-head workflow tests; 323/323 dependency-free aggregate tests; compileall; workflow validation/checker; exact direct-parent three-path fix and total six-path candidate identity",
       "addresses": "QPBT-027",
       "provenance_session_ids": [
         "i027-orchestrator-a01-finding-reconfirm",
         "i027-tester-a02-reconfirm-contract",
-        "i027-integrator-a03-pr017-bind"
+        "i027-integrator-a03-pr017-bind",
+        "i027-fixer-a05-stale-append-guard",
+        "i027-tester-a06-stale-append-contract",
+        "i027-scout-a07-integration-order"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "F-LPR017-001 requires a direct-descendant fix that validates each newly appended confirmation against the complete candidate PR state before persistence, plus a fresh immutable reviewer of the new head."
+      "unexecuted_gate": "Fresh independent immutable reviewer must resolve F-LPR017-001 and approve exact base 506ac7a7 / head 2c6b1f1 before true-merge integration."
     }
   ]
 }
