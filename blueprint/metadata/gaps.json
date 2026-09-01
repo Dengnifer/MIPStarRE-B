@@ -150,6 +150,16 @@
       "disposition": "Use Z^(r_Z)(u_Z) X^(r_X)(u_X) in the reversed product throughout the anticommutation argument.",
       "public_effect": "Repairs an internal index typo; the stated observable consequence is unchanged.",
       "issue": "QPBT-009"
+    },
+    {
+      "id": "G16",
+      "class": "missing-formalized-construction",
+      "source": "finite-fields.tex:62-83,243-307,350-400 [1378-1399,1559-1623,1666-1716]",
+      "affected_nodes": ["F01-FIELD", "K03A-FIELD-ARITHMETIC"],
+      "paper_problem": "The paper uses one basis with two simultaneous mathematical properties (normal and trace-self-dual), then cites a single uniform deterministic algorithm that also returns compatible multiplication tables in polynomial time. The pinned Lean libraries expose normal-basis and trace-dual machinery separately, but no theorem or executable construction discharges their simultaneous existence and algorithmic coherence for every odd k.",
+      "disposition": "First prove simultaneous self-dual-normal-basis existence for GaloisField 2 k from Odd k and make only a noncomputable mathematical selection in F01. Separately formalize or import the pinned Shoup-Lenstra-Wang construction, its multiplication-table output, correctness, representation coherence, and faithful cost bound for K03A.",
+      "public_effect": "No field, basis, algorithm, witness package, or correctness premise is added to callers. F01 retains the source's odd-k existence claim, while the stronger uniform algorithm-and-complexity claim remains a separate tracked obligation.",
+      "issue": "QPBT-023"
     }
   ]
 }
