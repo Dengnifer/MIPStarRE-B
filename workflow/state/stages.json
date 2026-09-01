@@ -72,7 +72,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; available external-session usage is recorded per session"
       },
-      "subagents_issued": 90,
+      "subagents_issued": 91,
       "max_concurrency": 4,
       "outputs": [
         "workflow/reviews/stage-02-split-design-recon.md",
@@ -105,7 +105,8 @@
         "workflow/reviews/qpbt-026-capability-schema-a19.md",
         "workflow/reviews/qpbt-027-pr017-bind-a03.md",
         "workflow/reviews/qpbt-026-review-a20-pr016-immutable.md",
-        "workflow/reviews/qpbt-027-review-a04-pr017-immutable.md"
+        "workflow/reviews/qpbt-027-review-a04-pr017-immutable.md",
+        "workflow/reviews/qpbt-027-stale-append-contract-a06.md"
       ],
       "incident_ids": [
         "INC-021",
