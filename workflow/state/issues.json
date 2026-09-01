@@ -75,7 +75,7 @@
       "id": "QPBT-002",
       "title": "Pin and split the QPBT reference sources",
       "kind": "research",
-      "status": "blocked",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-001",
@@ -99,15 +99,28 @@
         "references/2001.04383v3/QPBT_SOURCE_MAP.md"
       ],
       "created_at": "2026-08-30T09:31:33+08:00",
-      "updated_at": "2026-08-30T23:00:59Z",
-      "blocked_reason": "The exact restart-recovery head 63037ddceada7a88436f9afa9ed1ef4d74319098 passed all gates and the fresh A20 formal immutable review with zero findings. Its QPBT-010 dependency remains locally ready but awaits the user-requested endpoint review authorization or an explicit disposition.",
-      "unblock_condition": "Satisfy the endpoint-specific QPBT-010 review gate or record an explicit user disposition; the local QPBT-002 implementation and formal review are complete."
+      "updated_at": "2026-09-01T07:53:57.492843Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
+      "completion_evidence": {
+        "pr_id": "LPR-002",
+        "head_sha": "63037ddceada7a88436f9afa9ed1ef4d74319098",
+        "integration_sha": "65315213d047d9181804ad74d573f533c904ef4f",
+        "review_id": "review-qpbt-002-a20-reference-recovery-immutable",
+        "review_verdict": "approve",
+        "accepted_gates": "5/5",
+        "materialized_files": 39,
+        "label_occurrences": 646,
+        "inventory_sha256": "04548808c30c476e9b2b7cb2f728a6d0c348a6706a8ed1bc9fb9945f20a124f4",
+        "integrated_acceptance_path": "workflow/reviews/stage-02-03-postintegration-acceptance-fcd1aa9.md",
+        "closure_audit_path": "workflow/reviews/qpbt-010-closure-disposition-a11.md"
+      }
     },
     {
       "id": "QPBT-003",
       "title": "Prepare the source-faithful QPBT Lean blueprint",
       "kind": "blueprint",
-      "status": "blocked",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-002",
@@ -130,15 +143,33 @@
         "references/2001.04383v3/sections/"
       ],
       "created_at": "2026-08-30T09:31:33+08:00",
-      "updated_at": "2026-08-30T23:41:47Z",
-      "blocked_reason": "A30 formally approved the full immutable blueprint range 77aa1a4..3f4d4b3 with zero findings. A disposable exact four-range second-commit rehearsal passed 191 aggregate tests, combined source, 26 blueprint tests, graph, forced 45-page PDF, compile, and a zero-conflict/zero-overlap 55-path manifest.",
-      "unblock_condition": "Integrate the approved QPBT-010, QPBT-002, QPBT-012, and blueprint ranges onto main in the rehearsed order, rerun the exact combined gates, and create the second main commit."
+      "updated_at": "2026-09-01T07:54:37.819731Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
+      "completion_evidence": {
+        "pr_id": "LPR-004",
+        "head_sha": "3f4d4b302b96b74dffaf595c11ff01db4e6c7fbd",
+        "integration_sha": "65315213d047d9181804ad74d573f533c904ef4f",
+        "review_id": "review-qpbt-003-a30-full-blueprint-immutable",
+        "review_verdict": "approve",
+        "nodes": 48,
+        "chapters": 12,
+        "blueprint_tests": "26/26",
+        "pdf_pages": 45,
+        "lean_identifiers": 109,
+        "source_anchors_exact": true,
+        "main_theorem_reachable": true,
+        "second_commit_in_substance_and_history": "65315213d047d9181804ad74d573f533c904ef4f",
+        "integrated_acceptance_sha": "fcd1aa928ac0263f83de37143dc8dc5f4d937210",
+        "integrated_acceptance_report": "workflow/reviews/stage-02-03-postintegration-acceptance-fcd1aa9.md",
+        "closure_audit_path": "workflow/reviews/qpbt-010-closure-disposition-a11.md"
+      }
     },
     {
       "id": "QPBT-004",
       "title": "Establish the Lean project and reusable quantum foundations",
       "kind": "formalization",
-      "status": "planned",
+      "status": "ready",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-003",
@@ -166,9 +197,9 @@
         "workflow/state/issues.json#QPBT-025"
       ],
       "created_at": "2026-08-30T09:31:33+08:00",
-      "updated_at": "2026-08-31T20:34:55.454341Z",
-      "blocked_reason": "QPBT-003 remains incomplete. QPBT-024 and its QPBT-025 child are done after the successful authenticated recipe-v5 warm, READY check, and deep-inventory verification.",
-      "unblock_condition": "Complete QPBT-003, then reconcile QPBT-004's own pin, provenance, empty-project build, and local-cache acceptance gates before transitioning planned to ready.",
+      "updated_at": "2026-09-01T07:54:56.035403Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
       "last_cache_failure_evidence": {
         "main_sha": "9c9b49548fabdd6b01916787d7dc17a4bca36513",
         "cache_key": "9b6ccb722e8943a7790b94f839edca0b6bed53f720284ea2a3f6762a9fba1f36",
@@ -356,7 +387,7 @@
       "id": "QPBT-009",
       "title": "Resolve QPBT source discrepancies in the blueprint",
       "kind": "blueprint",
-      "status": "blocked",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-002"
@@ -378,15 +409,30 @@
         "references/2001.04383v3/QPBT_SOURCE_MAP.md"
       ],
       "created_at": "2026-08-30T10:00:00+08:00",
-      "updated_at": "2026-08-30T21:12:30.000001Z",
-      "blocked_reason": "All thirteen source-gap dispositions, the external source pin, and the source-facing blueprint review are accepted; only the generated QPBT-002 source base remains unfinished.",
-      "unblock_condition": "Complete and independently approve QPBT-002 on the repaired QPBT-010 transport base."
+      "updated_at": "2026-09-01T07:54:17.638960Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
+      "completion_evidence": {
+        "disposition_scope": "All source-map discrepancies and additional blueprint fidelity findings have explicit count-free dispositions.",
+        "external_sources_pinned": true,
+        "norm_squared_norm_contracts": [
+          "normExtraction_ofSquared",
+          "qpbtRobustness_reparameterize"
+        ],
+        "public_assumption_added": false,
+        "pr_id": "LPR-004",
+        "head_sha": "3f4d4b302b96b74dffaf595c11ff01db4e6c7fbd",
+        "integration_sha": "65315213d047d9181804ad74d573f533c904ef4f",
+        "review_id": "review-qpbt-003-a30-full-blueprint-immutable",
+        "review_verdict": "approve",
+        "closure_audit_path": "workflow/reviews/qpbt-010-closure-disposition-a11.md"
+      }
     },
     {
       "id": "QPBT-010",
       "title": "Make reference acquisition resilient to Git transport hangs",
       "kind": "workflow",
-      "status": "review",
+      "status": "done",
       "execution_category": "implementation",
       "parent_id": "QPBT-000",
       "dependency_ids": [
@@ -408,7 +454,7 @@
         "research/metrics/incidents.jsonl#INC-002"
       ],
       "created_at": "2026-08-30T10:00:00+08:00",
-      "updated_at": "2026-09-01T02:42:02.343436Z",
+      "updated_at": "2026-09-01T07:53:36.907836Z",
       "endpoint_review_authorization": {
         "authorized_at": "2026-08-31T21:12:28.754578826Z",
         "authority": "direct user instruction",
@@ -462,7 +508,43 @@
         "unrelated_private_content_authorized": false,
         "exact_immutable_file_manifest_required": true,
         "separate_content_scope_authorization_required": true
-      }
+      },
+      "supplemental_endpoint_review_disposition": {
+        "status": "deferred-to-numbered-issues",
+        "recorded_at": "2026-09-01T07:53:17.752422Z",
+        "authority": "direct user instruction",
+        "user_rule": "A Stage 1 change is allowed only if it is required by an acceptance test, a concrete safety issue, or a direct user requirement. After the acceptance gate passes, further improvements are deferred to a numbered issue.",
+        "effect": "The later endpoint-backed second review is supplemental and does not block the four written QPBT-010 acceptance gates. It is neither approved nor waived as a security mechanism; its remaining work stays open in QPBT-028, QPBT-029, and QPBT-030.",
+        "written_acceptance_gates_unchanged": true,
+        "endpoint_requests": 0,
+        "repository_evidence_transmitted": false,
+        "endpoint_approval_claimed": false,
+        "deferred_issue_ids": [
+          "QPBT-028",
+          "QPBT-029",
+          "QPBT-030"
+        ],
+        "independent_audit": {
+          "session_id": "i010-reviewer-a11-closure-disposition",
+          "verdict": "approve",
+          "report_path": "workflow/reviews/qpbt-010-closure-disposition-a11.md",
+          "report_sha256": "36fa5e8eefca71051e7ae670438d81411464684fe8ef1f179bdd3ab96652b2e7",
+          "audited_sha": "1cbcd4efe79f1bacfb2deffdb47d75bdf15516ac"
+        }
+      },
+      "completion_evidence": {
+        "pr_id": "LPR-001",
+        "head_sha": "e93d949d06af2a7f4407d198a37aad315deac6aa",
+        "integration_sha": "65315213d047d9181804ad74d573f533c904ef4f",
+        "local_review_id": "review-qpbt-010-a04-immutable",
+        "local_review_verdict": "approve",
+        "written_gates": "4/4",
+        "approved_head_ancestor_of_closure_audit": true,
+        "combined_acceptance_path": "workflow/reviews/stage-02-03-postintegration-acceptance-fcd1aa9.md",
+        "closure_audit_path": "workflow/reviews/qpbt-010-closure-disposition-a11.md"
+      },
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-011",
@@ -982,7 +1064,7 @@
       "id": "QPBT-023",
       "title": "Freeze QPBT leaf signatures and self-dual basis obligation",
       "kind": "blueprint",
-      "status": "blocked",
+      "status": "ready",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-003"
@@ -1008,9 +1090,9 @@
         "blueprint/metadata/nodes.json#F04-DISTANCE"
       ],
       "created_at": "2026-08-31T10:13:51Z",
-      "updated_at": "2026-08-31T10:15:14.932767Z",
-      "blocked_reason": "The approved blueprint freezes names and carrier policies but omits exact callable signatures and several finite question/distribution/state domains; the pinned Mathlib boundary also lacks a self-dual-normal-basis existence theorem for GaloisField 2 k with odd k.",
-      "unblock_condition": "After QPBT-003 is unblocked, publish exact F01/F03/F04 signatures and imports, document the self-dual-normal-basis proof or a separately tracked internal obligation without changing the paper theorem assumptions, pass an independent immutable contract review, and then allow QPBT-013 dispatch."
+      "updated_at": "2026-09-01T07:54:56.792587Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-024",

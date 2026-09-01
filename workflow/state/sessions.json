@@ -18238,7 +18238,7 @@
       "name": "i010-reviewer-a11-closure-disposition",
       "role": "reviewer",
       "issue_id": "QPBT-010",
-      "status": "running",
+      "status": "archived",
       "attempt": 11,
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "priority": 1,
@@ -18253,16 +18253,61 @@
       "validation_command": "Read AGENTS.md. Act as a fresh hostile read-only closure auditor at exact detached HEAD 1cbcd4efe79f1bacfb2deffdb47d75bdf15516ac. Audit QPBT-010, QPBT-002, QPBT-009, and QPBT-003 written acceptance gates, their immutable local approvals, merged PR identities and ancestry, and workflow/reviews/stage-02-03-postintegration-acceptance-fcd1aa9.md. Determine whether the direct user rule that a Stage 1 change is allowed only when required by an acceptance test, concrete safety issue, or direct requirement, and that after the acceptance gate passes further improvements are deferred to a numbered issue, explicitly disposes the later supplemental endpoint-review closure gate without waiving any written acceptance gate. Distinguish intrinsic acceptance from QPBT-028, QPBT-029, and QPBT-030 supplemental security infrastructure. Verify the legal transition order and whether QPBT-004 and QPBT-023 may start immediately after closure. Findings lead with path:line and state exact evidence. Write only /tmp/qpbt-stage23-closure-a11.md and report SHA-256. No repository edits, Git writes, endpoint/network/GitHub/credentials/Codex launches, Lean/Lake/cache actions, or nested agents.",
       "result_envelope_path": "workflow/reviews/qpbt-010-closure-disposition-a11.md",
       "started_at": "2026-09-01T07:43:22.427379Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-01T07:52:32.270018Z",
+      "elapsed_seconds": 549.843,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-010-closure-disposition-a11.md",
+      "timing_quality": "runtime-measured",
+      "agent_measured_elapsed_seconds": null,
+      "source_report_sha256": "36fa5e8eefca71051e7ae670438d81411464684fe8ef1f179bdd3ab96652b2e7",
+      "canonical_report_sha256": "36fa5e8eefca71051e7ae670438d81411464684fe8ef1f179bdd3ab96652b2e7",
+      "outcome": "approve-explicit-supplemental-gate-disposition",
+      "checks": {
+        "audited_sha": "1cbcd4efe79f1bacfb2deffdb47d75bdf15516ac",
+        "audited_tree": "d31d767eda1504b393616cc6de03048eec04abb4",
+        "verdict": "approve-explicit-supplemental-gate-disposition",
+        "blocking_findings": 0,
+        "low_findings": 1,
+        "qpbt010_written_gates": "4/4 satisfied",
+        "approved_heads_ancestors": "3/3",
+        "integrated_acceptance_ancestor": true,
+        "closure_order": [
+          "QPBT-010",
+          "QPBT-002",
+          "QPBT-009",
+          "QPBT-003"
+        ],
+        "immediate_parallel_frontier": [
+          "QPBT-004",
+          "QPBT-023"
+        ],
+        "supplemental_issue_ids": [
+          "QPBT-028",
+          "QPBT-029",
+          "QPBT-030"
+        ],
+        "report_sha256": "36fa5e8eefca71051e7ae670438d81411464684fe8ef1f179bdd3ab96652b2e7",
+        "worktree_clean": true,
+        "workflow_validate": "passed",
+        "repository_edits": 0,
+        "git_writes": 0,
+        "endpoint": 0,
+        "network": 0,
+        "github": 0,
+        "credentials": 0,
+        "codex_launches": 0,
+        "lean_builds": 0,
+        "lake_builds": 0,
+        "cache_actions": 0,
+        "nested_agents": 0
+      },
+      "notes": "A11 independently approved explicit disposition of the later supplemental endpoint-review gate without waiving any written acceptance gate. It identified only a low stale gap-count phrase; closure uses count-free wording. Token usage and an independent agent timer are unavailable and were not estimated."
     },
     {
       "id": "i028-integrator-a04-pr018-bind",
