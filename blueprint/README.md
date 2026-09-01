@@ -43,10 +43,13 @@ arbitrary POVMs, bundled normalization, sigma codecs into uniform outcome
 alphabets, Euclidean/`WithLp`/operator adapters, transparent bipartite
 isometries, separate `SquaredRealizes` and public `Realizes` certificates, and
 `Real.rpow`. Carrier universes and required finite/decidable instances are
-explicit. The minimal-skeleton stage plan has exactly one `sorry`, at
-`MIPStarRE.QPBT.pauliSoundness`; the complete-skeleton stage may expose the
-additional tracked proof debt needed for all blueprint declarations. No
-conditional helper moves public proof debt into an assumption.
+explicit. The minimal-skeleton stage plan declares exactly two `sorry`s:
+`MIPStarRE.QPBT.fieldDataOfOddExponent` for paper gap `G16`, and
+`MIPStarRE.QPBT.pauliSoundness` for the main theorem. In the complete-skeleton
+stage, a `sorry` is permitted only as the proof body of a blueprint theorem;
+it is forbidden in definitions or statements and may not be replaced or
+hidden by a new `axiom`, `constant`, or public assumption. The proof-complete
+stage permits zero `sorry`s.
 
 The PDF is written to `blueprint/build/main.pdf`. Build products and the
 Graphviz SVG are ignored. The PDF target verifies that all planned Lean

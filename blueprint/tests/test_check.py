@@ -96,14 +96,27 @@ class BlueprintCheckTests(unittest.TestCase):
     def test_minimal_skeleton_proof_debt_is_exact(self) -> None:
         expected = {
             "stage": "minimal",
-            "sorry_count": 1,
-            "sorry_declarations": ["MIPStarRE.QPBT.pauliSoundness"],
+            "sorry_count": 2,
+            "sorry_declarations": [
+                "MIPStarRE.QPBT.fieldDataOfOddExponent",
+                "MIPStarRE.QPBT.pauliSoundness",
+            ],
+            "sorry_reasons": {
+                "MIPStarRE.QPBT.fieldDataOfOddExponent": "G16",
+                "MIPStarRE.QPBT.pauliSoundness": "main-theorem",
+            },
+            "proof_complete_sorry_count": 0,
         }
         self.assertEqual(expected, self.nodes["skeleton_plan"])
         for mutation in (
             {**expected, "stage": "complete"},
-            {**expected, "sorry_count": 2},
+            {**expected, "sorry_count": 1},
             {**expected, "sorry_declarations": ["MIPStarRE.QPBT.helper"]},
+            {**expected, "sorry_reasons": {
+                "MIPStarRE.QPBT.fieldDataOfOddExponent": "untracked",
+                "MIPStarRE.QPBT.pauliSoundness": "main-theorem",
+            }},
+            {**expected, "proof_complete_sorry_count": 1},
         ):
             with self.subTest(mutation=mutation):
                 bad = copy.deepcopy(self.nodes)
@@ -261,7 +274,7 @@ class BlueprintCheckTests(unittest.TestCase):
                          for node_id, node in by_id.items()}
 
         self.assertEqual(
-            {"F03-MEASUREMENT", "F04-DISTANCE"},
+            {"F04-CONSISTENCY"},
             prerequisites["E01-ORTHO"],
         )
         self.assertEqual({"G02-GAME"}, prerequisites["G03-COMPLETENESS"])
@@ -313,12 +326,15 @@ class BlueprintCheckTests(unittest.TestCase):
 
         strategy = by_id["F04-DISTANCE"]
         self.assertIn("EuclideanSpace", strategy["encoding"])
-        self.assertIn("WithLp 2", strategy["encoding"])
+        self.assertIn("Matrix.toEuclideanLin.symm", strategy["encoding"])
         self.assertIn("norm-one", strategy["encoding"])
         self.assertIn("MIPStarRE.QPBT.BipartiteIsometry", strategy["lean"]["names"])
-        self.assertIn("MIPStarRE.QPBT.BipartiteIsometry.conjugate",
+        self.assertIn("MIPStarRE.QPBT.BipartiteIsometry.conjugateAlice",
                       strategy["lean"]["names"])
-        self.assertIn("universe uAlice uBob", strategy["boundary_hypotheses"])
+        self.assertIn("MIPStarRE.QPBT.BipartiteIsometry.conjugateBob",
+                      strategy["lean"]["names"])
+        self.assertIn("all question, outcome, local, auxiliary, junk, and ideal universes",
+                      strategy["boundary_hypotheses"])
 
         parameters = by_id["G01-PARAMETERS"]
         self.assertIn("q=2^k", parameters["statement"])
@@ -363,6 +379,84 @@ class BlueprintCheckTests(unittest.TestCase):
         )
         self.assertIn(r"\linebreak", rendered)
 
+    def test_additional_source_schema_and_rendering_are_checked(self) -> None:
+        anchor = {
+            "path": "references/2001.04383v3/sections/dependencies/measurements.tex",
+            "label": "def:bracket",
+            "generated_lines": [34, 47],
+            "original_lines": [1887, 1900],
+        }
+        good = copy.deepcopy(self.nodes)
+        good["nodes"][0]["additional_sources"] = [anchor]
+        self.assertEqual([], self.errors(nodes=good))
+        rendered = check.render_entry(good["nodes"][0], [])
+        self.assertIn(r"\BlueprintField{Additional sources}", rendered)
+        self.assertIn("measurements.tex:34-47", rendered)
+
+        empty = copy.deepcopy(self.nodes)
+        empty["nodes"][0]["additional_sources"] = []
+        self.assertTrue(any("additional_sources must be a nonempty list" in error
+                            for error in self.errors(nodes=empty)))
+
+        malformed = copy.deepcopy(self.nodes)
+        malformed["nodes"][0]["additional_sources"] = [{"path": "missing-fields.tex"}]
+        self.assertTrue(any("additional_sources[0] must use the exact four-field schema" in error
+                            for error in self.errors(nodes=malformed)))
+
+        duplicate = copy.deepcopy(self.nodes)
+        duplicate["nodes"][0]["additional_sources"] = [
+            copy.deepcopy(duplicate["nodes"][0]["source"])
+        ]
+        self.assertTrue(any("duplicate source anchor" in error
+                            for error in self.errors(nodes=duplicate)))
+
+    def test_machine_visible_implementation_contract_is_checked(self) -> None:
+        good = copy.deepcopy(self.nodes)
+        node = next(item for item in good["nodes"] if item["id"] == "F01-FIELD")
+        self.assertEqual([], self.errors(nodes=good))
+        rendered = check.render_entry(node, [])
+        self.assertIn(r"\BlueprintField{Writer lane}{field}", rendered)
+        self.assertIn(r"\BlueprintField{Owned Lean file}", rendered)
+        self.assertIn(r"\BlueprintField{Signature manifest}", rendered)
+
+        for field, value, phrase in (
+            ("writer_lane", "unknown", "invalid implementation writer lane"),
+            ("owned_file", "../Field.lean", "invalid implementation owned file"),
+            ("signature_manifest", {
+                **node["implementation_contract"]["signature_manifest"],
+                "sha256": "0" * 64,
+            }, "signature manifest hash mismatch"),
+            ("validation_commands", ["lake build"], "omits scoped Lean command"),
+            ("allowed_minimal_sorries", ["MIPStarRE.QPBT.pauliSoundness"],
+             "permits foreign sorries"),
+            ("proof_complete_sorry_count", 1, "must permit zero sorries"),
+        ):
+            with self.subTest(field=field):
+                bad = copy.deepcopy(good)
+                bad["nodes"][0]["implementation_contract"][field] = value
+                self.assertTrue(any(phrase in error for error in self.errors(nodes=bad)))
+
+        bad_marker = copy.deepcopy(good)
+        bad_marker["nodes"][0]["implementation_contract"]["signature_manifest"][
+            "begin_marker"
+        ] = "<!-- BEGIN MISSING -->"
+        self.assertTrue(any("markers must be unique and ordered" in error
+                            for error in self.errors(nodes=bad_marker)))
+
+        bad_path = copy.deepcopy(good)
+        bad_path["nodes"][0]["implementation_contract"]["signature_manifest"][
+            "path"
+        ] = "../outside.md"
+        self.assertTrue(any("invalid signature manifest path" in error
+                            for error in self.errors(nodes=bad_path)))
+
+        missing_name = copy.deepcopy(good)
+        missing_name["nodes"][0]["lean"]["names"].append(
+            "MIPStarRE.QPBT.declarationAbsentFromManifest"
+        )
+        self.assertTrue(any("signature manifest omits planned declaration" in error
+                            for error in self.errors(nodes=missing_name)))
+
     def test_rendering_is_deterministic(self) -> None:
         first = check.outputs(self.nodes, self.gaps, self.externals)
         second = check.outputs(copy.deepcopy(self.nodes), copy.deepcopy(self.gaps),
@@ -377,6 +471,12 @@ class BlueprintCheckTests(unittest.TestCase):
             "generated_lines": [2, 2],
             "original_lines": [101, 101],
         }
+        node["additional_sources"] = [{
+            "path": "references/2001.04383v3/sections/dependencies/sample.tex",
+            "label": "",
+            "generated_lines": [1, 1],
+            "original_lines": [100, 100],
+        }]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "sections/dependencies").mkdir(parents=True)
@@ -392,6 +492,11 @@ class BlueprintCheckTests(unittest.TestCase):
             (root / "split-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
             doc = {"nodes": [node]}
             self.assertEqual([], check.validate_sources(doc, root))
+            node["additional_sources"][0]["original_lines"] = [101, 101]
+            self.assertTrue(any("additional_sources[0]" in error and
+                                "mapping mismatch" in error
+                                for error in check.validate_sources(doc, root)))
+            node["additional_sources"][0]["original_lines"] = [100, 100]
             node["source"]["original_lines"] = [100, 100]
             self.assertTrue(any("mapping mismatch" in error
                                 for error in check.validate_sources(doc, root)))

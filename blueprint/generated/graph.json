@@ -72,7 +72,7 @@
         ]
       },
       "prerequisites": [
-        "F04-DISTANCE"
+        "F04-ASYMPTOTIC"
       ],
       "public": false,
       "source": {
@@ -92,6 +92,7 @@
       "title": "Averaged closeness and measurement observables",
       "transitive_definitions": [
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
         "F04-DISTANCE"
       ]
     },
@@ -150,6 +151,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -187,7 +190,8 @@
         ]
       },
       "prerequisites": [
-        "A03-WIN"
+        "A03-WIN",
+        "F04-DISTANCE-LAWS"
       ],
       "public": false,
       "source": {
@@ -209,6 +213,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -267,6 +273,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -324,6 +332,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -383,6 +393,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -443,6 +455,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -500,6 +514,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -557,6 +573,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -615,6 +633,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -677,6 +697,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -738,6 +760,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -796,6 +820,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -857,6 +883,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -917,6 +945,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -949,8 +979,7 @@
         ]
       },
       "prerequisites": [
-        "F03-MEASUREMENT",
-        "F04-DISTANCE"
+        "F04-CONSISTENCY"
       ],
       "public": false,
       "source": {
@@ -970,6 +999,8 @@
       "title": "External orthonormalization boundary",
       "transitive_definitions": [
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE"
       ]
     },
@@ -994,7 +1025,7 @@
       },
       "prerequisites": [
         "F03-MEASUREMENT",
-        "F04-DISTANCE"
+        "F04-CONSISTENCY"
       ],
       "public": false,
       "source": {
@@ -1014,6 +1045,8 @@
       "title": "External Magic Square rigidity boundary",
       "transitive_definitions": [
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE"
       ]
     },
@@ -1037,7 +1070,7 @@
         ]
       },
       "prerequisites": [
-        "F04-DISTANCE"
+        "F04-ASYMPTOTIC"
       ],
       "public": false,
       "source": {
@@ -1057,6 +1090,7 @@
       "title": "External quantum linearity theorem",
       "transitive_definitions": [
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
         "F04-DISTANCE"
       ]
     },
@@ -1081,7 +1115,7 @@
       },
       "prerequisites": [
         "F02-CODE",
-        "F04-DISTANCE",
+        "F04-ASYMPTOTIC",
         "F09-LDT-GAME"
       ],
       "public": false,
@@ -1104,6 +1138,7 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
         "F04-DISTANCE",
         "F06-CL",
         "F07-TYPED",
@@ -1111,7 +1146,7 @@
       ]
     },
     {
-      "boundary_hypotheses": "Universe levels are explicit for reusable carrier APIs. The field instances are derived from k and q=2^k with Odd k; no caller supplies duplicate field, cardinality, characteristic, or algebra instances.",
+      "boundary_hypotheses": "Universe levels are explicit for reusable carrier APIs. The field instances and simultaneous-basis existence theorem are derived from k and q=2^k with Odd k; no caller supplies a field, basis, normality proof, self-duality proof, algorithm, or arbitrary witness package.",
       "chapter": "02",
       "consumers": [
         "F02-CODE",
@@ -1120,18 +1155,59 @@
         "G01-PARAMETERS",
         "K03A-FIELD-ARITHMETIC"
       ],
-      "encoding": "Instantiate Mathlib's GaloisField 2 k directly and derive its Field, Fintype, DecidableEq, CharP, cardinality, finite-dimensional algebra, trace, and self-dual-basis data; vectors are Fin n -> GaloisField 2 k. Do not route this boundary through an abstract carrier wrapper.",
-      "fidelity": "exact",
-      "gap_ids": [],
+      "encoding": "Instantiate Mathlib's GaloisField 2 k directly and derive its Field, Fintype, DecidableEq, CharP, cardinality, finite-dimensional algebra, and trace. Prove simultaneous normality and trace self-duality before making a noncomputable mathematical choice. Index the Frobenius orbit by Fin k, corresponding to the paper's exponents j=0,...,k-1. The algorithmic selection, multiplication-table output, and cost proof belong to K03A and must be proved coherent with this representation.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [
+        "G16"
+      ],
       "id": "F01-FIELD",
-      "integrity": null,
+      "implementation_contract": {
+        "allowed_minimal_sorries": [
+          "MIPStarRE.QPBT.fieldDataOfOddExponent"
+        ],
+        "imports": [
+          "Mathlib.FieldTheory.Finite.Trace",
+          "Mathlib.FieldTheory.Galois.NormalBasis"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Basic/Field.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "Algebra.trace",
+          "GaloisField.finrank",
+          "GaloisField.card",
+          "IsGalois.normalBasis",
+          "Module.Basis.traceDual",
+          "LinearMap.toMatrix_mulVec_repr"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F01-SIGNATURES -->",
+          "end_marker": "<!-- END F01-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
+          "sha256": "d888318028c82df942fcac9b81cc944b5f492aebf9902d4cfe32019c37331ad4"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Basic/Field.lean"
+        ],
+        "writer_lane": "field"
+      },
+      "integrity": {
+        "lean_assumptions": "k : Nat and Odd k, with the GaloisField, algebra, trace, finiteness, and decidability data derived internally; no basis, construction, algorithm, or witness package is supplied by a caller.",
+        "lean_conclusion": "F01 proves simultaneous existence and exposes a noncomputably selected concrete basis and trace. K03A separately retains the uniform algorithm, table, representation-coherence, and complexity theorem.",
+        "paper_assumptions": "A positive odd integer k and the concrete extension F_(2^k)/F_2; for the computational clause, k is input to one uniform deterministic construction.",
+        "paper_conclusion": "A basis exists which is simultaneously normal and trace-self-dual; one deterministic algorithm uniformly outputs such a basis and compatible multiplication tables in poly(k) time.",
+        "verdict": "faithful boundary"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Basic.Field",
         "names": [
           "MIPStarRE.QPBT.FieldData",
           "MIPStarRE.QPBT.fieldDataOfOddExponent",
-          "MIPStarRE.QPBT.fieldTrace"
+          "MIPStarRE.QPBT.fieldData_nonempty_of_odd",
+          "MIPStarRE.QPBT.fieldTrace",
+          "MIPStarRE.QPBT.FieldData.coordinates",
+          "MIPStarRE.QPBT.FieldData.multiplicationMatrix",
+          "MIPStarRE.QPBT.FieldData.multiplicationMatrix_mulVec_coordinates"
         ]
       },
       "prerequisites": [],
@@ -1148,9 +1224,9 @@
         ],
         "path": "references/2001.04383v3/sections/dependencies/finite-fields.tex"
       },
-      "statement": "For an odd natural k, construct the characteristic-two field GaloisField 2 k of cardinality q=2^k, its prime-field trace, and the self-dual basis and algebra used by QPBT.",
-      "status": "not-started",
-      "title": "Finite fields, trace, and admissible sizes",
+      "statement": "For every odd natural k, instantiate the characteristic-two field GaloisField 2 k of cardinality q=2^k and its prime-field trace, prove that a Fin k-indexed basis exists which is simultaneously normal and self-dual, and select such a basis for the mathematical QPBT definitions. Keep the paper's single uniform deterministic basis-and-multiplication-table algorithm as the separate K03A complexity contract.",
+      "status": "paper-gap",
+      "title": "Finite fields, trace, and self-dual normal bases",
       "transitive_definitions": []
     },
     {
@@ -1201,12 +1277,39 @@
       ]
     },
     {
+      "additional_sources": [
+        {
+          "generated_lines": [
+            147,
+            173
+          ],
+          "label": "thm:ms-from-ac",
+          "original_lines": [
+            4806,
+            4832
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/magic-square.tex"
+        },
+        {
+          "generated_lines": [
+            383,
+            410
+          ],
+          "label": "eq:gonna-expand-A",
+          "original_lines": [
+            5429,
+            5456
+          ],
+          "path": "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex"
+        }
+      ],
       "boundary_hypotheses": "Declare universe uOutcome uCoord and require [Fintype Outcome] [DecidableEq Outcome] [Fintype Coord] [DecidableEq Coord]; the Hilbert scalar is Complex and no infinite-dimensional completion is hidden.",
       "chapter": "02",
       "consumers": [
-        "E01-ORTHO",
         "E02-MAGIC-SQUARE",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04-DISTANCE-LAWS",
         "F05-PAULI",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME"
@@ -1215,27 +1318,64 @@
       "fidelity": "faithful-boundary",
       "gap_ids": [],
       "id": "F03-MEASUREMENT",
-      "integrity": null,
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Analysis.Asymptotics.Defs",
+          "Mathlib.Probability.ProbabilityMassFunction.Constructions",
+          "MIPStarRE.Quantum.Measurement",
+          "MIPStarRE.Quantum.FiniteHilbert"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "MIPStarRE.Quantum.Measurement.postprocess",
+          "MIPStarRE.Quantum.Measurement.postprocess_effect",
+          "Matrix.mem_unitaryGroup_iff"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F03-SIGNATURES -->",
+          "end_marker": "<!-- END F03-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
+          "sha256": "8de7983b66b2cce523b45bb3b14a788ac34b0315be91644610cf455b5306b065"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Basic/Approximation.lean"
+        ],
+        "writer_lane": "approximation"
+      },
+      "integrity": {
+        "lean_assumptions": "Explicit Fintype/DecidableEq outcome and coordinate types on qualified MIPStarRE.Quantum.Measurement; the question type remains arbitrary until averaging; projectivity is a separate proof input only where the paper requires it.",
+        "lean_conclusion": "The qualified measurement postprocess and its effect equation are callable, and the certified binary observable exposes the same operator body and laws with the paper's sign order.",
+        "paper_assumptions": "Finite POVM outcomes; projectivity for the binary observable; and an arbitrary outcome function for postprocessing.",
+        "paper_conclusion": "Postprocessing is the exact fiber sum, including zero for an empty fiber, and a projective F_2-valued measurement gives the observable effect 0 minus effect 1 with unitary involution laws.",
+        "verdict": "faithful boundary"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Basic.Approximation",
         "names": [
           "MIPStarRE.QPBT.MeasurementFamily",
           "MIPStarRE.QPBT.ProjectiveMeasurementFamily",
-          "MIPStarRE.QPBT.observableOfMeasurement"
+          "MIPStarRE.QPBT.MeasurementFamily.postprocess",
+          "MIPStarRE.QPBT.MeasurementFamily.postprocess_effect",
+          "MIPStarRE.QPBT.MeasurementFamily.postprocess_effect_eq_zero_of_not_mem_range",
+          "MIPStarRE.QPBT.BinaryObservable",
+          "MIPStarRE.QPBT.observableOfMeasurement",
+          "MIPStarRE.QPBT.observableOfMeasurement_val"
         ]
       },
       "prerequisites": [],
       "public": false,
       "source": {
         "generated_lines": [
-          35,
-          50
+          3,
+          47
         ],
         "label": "def:bracket",
         "original_lines": [
-          1888,
-          1903
+          1856,
+          1900
         ],
         "path": "references/2001.04383v3/sections/dependencies/measurements.tex"
       },
@@ -1245,30 +1385,339 @@
       "transitive_definitions": []
     },
     {
-      "boundary_hypotheses": "Declare universe uAlice uBob uAuxAlice uAuxBob and require the corresponding [Fintype] and [DecidableEq] instances; the state is bundled with norm one, and every Real.rpow use receives proved nonnegativity. No coercion between WithLp, matrices, and operators is left implicit.",
+      "additional_sources": [
+        {
+          "generated_lines": [
+            252,
+            282
+          ],
+          "label": "def:povm-distance",
+          "original_lines": [
+            3135,
+            3165
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+        },
+        {
+          "generated_lines": [
+            49,
+            53
+          ],
+          "label": "",
+          "original_lines": [
+            13134,
+            13138
+          ],
+          "path": "references/2001.04383v3/sections/qpbt/appendix-preliminaries.tex"
+        }
+      ],
+      "boundary_hypotheses": "Finite question/outcome/coordinate types only at PMF sums, normalized states through PureStrategy, and explicit Nat-indexed data. No universal Big-O constant is replaced by an exact bound.",
       "chapter": "02",
       "consumers": [
         "A02-PRELIMINARIES",
-        "E01-ORTHO",
-        "E02-MAGIC-SQUARE",
         "E03-LINEARITY",
         "E04-TENSOR-CODE",
+        "F04-CONSISTENCY",
+        "F04-DISTANCE-LAWS"
+      ],
+      "encoding": "Use Asymptotics.IsBigO Filter.atTop. ErrorProfile is Nat -> Set.Icc 0 1, while derived law scales may be arbitrary Nat -> Real. PMF.map Prod.fst/Prod.snd supplies the two question marginals, and StrategyStateChoice makes the paper's either-state clause explicit.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [],
+      "id": "F04-ASYMPTOTIC",
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Analysis.Asymptotics.Defs",
+          "Mathlib.Probability.ProbabilityMassFunction.Constructions",
+          "MIPStarRE.Quantum.Measurement",
+          "MIPStarRE.Quantum.FiniteHilbert"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "Asymptotics.IsBigO",
+          "Filter.atTop",
+          "PMF.map"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F04-ASYMPTOTIC-SIGNATURES -->",
+          "end_marker": "<!-- END F04-ASYMPTOTIC-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
+          "sha256": "c6ba3861dbe261c7f6d1b23d36673521521921dbf6cec150bb923f8e64561c47"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Basic/Approximation.lean"
+        ],
+        "writer_lane": "approximation"
+      },
+      "integrity": {
+        "lean_assumptions": "The same indexed data over explicit finite coordinate carriers, PMFs, the joint PMF marginals, and a first/second comparison-state choice.",
+        "lean_conclusion": "Asymptotics.IsBigO Filter.atTop states the same relations without conflating them with finite exact bounds.",
+        "paper_assumptions": "Nat-indexed normalized states/strategies, delta : Nat -> [0,1], finite distributions, and state-dependent POVM/operator families.",
+        "paper_conclusion": "Squared state norm, averaged operator/POVM distance, and both-player strategy distance are O(delta) as n tends to infinity.",
+        "verdict": "faithful boundary"
+      },
+      "kind": "definition",
+      "lean": {
+        "module": "MIPStarRE.QPBT.Basic.Approximation",
+        "names": [
+          "MIPStarRE.QPBT.ErrorProfile",
+          "MIPStarRE.QPBT.IsBigOAtTop",
+          "MIPStarRE.QPBT.StateFamiliesBigO",
+          "MIPStarRE.QPBT.OperatorFamiliesBigO",
+          "MIPStarRE.QPBT.MeasurementFamiliesBigO",
+          "MIPStarRE.QPBT.aliceQuestionMarginal",
+          "MIPStarRE.QPBT.bobQuestionMarginal",
+          "MIPStarRE.QPBT.StrategyStateChoice",
+          "MIPStarRE.QPBT.strategyComparisonState",
+          "MIPStarRE.QPBT.StrategyFamiliesBigO"
+        ]
+      },
+      "prerequisites": [
+        "F04-DISTANCE"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          213,
+          224
+        ],
+        "label": "def:state-distance",
+        "original_lines": [
+          3096,
+          3107
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+      },
+      "statement": "Define [0,1]-valued Nat-indexed error profiles and atTop Big-O relations for state families, raw-operator families, POVM families, and strategy families. Strategy comparison consumes explicit marginals of the joint game PMF and an explicit choice of the first or second strategy state.",
+      "status": "not-started",
+      "title": "Indexed asymptotic state, operator, measurement, and strategy distance",
+      "transitive_definitions": [
+        "F03-MEASUREMENT",
+        "F04-DISTANCE"
+      ]
+    },
+    {
+      "additional_sources": [
+        {
+          "generated_lines": [
+            138,
+            150
+          ],
+          "label": "def:consistent-measurement",
+          "original_lines": [
+            3021,
+            3033
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+        },
+        {
+          "generated_lines": [
+            383,
+            388
+          ],
+          "label": "fact:triangle-for-simeq",
+          "original_lines": [
+            3266,
+            3271
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+        }
+      ],
+      "boundary_hypotheses": "Finite question/outcome/local coordinate types, normalized bipartite state at paper call sites, and explicit indexed PMFs/states/families. The law accepts exactly the paper's three consistency premises.",
+      "chapter": "02",
+      "consumers": [
+        "E01-ORTHO",
+        "E02-MAGIC-SQUARE"
+      ],
+      "encoding": "The finite value is the PMF-weighted off-diagonal sum of real inner products after explicit Alice/Bob local lifts. The paper-facing relation uses IsBigOAtTop; its derived triangle scale is Nat -> Real and is not clamped back to [0,1]. The named Law declaration freezes the theorem statement; its proof is a later node obligation, not a new assumption.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [],
+      "id": "F04-CONSISTENCY",
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Analysis.Asymptotics.Defs",
+          "Mathlib.Probability.ProbabilityMassFunction.Constructions",
+          "MIPStarRE.Quantum.Measurement",
+          "MIPStarRE.Quantum.FiniteHilbert"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "Complex.re",
+          "inner",
+          "Finset.erase"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F04-CONSISTENCY-SIGNATURES -->",
+          "end_marker": "<!-- END F04-CONSISTENCY-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
+          "sha256": "2a45a657d818312e370707a04f206eaf4a7f139ab724fde096c880fc94d75730"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Basic/Approximation.lean"
+        ],
+        "writer_lane": "approximation"
+      },
+      "integrity": {
+        "lean_assumptions": "Explicit PMF, finite carriers, local tensor lifts, Nat-indexed families, and [0,1]-valued input profiles; the derived scale is real-valued.",
+        "lean_conclusion": "The same finite value, indexed Big-O relation, and exact law statement with no hidden state or distribution.",
+        "paper_assumptions": "Two finite POVM families on a bipartite state and distribution; for Proposition 4.29, three displayed consistency premises.",
+        "paper_conclusion": "Off-diagonal outcomes have O(delta) mass, and the three-premise consistency triangle has scale epsilon + 2*sqrt(delta+gamma).",
+        "verdict": "faithful boundary"
+      },
+      "kind": "definition",
+      "lean": {
+        "module": "MIPStarRE.QPBT.Basic.Approximation",
+        "names": [
+          "MIPStarRE.QPBT.MeasurementConsistentOn",
+          "MIPStarRE.QPBT.povmConsistencyValue",
+          "MIPStarRE.QPBT.POVMConsistencyBoundedBy",
+          "MIPStarRE.QPBT.POVMConsistencyBigO",
+          "MIPStarRE.QPBT.POVMConsistencyBigOTriangleLaw",
+          "MIPStarRE.QPBT.povmConsistencyBigO_triangle"
+        ]
+      },
+      "prerequisites": [
+        "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          226,
+          250
+        ],
+        "label": "def:consistency",
+        "original_lines": [
+          3109,
+          3133
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+      },
+      "statement": "Define exact same-measurement consistency by equality of Alice/Bob local actions; define the finite off-diagonal mismatch value and exact bound; lift it to indexed Big-O consistency; and state the three-premise consistency-triangle contract with scale epsilon + 2*sqrt(delta+gamma).",
+      "status": "not-started",
+      "title": "Exact and asymptotic POVM consistency",
+      "transitive_definitions": [
+        "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-DISTANCE"
+      ]
+    },
+    {
+      "additional_sources": [
+        {
+          "generated_lines": [
+            252,
+            265
+          ],
+          "label": "def:povm-distance",
+          "original_lines": [
+            3135,
+            3148
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+        },
+        {
+          "generated_lines": [
+            49,
+            53
+          ],
+          "label": "",
+          "original_lines": [
+            13134,
+            13138
+          ],
+          "path": "references/2001.04383v3/sections/qpbt/appendix-preliminaries.tex"
+        },
+        {
+          "generated_lines": [
+            533,
+            545
+          ],
+          "label": "thm:pauli",
+          "original_lines": [
+            5579,
+            5591
+          ],
+          "path": "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex"
+        }
+      ],
+      "boundary_hypotheses": "Declare all question, outcome, local, auxiliary, junk, and ideal universes explicitly and require Fintype/DecidableEq only where finite sums or matrices need them. The state is bundled with norm one. No coercion among EuclideanSpace, WithLp, matrices, or operators is implicit, and no finite <= delta predicate is identified with the paper's indexed O(delta) relation.",
+      "chapter": "02",
+      "consumers": [
+        "F04-ASYMPTOTIC",
         "N01-NAIMARK"
       ],
-      "encoding": "Use EuclideanSpace Complex carriers and a PureStrategy field whose norm-one proof bundles probability normalization. Supply explicit adapters between EuclideanSpace/WithLp 2 coordinates, matrices, Module.End, and operator actions. BipartiteIsometry is a transparent pair of local linear isometries; conjugate is explicitly V * A * V.adjoint on each side.",
+      "encoding": "Use EuclideanSpace Complex carriers and a PureStrategy field whose norm-one proof bundles probability normalization. Convert rectangular isometries by Matrix.toEuclideanLin.symm, conjugate each side independently as V*A*V^adjoint, lift local operators by Matrix.kronecker, certify the tensor map as a LinearIsometry, and expose Matrix.reindexAlgEquiv plus the matching state reindexing. Finite distance values return Real; exact bound predicates take NNReal. Indexed Big-O, consistency, and laws are separate dependent nodes.",
       "fidelity": "faithful-boundary",
       "gap_ids": [],
       "id": "F04-DISTANCE",
-      "integrity": null,
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Analysis.Asymptotics.Defs",
+          "Mathlib.Probability.ProbabilityMassFunction.Constructions",
+          "MIPStarRE.Quantum.Measurement",
+          "MIPStarRE.Quantum.FiniteHilbert"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "Matrix.toEuclideanLin",
+          "Matrix.kronecker",
+          "LinearMap.isometryOfInner",
+          "LinearIsometryEquiv.piLpCongrLeft",
+          "Matrix.reindexAlgEquiv"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F04-FINITE-SIGNATURES -->",
+          "end_marker": "<!-- END F04-FINITE-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
+          "sha256": "2231ffa4cbce94fb124c51b197d0048363116cfa6d633e96401c20f29d8474e4"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Basic/Approximation.lean"
+        ],
+        "writer_lane": "approximation"
+      },
+      "integrity": {
+        "lean_assumptions": "Explicit finite/decidable coordinate and averaged index types, PMFs, Euclidean coordinate carriers, and factored target types; no asymptotic premise enters this finite layer.",
+        "lean_conclusion": "Separate exact Real values and NNReal bounds, certified local/tensor isometry adapters, and explicit state/operator reindexing with the same formulas.",
+        "paper_assumptions": "Finite-dimensional bipartite pure strategies, normalized states, finite POVM or raw-operator families, finite distributions, and local isometries where extraction is used.",
+        "paper_conclusion": "The finite expressions underlying state-dependent distance, local tensor actions, and side-specific V*A*V^adjoint conjugation.",
+        "verdict": "faithful boundary"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Basic.Approximation",
         "names": [
           "MIPStarRE.QPBT.PureStrategy",
           "MIPStarRE.QPBT.BipartiteIsometry",
-          "MIPStarRE.QPBT.BipartiteIsometry.conjugate",
+          "MIPStarRE.QPBT.isometryMatrix",
+          "MIPStarRE.QPBT.isometryAdjointMatrix",
+          "MIPStarRE.QPBT.conjugateByIsometry",
+          "MIPStarRE.QPBT.isometryMatrix_adjoint_mul_self",
+          "MIPStarRE.QPBT.aliceLocal",
+          "MIPStarRE.QPBT.bobLocal",
+          "MIPStarRE.QPBT.BipartiteIsometry.conjugateAlice",
+          "MIPStarRE.QPBT.BipartiteIsometry.conjugateBob",
+          "MIPStarRE.QPBT.BipartiteIsometry.tensorMatrix",
+          "MIPStarRE.QPBT.BipartiteIsometry.tensorMatrix_adjoint_mul_self",
+          "MIPStarRE.QPBT.BipartiteIsometry.tensorIsometry",
+          "MIPStarRE.QPBT.BipartiteIsometry.mapState",
+          "MIPStarRE.QPBT.localProductToJunkIdeal",
+          "MIPStarRE.QPBT.reindexState",
+          "MIPStarRE.QPBT.reindexOperator",
+          "MIPStarRE.QPBT.operatorAction",
           "MIPStarRE.QPBT.stateDependentDistance",
-          "MIPStarRE.QPBT.familyApprox"
+          "MIPStarRE.QPBT.stateDependentDistance_nonneg",
+          "MIPStarRE.QPBT.operatorFamilyDistanceValue",
+          "MIPStarRE.QPBT.measurementFamilyDistanceValue",
+          "MIPStarRE.QPBT.operatorOutcomeFamilyDistanceValue",
+          "MIPStarRE.QPBT.OperatorFamilyDistanceBoundedBy",
+          "MIPStarRE.QPBT.MeasurementFamilyDistanceBoundedBy"
         ]
       },
       "prerequisites": [
@@ -1277,21 +1726,101 @@
       "public": false,
       "source": {
         "generated_lines": [
-          214,
-          405
+          20,
+          32
         ],
-        "label": "def:state-distance",
+        "label": "def:tensor-product-strategy",
         "original_lines": [
-          3097,
-          3288
+          2903,
+          2915
         ],
         "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
       },
-      "statement": "Define normalized finite bipartite pure strategies, transparent local isometries and conjugation, consistency, state-dependent operator/family distance, and its triangle/data-processing laws.",
+      "statement": "Define normalized finite bipartite pure strategies; Alice/Bob local lifts; transparent side-specific rectangular isometry conjugation; certified tensor isometry and state action; junk/ideal reindexing; and separate finite numeric values and exact NNReal bounds for raw-operator and POVM-family state-dependent distance.",
       "status": "not-started",
-      "title": "Strategies and state-dependent distance",
+      "title": "Finite strategies, local isometries, and distance values",
       "transitive_definitions": [
         "F03-MEASUREMENT"
+      ]
+    },
+    {
+      "boundary_hypotheses": "Finite PMF and measurement types, explicit normalized state at paper-labelled call sites, two input error profiles for triangle, and one shared outcome map for postprocessing.",
+      "chapter": "02",
+      "consumers": [
+        "A04-WIN-OBS"
+      ],
+      "encoding": "Each planned Law declaration is the exact elaborated implication contract. The finite helper exposes factor 2 for squared norms; IsBigO absorbs that universal factor; data processing calls MeasurementFamily.postprocess explicitly.",
+      "fidelity": "exact",
+      "gap_ids": [],
+      "id": "F04-DISTANCE-LAWS",
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "Mathlib.Analysis.Asymptotics.Defs",
+          "Mathlib.Probability.ProbabilityMassFunction.Constructions",
+          "MIPStarRE.Quantum.Measurement",
+          "MIPStarRE.Quantum.FiniteHilbert"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "MeasurementFamily.postprocess",
+          "Asymptotics.IsBigO"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F04-DISTANCE-LAWS-SIGNATURES -->",
+          "end_marker": "<!-- END F04-DISTANCE-LAWS-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
+          "sha256": "f6682466e2dc3508c2aa0d4790526714b3483996659167c860af32149eecaf23"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Basic/Approximation.lean"
+        ],
+        "writer_lane": "approximation"
+      },
+      "integrity": {
+        "lean_assumptions": "The same finite PMF/state/families; the finite squared-norm helper exposes factor 2 and the paper-facing relation is indexed atTop Big-O.",
+        "lean_conclusion": "The exact finite factor and the same two indexed Big-O implication contracts.",
+        "paper_assumptions": "Two consecutive state-dependent closeness relations for triangle, respectively one relation and one outcome map for data processing.",
+        "paper_conclusion": "Triangle has scale delta+epsilon up to Big-O constants, and applying the same postprocess preserves closeness.",
+        "verdict": "exact"
+      },
+      "kind": "lemma",
+      "lean": {
+        "module": "MIPStarRE.QPBT.Basic.Approximation",
+        "names": [
+          "MIPStarRE.QPBT.FiniteMeasurementTriangleLaw",
+          "MIPStarRE.QPBT.MeasurementFamiliesBigOTriangleLaw",
+          "MIPStarRE.QPBT.MeasurementFamiliesPostprocessLaw",
+          "MIPStarRE.QPBT.finiteMeasurement_triangle",
+          "MIPStarRE.QPBT.measurementFamiliesBigO_triangle",
+          "MIPStarRE.QPBT.measurementFamiliesBigO_postprocess"
+        ]
+      },
+      "prerequisites": [
+        "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          377,
+          395
+        ],
+        "label": "fact:triangle",
+        "original_lines": [
+          3260,
+          3278
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+      },
+      "statement": "Prove the finite squared-distance triangle bound with explicit factor 2, the indexed Big-O measurement triangle law where the constant is absorbed, and the indexed postprocess/data-processing law for the same explicit outcome map on both families.",
+      "status": "not-started",
+      "title": "State-dependent distance triangle and postprocessing laws",
+      "transitive_definitions": [
+        "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-DISTANCE"
       ]
     },
     {
@@ -1794,6 +2323,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -1851,6 +2382,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -1910,6 +2443,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -1923,7 +2458,7 @@
       ]
     },
     {
-      "boundary_hypotheses": "Odd natural k, the F01 self-dual basis selected by the cited algorithm, binary representations, and a faithful cost model.",
+      "boundary_hypotheses": "Odd natural k, binary representations, and a faithful explicit cost model. The uniform deterministic basis-and-table algorithm and its correctness/coherence theorem are proof obligations, not caller-supplied assumptions.",
       "chapter": "12",
       "consumers": [
         "K03B-LOW-DEGREE-COMPLEXITY",
@@ -1931,10 +2466,12 @@
       ],
       "encoding": "Represent the listed algorithms and their bounds in the same explicit machine/cost model used for K03-K04.",
       "fidelity": "faithful-boundary",
-      "gap_ids": [],
+      "gap_ids": [
+        "G16"
+      ],
       "id": "K03A-FIELD-ARITHMETIC",
       "integrity": {
-        "lean_assumptions": "F01 basis data tied to that algorithm and the explicit cost model.",
+        "lean_assumptions": "A formalized uniform deterministic basis-and-table algorithm, its correctness theorem over the F01 field representation, and an explicit faithful cost model; none are caller-supplied mathematical assumptions.",
         "lean_conclusion": "The same represented-operation and projection cost bounds.",
         "paper_assumptions": "Odd k and the self-dual normal basis returned by the efficient-basis algorithm.",
         "paper_conclusion": "The five listed field operations take poly(k) time and the listed projections take poly(k,n) time.",
@@ -1964,7 +2501,7 @@
         "path": "references/2001.04383v3/sections/dependencies/finite-fields.tex"
       },
       "statement": "For odd k and the algorithmically selected self-dual normal basis of F_(2^k), represented addition, multiplication, multiplication tables, inversion, trace, and complementary-subspace projections have the paper's polynomial-time bounds.",
-      "status": "not-started",
+      "status": "paper-gap",
       "title": "Efficient characteristic-two field arithmetic",
       "transitive_definitions": [
         "F01-FIELD"
@@ -2067,6 +2604,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -2129,6 +2668,7 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
         "F04-DISTANCE",
         "F06-CL",
         "F07-TYPED",
@@ -2233,6 +2773,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -2286,6 +2828,7 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
         "F04-DISTANCE",
         "F06-CL",
         "F07-TYPED",
@@ -2335,6 +2878,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -2390,6 +2935,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -2444,6 +2991,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -2509,6 +3058,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -2568,6 +3119,8 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
         "F05-PAULI",
         "F06-CL",
@@ -2582,7 +3135,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "05567449495f297d5f6c39687f01ada6f6dab420c54da2fc7181f6afc097c735",
+  "source_sha256": "686874d7f8594af2d28c1b1866e95da7d084dc3274bf2a4cdd0811ce5c3727b0",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
@@ -2595,10 +3148,13 @@
     "A01-INDICATOR",
     "F03-MEASUREMENT",
     "F04-DISTANCE",
+    "F04-ASYMPTOTIC",
     "A02-PRELIMINARIES",
+    "E03-LINEARITY",
+    "F04-CONSISTENCY",
     "E01-ORTHO",
     "E02-MAGIC-SQUARE",
-    "E03-LINEARITY",
+    "F04-DISTANCE-LAWS",
     "F05-PAULI",
     "F06-CL",
     "F07-TYPED",
