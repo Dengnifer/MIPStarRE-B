@@ -18009,6 +18009,45 @@
         "nested_agents": 0
       },
       "notes": "A27 independently approved exact replacement activation object 8e2a645 with no findings after authenticating its four-path delta, ordered parents, preserved evidence, security semantics, and root exact-object gates. The report was held outside the repository until unchanged fast-forward activation. Token usage is unavailable and was not estimated."
+    },
+    {
+      "id": "i028-orchestrator-a01-content-isolation",
+      "name": "i028-orchestrator-a01-content-isolation",
+      "backend": "codex-collaboration",
+      "role": "orchestrator",
+      "status": "issued",
+      "issue_id": "QPBT-028",
+      "pr_id": null,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": null,
+      "attempt": 1,
+      "read_only": false,
+      "base_revision": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
+      "base_revision_reason": "Exact git rev-parse and git cat-file authenticated main checkpoint after QPBT-026 and QPBT-027 completion unlocked QPBT-028.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-028-content-isolation-a01",
+      "owned_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/review.md",
+        "scripts/local_agent.py",
+        "scripts/review_isolation.py",
+        "tests/test_local_agent.py",
+        "tests/test_review_isolation.py",
+        "workflow/reviews/qpbt-028-content-isolation-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, workflow/reviews/qpbt-026-scope-token-design-a10.md, workflow/reviews/qpbt-026-stage2-critical-path-a15.md, workflow/reviews/qpbt-026-review-a14-pr016-immutable.md, protocols/review.md, scripts/local_agent.py, and tests/test_local_agent.py before design. Act as sole writable orchestrator. First define bounded read-only scout tasks for the complete outbound channel/manifest threat model and available enforceable local OS isolation mechanisms, send their exact session metadata to root for canonical registration, then dispatch them as child sessions. Implement the smallest content-bound version-2 authorization and one-time immutable projection with an enforceable filesystem/environment/tool-egress boundary; production remains fail-closed when isolation is unavailable. Never contact endpoint/network/GitHub or transmit repository contents. Add adversarial tests for all six QPBT-028 gates, update protocol/changelog, run focused then aggregate Python tests, compileall, workflow validator/checker, exact diff/tree/clean checks, commit one clean candidate, and report exact metrics.",
+      "result_envelope_path": "workflow/reviews/qpbt-028-content-isolation-a01.md",
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "timing_quality": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null
     }
   ]
 }
