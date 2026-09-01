@@ -6437,7 +6437,7 @@
     {
       "id": "LPR-024",
       "title": "fix(cache): preserve authored QPBT sources",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-045"
       ],
@@ -6712,6 +6712,30 @@
             "F-LPR024-003"
           ],
           "registered_checks": "14/14"
+        },
+        {
+          "id": "review-qpbt-045-pr024-a08-approval",
+          "reviewer_session_id": "i045-reviewer-a08-pr024-resolution",
+          "verdict": "approve",
+          "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
+          "head_sha": "39c9ee0d74c929cbd4a1fc98be970f4d6c6c8a16",
+          "started_at": "2026-09-01T18:01:16.675641Z",
+          "completed_at": "2026-09-01T18:14:09.863559Z",
+          "result_path": "workflow/reviews/qpbt-045-pr024-review-a08.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "b06baf6cc6b4e6f7a3ca9e3536e7ce0d3a6964742b2ca18b760933bbde2c4a00",
+          "manifest_sha256": "11ee7fbec15a1bda08bcfc94da37232a191f48ac19a94f29af1c8299bc006c6b",
+          "resolved_finding_ids": [
+            "F-LPR024-001",
+            "F-LPR024-002",
+            "F-LPR024-003",
+            "F-LPR024-004"
+          ],
+          "residual_finding_ids": [
+            "F-LPR024-005"
+          ],
+          "integration_gate": "Guarded integration followed by exactly one authenticated singleton recipe-v7 current-main warm."
         }
       ],
       "findings": [
@@ -6719,10 +6743,10 @@
           "introduced_review_id": "review-qpbt-045-pr024-a04-security",
           "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
           "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Fresh A08 immutable review independently verified the exact changed head, reproduced the corresponding adversarial regression, and found the finding resolved with no snapshot or READY on failure.",
+          "resolved_by_review_id": "review-qpbt-045-pr024-a08-approval",
           "id": "F-LPR024-001",
           "severity": "high",
           "summary": "Lexical authored-tree traversal accepts a concurrently substituted root or intermediate directory.",
@@ -6745,16 +6769,18 @@
           "path": "scripts/hot_main_cache.py",
           "line": 474,
           "required_change": "Require st_nlink == 1 before and after every authored-file read, include link count in strong identity, and add a full fake-warm hard-link regression proving no snapshot or READY.",
-          "confirmation_review_ids": []
+          "confirmation_review_ids": [
+            "review-qpbt-045-pr024-a08-approval"
+          ]
         },
         {
           "introduced_review_id": "review-qpbt-045-pr024-a04-security",
           "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
           "head_sha": "bc41314fb74baced6f6a043cbc8956a18a2e0003",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Fresh A08 immutable review independently verified the exact changed head, reproduced the corresponding adversarial regression, and found the finding resolved with no snapshot or READY on failure.",
+          "resolved_by_review_id": "review-qpbt-045-pr024-a08-approval",
           "id": "F-LPR024-003",
           "severity": "medium",
           "summary": "Recursive scan errors and successful Git stderr diagnostics can hide generated authored source.",
@@ -6767,10 +6793,10 @@
           "introduced_review_id": "review-qpbt-045-pr024-a06-resolution",
           "base_sha": "f4b00c7616b8710220a4f8480cfb23412914d151",
           "head_sha": "3c3f0c15aef87920d0668cc18d1fd03bc0274b7f",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Fresh A08 immutable review independently verified the exact changed head, reproduced the corresponding adversarial regression, and found the finding resolved with no snapshot or READY on failure.",
+          "resolved_by_review_id": "review-qpbt-045-pr024-a08-approval",
           "id": "F-LPR024-004",
           "severity": "high",
           "summary": "Committed and on-disk authored inventories hash different record orders for valid same-stem module and namespace-directory layouts.",
@@ -6783,7 +6809,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T16:37:00Z",
-      "updated_at": "2026-09-01T18:00:09.266442Z",
+      "updated_at": "2026-09-01T18:21:06.288106Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -6795,7 +6821,7 @@
       ],
       "motivation": "Unblock all new Lean work by preserving exact committed QPBT sources while refreshing authenticated upstream MIPStarRE content during singleton hot-main cache warm.",
       "description": "Recipe v7 preserves exact authored QPBT sources and hardens admission with descriptor-bound traversal, single-link file identity, fail-closed recursive inspection, and rejection of incomplete Git diagnostics.",
-      "testing": "A07 changed head 39c9ee0: authenticated three-path candidate, 60/60 hot-cache, 11/11 materializer, 358/358 aggregate exactly once, compileall, workflow/checker/test_check_workflow, and diff hygiene passed. All four A06 findings are candidate-resolved; fresh independent review remains required. No real warm or Lean build occurred.",
+      "testing": "A08 approved exact head 39c9ee0: 60/60 hot-cache, 11/11 materializer, six adversarial full-warm probes, compileall, workflow/checker/test_check_workflow, and diff hygiene passed; A07's 358/358 aggregate remains the sole aggregate attempt. No real warm or Lean build.",
       "addresses": "QPBT-045",
       "provenance_session_ids": [
         "i045-orchestrator-a01-hot-main-preservation",
@@ -6806,7 +6832,7 @@
         "i045-orchestrator-a07-pr024-review-repair"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Obtain a fresh independent immutable security review of exact changed head 39c9ee0d74c929cbd4a1fc98be970f4d6c6c8a16 against F-LPR024-001 through F-LPR024-004, then integrate only after approval and run the one guarded singleton current-main warm."
+      "unexecuted_gate": "Guarded integration followed by exactly one authenticated singleton recipe-v7 current-main warm remains required; F-LPR024-005 is tracked separately as a pre-existing non-blocking residual."
     }
   ]
 }
