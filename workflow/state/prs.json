@@ -6021,8 +6021,11 @@
       "base": "main",
       "head": "issue/qpbt-035-q014-contract-a01",
       "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
-      "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
-      "implementer_session_ids": [],
+      "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+      "implementer_session_ids": [
+        "i035-orchestrator-a04-q014-contract-fixes",
+        "i035-orchestrator-a07-source-contract-repair"
+      ],
       "checks": [
         {
           "id": "check-qpbt-035-generation",
@@ -6103,6 +6106,104 @@
           "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
           "completed_at": "2026-09-01T13:40:18.856162Z",
           "result_path": "workflow/reviews/qpbt-035-q014-contract-a02.md"
+        },
+        {
+          "id": "check-qpbt-035-a07-auth",
+          "name": "QPBT-035 immutable candidate authentication",
+          "command": "git show -s --format=%H%n%T%n%P%n%s c35fcd36bea96705851655852eabc78ca9db9b3f; authenticate eight-path manifest",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "completed_at": "2026-09-01T15:29:55Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "comparison_base_sha": "3f2630a7631a0164b6ef4aca1fd081ba264beeb2",
+          "head_tree": "86d8ca78d3e4bb5fe89d57f25c2bea539d4c8100",
+          "manifest_sha256": "b1bbee9ce7f0b6c8268b8cb356f2d87a4a78039357dc9150f320340bdb1f4180"
+        },
+        {
+          "id": "check-qpbt-035-a07-unit",
+          "name": "QPBT-035 changed-head blueprint checker tests",
+          "command": "python3 -m unittest discover -s blueprint/tests -v",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "completed_at": "2026-09-01T15:29:55Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "comparison_base_sha": "3f2630a7631a0164b6ef4aca1fd081ba264beeb2",
+          "result": "29/29 passed"
+        },
+        {
+          "id": "check-qpbt-035-a07-default",
+          "name": "QPBT-035 changed-head default blueprint check",
+          "command": "python3 blueprint/check.py --check",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "completed_at": "2026-09-01T15:29:55Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "comparison_base_sha": "3f2630a7631a0164b6ef4aca1fd081ba264beeb2",
+          "result": "53 nodes/12 chapters"
+        },
+        {
+          "id": "check-qpbt-035-a07-source-root",
+          "name": "QPBT-035 changed-head pinned-source blueprint check",
+          "command": "python3 blueprint/check.py --check --source-root /home/drx/MIPStarRE-auto/references/2001.04383v3",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "completed_at": "2026-09-01T15:29:55Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "comparison_base_sha": "3f2630a7631a0164b6ef4aca1fd081ba264beeb2",
+          "result": "53 nodes/12 chapters"
+        },
+        {
+          "id": "check-qpbt-035-a07-workflow",
+          "name": "QPBT-035 changed-head workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "completed_at": "2026-09-01T15:29:55Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "comparison_base_sha": "3f2630a7631a0164b6ef4aca1fd081ba264beeb2",
+          "result": "passed"
+        },
+        {
+          "id": "check-qpbt-035-a07-checker",
+          "name": "QPBT-035 changed-head workflow checker",
+          "command": "python3 scripts/check_workflow.py --skip-tests",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "completed_at": "2026-09-01T15:29:55Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "comparison_base_sha": "3f2630a7631a0164b6ef4aca1fd081ba264beeb2",
+          "result": "passed"
+        },
+        {
+          "id": "check-qpbt-035-a07-signatures",
+          "name": "QPBT-035 F07/F04A exact signature evidence",
+          "command": "A07 F07 probe plus authenticated A08 3/3 game-semantics probes",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "completed_at": "2026-09-01T15:29:55Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "comparison_base_sha": "3f2630a7631a0164b6ef4aca1fd081ba264beeb2",
+          "f07_signature_sha256": "99cfe240da252a94527d50c53d39a9673ee8d673cf6eba9730fb1a7e92df9d46",
+          "f04a_signature_sha256": "2bc405a88ddbfc0d82b10c431a7de2c9d2ce0ca415e1ce25fed2fabdda7da870"
+        },
+        {
+          "id": "check-qpbt-035-a07-diff",
+          "name": "QPBT-035 changed-head diff hygiene",
+          "command": "git diff --check 3f2630a7631a0164b6ef4aca1fd081ba264beeb2..c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "c35fcd36bea96705851655852eabc78ca9db9b3f",
+          "completed_at": "2026-09-01T15:29:55Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a07.md",
+          "comparison_base_sha": "3f2630a7631a0164b6ef4aca1fd081ba264beeb2",
+          "result": "passed"
         }
       ],
       "reviews": [
@@ -6177,26 +6278,35 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T13:51:43.737636Z",
-      "updated_at": "2026-09-01T14:16:20.700676Z",
+      "updated_at": "2026-09-01T15:30:41.279470Z",
       "changed_paths": [
         "blueprint/check.py",
+        "blueprint/generated/graph.dot",
         "blueprint/generated/graph.json",
         "blueprint/metadata/nodes.json",
         "blueprint/src/generated/chapter-02-entries.tex",
         "blueprint/src/generated/chapter-03-entries.tex",
         "blueprint/tests/test_check.py",
-        "workflow/reviews/qpbt-035-q014-contract-a02.md"
+        "workflow/reviews/qpbt-035-q014-contract-a02.md",
+        "workflow/reviews/qpbt-035-q014-contract-a04.md",
+        "workflow/reviews/qpbt-035-q014-contract-a07.md"
       ],
       "motivation": "Resolve the QPBT-014 preflight blockers and freeze an elaborated, source-faithful callable surface before four independent Lean writers begin.",
       "description": "Publish exact F02/F05/F06/F07/G01 signatures, imports, writer lanes, source boundaries, and deterministic generated metadata without adding public bridge assumptions.",
-      "testing": "Blueprint 28/28, deterministic regeneration, default and pinned-source checks, seven Lean signature probes, workflow validation/checker, and diff hygiene passed.",
+      "testing": "Changed head c35fcd3: 29/29 blueprint tests, deterministic 53-node generation, default and pinned-source checks, workflow validation/checker, exact F07 plus A08 F04A signature probes, candidate authentication, and diff hygiene passed; no target/full build was required for blueprint-only changes.",
       "addresses": "QPBT-035",
       "provenance_session_ids": [
         "i035-orchestrator-a01-q014-contract",
-        "i035-orchestrator-a02-q014-contract"
+        "i035-orchestrator-a02-q014-contract",
+        "i035-reviewer-a03-pr023-contract",
+        "i035-orchestrator-a04-q014-contract-fixes",
+        "i035-scout-a05-detype-source",
+        "i035-scout-a06-directsum-api",
+        "i035-orchestrator-a07-source-contract-repair",
+        "i035-scout-a08-game-semantics-api"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Resolve F-LPR023-001 through F-LPR023-003 on a changed head, rerun exact contract gates, and obtain a fresh immutable mathematical/API resolution review before adoption."
+      "unexecuted_gate": "Obtain a fresh immutable mathematical/API resolution review of exact head c35fcd36bea96705851655852eabc78ca9db9b3f; only that review may resolve F-LPR023-001 through F-LPR023-003 and approve guarded integration."
     }
   ]
 }

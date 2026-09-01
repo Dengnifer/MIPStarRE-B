@@ -1324,8 +1324,42 @@ the A04 detyping repair remained source-incomplete: F07 omitted typed sampler
 downsizing; F07A began at generated line 225 instead of the typed verifier/game
 definitions at 197; and no node owned the generic game value, PCC, Schmidt-rank,
 or entanglement-requirement interfaces. Their coordinator/agent windows were
-`836.348`/`665.419` and `752.592`/`626.638696588` seconds, respectively. A07
-is now repairing only those authenticated omissions in the same clean issue
-worktree. No target/full build or cache action is duplicated before the
-contract head is accepted. Per-session token usage remains JSON `null` because
-the collaboration backend does not expose it.
+`836.348`/`665.419` and `752.592`/`626.638696588` seconds, respectively.
+
+A08 then audited the missing reusable game layer in parallel with A07. Its
+`1207.920`-second coordinator window (`857.884371270` seconds to the agent's
+evidence cutoff) produced three passing Lean signature probes and accepted a
+no-move design: F04A wraps the already reviewed `PureStrategy` instead of
+reowning it. A07 repaired the authenticated source omissions at immutable head
+`c35fcd36bea96705851655852eabc78ca9db9b3f` in `2015.636` coordinator-measured
+seconds (`1491.571842784` seconds to its exact evidence cutoff). The resulting
+blueprint has 53 nodes: F04A owns finite-game/value/PCC/SPCC/Schmidt-rank/Ent
+semantics, F07 owns typed sampler downsizing, and F07A owns typed verifier/game
+plus the complete detyping theorem. Root independently authenticated the
+commit, tree, report blobs, and eight-path manifest; all 29 blueprint tests,
+both declaration/source checks, workflow validation/checker, and diff hygiene
+passed. No target/full build or cache action was duplicated for this
+blueprint-only repair.
+
+The reconciliation exposed three useful fail-closed workflow checks. An
+independent pinned-source rerun first passed the section directory instead of
+the manifest-bearing paper root and failed without changing files; the exact
+root rerun passed. The state validator rejected an unregistered timing-quality
+label and rejected pre-PR sessions as LPR implementers; root retained the
+cutoff duration in its dedicated field and classified those sessions as
+provenance instead. A read-only A09 issue-graph scout was physically launched
+before its durable dispatch record. During late reconciliation the dispatcher
+rejected an abbreviated SHA and incomplete lifecycle envelope, but root then
+manually extended that abbreviation into a syntactically valid, nonexistent
+commit ID. An independent `git show` exposed the repeat of INC-050. A09 is
+preserved as nonbinding evidence, and fresh A10 was planned first and then
+issued against the authenticated pushed main commit/tree. This second
+occurrence is INC-058; a third will trigger a numbered tooling issue. The
+incident reinforces the existing rule: copy `git rev-parse` output, prove the
+commit object and tree, and materialize the full immutable envelope before
+backend work can become binding. A10 is the 199th Stage-04A subagent attempt
+and is checking only follow-on issue dependencies while the formal changed-head
+review remains the integration gate.
+
+Per-session token usage remains JSON `null` because the collaboration backend
+does not expose it; no estimate is substituted.

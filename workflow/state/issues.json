@@ -1880,7 +1880,7 @@
       "acceptance_gates": [
         "Resolve QPBT-033 findings 1-3, 5, and 7 before any QPBT-014 Lean writer starts: add F06, remove or reassign the orphan raw BitVec codec and already-discharged FieldData gate, and freeze every callable theorem required by F02/F05/F06/F07/G01",
         "Publish exact elaborated Lean signatures and direct imports for Polynomial.lean, Pauli.lean, Game/Types.lean, and Game/Parameters.lean, including Boolean-versus-field domains, G09 twisted phase, loop-preserving type graphs, dependent fibers, and the F03/F10 boundary",
-        "Update the 51-node blueprint metadata and deterministic chapter-02/chapter-03/graph outputs without changing paper claims or adding public bridge assumptions",
+        "Update the 53-node blueprint metadata and deterministic chapter-02/chapter-03/graph outputs; F04A owns reusable game semantics, F07 owns typed downsizing, and F07A owns typed verifier/game plus complete detyping obligations without changing paper claims or adding public bridge assumptions",
         "Run blueprint unit, source-root, default declaration, generated-diff, and workflow checks; record statement-integrity tables and exact source hashes",
         "Obtain a fresh independent immutable mathematical/API review before guarded integration"
       ],
@@ -1900,7 +1900,15 @@
         "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex",
         "workflow/reviews/qpbt-035-pr023-review-a03.md#F-LPR023-001",
         "workflow/reviews/qpbt-035-pr023-review-a03.md#F-LPR023-002",
-        "workflow/reviews/qpbt-035-pr023-review-a03.md#F-LPR023-003"
+        "workflow/reviews/qpbt-035-pr023-review-a03.md#F-LPR023-003",
+        "blueprint/metadata/nodes.json#F04A-GAME-SEMANTICS",
+        "blueprint/metadata/nodes.json#F07A-DETYPING",
+        "references/2001.04383v3/sections/dependencies/strategies-distance.tex",
+        "workflow/reviews/qpbt-035-q014-contract-a04.md",
+        "workflow/reviews/qpbt-035-detype-source-a05.md",
+        "workflow/reviews/qpbt-035-directsum-api-a06.md",
+        "workflow/reviews/qpbt-035-q014-contract-a07.md",
+        "workflow/reviews/qpbt-035-game-semantics-api-a08.md"
       ],
       "owned_paths": [
         "blueprint/check.py",
@@ -1912,7 +1920,7 @@
         "blueprint/src/generated/chapter-03-entries.tex"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T14:54:59.062367Z",
+      "updated_at": "2026-09-01T15:29:31.841029Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
