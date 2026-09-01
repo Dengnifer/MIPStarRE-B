@@ -548,6 +548,21 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(terminal_bytes, (sessions.read_bytes(), events.read_bytes()))
         local_agent._session_store(self.root).validate()
 
+    def test_collaboration_claim_requires_post_confirmation_release(self) -> None:
+        session_id = "i049-collab-a01-lease"
+        record = self.real_issued_ledger(session_id)
+        sessions = self.root / "workflow" / "state" / "sessions.json"
+        state = json.loads(sessions.read_text())
+        state["issued"][0]["backend"] = "codex-collaboration"
+        state["issued"][0]["external_id"] = THREAD_ID
+        write(sessions, json.dumps(state) + "\n")
+        authority = dict(session_id=session_id, workflow_root=self.root, alias=session_id,
+                         cwd=Path(record["worktree"]), base_revision=record["base_revision"],
+                         owned_paths=record["owned_paths"], read_only=False, role="prover",
+                         issue_id="QPBT-002", parent_session_id=None)
+        with self.assertRaises(local_agent.workflow_state.ValidationError):
+            local_agent.claim_issued_session(**authority)
+
     def test_dispatch_then_governed_exec_imports_real_codex_cli_thread_id(self) -> None:
         session_id = "i002-prover-a01-dispatch-governed-cli"
         worktree = self.root / f"worktree-{session_id}"

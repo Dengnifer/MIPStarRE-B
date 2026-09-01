@@ -1459,6 +1459,7 @@ def validate_event_log(
         lifecycle: dict[str, list[tuple[str, dt.datetime, int]]] = {
             session_id: [] for session_id in sessions
         }
+        release_payloads: dict[str, list[dict[str, Any]]] = {session_id: [] for session_id in sessions}
         for line_number, event_value, timestamp in events:
             payload = event_value.get("payload")
             if not isinstance(payload, dict):
@@ -1481,6 +1482,7 @@ def validate_event_log(
                 phase = "issued"
             elif event_name == "session.released":
                 phase = "released"
+                release_payloads[session_id].append(payload)
             elif event_name in {"session.finished", "session.failed"}:
                 phase = "terminal"
             elif event_name == "session.archived":
@@ -1492,6 +1494,8 @@ def validate_event_log(
                 status = payload.get("status")
                 if status == "issued":
                     phase = "issued"
+                elif status == "running":
+                    phase = "running"
                 elif status in {"finished", "failed"}:
                     phase = "terminal"
                 elif status == "archived":
@@ -1505,6 +1509,7 @@ def validate_event_log(
             terminal = [item for item in phases if item[0] == "terminal"]
             archived = [item for item in phases if item[0] == "archived"]
             released = [item for item in phases if item[0] == "released"]
+            running = [item for item in phases if item[0] == "running"]
             location = f"events[{session_id}]"
             if len(issued) != 1:
                 errors.append(f"{location}: expected exactly one session issuance event")
@@ -1512,6 +1517,15 @@ def validate_event_log(
                 errors.append(f"{location}: duplicate session release events")
             if released and issued and released[0][1] < issued[0][1]:
                 errors.append(f"{location}: release event precedes session issuance")
+            for release_payload in release_payloads[session_id]:
+                if session.get("backend") != "codex-collaboration":
+                    errors.append(f"{location}: release is only valid for codex-collaboration sessions")
+                if release_payload.get("external_id") != session.get("external_id"):
+                    errors.append(f"{location}: release external_id does not match issued session")
+            if session.get("backend") == "codex-collaboration" and session.get("external_id") and (running or terminal) and not released:
+                errors.append(f"{location}: collaboration session requires post-confirmation release")
+            if running and released and running[0][1] < released[0][1]:
+                errors.append(f"{location}: running transition precedes session release")
             status = session.get("status")
             if status == "archived":
                 if len(terminal) != 1:
