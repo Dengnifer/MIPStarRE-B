@@ -23242,6 +23242,76 @@
         "credentials": 0,
         "nested_agents": 0
       }
+    },
+    {
+      "id": "i036-orchestrator-a01-polynomial",
+      "name": "i036-orchestrator-a01-polynomial",
+      "role": "orchestrator",
+      "issue_id": "QPBT-036",
+      "attempt": 1,
+      "priority": 1,
+      "backend": "codex-collaboration",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "read_only": false,
+      "base_revision": "358cd108db045d13f4e0095a2948dd4037be2b54",
+      "base_revision_reason": "Current pushed main checkpoint after approved QPBT-035 blueprint integration.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-036-polynomial-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Polynomial.lean",
+        "workflow/reviews/qpbt-036-polynomial-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-036, F02 metadata, the pinned low-degree-code source, Field.lean, and Mathlib APIs. Implement the exact F02 contract with no sorry/axiom/constant, run scoped Lean and required cache/build/debt/sync gates, and write an immutable findings-first report.",
+      "result_envelope_path": "workflow/reviews/qpbt-036-polynomial-a01.md",
+      "dispatch_condition": "QPBT-035 is done; begin the first independent Lean writer lane.",
+      "status": "running",
+      "external_id": "/root/i036_polynomial_bootstrap",
+      "started_at": "2026-09-01T22:01:43.453633Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "pr_id": null
+    },
+    {
+      "id": "i037-orchestrator-a01-pauli",
+      "name": "i037-orchestrator-a01-pauli",
+      "role": "orchestrator",
+      "issue_id": "QPBT-037",
+      "attempt": 1,
+      "priority": 1,
+      "backend": "codex-collaboration",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "read_only": false,
+      "base_revision": "358cd108db045d13f4e0095a2948dd4037be2b54",
+      "base_revision_reason": "Current pushed main checkpoint after approved QPBT-035 blueprint integration.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-037-pauli-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Pauli.lean",
+        "workflow/reviews/qpbt-037-pauli-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-037, F05/G09 metadata, the pinned pauli source, Field.lean, Approximation.lean, and Mathlib/quantum APIs. Implement the exact Pauli contract with no sorry/axiom/constant, run scoped Lean and required cache/build/debt/sync gates, and write an immutable findings-first report.",
+      "result_envelope_path": "workflow/reviews/qpbt-037-pauli-a01.md",
+      "dispatch_condition": "QPBT-035 is done; begin the second independent Lean writer lane.",
+      "status": "running",
+      "external_id": "/root/i037_pauli_bootstrap",
+      "started_at": "2026-09-01T22:01:43.340238Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "pr_id": null
     }
   ]
 }

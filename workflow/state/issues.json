@@ -1932,7 +1932,7 @@
       "title": "feat(QPBT/Basic): implement Pauli algebra and projectors",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -1953,7 +1953,7 @@
         "Introduce no sorry, axiom, constant, public obligation input, or incompatible LDT parameter import",
         "Pass scoped Lean, target build, G09/debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i037-orchestrator-a01-pauli",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#F05--Pauli",
         "blueprint/metadata/nodes.json#F05-PAULI",
@@ -1964,9 +1964,9 @@
         "MIPStarRE/QPBT/Basic/Pauli.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T13:22:33.024087Z",
-      "blocked_reason": "QPBT-035 callable contract is not yet reviewed and integrated.",
-      "unblock_condition": "QPBT-035 done, plus any explicit F03 completion dependency selected by that contract."
+      "updated_at": "2026-09-01T22:02:36.588411Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-039",
@@ -2011,7 +2011,7 @@
       "title": "feat(QPBT/Basic): implement low-degree polynomial encoding",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2030,7 +2030,7 @@
         "Prove Boolean evaluation, linearity, and injectivity with no sorry, axiom, constant, FieldData requirement, or LDT parameter import",
         "Pass scoped Lean, target build, owned-scope debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i036-orchestrator-a01-polynomial",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#F02--Polynomial",
         "blueprint/metadata/nodes.json#F02-CODE",
@@ -2040,9 +2040,9 @@
         "MIPStarRE/QPBT/Basic/Polynomial.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T12:59:00Z",
-      "blocked_reason": "QPBT-035 callable contract is not yet reviewed and integrated.",
-      "unblock_condition": "QPBT-035 done."
+      "updated_at": "2026-09-01T22:02:26.281748Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-038",
