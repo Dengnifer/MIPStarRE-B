@@ -117,22 +117,199 @@ TYPED_LEAN_NAMES = [
     "MIPStarRE.QPBT.TypedDecider",
     "MIPStarRE.QPBT.TypedDecider.accepts",
 ]
-F06_EXECUTABLE_GAP_TERMS = (
-    "binary-string encoding",
+F06_SOURCE_ANCHOR = {
+    "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex",
+    "label": "sec:linear",
+    "generated_lines": [1, 552],
+    "original_lines": [2163, 2714],
+}
+F06_EXECUTABLE_OWNER_TERMS = (
+    "f06 ends at conditionally-linear.tex:552",
+    "f06a-executable-cl alone owns",
+    "binary-string representation",
     "six-input dimension",
     "marginal",
-    "linear-map",
-    "factor-space",
-    "turing step count",
+    "linear",
+    "factor",
+    "associated sampler distribution and step count",
     "executable downsizing",
+    "s(n) * log q(n)",
     "o(time_s(n) log q(n))",
-    "no current blueprint node",
-    "dedicated source-bound node and workflow issue",
-    "conditionally-linear.tex:553-710",
-    "f07a-detyping and qpbt-043 own only",
-    "types.tex:197-579",
-    "k03 and k04 own neither",
+    "conditionally-linear.tex:553-712",
+    "f07a-detyping, qpbt-043, k03, and k04 own none",
 )
+EXECUTABLE_CL_OWNER_ID = "F06A-EXECUTABLE-CL"
+EXECUTABLE_CL_SOURCE_ANCHORS = [
+    {
+        "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex",
+        "label": "def:sampler",
+        "generated_lines": [553, 615],
+        "original_lines": [2715, 2777],
+    },
+    {
+        "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex",
+        "label": "def:sampler-sample",
+        "generated_lines": [616, 626],
+        "original_lines": [2778, 2788],
+    },
+    {
+        "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex",
+        "label": "def:downsize_sampler",
+        "generated_lines": [628, 660],
+        "original_lines": [2790, 2822],
+    },
+    {
+        "path": "references/2001.04383v3/sections/dependencies/conditionally-linear.tex",
+        "label": "lem:downsize_sampler",
+        "generated_lines": [662, 712],
+        "original_lines": [2824, 2874],
+    },
+]
+EXECUTABLE_CL_PREREQUISITES = ["F06-CL"]
+EXECUTABLE_CL_LEAN_NAMES = [
+    "MIPStarRE.QPBT.AdmissibleFieldSizeFunction",
+    "MIPStarRE.QPBT.AdmissibleFieldSizeFunction.fieldSize",
+    "MIPStarRE.QPBT.AdmissibleFieldSizeFunction.fieldData",
+    "MIPStarRE.QPBT.AdmissibleFieldSizeFunction.vectorEncoding",
+    "MIPStarRE.QPBT.registerEncoding",
+    "MIPStarRE.QPBT.binaryFieldSizeFunction",
+    "MIPStarRE.QPBT.CLSamplerSide",
+    "MIPStarRE.QPBT.CLSampler.side",
+    "MIPStarRE.QPBT.CLStage.pred",
+    "MIPStarRE.QPBT.CLStage.castLE",
+    "MIPStarRE.QPBT.CLStage.last",
+    "MIPStarRE.QPBT.CLIntrospection",
+    "MIPStarRE.QPBT.CLSamplerQuery",
+    "MIPStarRE.QPBT.CLSamplerQuery.index",
+    "MIPStarRE.QPBT.CLSamplerQuery.inputTapes",
+    "MIPStarRE.QPBT.packSixTapes",
+    "MIPStarRE.QPBT.packSixTapes_injective",
+    "MIPStarRE.QPBT.SixTapeBoolTuringMachine",
+    "MIPStarRE.QPBT.SixTapeBoolTuringMachine.OutputsInTime",
+    "MIPStarRE.QPBT.CLSamplerSemantics",
+    "MIPStarRE.QPBT.CLSamplerSemantics.dimensionQuery",
+    "MIPStarRE.QPBT.CLSamplerSemantics.marginalQuery",
+    "MIPStarRE.QPBT.CLSamplerSemantics.linearQuery",
+    "MIPStarRE.QPBT.CLSamplerSemantics.factorQuery",
+    "MIPStarRE.QPBT.CLSamplerSemantics.answerBits",
+    "MIPStarRE.QPBT.ExecutableCLSampler",
+    "MIPStarRE.QPBT.ExecutableCLSampler.machine",
+    "MIPStarRE.QPBT.ExecutableCLSampler.stepCount",
+    "MIPStarRE.QPBT.ExecutableCLSampler.computes",
+    "MIPStarRE.QPBT.ExecutableCLSampler.associatedSampler",
+    "MIPStarRE.QPBT.ExecutableCLSampler.dimension",
+    "MIPStarRE.QPBT.ExecutableCLSampler.associatedMap",
+    "MIPStarRE.QPBT.ExecutableCLSampler.distribution",
+    "MIPStarRE.QPBT.ExecutableCLSampler.downsize",
+    "MIPStarRE.QPBT.ExecutableCLSampler.downsize_dimension",
+    "MIPStarRE.QPBT.ExecutableCLSampler.downsize_associated",
+    "MIPStarRE.QPBT.ExecutableCLSampler.downsize_distribution",
+    "MIPStarRE.QPBT.ExecutableCLSampler.downsize_time",
+]
+EXECUTABLE_CL_IMPLEMENTATION_CONTRACT = {
+    "writer_lane": "types",
+    "owned_file": "MIPStarRE/QPBT/Game/Types.lean",
+    "imports": [
+        "Mathlib.Analysis.Asymptotics.Defs",
+        "Mathlib.Computability.TuringMachine.Computable",
+        "Mathlib.Data.Nat.Log",
+        "Mathlib.Probability.Distributions.Uniform",
+        "MIPStarRE.QPBT.Basic.Field",
+    ],
+    "signature_manifest": {
+        "path": "workflow/reviews/qpbt-048-executable-cl-contract-a01.md",
+        "begin_marker": "<!-- BEGIN F06A-A01-SIGNATURES -->",
+        "end_marker": "<!-- END F06A-A01-SIGNATURES -->",
+        "sha256": "027de2c872cf086fb93456381ac5325aba2676b6be82428151c978e40fa2672d",
+    },
+    "reused_api": [
+        "Asymptotics.IsBigO",
+        "Computability.Encoding",
+        "Computability.encodeNat",
+        "Filter.atTop",
+        "Nat.log",
+        "Turing.FinTM2",
+        "Turing.TM2OutputsInTime",
+        "MIPStarRE.QPBT.CLSampler.downsize",
+        "MIPStarRE.QPBT.CLSampler.sample_downsize",
+        "MIPStarRE.QPBT.FieldData.coordinates",
+        "MIPStarRE.QPBT.downsizeVector",
+    ],
+    "validation_commands": ["lake env lean MIPStarRE/QPBT/Game/Types.lean"],
+    "allowed_minimal_sorries": [],
+    "proof_complete_sorry_count": 0,
+}
+EXECUTABLE_CL_CONTRACT = {
+    "statement": (
+        "Define admissible indexed field sizes and their fixed binary field-vector "
+        "representation. Define a six-input Turing sampler with distinct dimension, "
+        "marginal, linear, and factor query modes, its associated conditionally-linear "
+        "maps and distribution, and a uniform per-index operational step bound. Define "
+        "executable downsizing and prove field size 2, dimension s(n) * log q(n), "
+        "associated downsized maps and distribution, and O(TIME_S(n) * log q(n)) runtime."
+    ),
+    "encoding": (
+        "Represent q(n) as 2^(exponent n) with Odd (exponent n), so Nat.log 2 (q(n)) "
+        "is the paper's log q(n). Field vectors use the F01 selected basis in coordinate "
+        "order. CLSamplerQuery has exactly four constructors and inputTapes exposes the "
+        "paper layouts on Fin 6: dimension uses tapes 0-1, marginal and factor use 0-4, "
+        "and linear uses 0-5; stage.val encodes paper index j=stage.val+1. packSixTapes "
+        "uses a fixed injective two-bit symbol code plus reserved delimiter. "
+        "CLIntrospection freezes the selected nonunique marginals, prefixes, "
+        "pairwise-disjoint factor cover, supported linear maps, marginal sum, and "
+        "top-map equation. SixTapeBoolTuringMachine wraps Mathlib Turing.FinTM2, and "
+        "OutputsInTime is exact operational evidence. answerBits uses encodeNat, "
+        "vectorEncoding, or the length-s(n) factor indicator according to the query. "
+        "distribution is the associated CLSampler.sample."
+    ),
+    "boundary_hypotheses": (
+        "The executable sampler is supplied as the source-defined machine together with "
+        "intrinsic semantic correctness data; no theorem asserts that every mathematical "
+        "CLSampler has an executable realization. Mathlib FinTM2 has one designated "
+        "input stack, so the explicit six logical input tapes are packed injectively "
+        "without changing query semantics. The fixed semantic field encoding uses F01 "
+        "fieldDataOfOddExponent; K03A must later discharge uniform efficient-basis/table "
+        "construction and representation coherence before any construction-cost theorem. "
+        "stepCount is a uniform per-index TM2OutputsInTime bound over the exact typed "
+        "queries. ExecutableCLSampler.downsize requires 0 < level exactly as "
+        "lem:downsize_sampler. F06A alone owns def:sampler, def:sampler-sample, "
+        "def:downsize_sampler, and lem:downsize_sampler. F06 owns only "
+        "conditionally-linear.tex:1-552; F07A-DETYPING, K03-INTRO-COMPLEXITY, and "
+        "K04-GAME-COMPLEXITY own none of the generic six-input sampler, associated "
+        "maps/distribution, executable downsize, dimension s(n) * log q(n), or "
+        "O(TIME_S(n) * log q(n)) clauses. No generic Hypotheses, Assumptions, bridge, "
+        "residual, repair, witness, package, producer, arbitrary implication input, or "
+        "fabricated Turing theorem is permitted."
+    ),
+    "paper_assumptions": (
+        "An admissible field size function q(n), a dimension function s(n), an ell-level "
+        "six-input Turing sampler whose four query modes return the chosen marginal maps, "
+        "linear maps, and factor indicators for associated Alice/Bob CL functions, and "
+        "ell>=1 for executable downsizing."
+    ),
+    "lean_assumptions": (
+        "An Odd exponent family defining q(n)=2^k, the fixed F01 coordinate encoding, an "
+        "explicit Fin 6 binary query boundary, source-required nonunique CLIntrospection "
+        "data satisfying the marginal/factor/linear laws, an operational Mathlib FinTM2 "
+        "machine, and its uniform indexed execution bound; no executable-realization "
+        "premise is added to a mathematical sampler theorem."
+    ),
+    "paper_conclusion": (
+        "The sampler has associated CL maps and distribution and a step-count function; "
+        "its executable downsize has field size 2, dimension s(n) log q(n), associated "
+        "downsized CL maps, and runtime O(TIME_S(n) log q(n))."
+    ),
+    "lean_conclusion": (
+        "The exact four encoded query results compute through TM2OutputsInTime; "
+        "associatedSampler, associatedMap, distribution, and stepCount are callable; "
+        "downsize has binary field family, dimension s(n)*Nat.log 2(q(n)), exact "
+        "map/distribution correspondence, and an Asymptotics.IsBigO Filter.atTop step "
+        "bound. The F01 algorithmic representation-coherence theorem remains explicitly "
+        "assigned to K03A."
+    ),
+    "verdict": "faithful boundary",
+}
+TYPED_PREREQUISITES = [EXECUTABLE_CL_OWNER_ID]
 F07_FINITENESS_CONTRACT = {
     "statement": (
         "Define finite type and edge support and its graph-distribution semantics. "
@@ -156,34 +333,38 @@ F07_FINITENESS_CONTRACT = {
         "TypedQuestion and TypedDecider admit arbitrary dependent question and answer "
         "fibers without pointwise finiteness assumptions. G02 alone supplies the pointwise "
         "finite question and answer families required by the mathematical game consumer. "
-        "The mathematical downsizing contract does not claim the source Turing-machine "
-        "representation or runtime equation. Typed verifier/game, executable typed "
-        "interfaces, graph simulation, detyping, and all cost clauses are owned by "
-        "F07A-DETYPING and frozen by QPBT-043; K03 and K04 own none of them."
+        "F06A-EXECUTABLE-CL is the sole generic six-input sampler/query/downsize machine "
+        "base. The mathematical typed downsizing callables here do not claim the typed "
+        "Turing representation or runtime equation. Typed verifier/game, executable "
+        "typed interfaces, graph simulation, detyping, and typed/detyping cost clauses "
+        "are owned by F07A-DETYPING and frozen by QPBT-043; F07A, K03, and K04 own none "
+        "of F06A's generic clauses."
     ),
     "paper_assumptions": (
         "A finite type set, an undirected graph that may contain self-loops, typed CL "
-        "families and executable typed sampler/decider data, with a selected field basis "
-        "for downsizing."
+        "families over the generic executable sampler, executable typed sampler/decider "
+        "data, and a selected field basis for downsizing."
     ),
     "lean_assumptions": (
-        "A nonempty symmetric finite ordered-edge support and certified maps on the "
-        "constant FieldVector carrier; FieldData only for downsizing; generic "
-        "sigma/dependent question, answer, and decider fibers carry no pointwise "
-        "finiteness assumption."
+        "F06A's exact generic executable base; a nonempty symmetric finite ordered-edge "
+        "support and certified maps on the constant FieldVector carrier; FieldData only "
+        "for downsizing; generic sigma/dependent question, answer, and decider fibers "
+        "carry no pointwise finiteness assumption."
     ),
     "lean_conclusion": (
         "A uniform ordered-edge PMF preserving loop/orientation weight, its callable type "
         "marginal, a graph-preserving pointwise downsizing operation with exact PMF "
-        "pushforward, and a total dependent decider over arbitrary fibers. Executable "
-        "representation and costs remain explicit F07A-DETYPING/QPBT-043 obligations."
+        "pushforward, and a total dependent decider over arbitrary fibers. Generic "
+        "executable behavior is inherited only from F06A; typed executable representation "
+        "and costs remain explicit F07A-DETYPING/QPBT-043 obligations."
     ),
 }
 F07A_LEAN_ASSUMPTIONS = (
     "F07 typed interfaces with unrestricted dependent question, answer, and decider "
-    "fibers; F04A generic finite quantum-game semantics; the exact graph-event layer "
-    "owned here; and the types.tex:197-579 typed/detyping executable representation "
-    "and cost model to be frozen by QPBT-043."
+    "fibers; F04A generic finite quantum-game semantics; F06A only as the transitive "
+    "generic sampler base; the exact graph-event layer owned here; and the "
+    "types.tex:197-579 typed/detyping executable representation and cost model to be "
+    "frozen by QPBT-043."
 )
 F07A_EXECUTABLE_OWNER_TERMS = (
     "types.tex:197-579",
@@ -192,9 +373,9 @@ F07A_EXECUTABLE_OWNER_TERMS = (
     "typed downsizing and detyping runtime bounds",
     "description computability",
     "qpbt-043",
-    "conditionally-linear.tex:553-710 remains outside this node",
-    "dedicated source-bound node and workflow issue",
-    "k03 and k04 own neither",
+    "f06a-executable-cl alone owns",
+    "conditionally-linear.tex:553-712",
+    "this node, k03, and k04 own none",
 )
 DETYPING_OWNER_ID = "F07A-DETYPING"
 DETYPING_SOURCE_ANCHOR = {
@@ -249,7 +430,8 @@ EXPECTED_TARGET_SPINES = {
     "soundness": [
         "F01-FIELD", "F02-CODE", "F03-MEASUREMENT", "F04-DISTANCE",
         "F04-ASYMPTOTIC", "F04-CONSISTENCY", "F04-DISTANCE-LAWS", "F05-PAULI",
-        "F06-CL", "F07-TYPED", "F08-MAGIC-GAME", "F09-LDT-GAME",
+        "F06-CL", "F06A-EXECUTABLE-CL", "F07-TYPED", "F08-MAGIC-GAME",
+        "F09-LDT-GAME",
         "G01-PARAMETERS", "G02-GAME", "N01-NAIMARK", "A01-INDICATOR", "A03-WIN",
         "A05-EXPANDED", "A07-JOINT", "R01-FIBER", "A08-XZ-LINES",
         "L01-LDT-SOUNDNESS", "R02-AXIS-LDT", "R03-RESTRICTED", "A12-GLOBAL",
@@ -287,6 +469,21 @@ def f07_finiteness_contract(node: dict[str, Any]) -> dict[str, str]:
         "paper_assumptions": str(integrity.get("paper_assumptions", "")),
         "lean_assumptions": str(integrity.get("lean_assumptions", "")),
         "lean_conclusion": str(integrity.get("lean_conclusion", "")),
+    }
+
+
+def executable_cl_contract(node: dict[str, Any]) -> dict[str, str]:
+    """Extract the source-reviewed executable CL boundary for exact comparison."""
+    integrity = node.get("integrity", {})
+    return {
+        "statement": str(node.get("statement", "")),
+        "encoding": str(node.get("encoding", "")),
+        "boundary_hypotheses": str(node.get("boundary_hypotheses", "")),
+        "paper_assumptions": str(integrity.get("paper_assumptions", "")),
+        "lean_assumptions": str(integrity.get("lean_assumptions", "")),
+        "paper_conclusion": str(integrity.get("paper_conclusion", "")),
+        "lean_conclusion": str(integrity.get("lean_conclusion", "")),
+        "verdict": str(integrity.get("verdict", "")),
     }
 
 
@@ -627,18 +824,57 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
     f06 = nodes_by_id.get("F06-CL", {})
     if "MIPStarRE.QPBT.CLSampler.sample_directSum" not in f06.get("lean", {}).get("names", []):
         errors.append("F06-CL: direct-sum product-distribution theorem must remain callable")
+    if f06.get("source") != F06_SOURCE_ANCHOR:
+        errors.append("F06-CL: mathematical source range must end exactly at line 552")
     if (f06.get("fidelity") != "faithful-boundary" or
             f06.get("integrity", {}).get("verdict") != "faithful boundary"):
         errors.append("F06-CL: fidelity must match its faithful-boundary integrity verdict")
     f06_boundary = str(f06.get("boundary_hypotheses", "")).lower()
-    if not all(term in f06_boundary for term in F06_EXECUTABLE_GAP_TERMS):
+    if not all(term in f06_boundary for term in F06_EXECUTABLE_OWNER_TERMS):
         errors.append(
-            "F06-CL: generic executable representation and cost debt must retain its "
-            "dedicated-node gap and exclude F07A/QPBT-043 and K03/K04 ownership"
+            "F06-CL: generic executable ownership must remain assigned only to F06A"
         )
+    executable_cl = nodes_by_id.get(EXECUTABLE_CL_OWNER_ID)
+    if executable_cl is None:
+        errors.append(f"missing exact executable CL owner {EXECUTABLE_CL_OWNER_ID}")
+    else:
+        observed_anchors = [executable_cl.get("source"),
+                            *executable_cl.get("additional_sources", [])]
+        if observed_anchors != EXECUTABLE_CL_SOURCE_ANCHORS:
+            errors.append(
+                f"{EXECUTABLE_CL_OWNER_ID}: executable CL source anchors must remain exact"
+            )
+        if executable_cl.get("prerequisites") != EXECUTABLE_CL_PREREQUISITES:
+            errors.append(
+                f"{EXECUTABLE_CL_OWNER_ID}: executable CL prerequisites must remain exact"
+            )
+        if executable_cl.get("lean", {}).get("module") != "MIPStarRE.QPBT.Game.Types":
+            errors.append(
+                f"{EXECUTABLE_CL_OWNER_ID}: executable CL module must remain exact"
+            )
+        if executable_cl.get("lean", {}).get("names") != EXECUTABLE_CL_LEAN_NAMES:
+            errors.append(
+                f"{EXECUTABLE_CL_OWNER_ID}: executable CL callable names must remain exact"
+            )
+        if executable_cl.get("implementation_contract") != (
+                EXECUTABLE_CL_IMPLEMENTATION_CONTRACT):
+            errors.append(
+                f"{EXECUTABLE_CL_OWNER_ID}: implementation contract must remain exact"
+            )
+        if (executable_cl.get("kind") != "definition" or
+                executable_cl.get("fidelity") != "faithful-boundary"):
+            errors.append(
+                f"{EXECUTABLE_CL_OWNER_ID}: node kind and fidelity must remain exact"
+            )
+        if executable_cl_contract(executable_cl) != EXECUTABLE_CL_CONTRACT:
+            errors.append(
+                f"{EXECUTABLE_CL_OWNER_ID}: executable CL semantic contract must remain exact"
+            )
     f07 = nodes_by_id.get("F07-TYPED", {})
     if f07.get("source") != TYPED_SOURCE_ANCHOR:
         errors.append("F07-TYPED: typed source range must remain exact")
+    if f07.get("prerequisites") != TYPED_PREREQUISITES:
+        errors.append("F07-TYPED: executable CL prerequisite must remain exact")
     if f07.get("lean", {}).get("names") != TYPED_LEAN_NAMES:
         errors.append("F07-TYPED: typed callable names must remain exact")
     if f07_finiteness_contract(f07) != F07_FINITENESS_CONTRACT:

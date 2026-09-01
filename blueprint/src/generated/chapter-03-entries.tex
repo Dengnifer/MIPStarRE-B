@@ -44,7 +44,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex:2-328 [original 5048-5374], label sec:qld-game}}
 \BlueprintField{Statement}{Define the heterogeneous question distribution, answer families, conditionally-linear sampler, gamma phase, and the seven verifier checks of the QPBT game.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Verifier}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.QuestionType},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.Question},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.Answer},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliBasisGame},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.accepts}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS}}
 \BlueprintField{Prerequisites}{\seqsplit{F02-CODE, F05-PAULI, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS}}
 \BlueprintField{Consumers}{\seqsplit{G03-COMPLETENESS, K04-GAME-COMPLEXITY, N01-NAIMARK}}
 \BlueprintField{Encoding}{Question and answer carriers are sigma types over the paper's type graph. Explicit finite codecs embed each dependent answer fiber into one uniform finite POVM alphabet and decode it back; every decider edge is a constructor, preventing omitted cases. The question distribution is a PMF, so normalization is bundled.}
@@ -63,7 +63,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex:334-526 [original 5380-5572], label lem:pauli-completeness}}
 \BlueprintField{Statement}{For every admissible parameter tuple, the QPBT game has a symmetric projective commuting/consistent strategy of value one.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Completeness}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliCompleteness}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
 \BlueprintField{Prerequisites}{\seqsplit{G02-GAME}}
 \BlueprintField{Consumers}{\seqsplit{none}}
 \BlueprintField{Encoding}{Construct the finite EPR tensor state and each typed measurement explicitly; value one is equality of acceptance probability.}

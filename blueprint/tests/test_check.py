@@ -314,13 +314,29 @@ class BlueprintCheckTests(unittest.TestCase):
 
         f06 = by_id["F06-CL"]
         self.assertIn("MIPStarRE.QPBT.CLSampler.sample_directSum", f06["lean"]["names"])
+        self.assertEqual(check.F06_SOURCE_ANCHOR, f06["source"])
         self.assertEqual("faithful-boundary", f06["fidelity"])
         self.assertEqual("faithful boundary", f06["integrity"]["verdict"])
-        for term in check.F06_EXECUTABLE_GAP_TERMS:
+        for term in check.F06_EXECUTABLE_OWNER_TERMS:
             self.assertIn(term, f06["boundary_hypotheses"].lower())
+
+        executable_cl = by_id[check.EXECUTABLE_CL_OWNER_ID]
+        self.assertEqual(
+            check.EXECUTABLE_CL_SOURCE_ANCHORS,
+            [executable_cl["source"], *executable_cl["additional_sources"]],
+        )
+        self.assertEqual(check.EXECUTABLE_CL_PREREQUISITES,
+                         executable_cl["prerequisites"])
+        self.assertEqual(check.EXECUTABLE_CL_LEAN_NAMES,
+                         executable_cl["lean"]["names"])
+        self.assertEqual(check.EXECUTABLE_CL_IMPLEMENTATION_CONTRACT,
+                         executable_cl["implementation_contract"])
+        self.assertEqual(check.EXECUTABLE_CL_CONTRACT,
+                         check.executable_cl_contract(executable_cl))
 
         f07 = by_id["F07-TYPED"]
         self.assertEqual(check.TYPED_SOURCE_ANCHOR, f07["source"])
+        self.assertEqual(check.TYPED_PREREQUISITES, f07["prerequisites"])
         self.assertEqual(check.TYPED_LEAN_NAMES, f07["lean"]["names"])
         self.assertEqual(check.F07_FINITENESS_CONTRACT,
                          check.f07_finiteness_contract(f07))
@@ -422,6 +438,76 @@ class BlueprintCheckTests(unittest.TestCase):
                     bad_by_id["F07-TYPED"]["boundary_hypotheses"] += " Finite dependent fibers."
                 self.assertTrue(any(phrase in error for error in self.errors(nodes=bad)))
 
+    def test_executable_cl_contract_is_fail_closed_and_adversarial(self) -> None:
+        cases = (
+            ("missing_owner", "missing exact executable CL owner"),
+            ("wrong_source", "executable CL source anchors must remain exact"),
+            ("wrong_dependencies", "executable CL prerequisites must remain exact"),
+            ("wrong_module", "executable CL module must remain exact"),
+            ("wrong_names", "executable CL callable names must remain exact"),
+            ("wrong_import", "implementation contract must remain exact"),
+            ("wrong_manifest", "implementation contract must remain exact"),
+            ("wrong_kind", "node kind and fidelity must remain exact"),
+            ("six_modes", "executable CL semantic contract must remain exact"),
+            ("opaque_runtime", "executable CL semantic contract must remain exact"),
+            ("obligation_input", "executable CL semantic contract must remain exact"),
+            ("fabricated_machine", "executable CL semantic contract must remain exact"),
+            ("wrong_dimension", "executable CL semantic contract must remain exact"),
+        )
+        for mutation, phrase in cases:
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(self.nodes)
+                by_id = {node["id"]: node for node in bad["nodes"]}
+                node = by_id[check.EXECUTABLE_CL_OWNER_ID]
+                if mutation == "missing_owner":
+                    bad["nodes"].remove(node)
+                elif mutation == "wrong_source":
+                    node["additional_sources"][2]["generated_lines"] = [662, 711]
+                elif mutation == "wrong_dependencies":
+                    node["prerequisites"] = []
+                elif mutation == "wrong_module":
+                    node["lean"]["module"] = "MIPStarRE.QPBT.Game.Detyping"
+                elif mutation == "wrong_names":
+                    node["lean"]["names"].remove(
+                        "MIPStarRE.QPBT.ExecutableCLSampler.downsize_time"
+                    )
+                elif mutation == "wrong_import":
+                    node["implementation_contract"]["imports"].remove(
+                        "Mathlib.Computability.TuringMachine.Computable"
+                    )
+                elif mutation == "wrong_manifest":
+                    node["implementation_contract"]["signature_manifest"]["sha256"] = (
+                        "0" * 64
+                    )
+                elif mutation == "wrong_kind":
+                    node["kind"] = "lemma"
+                elif mutation == "six_modes":
+                    node["statement"] = node["statement"].replace(
+                        "distinct dimension, marginal, linear, and factor query modes",
+                        "six query modes",
+                    )
+                elif mutation == "opaque_runtime":
+                    node["integrity"]["lean_conclusion"] = (
+                        "An unspecified executable runtime contract."
+                    )
+                elif mutation == "obligation_input":
+                    node["boundary_hypotheses"] += (
+                        " A caller may supply any missing correctness obligation."
+                    )
+                elif mutation == "fabricated_machine":
+                    node["encoding"] = node["encoding"].replace(
+                        "Mathlib Turing.FinTM2", "an axiomatized six-tape machine"
+                    )
+                else:
+                    node["integrity"]["paper_conclusion"] = (
+                        node["integrity"]["paper_conclusion"].replace(
+                            "dimension s(n) log q(n)", "dimension s(n) + log q(n)"
+                        )
+                    )
+                self.assertTrue(any(
+                    phrase in error for error in self.errors(nodes=bad)
+                ))
+
     def test_typed_finiteness_and_executable_ownership_wording_is_adversarial(self) -> None:
         finiteness_mutations = (
             ("statement", " Finite typed samplers and deciders are exposed."),
@@ -493,8 +579,7 @@ class BlueprintCheckTests(unittest.TestCase):
             "sampler interfaces, and efficiency claims are deferred to K03-K04."
         )
         self.assertTrue(any(
-            "generic executable representation and cost debt must retain its "
-            "dedicated-node gap" in error
+            "generic executable ownership must remain assigned only to F06A" in error
             for error in self.errors(nodes=false_deferral)
         ))
 
@@ -502,15 +587,15 @@ class BlueprintCheckTests(unittest.TestCase):
         f06 = next(node for node in false_f07a_ownership["nodes"]
                    if node["id"] == "F06-CL")
         f06["boundary_hypotheses"] = f06["boundary_hypotheses"].replace(
-            "No current blueprint node has the exact source anchor and callable names "
-            "for this generic executable layer. A dedicated source-bound node and "
-            "workflow issue must freeze conditionally-linear.tex:553-710 before "
-            "implementation.",
-            "F07A-DETYPING and QPBT-043 own the generic executable layer.",
+            "F06A-EXECUTABLE-CL alone owns the binary-string representation, six-input "
+            "dimension/marginal/linear/factor query machine, associated sampler "
+            "distribution and step count, executable downsizing transformation, "
+            "dimension s(n) * log q(n), associated downsized maps, and "
+            "O(TIME_S(n) log q(n)) runtime at conditionally-linear.tex:553-712.",
+            "F07A-DETYPING and QPBT-043 own the generic executable layer instead.",
         )
         self.assertTrue(any(
-            "generic executable representation and cost debt must retain its "
-            "dedicated-node gap" in error
+            "generic executable ownership must remain assigned only to F06A" in error
             for error in self.errors(nodes=false_f07a_ownership)
         ))
 
