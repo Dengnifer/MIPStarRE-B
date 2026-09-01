@@ -1,6 +1,18 @@
 {
   "schema_version": 1,
-  "planned": [],
+  "planned": [
+    {
+      "id": "i023-scout-a03-lean-api",
+      "name": "i023-scout-a03-lean-api",
+      "role": "scout",
+      "issue_id": "QPBT-023",
+      "status": "planned",
+      "attempt": 3,
+      "parent_session_id": "i023-orchestrator-a01-leaf-contract",
+      "priority": 2,
+      "dispatch_condition": "Issue only after A02 is archived and exact-base cache 4a5d9cf4d7de3d89c9bf7805d59f5c1739b39fd56d66b19b2454941da8873807 is READY, then seed the registered private worktree once."
+    }
+  ],
   "issued": [
     {
       "id": "i001-coordinator-a01-bootstrap",
@@ -18451,6 +18463,37 @@
       "validation_command": "Read AGENTS.md, workflow/reviews/qpbt-024-lean-handoff-a10.md, workflow/reviews/stage-04a-q013-leaf-contract.md, the cited paper sections first, and the current blueprint F01/F03/F04 nodes. Act as sole writable orchestrator. Before edits, define bounded read-only source-integrity and pinned-Lean-API scout tasks with exact base/worktree/report paths and send metadata to root for canonical registration; dispatch only within live capacity, time-slicing if necessary. Freeze callable imports/signatures/universes/finite and decidable instances/domains/distributions/state/return/error types for F01/F03/F04. Record the self-dual-normal-basis paper gap and a concrete discharge plan without a new public assumption or conditional paper theorem. Use only temporary Lean probes after root confirms the exact-base hot cache is READY and seeds this private worktree; never launch a competing build. Regenerate only owned outputs, run blueprint check/test/source-root/declaration/diff/workflow gates, commit one clean candidate, then request fresh immutable review. No Lean source edits, endpoint/network/GitHub/credentials/external review.",
       "result_envelope_path": "workflow/reviews/qpbt-023-leaf-contract-a01.md",
       "started_at": "2026-09-01T08:02:30.546949Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null
+    },
+    {
+      "id": "i023-scout-a02-source-integrity",
+      "name": "i023-scout-a02-source-integrity",
+      "role": "scout",
+      "issue_id": "QPBT-023",
+      "status": "issued",
+      "attempt": 2,
+      "parent_session_id": "i023-orchestrator-a01-leaf-contract",
+      "priority": 1,
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "external_id": null,
+      "read_only": true,
+      "base_revision": "942f9438b991ece8942815db16c019b92d9cdd8e",
+      "base_revision_reason": "Exact detached clean QPBT-023 base authenticated before source-integrity issuance.",
+      "worktree": "/tmp/qpbt-023-source-integrity-a02",
+      "owned_paths": [],
+      "validation_command": "Verify exact base 942f9438b991ece8942815db16c019b92d9cdd8e, tree 09123f4b25c892a146aabaa77d73cf0c5f35a0c6, and clean detached checkout. Read AGENTS.md, QPBT_SOURCE_MAP, the exact authenticated materialized finite-fields/measurements/strategies-distance/magic-square/QPBT game/appendix source files from the primary repository, READY/inventory, current F01/F03/F04 blueprint nodes/generated entries, stage-04a-q013-leaf-contract.md, and stage-04a-materialized-contract-a55.md. Produce a line-anchored paper-to-callable-signature integrity table for F01/F03/F04; distinguish self-dual-basis existence, deterministic algorithm/table complexity, and Lean boundary; enumerate exact question/outcome/distribution/state/operator/error requirements; flag drift and unresolved choices. Run source/blueprint read-only validation and hashes only. Write only /tmp/i023-scout-a02-source-integrity.md; report exact timestamps/elapsed/token-null reason/topology/check counts/zero-action counters/SHA256. No repository edits, Git writes, Lean/Lake/build/cache/network/endpoint/GitHub/credentials/nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-023-source-integrity-a02.md",
+      "started_at": null,
       "ended_at": null,
       "elapsed_seconds": null,
       "token_usage": {
