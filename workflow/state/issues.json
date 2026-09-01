@@ -1818,7 +1818,7 @@
       "title": "Reconcile local dispatch with live collaboration slot admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-019",
       "dependency_ids": [
         "QPBT-019"
@@ -1855,7 +1855,7 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T12:32:00Z",
-      "updated_at": "2026-09-01T13:31:10.189912Z",
+      "updated_at": "2026-09-01T13:46:33.060059Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -1864,7 +1864,7 @@
       "title": "Freeze callable contracts for the QPBT-014 Lean split",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -1909,7 +1909,7 @@
         "blueprint/src/generated/chapter-03-entries.tex"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T13:23:16.864517Z",
+      "updated_at": "2026-09-01T13:45:19.587868Z",
       "blocked_reason": null,
       "unblock_condition": null
     },

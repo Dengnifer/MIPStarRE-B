@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 23,
+  "next_sequence": 24,
   "pull_requests": [
     {
       "id": "LPR-001",
@@ -5735,7 +5735,7 @@
       "base": "main",
       "head": "issue/qpbt-034-live-admission-a01",
       "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
-      "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
+      "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
       "implementer_session_ids": [],
       "checks": [
         {
@@ -5797,6 +5797,96 @@
           "head_sha": "1c01622d672514c9b91e61ff4d03b27583a6391f",
           "completed_at": "2026-09-01T13:15:00Z",
           "result_path": "workflow/reviews/qpbt-034-live-admission-a01.md"
+        },
+        {
+          "id": "check-qpbt-034-a03-interrupt",
+          "name": "QPBT-034 KeyboardInterrupt publication-boundary matrix",
+          "command": "python3 tests/test_workflow.py WorkflowStoreTests.test_dispatch_rolls_back_keyboard_interrupt_at_every_publication_boundary -v",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "completed_at": "2026-09-01T13:42:52.376230Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a03.md"
+        },
+        {
+          "id": "check-qpbt-034-a03-governed-cli",
+          "name": "QPBT-034 governed codex-cli real-ID import regression",
+          "command": "python3 tests/test_local_agent.py RuntimeTests.test_dispatch_then_governed_exec_imports_real_codex_cli_thread_id -v",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "completed_at": "2026-09-01T13:42:52.376230Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a03.md"
+        },
+        {
+          "id": "check-qpbt-034-a03-workflow-focused",
+          "name": "QPBT-034 changed-head workflow regressions",
+          "command": "python3 -m unittest discover -s tests -p test_workflow.py -v",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "completed_at": "2026-09-01T13:42:52.376230Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a03.md"
+        },
+        {
+          "id": "check-qpbt-034-a03-local-agent",
+          "name": "QPBT-034 governed local-agent regressions",
+          "command": "python3 tests/test_local_agent.py -v",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "completed_at": "2026-09-01T13:42:52.376230Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a03.md"
+        },
+        {
+          "id": "check-qpbt-034-a03-aggregate",
+          "name": "QPBT-034 changed-head aggregate regression suite",
+          "command": "python3 -m unittest discover -s tests -p test_*.py",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "completed_at": "2026-09-01T13:42:52.376230Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a03.md"
+        },
+        {
+          "id": "check-qpbt-034-a03-checker",
+          "name": "QPBT-034 changed-head workflow checker",
+          "command": "python3 tests/test_check_workflow.py",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "completed_at": "2026-09-01T13:42:52.376230Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a03.md"
+        },
+        {
+          "id": "check-qpbt-034-a03-compileall",
+          "name": "QPBT-034 changed-head Python compile check",
+          "command": "python3 -m compileall -q scripts tests",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "completed_at": "2026-09-01T13:42:52.376230Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a03.md"
+        },
+        {
+          "id": "check-qpbt-034-a03-state",
+          "name": "QPBT-034 changed-head workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "completed_at": "2026-09-01T13:42:52.376230Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a03.md"
+        },
+        {
+          "id": "check-qpbt-034-a03-diff",
+          "name": "QPBT-034 changed-head candidate diff hygiene",
+          "command": "git diff --check 17608ac90f1896cc019e8a7a7619ada6a3c05cef..f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "status": "passed",
+          "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
+          "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
+          "completed_at": "2026-09-01T13:42:52.376230Z",
+          "result_path": "workflow/reviews/qpbt-034-live-admission-a03.md"
         }
       ],
       "reviews": [
@@ -5856,23 +5946,146 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T13:15:00Z",
-      "updated_at": "2026-09-01T13:29:03.116973Z",
+      "updated_at": "2026-09-01T13:51:27.478329Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
         "scripts/workflow.py",
+        "tests/test_local_agent.py",
         "tests/test_workflow.py",
-        "workflow/reviews/qpbt-034-live-admission-a01.md"
+        "workflow/reviews/qpbt-034-live-admission-a01.md",
+        "workflow/reviews/qpbt-034-live-admission-a03.md"
       ],
       "motivation": "Prevent durable workflow issuance before a live collaboration thread exists after three backend-capacity admission mismatches.",
-      "description": "Require an explicit backend-returned external identity at mutating dispatch, keep rejected launches byte-stable and planned, account nested sessions, and document bootstrap-only recovery.",
-      "testing": "Focused discovery 76/76, aggregate 342/342, workflow checker 3/3, compileall, canonical validation, and diff hygiene passed. The dotted unittest form was attempted but is structurally inapplicable because tests is not a local package.",
+      "description": "Require live prelaunch confirmation only for codex-collaboration, preserve governed codex-cli issue-first null-ID launch and real-ID import, and restore exact dispatch snapshots across BaseException at every publication boundary.",
+      "testing": "Changed-head interrupt and governed CLI adversarial tests, workflow 77/77, local-agent 64/64, aggregate 344/344, checker 3/3, compileall, canonical validation, and diff hygiene passed.",
       "addresses": "QPBT-034",
       "provenance_session_ids": [
-        "i034-orchestrator-a01-live-admission"
+        "i034-orchestrator-a01-live-admission",
+        "i034-orchestrator-a03-live-admission-fixes"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Resolve F-LPR022-001 and F-LPR022-002 on a changed head, rerun all gates, and obtain a fresh immutable resolution review before formal adoption."
+      "unexecuted_gate": "Obtain a fresh immutable changed-head resolution review that confirms F-LPR022-001 and F-LPR022-002 before formal adoption."
+    },
+    {
+      "id": "LPR-023",
+      "title": "feat(blueprint): freeze QPBT-014 callable contracts",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-035"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-035-q014-contract-a01",
+      "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+      "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-035-generation",
+          "name": "QPBT-035 deterministic blueprint regeneration",
+          "command": "python3 blueprint/check.py --write",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "completed_at": "2026-09-01T13:40:18.856162Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a02.md"
+        },
+        {
+          "id": "check-qpbt-035-unit",
+          "name": "QPBT-035 blueprint checker tests",
+          "command": "python3 -m unittest discover -s blueprint/tests -p test_*.py",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "completed_at": "2026-09-01T13:40:18.856162Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a02.md"
+        },
+        {
+          "id": "check-qpbt-035-default",
+          "name": "QPBT-035 default blueprint declaration check",
+          "command": "python3 blueprint/check.py --check",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "completed_at": "2026-09-01T13:40:18.856162Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a02.md"
+        },
+        {
+          "id": "check-qpbt-035-source-root",
+          "name": "QPBT-035 pinned-source blueprint check",
+          "command": "python3 blueprint/check.py --check --source-root /home/drx/MIPStarRE-auto/references/2001.04383v3",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "completed_at": "2026-09-01T13:40:18.856162Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a02.md"
+        },
+        {
+          "id": "check-qpbt-035-workflow",
+          "name": "QPBT-035 workflow validation",
+          "command": "python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "completed_at": "2026-09-01T13:40:18.856162Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a02.md"
+        },
+        {
+          "id": "check-qpbt-035-checker",
+          "name": "QPBT-035 workflow checker",
+          "command": "python3 scripts/check_workflow.py --skip-tests",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "completed_at": "2026-09-01T13:40:18.856162Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a02.md"
+        },
+        {
+          "id": "check-qpbt-035-signatures",
+          "name": "QPBT-035 exact callable signature probes",
+          "command": "seven bounded lake env lean probes recorded in the A02 report",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "completed_at": "2026-09-01T13:40:18.856162Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a02.md"
+        },
+        {
+          "id": "check-qpbt-035-diff",
+          "name": "QPBT-035 candidate diff hygiene",
+          "command": "git diff --check 50c4a9ce9fc9446b04c1c309951f05cc6a49766c..fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "status": "passed",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "completed_at": "2026-09-01T13:40:18.856162Z",
+          "result_path": "workflow/reviews/qpbt-035-q014-contract-a02.md"
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-01T13:51:43.737636Z",
+      "updated_at": "2026-09-01T13:51:43.737636Z",
+      "changed_paths": [
+        "blueprint/check.py",
+        "blueprint/generated/graph.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/chapter-03-entries.tex",
+        "blueprint/tests/test_check.py",
+        "workflow/reviews/qpbt-035-q014-contract-a02.md"
+      ],
+      "motivation": "Resolve the QPBT-014 preflight blockers and freeze an elaborated, source-faithful callable surface before four independent Lean writers begin.",
+      "description": "Publish exact F02/F05/F06/F07/G01 signatures, imports, writer lanes, source boundaries, and deterministic generated metadata without adding public bridge assumptions.",
+      "testing": "Blueprint 28/28, deterministic regeneration, default and pinned-source checks, seven Lean signature probes, workflow validation/checker, and diff hygiene passed.",
+      "addresses": "QPBT-035",
+      "provenance_session_ids": [
+        "i035-orchestrator-a01-q014-contract",
+        "i035-orchestrator-a02-q014-contract"
+      ],
+      "requested_external_review": false,
+      "unexecuted_gate": "Obtain a fresh independent immutable mathematical/API review, then adopt the exact candidate bytes before dispatching QPBT-036 through QPBT-039."
     }
   ]
 }

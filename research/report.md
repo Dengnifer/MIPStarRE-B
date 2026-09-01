@@ -29,14 +29,14 @@ availability reasons rather than receiving estimates.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 112 terminal attempts; peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | source and blueprint acceptance chain closed; LPR-018 has three confirmed findings and supplemental QPBT-028/029/030 isolation work continues off the Lean critical path |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 40 issued attempts, 39 terminal and 1 active; peak concurrency 3 | collaboration usage unavailable | source and API audits archived; expanded-scope QPBT-023 contract continuation active |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 189 issued attempts: 187 terminal and 2 active sessions; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files are reviewed, merged, and combined-build clean; the next callable contract is being frozen while two admission-review findings are repaired off the Lean critical path |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 191 issued attempts: 189 terminal and 2 active sessions; peak concurrency 4 | collaboration usage unavailable | the first two disjoint Lean files are reviewed, merged, and combined-build clean; the four-file callable contract and the admission repair are both complete and under concurrent independent review |
 | 4B. Complete skeleton | planned | - | - | 0 | - | - |
 | 4C. Proofs | planned | - | - | 0 | - | - |
 | 5. Final audit | planned | - | - | 0 | - | - |
 
 ## Schedule estimates
 
-The snapshot below was updated at 2026-09-01 21:23 +08. Ranges are wall-clock
+The snapshot below was updated at 2026-09-01 21:55 +08. Ranges are wall-clock
 forecasts with the root coordinator plus three safe worker lanes, not token or
 person-hour estimates. The lanes are allocated to one critical-path writer,
 one fresh source/fidelity reviewer, and one independent API/cache or disjoint
@@ -47,8 +47,8 @@ hot-main build remains a singleton.
 | --- | ---: | ---: | --- |
 | 1. Workflow skeleton | 15 h 53 min (complete) | 0 | Acceptance and independent review are complete. |
 | 2. Source split | 43 h 50 min | 1-3 working weeks on an independent lane | QPBT-029 must complete exact capture/projection and QPBT-030 must build and test pinned reviewer/broker isolation; the explicit supplemental-review disposition means this no longer delays Lean dispatch. |
-| 3. Lean blueprint | 41 h 38 min | 4-8 hours for the current callable-contract freeze and its immutable review | Regenerate the 51-node contract, pass deterministic gates, and freeze exact callable signatures before dependent Lean writers start. Source and API scouting are complete. |
-| 4A. Minimal skeleton | 41 h 38 min | next four-file wave 17-41 active hours (about 1-4 calendar days); full stage 6-16 weeks | `Field.lean` and `Approximation.lean` are merged and combined-build clean. QPBT-035 now gates three parallel Lean writers; the self-dual-normal-basis theorem remains the dominant full-stage risk. |
+| 3. Lean blueprint | 42 h 10 min | 1-3 hours for the active immutable contract review and no-byte-change adoption | The 51-node contract and exact callable signatures are frozen and all deterministic gates pass. One fresh mathematical/API reviewer is active. |
+| 4A. Minimal skeleton | 42 h 10 min | writers can start in about 30-90 minutes if review is clean; next four-file wave remains 17-41 active hours (about 1-4 calendar days); full stage 6-16 weeks | `Field.lean` and `Approximation.lean` are merged and combined-build clean. QPBT-035 gates three parallel Lean writers only until active review/adoption completes; the self-dual-normal-basis theorem remains the dominant full-stage risk. |
 | 4B. Complete skeleton | not started | 4-10 weeks | All 48 blueprint declarations receive reviewed signatures; tracked `sorry` is allowed but no assumptions hide proof debt. |
 | 4C. Proofs | not started | 18-48 months | External theorem boundaries are admissible where declared and the rigidity/LDT dependencies do not require foundational redevelopment. |
 | 5. Final audit | not started | 3-8 weeks | Statements remain stable and full build/declaration synchronization does not expose late source gaps. |
@@ -1264,30 +1264,43 @@ and authenticated the complete report at SHA-256
 The accepted issue tree is QPBT-035 for one reviewed contract freeze;
 QPBT-036 through QPBT-039 for `Polynomial.lean`, `Pauli.lean`, `Types.lean`, and
 `Parameters.lean`; and QPBT-040 as the sole combined-snapshot build owner. The
-contract gate is active concurrently with QPBT-034. Once it closes, the three
+contract candidate is complete and its review is active concurrently with the
+QPBT-034 resolution review. Once it is adopted, the three
 longer Lean writers can run together and Parameters queues behind the first
 available lane. The audited forecast for contract, four implementations,
 reviews, and combined validation is `17-41` active wall hours, approximately
-`1-4` calendar days with prompt three-wide dispatch. The contract itself is
-forecast at `4-8` hours; dispatching writers before it would risk incompatible
+`1-4` calendar days with prompt three-wide dispatch. The contract candidate
+finished in `1323.836` coordinator-measured seconds, including lifecycle
+overhead, and `1022.733651524` agent-measured seconds through its evidence
+cutoff, substantially earlier than the original `4-8` hour forecast.
+Dispatching writers before independent adoption would still risk incompatible
 APIs and repeated implementation rather than produce a real speed-up.
 
 The QPBT-034 implementation candidate was committed at
-`3683e4b8128f3c442c64b7b271c9245109cd6441`; its final five-path report head is
+`3683e4b8128f3c442c64b7b271c9245109cd6441`; its first reviewed report head was
 `1c01622d672514c9b91e61ff4d03b27583a6391f`. Focused workflow regressions
 passed 76/76 in `0.669` seconds, the aggregate suite passed 342/342 in
 `235.925` seconds, and the workflow checker, compile, state, and diff gates all
 passed. The fresh immutable review requested changes with one high and one
 medium finding: confirmation was incorrectly applied to the governed
 `codex-cli` null-ID lease, and `KeyboardInterrupt` escaped the transaction
-rollback. LPR-022 remains unactivated; A03 is repairing both findings on a
-changed head while QPBT-035 continues independently.
+rollback. A03 repaired both findings at changed report head
+`f672839e2d221cba44e70db6ab523eebdd4d0d4a`: the governed CLI regression passed
+1/1, the five-boundary interrupt matrix passed, focused suites passed 77/77 and
+64/64, and the aggregate passed 344/344. LPR-022 remains unactivated while a
+fresh resolution reviewer checks both dispositions.
 
 QPBT-035 A01 ran for `887.256` coordinator-measured seconds and stopped before
 contract edits when it found that the closed blueprint validator admitted only
 the two first-wave writer lanes. It preserved a cache hit (`138.258072`
 seconds), one local-source materialization (`5.948803` seconds), and six bounded
 Lean/API probes in handoff commit
-`50c4a9ce9fc9446b04c1c309951f05cc6a49766c`. A02 continues in that exact
+`50c4a9ce9fc9446b04c1c309951f05cc6a49766c`. A02 continued in that exact
 worktree with ownership expanded only to `blueprint/check.py` and its focused
-tests, so it incurs no second seed, materialization, warm, or full build.
+tests, so it incurred no second seed, materialization, warm, or full build. A02
+froze the exact F02/F05/F06/F07/G01 contracts at
+`fdbb37a10e416c8a9891cdcdbcd44470573886b0`; regeneration was idempotent, all
+28 blueprint tests and both declaration/source checks passed, and seven bounded
+Lean signature probes elaborated. A fresh read-only mathematical/API reviewer
+is now checking the paper fidelity and downstream implementability of that
+exact seven-path candidate.
