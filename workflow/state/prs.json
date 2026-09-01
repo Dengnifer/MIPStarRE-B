@@ -4124,6 +4124,22 @@
           "report_sha256": "31594eca6cdf8730e905bfe5af5a15672109da9ad9159c3cc38aa1158bbbe602",
           "acceptance_commands": 0,
           "validation_inherited_from_review_id": "review-qpbt-026-pr016-a03-immutable"
+        },
+        {
+          "id": "review-qpbt-026-pr016-a08-immutable",
+          "reviewer_session_id": "i026-reviewer-a08-pr016-immutable",
+          "verdict": "request_changes",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "94c0e630b5f2697f678c400da082f108bde89471",
+          "started_at": "2026-09-01T02:55:35Z",
+          "completed_at": "2026-09-01T03:01:38Z",
+          "result_path": "workflow/reviews/qpbt-026-review-a08-pr016-immutable.md",
+          "finding_ids": [
+            "F-LPR016-005"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "6d1452b08f1fdfc89f66bfdd77eeeb69ba1086ec960aefa1a7c2d920c555f5eb",
+          "acceptance_commands": 5
         }
       ],
       "findings": [
@@ -4133,10 +4149,10 @@
           "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
           "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
           "severity": "blocker",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A08 verified at head 94c0e630 that authorization mappings remain internal to validation and are absent from the target, prompt, returned envelope, persisted result, and event log.",
+          "resolved_by_review_id": "review-qpbt-026-pr016-a08-immutable",
           "summary": "Validated disclosure authorization is copied into the review target, prompt, and result envelope, contrary to the no-echo protocol.",
           "path": "scripts/local_agent.py",
           "line": 2885
@@ -4161,10 +4177,10 @@
           "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
           "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
           "severity": "high",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A08 verified at head 94c0e630 that bound, unbound, and CLI commit target/head/first-parent mismatches share the committed-target resolver and fail before lease claim.",
+          "resolved_by_review_id": "review-qpbt-026-pr016-a08-immutable",
           "summary": "Commit-target head SHA drift is checked only after the bound reviewer lease is claimed.",
           "path": "scripts/local_agent.py",
           "line": 681
@@ -4175,19 +4191,33 @@
           "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
           "head_sha": "5d6164e949a32c906557a136c7e49558ea13d7ae",
           "severity": "high",
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A08 verified at head 94c0e630 that normalized full-path screening, no-renames scope extraction, sensitive nested paths, rename sources, and intended allow cases close the classifier-specific finding.",
+          "resolved_by_review_id": "review-qpbt-026-pr016-a08-immutable",
+          "summary": "Credential-path rejection checks only an incomplete basename pattern, allowing common nested key and credential paths despite exclude_credentials.",
+          "path": "scripts/local_agent.py",
+          "line": 642
+        },
+        {
+          "id": "F-LPR016-005",
+          "introduced_review_id": "review-qpbt-026-pr016-a08-immutable",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "94c0e630b5f2697f678c400da082f108bde89471",
+          "severity": "blocker",
           "status": "open",
           "disposition": "pending",
           "disposition_evidence": null,
           "resolved_by_review_id": null,
-          "summary": "Credential-path rejection checks only an incomplete basename pattern, allowing common nested key and credential paths despite exclude_credentials.",
+          "summary": "Changed-path authorization omits unchanged authority bytes embedded in the outbound prompt and unlisted repository content readable through the full cloned harness.",
           "path": "scripts/local_agent.py",
-          "line": 642
+          "line": 812
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T22:10:00Z",
-      "updated_at": "2026-09-01T02:52:25.401859Z",
+      "updated_at": "2026-09-01T03:05:34.338983Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
