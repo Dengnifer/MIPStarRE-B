@@ -76,12 +76,28 @@ unknown user-configured destination, so the wrapper rejects it before loading
 authorization, task, or context files, probing persistence, or claiming a lease.
 
 Library tests may opt into `offline_test_mode` only with an injected runner and
-an injected Codex capability record. That mode substitutes a non-`codex`
-executable marker, accepts no transport or authorization data, skips persistence
-probing, and has no CLI switch. A committed offline harness is a fresh Git
-repository with no source objects or remote. It contains only inert base/head
-bytes for changed endpoints, an exact derived patch, and a manifest recording
-path, revision role, Git type/mode/object identity, size, and SHA-256.
+an injected Codex capability record. The record is copied and its required
+fields are validated before repository inspection, harness/output creation,
+lease claim, or runner invocation; a falsey record never falls back to a Codex
+probe. That mode substitutes a non-`codex` executable marker, accepts no
+transport or authorization data, skips persistence probing, and has no CLI
+switch. A committed offline harness is a fresh Git repository with no source
+objects or remote. It contains only inert base/head bytes for changed endpoints,
+an exact derived patch, and a manifest recording path, revision role, Git
+type/mode/object identity, size, and SHA-256.
+
+Every Git operation used for source inspection or harness construction receives
+the same fixed minimal process environment: a system-default executable path, C
+locale, disabled system/global configuration and prompting, and no inherited
+repository, worktree, index, object, alternate, namespace, replacement, shallow,
+discovery, quarantine, ceiling, or template selector. Only the fixed author and
+committer dates needed for deterministic harness commits may extend it; identity
+itself is command-local. The injected offline runner is handed that same minimal
+environment. Tests must plant a source-object alternate and confirm that the
+unmanifested source head remains unresolved, the harness reports no alternate,
+and the child sees none of the selector variables. This closes ambient Git
+selection; it does not turn the in-process test double into OS-enforced host
+filesystem isolation.
 
 The offline packet projection also binds the inline request, final prompt,
 unchanged base authority blobs, harness manifest, and derived evidence. It

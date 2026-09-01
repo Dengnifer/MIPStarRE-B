@@ -101,6 +101,26 @@ DISCLOSURE_SENSITIVE_FILE_SUFFIXES = frozenset(
     {".jks", ".kdbx", ".key", ".keystore", ".p12", ".pem", ".pfx"}
 )
 OFFLINE_REVIEW_TEST_EXECUTABLE = "__local_agent_offline_review_test_double__"
+GIT_REPOSITORY_SELECTION_ENVIRONMENT = frozenset(
+    {
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_CEILING_DIRECTORIES",
+        "GIT_COMMON_DIR",
+        "GIT_DIR",
+        "GIT_DISCOVERY_ACROSS_FILESYSTEM",
+        "GIT_INDEX_FILE",
+        "GIT_NAMESPACE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_QUARANTINE_PATH",
+        "GIT_REPLACE_REF_BASE",
+        "GIT_SHALLOW_FILE",
+        "GIT_TEMPLATE_DIR",
+        "GIT_WORK_TREE",
+    }
+)
+GIT_DETERMINISTIC_IDENTITY_ENVIRONMENT = frozenset(
+    {"GIT_AUTHOR_DATE", "GIT_COMMITTER_DATE"}
+)
 PRODUCTION_REVIEW_ISOLATION_ERROR = (
     "production review dispatch is disabled until an exact content manifest and "
     "enforceable filesystem isolation are implemented"
@@ -1757,8 +1777,9 @@ def _run_bounded(
     cwd: Path,
     prompt: str | None,
     timeout_seconds: float,
+    environment: Mapping[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    """Apply timeouts to the built-in runner without changing injected-runner calls."""
+    """Apply timeouts and an optional exact environment to a runner."""
 
     try:
         if runner is _subprocess_run:
@@ -1767,6 +1788,14 @@ def _run_bounded(
                 cwd=cwd,
                 prompt=prompt,
                 timeout_seconds=timeout_seconds,
+                environment=environment,
+            )
+        if environment is not None:
+            return runner(
+                command,
+                cwd=cwd,
+                prompt=prompt,
+                environment=dict(environment),
             )
         return runner(command, cwd=cwd, prompt=prompt)
     except subprocess.TimeoutExpired as error:
@@ -1829,28 +1858,31 @@ def _sha256_text(value: str) -> str:
 
 
 def _git_environment(extra: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Return the complete minimal environment for deterministic local Git use."""
+
     environment = {
-        key: value
-        for key, value in os.environ.items()
-        if not (
-            key == "GIT_CONFIG_PARAMETERS"
-            or key == "GIT_CONFIG_COUNT"
-            or re.fullmatch(r"GIT_CONFIG_(?:KEY|VALUE)_\d+", key) is not None
-        )
+        "PATH": os.defpath,
+        "LANG": "C",
+        "LC_ALL": "C",
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_SYSTEM": os.devnull,
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        # Git has no portable switch to omit the repository-local file;
+        # command-local hardening below disables hooks and fsmonitor too.
+        "GIT_CONFIG_LOCAL": os.devnull,
+        "GIT_ATTR_NOSYSTEM": "1",
+        "GIT_TERMINAL_PROMPT": "0",
     }
-    environment.update(
-        {
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            # Git has no portable switch to omit the repository-local file;
-            # command-local hardening below disables hooks and fsmonitor too.
-            "GIT_CONFIG_LOCAL": os.devnull,
-            "GIT_TERMINAL_PROMPT": "0",
-        }
-    )
     if extra:
+        unexpected = set(extra) - GIT_DETERMINISTIC_IDENTITY_ENVIRONMENT
+        if unexpected:
+            raise AgentError(
+                "isolated Git environment received unsupported overrides: "
+                + ", ".join(sorted(unexpected))
+            )
         environment.update(extra)
+    if GIT_REPOSITORY_SELECTION_ENVIRONMENT.intersection(environment):
+        raise AssertionError("isolated Git environment contains repository selectors")
     return environment
 
 
@@ -2223,6 +2255,42 @@ def inspect_codex_review_capability() -> dict[str, Any]:
         "probe_termination_signal": None,
         "probe_termination_escalated": False,
     }
+
+
+def _validate_offline_codex_capability(
+    record: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Copy and validate injected parser evidence without probing Codex."""
+
+    if record is None:
+        raise AgentError("offline review test mode requires an injected capability record")
+    try:
+        capability = dict(record)
+    except (TypeError, ValueError) as error:
+        raise AgentError("offline review Codex capability record is invalid") from error
+    required_fields = {
+        "version",
+        "review_help_sha256",
+        "selector_with_prompt_supported",
+        "probe_reason",
+    }
+    if not required_fields.issubset(capability):
+        raise AgentError("Codex capability record is incomplete")
+    if not isinstance(capability["version"], str) or not capability["version"].strip():
+        raise AgentError("Codex capability record has an invalid version")
+    if (
+        not isinstance(capability["review_help_sha256"], str)
+        or re.fullmatch(r"[0-9a-f]{64}", capability["review_help_sha256"]) is None
+    ):
+        raise AgentError("Codex capability record has an invalid review help digest")
+    if type(capability["selector_with_prompt_supported"]) is not bool:
+        raise AgentError("Codex capability record has an invalid selector result")
+    if (
+        not isinstance(capability["probe_reason"], str)
+        or not capability["probe_reason"].strip()
+    ):
+        raise AgentError("Codex capability record has an invalid probe reason")
+    return capability
 
 
 def _deterministic_commit(
@@ -2925,8 +2993,7 @@ def _run_review_unbound(
         raise AssertionError("production disclosure preflight must fail closed")
     if runner is _subprocess_run:
         raise AgentError("offline review test mode requires an injected runner")
-    if codex_capability is None:
-        raise AgentError("offline review test mode requires an injected capability record")
+    capability = _validate_offline_codex_capability(codex_capability)
     if transport_profile is not None or disclosure_authorization is not None:
         raise AgentError("offline review test mode cannot accept transport or authorization data")
     return _run_offline_review(
@@ -2943,7 +3010,7 @@ def _run_review_unbound(
         timeout=timeout,
         dry_run=dry_run,
         runner=runner,
-        codex_capability=codex_capability,
+        codex_capability=capability,
         persistence_probe=_skipped_codex_persistence_probe(),
     )
 
@@ -2976,6 +3043,12 @@ def run_review(
         codex_capability=codex_capability,
         offline_test_mode=offline_test_mode,
     )
+    if offline_test_mode:
+        if runner is _subprocess_run:
+            raise AgentError("offline review test mode requires an injected runner")
+        arguments["codex_capability"] = _validate_offline_codex_capability(
+            codex_capability
+        )
     if session_id is None or dry_run:
         return _run_review_unbound(**arguments)
     if workflow_root is None or issue_id is None:
@@ -3043,8 +3116,7 @@ def _run_offline_review(
 
     if runner is _subprocess_run:
         raise AgentError("offline review test mode requires an injected runner")
-    if codex_capability is None:
-        raise AgentError("offline review test mode requires an injected capability record")
+    capability = _validate_offline_codex_capability(codex_capability)
 
     source_root = _git_repo_root(cwd)
     source_head = _try_head(source_root)
@@ -3094,15 +3166,6 @@ def _run_offline_review(
             snapshot_digest=bootstrap_snapshot_digest,
         )
 
-    capability = dict(codex_capability or inspect_codex_review_capability())
-    required_capability_fields = {
-        "version",
-        "review_help_sha256",
-        "selector_with_prompt_supported",
-        "probe_reason",
-    }
-    if not required_capability_fields.issubset(capability):
-        raise AgentError("Codex capability record is incomplete")
     use_native_review = (
         capability["selector_with_prompt_supported"] is True
         and target_kind == "uncommitted"
@@ -3261,6 +3324,7 @@ def _run_offline_review(
                 cwd=harness,
                 prompt=review_prompt,
                 timeout_seconds=timeout,
+                environment=_git_environment(),
             )
         except AgentProcessTimeout as error:
             timeout_error = error

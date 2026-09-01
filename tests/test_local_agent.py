@@ -50,9 +50,14 @@ def bootstrap_document(digest: str) -> dict[str, object]:
     }
 
 
-def git(repo: Path, *arguments: str, input_text: str | None = None) -> str:
-    environment = os.environ.copy()
-    environment.update(
+def git(
+    repo: Path,
+    *arguments: str,
+    input_text: str | None = None,
+    environment: dict[str, str] | None = None,
+) -> str:
+    process_environment = os.environ.copy() if environment is None else dict(environment)
+    process_environment.update(
         {
             "GIT_CONFIG_NOSYSTEM": "1",
             "GIT_CONFIG_GLOBAL": os.devnull,
@@ -69,7 +74,7 @@ def git(repo: Path, *arguments: str, input_text: str | None = None) -> str:
         text=True,
         capture_output=True,
         check=False,
-        env=environment,
+        env=process_environment,
     )
     if completed.returncode != 0:
         raise AssertionError(f"git {' '.join(arguments)} failed: {completed.stderr}")
@@ -124,9 +129,18 @@ class FakeRunner:
         self.returncode = returncode
         self.stderr = stderr
         self.calls: list[tuple[list[str], Path, str | None]] = []
+        self.environments: list[dict[str, str] | None] = []
 
-    def __call__(self, command: list[str], *, cwd: Path, prompt: str | None) -> subprocess.CompletedProcess[str]:
+    def __call__(
+        self,
+        command: list[str],
+        *,
+        cwd: Path,
+        prompt: str | None,
+        environment: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         self.calls.append((list(command), cwd, prompt))
+        self.environments.append(None if environment is None else dict(environment))
         return subprocess.CompletedProcess(
             command, self.returncode, stdout=self.stdout, stderr=self.stderr
         )
@@ -138,13 +152,23 @@ class InspectingRunner(FakeRunner):
         self.harness_facts: list[dict[str, object]] = []
         self.forbidden_oid = forbidden_oid
 
-    def __call__(self, command: list[str], *, cwd: Path, prompt: str | None) -> subprocess.CompletedProcess[str]:
+    def __call__(
+        self,
+        command: list[str],
+        *,
+        cwd: Path,
+        prompt: str | None,
+        environment: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        process_environment = None if environment is None else dict(environment)
         facts: dict[str, object] = {
             "root_agents_exists": (cwd / "AGENTS.md").exists(),
             "evidence_agents_exists": (cwd / "evidence/untracked/AGENTS.md").exists(),
             "unchanged_sentinel_exists": (cwd / "unchanged-sentinel.txt").exists(),
             "git_config": (cwd / ".git/config").read_text(encoding="utf-8"),
-            "git_object_counts": git(cwd, "count-objects", "-v"),
+            "git_object_counts": git(
+                cwd, "count-objects", "-v", environment=process_environment
+            ),
             "alternates_exists": (cwd / ".git/objects/info/alternates").exists(),
             "live_evidence_symlinks": [
                 path.relative_to(cwd).as_posix()
@@ -159,6 +183,7 @@ class InspectingRunner(FakeRunner):
             facts["forbidden_oid_resolves"] = subprocess.run(
                 ["git", "cat-file", "-e", self.forbidden_oid], cwd=cwd,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+                env=process_environment,
             ).returncode == 0
         manifest_path = cwd / "evidence/manifest.json"
         if manifest_path.is_file():
@@ -167,10 +192,17 @@ class InspectingRunner(FakeRunner):
             facts["evidence_manifest_file_sha256"] = local_agent._sha256_bytes(manifest_bytes)
         if "--commit" in command:
             commit = command[command.index("--commit") + 1]
-            parent = git(cwd, "rev-parse", f"{commit}^")
-            facts["diff"] = git(cwd, "diff", "--binary", parent, commit)
+            parent = git(
+                cwd, "rev-parse", f"{commit}^", environment=process_environment
+            )
+            facts["diff"] = git(
+                cwd, "diff", "--binary", parent, commit,
+                environment=process_environment,
+            )
         self.harness_facts.append(facts)
-        return super().__call__(command, cwd=cwd, prompt=prompt)
+        return super().__call__(
+            command, cwd=cwd, prompt=prompt, environment=process_environment
+        )
 
 
 class TimeoutRunner:
@@ -178,9 +210,18 @@ class TimeoutRunner:
         self.stdout = stdout
         self.stderr = stderr
         self.calls: list[tuple[list[str], Path, str | None]] = []
+        self.environments: list[dict[str, str] | None] = []
 
-    def __call__(self, command: list[str], *, cwd: Path, prompt: str | None) -> subprocess.CompletedProcess[str]:
+    def __call__(
+        self,
+        command: list[str],
+        *,
+        cwd: Path,
+        prompt: str | None,
+        environment: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         self.calls.append((list(command), cwd, prompt))
+        self.environments.append(None if environment is None else dict(environment))
         raise subprocess.TimeoutExpired(
             command,
             timeout=7,
@@ -963,6 +1004,48 @@ class RuntimeTests(unittest.TestCase):
         parsed = json.loads(Path(envelope["review_path"]).read_text(encoding="utf-8"))
         self.assertEqual("approve", parsed["verdict"])
 
+    def test_offline_committed_projection_scrubs_ambient_git_object_selection(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        head = commit_change(repo)
+        review = {"verdict": "approve", "findings": []}
+        runner = InspectingRunner(codex_events(json.dumps(review)), forbidden_oid=head)
+        poison = self.root / "must-not-be-inherited"
+        ambient = {
+            key: str(poison / key.lower())
+            for key in local_agent.GIT_REPOSITORY_SELECTION_ENVIRONMENT
+        }
+        ambient["GIT_ALTERNATE_OBJECT_DIRECTORIES"] = str(repo / ".git/objects")
+        ambient.update(
+            {
+                "GIT_CONFIG_PARAMETERS": "'core.fsmonitor'='malicious'",
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": "core.hooksPath",
+                "GIT_CONFIG_VALUE_0": str(poison),
+            }
+        )
+
+        with mock.patch.dict(os.environ, ambient, clear=False):
+            envelope = run_offline_review(
+                alias="i026-reviewer-a17-isolated-git", prompt="review", cwd=repo,
+                runtime_dir=self.runtime, target_kind="base", target_value="main",
+                base_sha=base, head_sha=head, runner=runner,
+                codex_capability=capability(native=False),
+            )
+            expected_environment = local_agent._git_environment()
+
+        self.assertEqual("finished", envelope["status"])
+        self.assertEqual([expected_environment], runner.environments)
+        self.assertTrue(
+            local_agent.GIT_REPOSITORY_SELECTION_ENVIRONMENT.isdisjoint(
+                runner.environments[0]
+            )
+        )
+        self.assertNotIn("CODEX_HOME", runner.environments[0])
+        self.assertFalse(runner.harness_facts[0]["forbidden_oid_resolves"])
+        self.assertNotIn("alternate:", runner.harness_facts[0]["git_object_counts"])
+        self.assertIn("count: 0", runner.harness_facts[0]["git_object_counts"])
+        self.assertFalse(runner.harness_facts[0]["alternates_exists"])
+
     def test_offline_review_never_probes_codex_persistence(self) -> None:
         repo, base = initialize_review_repo(self.root)
         head = commit_change(repo)
@@ -1436,6 +1519,39 @@ class RuntimeTests(unittest.TestCase):
         )
         self.assertEqual(local_agent.OFFLINE_REVIEW_TEST_EXECUTABLE, result["command"][0])
         self.assertTrue(result["offline_test_mode"])
+
+    def test_empty_offline_capability_fails_before_probe_or_side_effects(self) -> None:
+        repo, base = initialize_review_repo(self.root)
+        head = commit_change(repo)
+        runner = FakeRunner("")
+        with mock.patch.object(
+            local_agent, "inspect_codex_review_capability"
+        ) as capability_probe, mock.patch.object(
+            local_agent, "_git_repo_root"
+        ) as repository_probe, mock.patch.object(
+            local_agent, "_prepare_committed_harness"
+        ) as harness, mock.patch.object(
+            local_agent, "_prepare_output_directory"
+        ) as output, mock.patch.object(
+            local_agent, "claim_issued_session"
+        ) as claim, self.assertRaisesRegex(
+            local_agent.AgentError, "capability record is incomplete"
+        ):
+            local_agent.run_review(
+                alias="i026-reviewer-a17-empty-capability", prompt="review", cwd=repo,
+                runtime_dir=self.runtime, target_kind="base", target_value="main",
+                base_sha=base, head_sha=head, runner=runner, codex_capability={},
+                offline_test_mode=True, session_id="i026-reviewer-a17-empty-capability",
+                workflow_root=self.root, issue_id="QPBT-026",
+            )
+        capability_probe.assert_not_called()
+        repository_probe.assert_not_called()
+        harness.assert_not_called()
+        output.assert_not_called()
+        claim.assert_not_called()
+        self.assertEqual([], runner.calls)
+        self.assertFalse((self.runtime / "review-harnesses").exists())
+        self.assertFalse((self.runtime / "runs").exists())
 
     def test_no_replayable_preflight_token_or_production_helper_exists(self) -> None:
         self.assertFalse(hasattr(local_agent, "_DISCLOSURE_PREFLIGHT_TOKEN"))
@@ -2363,6 +2479,7 @@ class RuntimeTests(unittest.TestCase):
                 base_sha=record["base_revision"], head_sha=record["base_revision"],
                 session_id=session_id, workflow_root=self.root, issue_id="QPBT-002",
                 owned_paths=record["owned_paths"], runner=FakeRunner(codex_events()),
+                codex_capability=capability(native=False),
             )
         self.assertEqual(2, calls)
         child.assert_not_called()

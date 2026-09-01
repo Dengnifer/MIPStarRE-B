@@ -2,6 +2,19 @@
 
 ## 2026-09-01
 
+- QPBT-026 A17 closes A14's two offline-isolation findings. Injected Codex
+  capability evidence is now copied and field-validated before repository,
+  harness, output, lease, or runner effects; empty mappings cannot invoke the
+  real capability probe. Local Git operations and the injected offline runner
+  receive a fixed minimal environment rather than ambient process state. It
+  excludes repository/worktree/index, object/alternate, namespace/replacement,
+  shallow, discovery/quarantine, ceiling, template, and config-injection
+  selectors. The adversarial regression plants the source object database as an
+  ambient alternate and proves that the projected harness still has zero local
+  objects, reports no alternate, and cannot resolve the unmanifested source
+  head. Production dispatch remains fail-closed at the earlier exact-content
+  and filesystem-isolation boundary.
+
 - QPBT-026 A11 closes the remaining disclosure replay and readable-scope
   findings by disabling production review dispatch at the boundary that cannot
   yet prove exact content authorization and OS-enforced read isolation. A
