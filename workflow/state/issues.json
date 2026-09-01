@@ -1932,7 +1932,7 @@
       "title": "feat(QPBT/Basic): implement Pauli algebra and projectors",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "blocked",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -1964,9 +1964,9 @@
         "MIPStarRE/QPBT/Basic/Pauli.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T22:02:36.588411Z",
-      "blocked_reason": null,
-      "unblock_condition": null
+      "updated_at": "2026-09-01T22:32:30.635219Z",
+      "blocked_reason": "Tracked base lacks MIPStarRE.Quantum foundation and reviewed Fourier/projector helper required by faithful F05/G09 contract; provisional diagonal projector rejected.",
+      "unblock_condition": "Integrate a pinned, reviewed Quantum foundation and Fourier/projector helper contract, then retry QPBT-037 from a fresh immutable base."
     },
     {
       "id": "QPBT-039",

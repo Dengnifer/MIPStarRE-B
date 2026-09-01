@@ -3315,3 +3315,9 @@
 {"schema_version":1,"timestamp":"2026-09-01T22:18:46.601722Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i052-reviewer-a04-release-contract"}}
 {"schema_version":1,"timestamp":"2026-09-01T22:20:42.829610Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i039-orchestrator-a01-parameters"}}
 {"schema_version":1,"timestamp":"2026-09-01T22:21:30.008622Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i039-orchestrator-a01-parameters","fields":["base_revision"]}}
+{"schema_version":1,"timestamp":"2026-09-01T22:31:44.229213Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issued-session","id":"i037-orchestrator-a01-pauli","fields":["timing_quality","outcome_path","report_sha256","outcome","run_outcome","checks"]}}
+{"schema_version":1,"timestamp":"2026-09-01T22:32:30.538098Z","event":"record.updated","actor":"local","pid":3,"payload":{"kind":"issue","id":"QPBT-037","fields":["blocked_reason","unblock_condition"]}}
+{"schema_version":1,"timestamp":"2026-09-01T22:32:30.686785Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"blocked","id":"QPBT-037"}}
+{"schema_version":1,"timestamp":"2026-09-01T22:32:35.562046Z","event":"record.transitioned","actor":"local","pid":3,"payload":{"kind":"issued-session","status":"failed","session_id":"i037-orchestrator-a01-pauli"}}
+{"schema_version":1,"timestamp":"2026-09-01T22:32:35.750029Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"archived","session_id":"i037-orchestrator-a01-pauli"}}
+{"schema_version":1,"timestamp":"2026-09-01T22:34:56.350823Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["incident_ids"]}}

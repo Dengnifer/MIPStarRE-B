@@ -23388,20 +23388,37 @@
       "validation_command": "Read AGENTS.md, QPBT-037, F05/G09 metadata, the pinned pauli source, Field.lean, Approximation.lean, and Mathlib/quantum APIs. Implement the exact Pauli contract with no sorry/axiom/constant, run scoped Lean and required cache/build/debt/sync gates, and write an immutable findings-first report.",
       "result_envelope_path": "workflow/reviews/qpbt-037-pauli-a01.md",
       "dispatch_condition": "QPBT-035 is done; begin the second independent Lean writer lane.",
-      "status": "running",
+      "status": "archived",
       "external_id": "/root/i037_pauli_bootstrap",
       "started_at": "2026-09-01T22:01:43.340238Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-01T22:32:35.485709Z",
+      "elapsed_seconds": 1852.145,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
-      "pr_id": null
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-037-pauli-a01.md",
+      "pr_id": null,
+      "timing_quality": "agent-reported-approximate",
+      "report_sha256": "59d636050d8a6924a7fbdd942fcc7398f849d41e797aba81e8c1ce52083d92f7",
+      "outcome": "blocked-missing-tracked-quantum-foundation",
+      "run_outcome": "blocked-no-candidate",
+      "checks": {
+        "candidate": "none",
+        "tracked_changes": 0,
+        "source_api_audit": "completed",
+        "scoped_lean": "blocked-by-missing-foundation",
+        "target_build": "not-run",
+        "debt_scan": "not-run",
+        "blueprint_sync": "not-run",
+        "private_full_build": "not-run",
+        "network": 0,
+        "github": 0,
+        "nested_agents": 0
+      }
     },
     {
       "id": "i038-orchestrator-a01-types",
