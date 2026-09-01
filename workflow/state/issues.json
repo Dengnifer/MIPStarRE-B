@@ -2317,7 +2317,7 @@
       "title": "Preserve authored QPBT sources during hot-main cache warm",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-024"
@@ -2355,7 +2355,7 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:50:00Z",
-      "updated_at": "2026-09-01T16:57:25.058036Z",
+      "updated_at": "2026-09-01T17:23:51.058787Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -2449,7 +2449,7 @@
       "title": "Freeze the executable conditionally-linear sampler contract",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2501,10 +2501,53 @@
         "blueprint/src/generated/chapter-12-entries.tex"
       ],
       "created_at": "2026-09-01T16:45:00Z",
-      "updated_at": "2026-09-01T17:18:04.693445Z",
+      "updated_at": "2026-09-01T17:29:40.526813Z",
       "blocked_reason": null,
       "unblock_condition": null,
       "ownership_handoff": "A01 commits only its immutable leased subset; a sequential root-issued integrator owns generated chapter-04 through chapter-12 before review."
+    },
+    {
+      "id": "QPBT-049",
+      "title": "Enforce post-confirmation collaboration task release",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-034",
+      "dependency_ids": [
+        "QPBT-034"
+      ],
+      "labels": [
+        "workflow",
+        "orchestration",
+        "collaboration",
+        "launch-lease",
+        "recurrence-threshold",
+        "safety"
+      ],
+      "acceptance_gates": [
+        "Reproduce and durably record the three post-QPBT-034 launches where the coordinator sent a full task packet in spawn_agent or followup_task before the immutable external ID was confirmed in canonical state",
+        "Add the smallest explicit task-release lease to the local workflow so a codex-collaboration row cannot transition to running until a post-confirmation release event is recorded; preserve bootstrap-only backend creation and exact rollback on rejection",
+        "Reject missing, duplicate, pre-issuance, wrong-external-ID, and reverse-chronological release attestations while preserving deterministic retry and governed codex-cli behavior",
+        "Add focused and aggregate regressions, update orchestration protocol and CHANGELOG, independently review the change, and migrate future root/child launch packets to bootstrap then explicit release"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-064",
+        "research/metrics/incidents.jsonl#INC-053",
+        "protocols/orchestration.md:29-57",
+        "protocols/CHANGELOG.md#0.1.9-candidate-qpbt-034",
+        "scripts/workflow.py"
+      ],
+      "owned_paths": [
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "created_at": "2026-09-01T17:36:00Z",
+      "updated_at": "2026-09-01T17:36:00Z",
+      "blocked_reason": "All collaboration slots are assigned to higher-priority QPBT-045/QPBT-048 gates; the current two-phase confirmation still prevents false canonical issuance.",
+      "unblock_condition": "A collaboration slot is free after the cache or blueprint review lane completes."
     }
   ]
 }
