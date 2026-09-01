@@ -6911,7 +6911,7 @@
     {
       "id": "LPR-025",
       "title": "fix(workflow): enforce collaboration task release",
-      "status": "draft",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-049"
       ],
@@ -6920,13 +6920,77 @@
       "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
       "head_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
       "implementer_session_ids": [],
-      "checks": [],
-      "reviews": [],
-      "findings": [],
+      "checks": [
+        {
+          "id": "check-qpbt-049-a02-immutable",
+          "name": "QPBT-049 immutable release-gate review checks",
+          "command": "candidate blob compileall; 78/78 workflow tests; 3/3 checker tests; immutable diff authentication",
+          "status": "passed",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
+          "completed_at": "2026-09-01T19:42:00Z",
+          "result_path": "workflow/reviews/qpbt-049-review-a02.md",
+          "manifest_sha256": "a8c3ba182170da1f550612b3118fa76509359e6e709a3d8af43b28f302a7575e",
+          "candidate_tree": "b9987862ab36204033cc4f63e5b6f465a1214d92",
+          "parent_sha": "b9ca40aa590b99c903cc4a8385e229e7d6a2e594"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-049-pr025-a02-release",
+          "reviewer_session_id": "i049-reviewer-a02-task-release",
+          "verdict": "request_changes",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
+          "started_at": "2026-09-01T19:43:08Z",
+          "completed_at": "2026-09-01T19:56:40Z",
+          "result_path": "workflow/reviews/qpbt-049-review-a02.md",
+          "finding_ids": [
+            "F-LPR025-001",
+            "F-LPR025-002"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "92e07e5810838d2e445e93a69327d0d690f145b797c64c56d0055e3c22b84012",
+          "manifest_sha256": "a8c3ba182170da1f550612b3118fa76509359e6e709a3d8af43b28f302a7575e",
+          "integration_gate": "blocked pending release-path repair and fresh review"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F-LPR025-001",
+          "introduced_review_id": "review-qpbt-049-pr025-a02-release",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Governed local-agent claim_issued_session bypasses the post-confirmation collaboration release lease.",
+          "path": "scripts/local_agent.py",
+          "line": 381,
+          "required_change": "Enforce the release attestation in the actual claim path or a shared transition API and add a local-agent regression."
+        },
+        {
+          "id": "F-LPR025-002",
+          "introduced_review_id": "review-qpbt-049-pr025-a02-release",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Event-log validation does not bind release external identity/backend scope or require release before a collaboration session runs.",
+          "path": "scripts/workflow.py",
+          "line": 1482,
+          "required_change": "Validate release payload identity, collaboration backend scope, chronology, and required release before running/terminal progression."
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:00Z",
-      "updated_at": "2026-09-02T03:40:00Z",
+      "updated_at": "2026-09-01T19:59:39.754736Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -6947,7 +7011,7 @@
     {
       "id": "LPR-026",
       "title": "fix(cache): isolate Git diagnostics from ambient hooks",
-      "status": "draft",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-050"
       ],
@@ -6956,13 +7020,61 @@
       "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
       "head_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
       "implementer_session_ids": [],
-      "checks": [],
-      "reviews": [],
-      "findings": [],
+      "checks": [
+        {
+          "id": "check-qpbt-050-a02-immutable",
+          "name": "QPBT-050 immutable Git-diagnostic security review checks",
+          "command": "candidate syntax/targeted hot-cache tests; workflow/checker/diff authentication; no production warm",
+          "status": "passed",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
+          "completed_at": "2026-09-01T19:42:00Z",
+          "result_path": "workflow/reviews/qpbt-050-review-a02.md",
+          "manifest_sha256": "85693d6b11e7714aaf04ffef551693989bddf094e8394cfd552f80ce25e9ccfb",
+          "candidate_tree": "cb2a6e85311ea3ff681e8e5d378c8b075c283641",
+          "parent_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-050-pr026-a02-fsmonitor",
+          "reviewer_session_id": "i050-reviewer-a02-fsmonitor",
+          "verdict": "request_changes",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
+          "started_at": "2026-09-01T19:43:09Z",
+          "completed_at": "2026-09-01T19:56:41Z",
+          "result_path": "workflow/reviews/qpbt-050-review-a02.md",
+          "finding_ids": [
+            "F-LPR026-001"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "ed6e204e047b30aafe4884eafea2d0fead7068797a18ea3ce496caf5f8502570",
+          "manifest_sha256": "85693d6b11e7714aaf04ffef551693989bddf094e8394cfd552f80ce25e9ccfb",
+          "integration_gate": "blocked pending trusted git_resolved_path repair and fresh review"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F-LPR026-001",
+          "introduced_review_id": "review-qpbt-050-pr026-a02-fsmonitor",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Seed admission calls git_resolved_path without the trusted Git environment, allowing ambient GIT_WORK_TREE/config influence.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 1047,
+          "required_change": "Pass _trusted_git_environment() to every git_resolved_path subprocess call used by seed admission and add a focused admission regression."
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:01Z",
-      "updated_at": "2026-09-02T03:40:01Z",
+      "updated_at": "2026-09-01T19:59:40.545990Z",
       "changed_paths": [
         "scripts/hot_main_cache.py",
         "tests/test_hot_main_cache.py",

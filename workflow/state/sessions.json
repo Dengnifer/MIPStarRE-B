@@ -22549,7 +22549,7 @@
       "name": "i049-reviewer-a02-task-release",
       "backend": "codex-collaboration",
       "role": "reviewer",
-      "status": "running",
+      "status": "archived",
       "issue_id": "QPBT-049",
       "pr_id": "LPR-025",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
@@ -22565,23 +22565,47 @@
       "result_envelope_path": "/tmp/qpbt-049-review-a02.md",
       "external_id": "/root/i049-reviewer-a02-task-release",
       "started_at": "2026-09-01T19:43:07.927060Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-01T19:56:41.594214Z",
+      "elapsed_seconds": 813.667,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-049-review-a02.md",
+      "timing_quality": "runtime-measured",
+      "run_outcome": "formal-request-changes-two-blockers",
+      "candidate_base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+      "candidate_head_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
+      "candidate_tree": "b9987862ab36204033cc4f63e5b6f465a1214d92",
+      "candidate_parent_sha": "b9ca40aa590b99c903cc4a8385e229e7d6a2e594",
+      "candidate_manifest_sha256": "a8c3ba182170da1f550612b3118fa76509359e6e709a3d8af43b28f302a7575e",
+      "report_sha256": "92e07e5810838d2e445e93a69327d0d690f145b797c64c56d0055e3c22b84012",
+      "checks": {
+        "workflow_tests": "78/78 passed",
+        "checker": "3/3 passed",
+        "compileall": "passed",
+        "diff_check": "passed",
+        "finding_ids": [
+          "F-LPR025-001",
+          "F-LPR025-002"
+        ],
+        "verdict": "request_changes",
+        "builds": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "repository_edits": 0,
+        "nested_agents": 0
+      }
     },
     {
       "id": "i050-reviewer-a02-fsmonitor",
       "name": "i050-reviewer-a02-fsmonitor",
       "backend": "codex-collaboration",
       "role": "reviewer",
-      "status": "running",
+      "status": "archived",
       "issue_id": "QPBT-050",
       "pr_id": "LPR-026",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
@@ -22597,16 +22621,39 @@
       "result_envelope_path": "/tmp/qpbt-050-review-a02.md",
       "external_id": "/root/i050-reviewer-a02-fsmonitor",
       "started_at": "2026-09-01T19:43:08.374500Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-01T19:56:42.009825Z",
+      "elapsed_seconds": 813.635,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-050-review-a02.md",
+      "timing_quality": "runtime-measured",
+      "run_outcome": "formal-request-changes-high-finding",
+      "candidate_base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+      "candidate_head_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
+      "candidate_tree": "cb2a6e85311ea3ff681e8e5d378c8b075c283641",
+      "candidate_parent_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+      "candidate_manifest_sha256": "85693d6b11e7714aaf04ffef551693989bddf094e8394cfd552f80ce25e9ccfb",
+      "report_sha256": "ed6e204e047b30aafe4884eafea2d0fead7068797a18ea3ce496caf5f8502570",
+      "checks": {
+        "hot_cache_tests": "3/3 targeted; 61 expected aggregate",
+        "compileall": "passed",
+        "checker": "passed",
+        "diff_check": "passed",
+        "finding_ids": [
+          "F-LPR026-001"
+        ],
+        "verdict": "request_changes",
+        "builds": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "repository_edits": 0,
+        "nested_agents": 0
+      }
     },
     {
       "id": "i048-integrator-a07-guarded-integration",
