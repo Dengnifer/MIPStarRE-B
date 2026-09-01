@@ -1884,7 +1884,7 @@
         "Run blueprint unit, source-root, default declaration, generated-diff, and workflow checks; record statement-integrity tables and exact source hashes",
         "Obtain a fresh independent immutable mathematical/API review before guarded integration"
       ],
-      "owner_session_id": "i035-orchestrator-a02-q014-contract",
+      "owner_session_id": "i035-orchestrator-a04-q014-contract-fixes",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md",
         "blueprint/metadata/nodes.json#F02-CODE",
@@ -1897,7 +1897,10 @@
         "references/2001.04383v3/sections/dependencies/pauli.tex",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex",
         "references/2001.04383v3/sections/dependencies/types.tex",
-        "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex"
+        "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex",
+        "workflow/reviews/qpbt-035-pr023-review-a03.md#F-LPR023-001",
+        "workflow/reviews/qpbt-035-pr023-review-a03.md#F-LPR023-002",
+        "workflow/reviews/qpbt-035-pr023-review-a03.md#F-LPR023-003"
       ],
       "owned_paths": [
         "blueprint/check.py",
@@ -1909,7 +1912,7 @@
         "blueprint/src/generated/chapter-03-entries.tex"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T13:45:19.587868Z",
+      "updated_at": "2026-09-01T14:22:48.574097Z",
       "blocked_reason": null,
       "unblock_condition": null
     },

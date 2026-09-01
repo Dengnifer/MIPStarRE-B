@@ -5728,7 +5728,7 @@
     {
       "id": "LPR-022",
       "title": "fix(workflow): confirm live collaboration admission",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-034"
       ],
@@ -5736,7 +5736,9 @@
       "head": "issue/qpbt-034-live-admission-a01",
       "base_sha": "17608ac90f1896cc019e8a7a7619ada6a3c05cef",
       "head_sha": "f672839e2d221cba44e70db6ab523eebdd4d0d4a",
-      "implementer_session_ids": [],
+      "implementer_session_ids": [
+        "i034-integrator-a05-pr022-bind"
+      ],
       "checks": [
         {
           "id": "check-qpbt-034-focused",
@@ -5967,7 +5969,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T13:15:00Z",
-      "updated_at": "2026-09-01T14:06:16.075497Z",
+      "updated_at": "2026-09-01T14:20:59.566489Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -5986,12 +5988,12 @@
         "i034-orchestrator-a03-live-admission-fixes"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Fresh changed-head review approved and resolved both findings; formal no-byte-change adoption remains before approval and guarded integration."
+      "unexecuted_gate": "Formal no-byte-change adoption passed on the exact approved head; guarded integration and post-integration validation remain."
     },
     {
       "id": "LPR-023",
       "title": "feat(blueprint): freeze QPBT-014 callable contracts",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-035"
       ],
@@ -6082,12 +6084,79 @@
           "result_path": "workflow/reviews/qpbt-035-q014-contract-a02.md"
         }
       ],
-      "reviews": [],
-      "findings": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-035-pr023-a03-contract",
+          "reviewer_session_id": "i035-reviewer-a03-pr023-contract",
+          "verdict": "request_changes",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "started_at": "2026-09-01T13:55:07.424576Z",
+          "completed_at": "2026-09-01T14:14:22.956843Z",
+          "result_path": "workflow/reviews/qpbt-035-pr023-review-a03.md",
+          "finding_ids": [
+            "F-LPR023-001",
+            "F-LPR023-002",
+            "F-LPR023-003"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "a1ed48ff7a642c8811f56d1aa77caec32e3cf1608a33dd474fffb16b367e4caf",
+          "manifest_sha256": "d001ca49a11bbe32526931274a74e55b61a8a57b2544d0a79fd298f83680889d",
+          "statement_integrity": "F02/G01 exact; F05 documented mismatch faithful; F06/F07 mismatch",
+          "lean_signature_probes": 4
+        }
+      ],
+      "findings": [
+        {
+          "introduced_review_id": "review-qpbt-035-pr023-a03-contract",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "id": "F-LPR023-001",
+          "severity": "high",
+          "summary": "F07 defers detyping obligations to K03-K04 even though neither node owns detyping definitions or equivalence theorems.",
+          "path": "blueprint/metadata/nodes.json",
+          "line": 385,
+          "required_change": "Keep source detyping obligations visible under F07 or create an exact later node with dependencies, callable names, source range, and a tracked discharge issue."
+        },
+        {
+          "introduced_review_id": "review-qpbt-035-pr023-a03-contract",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "id": "F-LPR023-002",
+          "severity": "high",
+          "summary": "F06 omits the source theorem that the direct-sum sampler distribution is the product distribution.",
+          "path": "blueprint/metadata/nodes.json",
+          "line": 333,
+          "required_change": "Freeze a precisely typed sample_directSum/reindexing theorem in F06 or assign it to a concrete later node with an exact callable contract."
+        },
+        {
+          "introduced_review_id": "review-qpbt-035-pr023-a03-contract",
+          "base_sha": "50c4a9ce9fc9446b04c1c309951f05cc6a49766c",
+          "head_sha": "fdbb37a10e416c8a9891cdcdbcd44470573886b0",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "id": "F-LPR023-003",
+          "severity": "medium",
+          "summary": "F07 metadata claims finite dependent fibers and a finite decider although its frozen generic question/answer families have no pointwise finiteness assumptions.",
+          "path": "blueprint/metadata/nodes.json",
+          "line": 385,
+          "required_change": "Narrow the metadata to the constant finite sampler carrier and defer consumer finiteness to G02, or add connected dependent families with pointwise finite assumptions."
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T13:51:43.737636Z",
-      "updated_at": "2026-09-01T13:51:43.737636Z",
+      "updated_at": "2026-09-01T14:16:20.700676Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.json",
@@ -6106,7 +6175,7 @@
         "i035-orchestrator-a02-q014-contract"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Obtain a fresh independent immutable mathematical/API review, then adopt the exact candidate bytes before dispatching QPBT-036 through QPBT-039."
+      "unexecuted_gate": "Resolve F-LPR023-001 through F-LPR023-003 on a changed head, rerun exact contract gates, and obtain a fresh immutable mathematical/API resolution review before adoption."
     }
   ]
 }
