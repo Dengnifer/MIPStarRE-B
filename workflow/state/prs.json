@@ -6907,6 +6907,76 @@
         "evidence_path": "workflow/reviews/qpbt-045-root-warm-a01.md",
         "evidence_sha256": "f107448db821bf45d8676c64204f26a23b2690d18255dd481a9e22e8d789ce66"
       }
+    },
+    {
+      "id": "LPR-025",
+      "title": "fix(workflow): enforce collaboration task release",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-049"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-049-task-release-a01",
+      "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+      "head_sha": "d202aca7c352d5480bff3726539a3354d5176b52",
+      "implementer_session_ids": [],
+      "checks": [],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-02T03:40:00Z",
+      "updated_at": "2026-09-02T03:40:00Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/orchestration.md",
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "workflow/reviews/qpbt-049-task-release-a01.md"
+      ],
+      "motivation": "Prevent collaboration task packets from being released before immutable backend identity confirmation.",
+      "description": "Add a post-confirmation identity-bound release event and fail-closed lifecycle validation.",
+      "testing": "78 workflow tests; compileall; diff hygiene; immutable review pending.",
+      "addresses": "QPBT-049",
+      "provenance_session_ids": [
+        "i049-orchestrator-a01-task-release"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": "Fresh independent immutable review of exact candidate d202aca, then guarded integration."
+    },
+    {
+      "id": "LPR-026",
+      "title": "fix(cache): isolate Git diagnostics from ambient hooks",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-050"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-050-fsmonitor-hardening-a01",
+      "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+      "head_sha": "5e67781ac40cb3f0bfda141e6b631479db994ba7",
+      "implementer_session_ids": [],
+      "checks": [],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-02T03:40:01Z",
+      "updated_at": "2026-09-02T03:40:01Z",
+      "changed_paths": [
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "workflow/reviews/qpbt-050-fsmonitor-hardening-a01.md"
+      ],
+      "motivation": "Close the ambient fsmonitor execution residual in cache admission diagnostics.",
+      "description": "Run every Git identity and cleanliness diagnostic under the trusted Git environment and add hook suppression coverage.",
+      "testing": "61 hot-cache tests; compileall; checker; diff hygiene; immutable security review pending.",
+      "addresses": "QPBT-050",
+      "provenance_session_ids": [
+        "i050-orchestrator-a01-fsmonitor-hardening"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": "Fresh independent immutable security review of exact candidate 5e67781, then guarded integration."
     }
   ]
 }

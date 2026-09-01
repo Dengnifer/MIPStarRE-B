@@ -1864,7 +1864,7 @@
       "title": "Freeze callable contracts for the QPBT-014 Lean split",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "ready",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -1923,9 +1923,9 @@
         "blueprint/src/generated/chapter-03-entries.tex"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T16:45:05.965971Z",
-      "blocked_reason": "F-LPR023-004 remains open because conditionally-linear.tex:553-710 has no exact executable sampler/downsize blueprint node or callable owner.",
-      "unblock_condition": "QPBT-048 done with a fresh immutable LPR-023 changed-head review."
+      "updated_at": "2026-09-01T19:45:52.401260Z",
+      "blocked_reason": null,
+      "unblock_condition": "Guarded integration of approved LPR-023 candidate onto the current main checkpoint; then proceed to QPBT-014 writer dispatch."
     },
     {
       "id": "QPBT-037",
@@ -2531,7 +2531,7 @@
       "title": "Enforce post-confirmation collaboration task release",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-034",
       "dependency_ids": [
         "QPBT-034"
@@ -2565,7 +2565,7 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T17:36:00Z",
-      "updated_at": "2026-09-01T19:19:10.773580Z",
+      "updated_at": "2026-09-01T19:37:09.933681Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -2574,7 +2574,7 @@
       "title": "Harden hot-cache Git diagnostics against ambient fsmonitor hooks",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-045",
       "dependency_ids": [
         "QPBT-045"
@@ -2606,7 +2606,7 @@
         "workflow/reviews/qpbt-050-fsmonitor-hardening.md"
       ],
       "created_at": "2026-09-01T18:22:00Z",
-      "updated_at": "2026-09-01T19:19:11.531851Z",
+      "updated_at": "2026-09-01T19:37:44.143999Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
