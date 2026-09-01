@@ -2064,23 +2064,25 @@
       "acceptance_gates": [
         "Implement only MIPStarRE/QPBT/Game/Types.lean from the reviewed QPBT-035 F06-then-F07 contract",
         "Encode the source recursive conditionally-linear certificate before typed wrappers; do not replace it with a caller-supplied generic Prop",
-        "Normalize sampler PMFs, preserve type-graph loops and orientation weights, and retain heterogeneous finite fibers as dependent data",
+        "Normalize sampler PMFs and preserve type-graph loops and orientation weights; F07 permits arbitrary dependent question and answer fibers without pointwise finiteness, while G02 alone supplies the finite consumer instances",
         "Make no raw-string efficiency claim and introduce no sorry, axiom, constant, or public bridge assumption",
         "Pass scoped Lean, target build, loop/codec/debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
       ],
       "owner_session_id": null,
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#F06F07--Types",
+        "workflow/reviews/qpbt-035-q014-contract-a07.md#F06-CL",
+        "workflow/reviews/qpbt-035-q014-contract-a07.md#F07-TYPED",
         "blueprint/metadata/nodes.json#F06-CL",
         "blueprint/metadata/nodes.json#F07-TYPED",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:1-715",
-        "references/2001.04383v3/sections/dependencies/types.tex:1-582"
+        "references/2001.04383v3/sections/dependencies/types.tex:57-195"
       ],
       "owned_paths": [
         "MIPStarRE/QPBT/Game/Types.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T12:59:00Z",
+      "updated_at": "2026-09-01T15:57:29.924029Z",
       "blocked_reason": "QPBT-035 callable contract is not yet reviewed and integrated.",
       "unblock_condition": "QPBT-035 done."
     },
@@ -2119,6 +2121,325 @@
       "updated_at": "2026-09-01T12:59:00Z",
       "blocked_reason": "All four QPBT-014 Lean child issues must be reviewed and integrated first.",
       "unblock_condition": "QPBT-036, QPBT-037, QPBT-038, and QPBT-039 done."
+    },
+    {
+      "id": "QPBT-044",
+      "title": "Prevent guessed full SHAs in local workflow admission",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "blocked",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-026",
+        "QPBT-034",
+        "QPBT-045"
+      ],
+      "labels": [
+        "workflow",
+        "git-identity",
+        "sha-preflight",
+        "third-occurrence",
+        "safety",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Reproduce INC-050, INC-058, and INC-059 as one three-occurrence class: a displayed Git abbreviation was manually extended into a syntactically valid but nonexistent full SHA",
+        "Provide one canonical local identity preflight that resolves a ref through Git, proves the full commit object exists, records the exact tree, and refuses user-synthesized or nonexistent 40-hex values before any session dispatch mutation",
+        "Integrate the preflight into workflow session admission without breaking historical-state validation, detached-head reviewer base versus worktree-head separation, atomic dispatch, or governed codex-cli launch semantics",
+        "Consume the QPBT-045 exact-ref/cache admission contract without editing its cache implementation; regressions must prove an invalid main commit performs zero cache build, publication, and metric actions",
+        "Add focused and aggregate regressions for valid symbolic refs, exact commits, nonexistent full-looking SHAs, tree mismatch, PR-base versus detached-head identity, and atomic no-mutation failure",
+        "Make the smallest sufficient tooling/protocol change, update protocols/CHANGELOG.md with evidence and measured impact, and obtain a fresh independent immutable review before integration"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-050",
+        "research/metrics/incidents.jsonl#INC-058",
+        "research/metrics/incidents.jsonl#INC-059",
+        "workflow/state/issues.json#QPBT-045",
+        "workflow/reviews/qpbt-026-final-activation-a26.md",
+        "workflow/reviews/qpbt-035-issue-graph-a09.md",
+        "scripts/workflow.py",
+        "protocols/orchestration.md"
+      ],
+      "owned_paths": [
+        "scripts/git_identity.py",
+        "scripts/workflow.py",
+        "tests/test_git_identity.py",
+        "tests/test_workflow.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "created_at": "2026-09-01T15:46:00Z",
+      "updated_at": "2026-09-01T15:58:38.131173Z",
+      "blocked_reason": "QPBT-045 must first restore and freeze the hot-cache exact-ref and materialization contract.",
+      "unblock_condition": "QPBT-045 done."
+    },
+    {
+      "id": "QPBT-041",
+      "title": "feat(QPBT/Basic): complete finite strategy and consistency semantics",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "blocked",
+      "parent_id": "QPBT-005",
+      "dependency_ids": [
+        "QPBT-032",
+        "QPBT-045"
+      ],
+      "labels": [
+        "lean",
+        "minimal-skeleton",
+        "strategy-distance",
+        "consistency",
+        "f04",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement only MIPStarRE/QPBT/Basic/Approximation.lean for every remaining F04-DISTANCE, F04-ASYMPTOTIC, F04-CONSISTENCY, and F04-DISTANCE-LAWS callable; preserve the integrated F03 declarations byte-for-byte unless a source-required adjacent edit is independently justified",
+        "Publish all 47 reviewed declarations with the exact imports, universes, quantifier order, finite versus asymptotic separation, state and operator reindexing, local and tensor isometry formulas, PMF marginals, consistency scale, triangle law, and postprocessing law frozen in workflow/reviews/qpbt-023-leaf-contract-a04.md",
+        "Because QPBT-041 is a Stage-04A declaration skeleton, an individually tracked sorry is permitted only in a theorem body whose exact statement is already frozen; inventory every such occurrence and bind its discharge to QPBT-046. Add no axiom, constant, generic obligation input, bridge assumption, or duplicate F04A game semantics",
+        "After QPBT-045 restores the cache recipe, seed one private worktree from the authenticated current-main cache, pass scoped Lean and the affected target, run declaration/source synchronization and owned-scope proof-debt/import scans, then run one private full build before fresh immutable review",
+        "Record a statement-integrity table for all four paper nodes, exact source/report/signature hashes, the complete tracked-sorry inventory, cache key/hit/lock wait/build counters, and reviewer dispositions"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "blueprint/metadata/nodes.json#F04-DISTANCE",
+        "blueprint/metadata/nodes.json#F04-ASYMPTOTIC",
+        "blueprint/metadata/nodes.json#F04-CONSISTENCY",
+        "blueprint/metadata/nodes.json#F04-DISTANCE-LAWS",
+        "workflow/reviews/qpbt-023-leaf-contract-a04.md#F04-FINITE-SIGNATURES",
+        "workflow/reviews/qpbt-023-leaf-contract-a04.md#F04-ASYMPTOTIC-SIGNATURES",
+        "workflow/reviews/qpbt-023-leaf-contract-a04.md#F04-CONSISTENCY-SIGNATURES",
+        "workflow/reviews/qpbt-023-leaf-contract-a04.md#F04-DISTANCE-LAWS-SIGNATURES",
+        "references/2001.04383v3/sections/dependencies/strategies-distance.tex:20-32,138-150,213-282,377-395",
+        "references/2001.04383v3/sections/qpbt/appendix-preliminaries.tex:49-53",
+        "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex:533-545"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean"
+      ],
+      "created_at": "2026-09-01T15:48:00Z",
+      "updated_at": "2026-09-01T15:57:46.106237Z",
+      "blocked_reason": "The authenticated hot-main cache recipe currently fails before Lean compilation when authored QPBT sources exist.",
+      "unblock_condition": "QPBT-045 done and a guarded exact-main warm publishes a verified cache."
+    },
+    {
+      "id": "QPBT-042",
+      "title": "feat(QPBT/Game): implement finite game and strategy semantics",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-035",
+        "QPBT-041"
+      ],
+      "labels": [
+        "lean",
+        "complete-skeleton",
+        "finite-game",
+        "strategy-semantics",
+        "f04a",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement only MIPStarRE/QPBT/Game/Semantics.lean for all 18 F04A-GAME-SEMANTICS callables frozen by exact QPBT-035 candidate c35fcd36bea96705851655852eabc78ca9db9b3f",
+        "Import and reuse QPBT-041 PureStrategy, projective measurement, local tensor action, and exact consistency APIs; do not move, relist, duplicate, or weaken their reviewed contracts",
+        "Preserve the paper formulas for finite game data, fixed-strategy and supremal values, projective/symmetric/support-commuting/consistent/PCC/SPCC predicates, coefficient-matrix Schmidt rank, real sSup, WithTop Nat sInf, and value-one PCC existence",
+        "Add no executable detyping cost claim, sorry, axiom, constant, public obligation input, generic bridge assumption, or second strategy representation beyond the reviewed data-free wrapper",
+        "Seed a private exact-main cache, pass scoped Lean, affected target, declaration/source synchronization, owned-scope debt/import scans, and one private full build; obtain a fresh immutable mathematical/API review",
+        "Record the F04A statement-integrity table, exact three source ranges, all 18 callable signatures, cache/build metrics, and reviewer dispositions"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "blueprint/metadata/nodes.json#F04A-GAME-SEMANTICS",
+        "workflow/reviews/qpbt-035-game-semantics-api-a08.md",
+        "workflow/reviews/qpbt-035-q014-contract-a07.md",
+        "references/2001.04383v3/sections/dependencies/strategies-distance.tex:4-51,62-81,126-190"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Semantics.lean"
+      ],
+      "created_at": "2026-09-01T15:48:30Z",
+      "updated_at": "2026-09-01T15:53:52.732085Z",
+      "blocked_reason": "QPBT-035 must be reviewed and integrated, and QPBT-041 must implement the inherited F04 foundation.",
+      "unblock_condition": "QPBT-035 and QPBT-041 done."
+    },
+    {
+      "id": "QPBT-043",
+      "title": "feat(QPBT/Game): formalize graph simulation and verifier detyping",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-038",
+        "QPBT-042"
+      ],
+      "labels": [
+        "lean",
+        "complete-skeleton",
+        "typed-game",
+        "detyping",
+        "f07a",
+        "statement-integrity",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement only MIPStarRE/QPBT/Game/Detyping.lean for all 20 F07A-DETYPING callables over pinned types.tex generated lines 197-579",
+        "Reuse QPBT-038 F06/F07 typed interfaces and QPBT-042 F04A game semantics; retain the finite nonempty type graph and do not reassign any detyping obligation to K03 or K04",
+        "Publish typed normal-form verifier/game formation, graph sampler/event, exact event probability and conditioned type law, all four detyping constructions, completeness, soundness and entanglement loss with exact factor 16^|Type|, level ell+2, dimension 4|Type|+s(n), and separate sampler/decider/description runtime clauses",
+        "Freeze an explicit faithful executable representation and cost model before runtime theorems. As a Stage-04B declaration skeleton, an individually tracked sorry is permitted only in a theorem body with an exact frozen statement; inventory it for QPBT-047. No theorem clause may be replaced by a caller-supplied obligation, generic implication, arbitrary package, producer, witness assumption, axiom, or proof-debt constant",
+        "Seed a private exact-main cache, pass scoped Lean, affected target, declaration/source synchronization, owned-scope debt/import scans, and one private full build; obtain fresh immutable source-fidelity review",
+        "Record the complete F07A statement-integrity table, all 20 callables and exact formulas, source/report hashes, the complete tracked-sorry inventory, paper-gap notes for any genuinely missing proof step, and reviewer dispositions"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "blueprint/metadata/nodes.json#F07A-DETYPING",
+        "workflow/state/issues.json#QPBT-047",
+        "workflow/reviews/qpbt-035-detype-source-a05.md",
+        "workflow/reviews/qpbt-035-game-semantics-api-a08.md",
+        "workflow/reviews/qpbt-035-q014-contract-a07.md",
+        "references/2001.04383v3/sections/dependencies/types.tex:197-579"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Detyping.lean"
+      ],
+      "created_at": "2026-09-01T15:49:00Z",
+      "updated_at": "2026-09-01T15:58:02.251253Z",
+      "blocked_reason": "QPBT-038 must supply F06/F07 and QPBT-042 must supply F04A before detyping can elaborate.",
+      "unblock_condition": "QPBT-038 and QPBT-042 done."
+    },
+    {
+      "id": "QPBT-045",
+      "title": "Preserve authored QPBT sources during hot-main cache warm",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "ready",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-024"
+      ],
+      "labels": [
+        "workflow",
+        "hot-cache",
+        "materialization",
+        "authored-source",
+        "build-blocker",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Reproduce the exact current-main recipe-v5 failure where source identity binds two committed authored QPBT files but foundation materialization omits preservation mode and exits before compilation",
+        "Bump the canonical cache recipe identity and invoke the authenticated MIPStarRE materializer in replace-existing mode so upstream files are refreshed while the committed reserved QPBT subtree is preserved byte-for-byte",
+        "Verify authored QPBT inventory before materialization, after materialization, after dependency retrieval, after build, and before publication; reject missing, added, altered, untracked, or generated QPBT source",
+        "Add focused regressions for zero and nonzero authored QPBT trees, exact preservation, upstream replacement, malicious or accidental drift, failed materialization with no READY publication, and deterministic cache-key versioning",
+        "Update the local build protocol and protocol changelog, pass focused and aggregate workflow tests, and obtain a fresh independent immutable review",
+        "After guarded integration, warm exact current main once under the filesystem lock with all three authenticated local inputs; record cache key, input hashes, lock wait, materialization/dependency/build durations, inventory, result, and zero duplicate builders"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-054",
+        "research/metrics/incidents.jsonl#INC-060",
+        ".workflow-runtime/cache/failures/3d5cb99499071dc935470d5c4dc0cd236bedd1baf867a720041648cbec9d9793-20260901T234658-2/failure.json",
+        "workflow/reviews/qpbt-031-032-cache-warm-a01.md",
+        "scripts/hot_main_cache.py",
+        "scripts/materialize_mipstarre.py",
+        "protocols/local-development.md"
+      ],
+      "owned_paths": [
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "protocols/local-development.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "created_at": "2026-09-01T15:50:00Z",
+      "updated_at": "2026-09-01T15:50:00Z",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-046",
+      "title": "Prove the F04 strategy-distance and consistency suite",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-007",
+      "dependency_ids": [
+        "QPBT-041"
+      ],
+      "labels": [
+        "lean",
+        "proof-complete",
+        "strategy-distance",
+        "consistency",
+        "f04",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Discharge every tracked Stage-04A sorry introduced by QPBT-041 in MIPStarRE/QPBT/Basic/Approximation.lean without changing any reviewed declaration statement",
+        "Prove the finite distance/nonnegativity/isometry laws, indexed Big-O adapters, consistency triangle scale, measurement-family triangle, and postprocessing theorems from the exact F04 source contracts",
+        "Use project-native and Mathlib lemmas with explicit key steps; add no axiom, constant, bridge, obligation, package, producer, witness, generic hypothesis, or arbitrary implication input",
+        "Pass scoped Lean, affected target, declaration/source synchronization, complete proof-debt/assumption scan, one private full build, and fresh immutable mathematical review",
+        "Record statement integrity, paper gaps if any, exact proof-debt closure, cache/build metrics, and all reviewer findings/dispositions"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/state/issues.json#QPBT-041",
+        "blueprint/metadata/nodes.json#F04-DISTANCE",
+        "blueprint/metadata/nodes.json#F04-ASYMPTOTIC",
+        "blueprint/metadata/nodes.json#F04-CONSISTENCY",
+        "blueprint/metadata/nodes.json#F04-DISTANCE-LAWS",
+        "workflow/reviews/qpbt-023-leaf-contract-a04.md",
+        "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean"
+      ],
+      "created_at": "2026-09-01T15:54:30Z",
+      "updated_at": "2026-09-01T15:54:30Z",
+      "blocked_reason": "QPBT-041 must first publish the exact declaration skeleton and its tracked proof-debt inventory.",
+      "unblock_condition": "QPBT-041 done."
+    },
+    {
+      "id": "QPBT-047",
+      "title": "Prove the F07A graph simulation and verifier detyping suite",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-007",
+      "dependency_ids": [
+        "QPBT-043"
+      ],
+      "labels": [
+        "lean",
+        "proof-complete",
+        "typed-game",
+        "detyping",
+        "f07a",
+        "statement-integrity",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Discharge every tracked Stage-04B sorry introduced by QPBT-043 in MIPStarRE/QPBT/Game/Detyping.lean without changing any reviewed declaration statement",
+        "Prove graph event probability and conditioned type laws, all detyping constructions, completeness, soundness and entanglement loss with factor 16^|Type|, level ell+2, dimension 4|Type|+s(n), and the separate executable runtime clauses from the exact pinned F07A contract",
+        "Use project-native and Mathlib lemmas with explicit key steps; add no axiom, constant, bridge, obligation, package, producer, witness, generic hypothesis, or arbitrary implication input",
+        "Pass scoped Lean, affected target, declaration/source synchronization, complete proof-debt and assumption scans, one private full build, and fresh immutable mathematical and cost-model review",
+        "Record statement integrity for every F07A theorem, exact proof-debt closure, paper gaps if any, cache/build metrics, and all reviewer findings and dispositions"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/state/issues.json#QPBT-043",
+        "blueprint/metadata/nodes.json#F07A-DETYPING",
+        "workflow/reviews/qpbt-035-detype-source-a05.md",
+        "workflow/reviews/qpbt-035-q014-contract-a07.md",
+        "references/2001.04383v3/sections/dependencies/types.tex:197-579"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Detyping.lean"
+      ],
+      "created_at": "2026-09-01T15:58:15Z",
+      "updated_at": "2026-09-01T15:58:15Z",
+      "blocked_reason": "QPBT-043 must first publish the exact declaration skeleton and its tracked proof-debt inventory.",
+      "unblock_condition": "QPBT-043 done."
     }
   ]
 }

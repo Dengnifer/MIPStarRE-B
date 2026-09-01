@@ -1357,9 +1357,49 @@ issued against the authenticated pushed main commit/tree. This second
 occurrence is INC-058; a third will trigger a numbered tooling issue. The
 incident reinforces the existing rule: copy `git rev-parse` output, prove the
 commit object and tree, and materialize the full immutable envelope before
-backend work can become binding. A10 is the 199th Stage-04A subagent attempt
-and is checking only follow-on issue dependencies while the formal changed-head
-review remains the integration gate.
+backend work can become binding. A subsequent hot-cache status preflight then
+repeated the manual SHA expansion; the cache rejected it before any metric,
+lock, build, or publication action. That is INC-059 and the third occurrence,
+so QPBT-044 now tracks the required resolver/admission tooling change and
+independent review. A10 is the 199th Stage-04A subagent attempt, while A11 is
+the 200th and performs the formal changed-head review in parallel.
 
 Per-session token usage remains JSON `null` because the collaboration backend
 does not expose it; no estimate is substituted.
+
+A10 completed the fresh, correctly bound follow-on graph audit in a
+`1475.424`-second coordinator lifecycle window, with
+`809.103522019` agent-measured seconds to its evidence cutoff. It requested
+two changes. Root retained QPBT-042 and QPBT-043 as flat children of the
+tracking root because QPBT-006 is a formalization issue, and split skeleton
+statements from proof discharge: QPBT-046 owns the later F04 proof suite and
+QPBT-047 owns the later F07A detyping proofs. QPBT-041 and QPBT-043 may now use
+only individually inventoried `sorry` bodies during their declared skeleton
+stages; axioms, constants, obligation inputs, and hidden assumptions remain
+forbidden.
+
+The first recipe-v5 warm for exact pushed main
+`a648a7d6d2d24489e393e39c4d1cc7b7f1292ec8` elected one builder and
+authenticated two authored QPBT files totaling 5,319 bytes, with inventory
+SHA-256
+`0578da860a522b58b69c2c16df366c7eee3abd97c425900401e4e83c992803ed`.
+It then failed closed before dependency retrieval or Lean compilation because
+the foundation materializer was invoked without replacement/preservation
+mode. INC-060 records this as the second
+`integrated-source-materializer-replace-existing-omission` occurrence.
+QPBT-045 is the build-blocking repair; no duplicate warm is allowed before its
+changed recipe is independently reviewed and integrated. QPBT-041 therefore
+waits on QPBT-045, while blueprint-only QPBT-035 repair continues in parallel.
+
+A11 performed the formal immutable LPR-023 review in a
+`1276.302`-second coordinator window (`1100.300770` agent-measured
+seconds). It independently resolved F-LPR023-001 and F-LPR023-002, but
+requested changes because F07 still called the arbitrary dependent decider
+finite and its checker missed the conjoined wording, while F06 claimed exact
+fidelity and incorrectly deferred its executable sampler source obligations
+to checker-frozen K03/K04. It also recorded the already-disambiguated shortened
+A08 name in immutable A07 as a low provenance defect. A12 is the 201st
+Stage-04A subagent attempt and owns only the exact changed-head blueprint
+repair; c35 remains unintegrated pending a new immutable head and fresh review.
+The reconciliation checkpoint passed canonical state validation and all
+344 aggregate workflow regressions in `276.528` seconds.
