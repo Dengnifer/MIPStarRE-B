@@ -1434,6 +1434,40 @@ class WorkflowStoreTests(unittest.TestCase):
         self.assertFalse(events[-1]["payload"]["all_or_nothing_request"])
         self.assertTrue(events[-1]["payload"]["atomic_batch"])
 
+    def test_cli_transition_rejects_invalid_event_log_without_mutation(self) -> None:
+        session = collaboration_planned_session("i049-collab-a01-cli-rollback")
+        session["status"] = "issued"
+        session["external_id"] = "thread-cli"
+        state = documents()
+        state["sessions.json"]["issued"] = [session]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        release = EventLogTests.event(
+            NOW,
+            "session.released",
+            {"session_id": session["id"], "external_id": session["external_id"]},
+        )
+        issue = EventLogTests.event(
+            NOW,
+            "session.issued",
+            {
+                "session_id": session["id"],
+                "external_id": session["external_id"],
+                "release_contract": workflow.COLLABORATION_RELEASE_CONTRACT,
+            },
+        )
+        self.events.write_text(release + "\n" + issue + "\n", encoding="utf-8")
+        before_sessions = (self.state_dir / "sessions.json").read_bytes()
+        before_events = self.events.read_bytes()
+        arguments = workflow.build_parser().parse_args(
+            ["--root", str(self.root), "transition", "issued-session", session["id"], "running"]
+        )
+        with self.assertRaisesRegex(workflow.ValidationError, "release event precedes"):
+            workflow.run_cli(arguments)
+        self.assertEqual(before_sessions, (self.state_dir / "sessions.json").read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
     def test_dispatch_batch_issues_sorted_candidates_atomically_and_records_events(self) -> None:
         first = collaboration_planned_session("i002-reviewer-a01-batch")
         second = collaboration_planned_session("i002-reviewer-a02-batch")
@@ -2395,6 +2429,95 @@ class EventLogTests(unittest.TestCase):
             duplicate = self.event(REVIEW_ENDED, "session.released", {"session_id": session["id"], "external_id": "thread-release"})
             path.write_text(issue + "\n" + pre.replace(REVIEW_STARTED, REVIEW_ENDED) + "\n" + duplicate + "\n", encoding="utf-8")
             with self.assertRaisesRegex(workflow.ValidationError, "duplicate session release"):
+                workflow.validate_event_log(path, state)
+
+    def test_legacy_collaboration_history_without_release_contract_remains_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            state = documents()
+            session = issued_session("i001-collab-a01-legacy", status="archived")
+            session["backend"] = "codex-collaboration"
+            state["sessions.json"]["issued"] = [session]
+            path.write_text(
+                "\n".join(
+                    [
+                        self.event(NOW, "session.issued", {"session_id": session["id"]}),
+                        self.event(REVIEW_STARTED, "session.finished", {"session_id": session["id"]}),
+                        self.event(REVIEW_ENDED, "session.archived", {"session_id": session["id"]}),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            workflow.validate_event_log(path, state)
+
+    def test_equal_timestamp_release_order_uses_event_line_sequence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            state = documents()
+            session = collaboration_planned_session("i049-collab-a01-equal-time")
+            session["status"] = "running"
+            session["external_id"] = "thread-equal"
+            state["sessions.json"]["planned"] = []
+            state["sessions.json"]["issued"] = [session]
+            issue = self.event(
+                NOW,
+                "session.issued",
+                {
+                    "session_id": session["id"],
+                    "external_id": session["external_id"],
+                    "release_contract": workflow.COLLABORATION_RELEASE_CONTRACT,
+                },
+            )
+            release = self.event(
+                NOW,
+                "session.released",
+                {"session_id": session["id"], "external_id": session["external_id"]},
+            )
+            running = self.event(
+                NOW,
+                "record.transitioned",
+                {"kind": "issued-session", "session_id": session["id"], "status": "running"},
+            )
+            path.write_text(release + "\n" + issue + "\n" + running + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(workflow.ValidationError, "release event precedes"):
+                workflow.validate_event_log(path, state)
+            path.write_text(issue + "\n" + release + "\n" + running + "\n", encoding="utf-8")
+            workflow.validate_event_log(path, state)
+
+    def test_release_identity_and_backend_scope_are_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            state = documents()
+            session = issued_session("i049-collab-a01-release-identity", status="running")
+            session["backend"] = "codex-collaboration"
+            session["external_id"] = "thread-expected"
+            state["sessions.json"]["issued"] = [session]
+            issue = self.event(
+                NOW,
+                "session.issued",
+                {
+                    "session_id": session["id"],
+                    "external_id": session["external_id"],
+                    "release_contract": workflow.COLLABORATION_RELEASE_CONTRACT,
+                },
+            )
+            wrong_id = self.event(
+                REVIEW_STARTED,
+                "session.released",
+                {"session_id": session["id"], "external_id": "thread-other"},
+            )
+            path.write_text(issue + "\n" + wrong_id + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(workflow.ValidationError, "external_id does not match"):
+                workflow.validate_event_log(path, state)
+
+            session["backend"] = "codex-cli"
+            path.write_text(issue + "\n" + self.event(
+                REVIEW_STARTED,
+                "session.released",
+                {"session_id": session["id"], "external_id": "thread-expected"},
+            ) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(workflow.ValidationError, "only valid for codex-collaboration"):
                 workflow.validate_event_log(path, state)
 
 

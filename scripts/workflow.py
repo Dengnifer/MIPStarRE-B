@@ -131,6 +131,7 @@ SHA_RE = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 SESSION_NAME_RE = re.compile(
     r"^i[0-9]+-[a-z0-9]+(?:-[a-z0-9]+)*-a[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$"
 )
+COLLABORATION_RELEASE_CONTRACT = "post-confirmation-v1"
 
 ISSUE_TRANSITIONS = {
     "planned": {"ready", "blocked", "cancelled"},
@@ -1459,6 +1460,7 @@ def validate_event_log(
         lifecycle: dict[str, list[tuple[str, dt.datetime, int]]] = {
             session_id: [] for session_id in sessions
         }
+        issuance_payloads: dict[str, list[dict[str, Any]]] = {session_id: [] for session_id in sessions}
         release_payloads: dict[str, list[dict[str, Any]]] = {session_id: [] for session_id in sessions}
         for line_number, event_value, timestamp in events:
             payload = event_value.get("payload")
@@ -1480,6 +1482,7 @@ def validate_event_log(
             phase: str | None = None
             if event_name == "session.issued":
                 phase = "issued"
+                issuance_payloads[session_id].append(payload)
             elif event_name == "session.released":
                 phase = "released"
                 release_payloads[session_id].append(payload)
@@ -1515,16 +1518,28 @@ def validate_event_log(
                 errors.append(f"{location}: expected exactly one session issuance event")
             if len(released) > 1:
                 errors.append(f"{location}: duplicate session release events")
-            if released and issued and released[0][1] < issued[0][1]:
+            if released and issued and released[0][1:] < issued[0][1:]:
                 errors.append(f"{location}: release event precedes session issuance")
             for release_payload in release_payloads[session_id]:
                 if session.get("backend") != "codex-collaboration":
                     errors.append(f"{location}: release is only valid for codex-collaboration sessions")
                 if release_payload.get("external_id") != session.get("external_id"):
                     errors.append(f"{location}: release external_id does not match issued session")
-            if session.get("backend") == "codex-collaboration" and session.get("external_id") and (running or terminal) and not released:
+            # Before the release contract existed, imported collaboration
+            # histories had no dispatch identity in their issuance payload.
+            # Those append-only records remain valid; dispatcher-issued rows
+            # carry the explicit marker below and require one release event.
+            release_required = (
+                session.get("backend") == "codex-collaboration"
+                and session.get("external_id")
+                and any(
+                    payload.get("release_contract") == COLLABORATION_RELEASE_CONTRACT
+                    for payload in issuance_payloads[session_id]
+                )
+            )
+            if release_required and (running or terminal) and not released:
                 errors.append(f"{location}: collaboration session requires post-confirmation release")
-            if running and released and running[0][1] < released[0][1]:
+            if running and released and running[0][1:] < released[0][1:]:
                 errors.append(f"{location}: running transition precedes session release")
             status = session.get("status")
             if status == "archived":
@@ -1532,7 +1547,7 @@ def validate_event_log(
                     errors.append(f"{location}: archived session needs exactly one terminal event")
                 if len(archived) != 1:
                     errors.append(f"{location}: archived session needs exactly one archive event")
-                if terminal and archived and terminal[0][1] > archived[0][1]:
+                if terminal and archived and terminal[0][1:] > archived[0][1:]:
                     errors.append(f"{location}: archive event precedes terminal event")
             elif status in ACTIVE_SESSION_STATUSES and (terminal or archived):
                 errors.append(f"{location}: active session has terminal lifecycle events")
@@ -1775,17 +1790,41 @@ class WorkflowStore:
         event: str,
         payload: Mapping[str, Any],
         mutation: Callable[[MutableMapping[str, Any]], Any],
+        *,
+        validate_events: bool = False,
     ) -> Any:
         if filename not in DEFAULT_DOCUMENTS:
             raise WorkflowError(f"unknown state document {filename!r}")
         with self._lock(exclusive=True):
             documents = self.load()
+            validate_documents(documents)
+            if validate_events:
+                validate_event_log(self.events_path, documents)
             changed_document = copy.deepcopy(documents[filename])
             result = mutation(changed_document)
             documents[filename] = changed_document
             validate_documents(documents)
-            atomic_write_json(self.state_dir / filename, changed_document)
-            self.append_event(event, payload, lock_held=True)
+            sessions_path = self.state_dir / "sessions.json"
+            sessions_bytes = sessions_path.read_bytes()
+            events_existed = self.events_path.exists()
+            events_offset = self.events_path.stat().st_size if events_existed else 0
+            events_bytes = self.events_path.read_bytes() if events_existed else None
+            try:
+                atomic_write_json(self.state_dir / filename, changed_document)
+                self.append_event(event, payload, lock_held=True)
+                if validate_events:
+                    validate_event_log(self.events_path, documents)
+            except BaseException:
+                self._restore_dispatch_transaction(
+                    sessions_path=sessions_path,
+                    sessions_bytes=sessions_bytes,
+                    events_existed=events_existed,
+                    events_offset=events_offset,
+                    events_bytes=events_bytes,
+                )
+                if filename != "sessions.json":
+                    atomic_write_json(self.state_dir / filename, documents[filename])
+                raise
             return result
 
     def dispatch_sessions(
@@ -1905,17 +1944,20 @@ class WorkflowStore:
             try:
                 atomic_write_json(sessions_path, documents["sessions.json"])
                 for session_id in selected_ids:
+                    issuance_payload = {
+                        "session_id": session_id,
+                        "dispatch_capacity": plan["capacity"],
+                        "dispatch_capacity_scope": plan["capacity_scope"],
+                        "dispatch_backend_scope": plan["backend_scope"],
+                        "dispatch_stage_id": stage_id,
+                        "dispatch_batch_timestamp": batch_timestamp,
+                        "external_id": materialized_by_id[session_id]["external_id"],
+                    }
+                    if materialized_by_id[session_id].get("backend") == "codex-collaboration":
+                        issuance_payload["release_contract"] = COLLABORATION_RELEASE_CONTRACT
                     self.append_event(
                         "session.issued",
-                        {
-                            "session_id": session_id,
-                            "dispatch_capacity": plan["capacity"],
-                            "dispatch_capacity_scope": plan["capacity_scope"],
-                            "dispatch_backend_scope": plan["backend_scope"],
-                            "dispatch_stage_id": stage_id,
-                            "dispatch_batch_timestamp": batch_timestamp,
-                            "external_id": materialized_by_id[session_id]["external_id"],
-                        },
+                        issuance_payload,
                         lock_held=True,
                         timestamp=batch_timestamp,
                     )
@@ -1991,7 +2033,29 @@ class WorkflowStore:
             if releases:
                 raise WorkflowError(f"session {session_id!r} has already been released")
             timestamp = self._batch_event_timestamp()
-            self.append_event("session.released", {"session_id": session_id, "external_id": external_id}, lock_held=True, timestamp=timestamp)
+            events_existed = self.events_path.exists()
+            events_offset = self.events_path.stat().st_size if events_existed else 0
+            events_bytes = self.events_path.read_bytes() if events_existed else None
+            try:
+                self.append_event(
+                    "session.released",
+                    {"session_id": session_id, "external_id": external_id},
+                    lock_held=True,
+                    timestamp=timestamp,
+                )
+                validate_event_log(self.events_path, documents)
+            except BaseException:
+                if not events_existed:
+                    self.events_path.unlink(missing_ok=True)
+                else:
+                    self._restore_dispatch_transaction(
+                        sessions_path=self.state_dir / "sessions.json",
+                        sessions_bytes=(self.state_dir / "sessions.json").read_bytes(),
+                        events_existed=True,
+                        events_offset=events_offset,
+                        events_bytes=events_bytes,
+                    )
+                raise
             return copy.deepcopy(session)
 
 
@@ -3183,6 +3247,7 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             record = _find_record(document, collection, arguments.id)
             if arguments.kind == "issued-session" and arguments.status == "running" and record.get("backend") == "codex-collaboration":
                 released = False
+                release_required = False
                 if store.events_path.exists():
                     for line in store.events_path.read_text(encoding="utf-8").splitlines():
                         try:
@@ -3190,10 +3255,16 @@ def run_cli(arguments: argparse.Namespace) -> Any:
                         except json.JSONDecodeError:
                             continue
                         payload = event.get("payload", {}) if isinstance(event, dict) else {}
+                        if (
+                            event.get("event") == "session.issued"
+                            and payload.get("session_id") == arguments.id
+                            and payload.get("release_contract") == COLLABORATION_RELEASE_CONTRACT
+                        ):
+                            release_required = True
                         if event.get("event") == "session.released" and payload.get("session_id") == arguments.id and payload.get("external_id") == record.get("external_id"):
                             released = True
                             break
-                if not released:
+                if release_required and not released:
                     raise WorkflowError("collaboration session requires post-confirmation release")
             _transition_record(arguments.kind, record, arguments.status)
             return record
@@ -3207,6 +3278,7 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             "record.transitioned",
             event_payload,
             transition_record,
+            validate_events=arguments.kind == "issued-session",
         )
     if arguments.command == "release-session":
         return store.release_session(arguments.session_id, arguments.external_id)

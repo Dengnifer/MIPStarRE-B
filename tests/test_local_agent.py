@@ -552,10 +552,19 @@ class RuntimeTests(unittest.TestCase):
         session_id = "i049-collab-a01-lease"
         record = self.real_issued_ledger(session_id)
         sessions = self.root / "workflow" / "state" / "sessions.json"
+        events = self.root / "workflow" / "events.jsonl"
         state = json.loads(sessions.read_text())
         state["issued"][0]["backend"] = "codex-collaboration"
         state["issued"][0]["external_id"] = THREAD_ID
         write(sessions, json.dumps(state) + "\n")
+        issuance = json.loads(events.read_text(encoding="utf-8").strip())
+        issuance["payload"].update(
+            {
+                "external_id": THREAD_ID,
+                "release_contract": local_agent.workflow_state.COLLABORATION_RELEASE_CONTRACT,
+            }
+        )
+        write(events, json.dumps(issuance) + "\n")
         authority = dict(session_id=session_id, workflow_root=self.root, alias=session_id,
                          cwd=Path(record["worktree"]), base_revision=record["base_revision"],
                          owned_paths=record["owned_paths"], read_only=False, role="prover",
