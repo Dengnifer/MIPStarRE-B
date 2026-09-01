@@ -4086,7 +4086,8 @@
         "i026-fixer-a05-disclosure-preflight",
         "i026-fixer-a11-scope-token-repair",
         "i026-fixer-a17-offline-isolation",
-        "i026-fixer-a19-capability-schema"
+        "i026-fixer-a19-capability-schema",
+        "i026-integrator-a23-semantic-union"
       ],
       "checks": [
         {
@@ -4390,6 +4391,50 @@
           "commit_count": 5,
           "branch": "issue/qpbt-026-disclosure-a01",
           "worktree_clean": true
+        },
+        {
+          "id": "check-qpbt-026-prototype-aggregate-8ee49bc",
+          "name": "A23 semantic prototype aggregate Python gate",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "8ee49bcca504ccb02ffcb4852f63ca2d2f8fbbd4",
+          "completed_at": "2026-09-01T06:34:54.514092Z",
+          "result_path": "workflow/reviews/qpbt-026-integration-validation-root.md",
+          "tests": "336/336",
+          "seconds": 199.317,
+          "root_owned": true
+        },
+        {
+          "id": "check-qpbt-026-prototype-blueprint-8ee49bc",
+          "name": "A23 semantic prototype blueprint synchronization gate",
+          "command": "make -C blueprint test check graph",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "8ee49bcca504ccb02ffcb4852f63ca2d2f8fbbd4",
+          "completed_at": "2026-09-01T06:34:54.514092Z",
+          "result_path": "workflow/reviews/qpbt-026-integration-validation-root.md",
+          "tests": "26/26",
+          "nodes": 48,
+          "chapters": 12,
+          "acyclic": true,
+          "deterministic": true,
+          "root_owned": true
+        },
+        {
+          "id": "check-qpbt-026-prototype-identity-8ee49bc",
+          "name": "A23 semantic prototype ordered-parent and four-path identity gate",
+          "command": "git rev-parse HEAD HEAD^{tree} HEAD^1 HEAD^2; git diff-tree --no-commit-id --name-status -r HEAD^1 HEAD; git diff --check HEAD^1..HEAD; git status --porcelain",
+          "status": "passed",
+          "base_sha": "ea584e9e894391773e09ddad2ce4d082497c7913",
+          "head_sha": "8ee49bcca504ccb02ffcb4852f63ca2d2f8fbbd4",
+          "completed_at": "2026-09-01T06:34:54.514092Z",
+          "result_path": "workflow/reviews/qpbt-026-integration-validation-root.md",
+          "tree_sha": "d1651f29f41d555859838a088726f03ac869d541",
+          "first_parent": "710cfafd586172d3658499f3552c2ae5e27fe512",
+          "second_parent": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+          "changed_paths": 4,
+          "worktree_clean": true
         }
       ],
       "reviews": [
@@ -4644,7 +4689,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-08-31T22:10:00Z",
-      "updated_at": "2026-09-01T06:10:24.467648Z",
+      "updated_at": "2026-09-01T06:36:03.723546Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -4658,7 +4703,7 @@
       ],
       "motivation": "INC-045 showed that endpoint/model authorization without an exact private evidence scope cannot safely launch an external reviewer.",
       "description": "Validate legacy destination, immutable target, and path scope, then fail closed before any production reviewer side effect; keep the offline projected test facility non-launchable, validate the complete allowlisted capability schema before side effects, and scrub all ambient Git selection from harness and runner environments.",
-      "testing": "63/63 exact-head local-agent tests; Python compileall; workflow validation; SHA-bound nine-path diff hygiene; exact A20 approval and seven current-head finding confirmations; isolated approval transition replay passed",
+      "testing": "63/63 exact-head local-agent tests; candidate compileall/workflow/diff gates; exact A20 formal approval and seven current-head confirmations; semantic prototype focused 70/70 and 63/63; root prototype aggregate 336/336; blueprint 26/26 with 48-node deterministic graph; final exact activation-object rerun and audit pending",
       "addresses": "QPBT-026",
       "provenance_session_ids": [
         "i026-orchestrator-a01-disclosure-preflight",
@@ -4668,10 +4713,13 @@
         "i026-fixer-a17-offline-isolation",
         "i026-fixer-a19-capability-schema",
         "i026-scout-a21-confirmation-payload",
-        "i026-scout-a22-semantic-union"
+        "i026-scout-a22-semantic-union",
+        "i026-integrator-a23-semantic-union",
+        "i026-scout-a24-activation-topology",
+        "i026-reviewer-a25-integration-prototype"
       ],
       "requested_external_review": false,
-      "unexecuted_gate": "Construct an immutable true two-parent integration candidate from the actual clean main parent and exact head 5bf6e086; resolve the single changelog conflict by semantic union, authenticate the clean review-protocol union, run full gates, and obtain a fresh independent combined-tree review before merge activation.",
+      "unexecuted_gate": "Freeze the final canonical first parent after activation-auditor registration; construct one immutable two-parent four-blob overlay with exact head 5bf6e086 as second parent; run exact-object aggregate, blueprint, compile, workflow, identity, and preservation gates; obtain fresh independent approval of that exact object; then fast-forward it unchanged before importing audit bookkeeping.",
       "integration_plan_evidence": {
         "confirmation_review_id": "review-qpbt-026-pr016-a20-immutable",
         "confirmed_findings": "F-LPR016-001 through F-LPR016-007",
@@ -4695,7 +4743,26 @@
         ],
         "fresh_combined_tree_review_required": true,
         "semantic_union_report": "workflow/reviews/qpbt-026-semantic-union-a22.md",
-        "semantic_union_report_sha256": "1738299df52a8a9fdfa12b6423ef5e795b08f0a85d17b1b95067fffcd70f15ae"
+        "semantic_union_report_sha256": "1738299df52a8a9fdfa12b6423ef5e795b08f0a85d17b1b95067fffcd70f15ae",
+        "prototype_commit_sha": "8ee49bcca504ccb02ffcb4852f63ca2d2f8fbbd4",
+        "prototype_tree_sha": "d1651f29f41d555859838a088726f03ac869d541",
+        "prototype_first_parent": "710cfafd586172d3658499f3552c2ae5e27fe512",
+        "prototype_second_parent": "5bf6e086cc1656c3ce9ceb6527fe6ca657f9795a",
+        "prototype_protocol_blobs": {
+          "protocols/CHANGELOG.md": "107c5eb147811e0d3909717c74e2f32eb43d1ac5",
+          "protocols/review.md": "037b625f0f77cfef1997d793aa14d48893d91dc0"
+        },
+        "prototype_integration_report": "workflow/reviews/qpbt-026-integration-a23.md",
+        "prototype_integration_report_sha256": "8d83df10c405015e6986e443af61771f0daad0442df73899156318d8c5baaf2c",
+        "activation_topology_report": "workflow/reviews/qpbt-026-activation-topology-a24.md",
+        "activation_topology_report_sha256": "3d120c8f166078e160ddf04f28f66a3029325e443428f59fc296dbd1d1a42c6c",
+        "prototype_review_report": "workflow/reviews/qpbt-026-integration-review-a25.md",
+        "prototype_review_report_sha256": "9818980f334260ece17f48ba4bbc443ac80f09857766eaff9c030acfae157158",
+        "prototype_review_verdict": "approve",
+        "prototype_review_formal_pr_review": false,
+        "root_prototype_validation_report": "workflow/reviews/qpbt-026-integration-validation-root.md",
+        "root_prototype_validation_report_sha256": "a44710e9ec6245881444c4571742cbb94d09a9f1471d8b6047a8599fbf313203",
+        "final_activation_audit_required": true
       }
     },
     {
