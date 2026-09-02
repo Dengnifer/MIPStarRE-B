@@ -26046,6 +26046,72 @@
         "patch_invocations": 18
       },
       "timing_note": "Elapsed is the conservative canonical registration-to-finish window; the report separately records exact probe birth/final-edit timestamps and command timings."
+    },
+    {
+      "backend": "codex-collaboration",
+      "status": "running",
+      "issue_id": "QPBT-056",
+      "pr_id": null,
+      "parent_session_id": "i056-orchestrator-a01-f06",
+      "external_id": "/root/i056_orchestrator_a01_f06/i056_scout_a01_fidelity",
+      "attempt": 1,
+      "priority": 1,
+      "read_only": true,
+      "base_revision": "4cc1762f85da1bd46599311b77c4647d5f3c30b4",
+      "base_revision_reason": "Exact QPBT-056 Git base plus immutable combined Types.lean SHA-256 d382ec29cfb8e01e73c6d48546ab6f96f6f50fba46113d9f6652ac9f0b1016af after first scoped PASS.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-056-f06-a01",
+      "owned_paths": [],
+      "started_at": "2026-09-02T22:04:59.518428Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "requested_model": "gpt-5.6-sol",
+      "id": "i056-scout-a01-fidelity",
+      "name": "i056-scout-a01-fidelity",
+      "role": "scout",
+      "validation_command": "Authenticate uncommitted Types.lean SHA-256 d382ec29cfb8e01e73c6d48546ab6f96f6f50fba46113d9f6652ac9f0b1016af. Read exact frozen F06 marker, pinned CL/finite-field source, QPBT-055 repair, and G21. Audit all 14 public statements, mathematical bodies, shared-seed semantics, arbitrary-map preservation, inverse-prefix and zero-edge cases. Write only /tmp/i056-fidelity-a01.md; no compile/build/cache/network/Git/repository writes/nested agents.",
+      "result_envelope_path": "/tmp/i056-fidelity-a01.md",
+      "dispatch_condition": "QPBT-056 combined candidate first passed scoped Lean and the orchestrator requested an immutable source-fidelity pre-audit."
+    },
+    {
+      "backend": "codex-collaboration",
+      "status": "running",
+      "issue_id": "QPBT-056",
+      "pr_id": null,
+      "parent_session_id": "i056-orchestrator-a01-f06",
+      "external_id": "/root/i056_orchestrator_a01_f06/i056_simplifier_a01_types",
+      "attempt": 1,
+      "priority": 1,
+      "read_only": true,
+      "base_revision": "4cc1762f85da1bd46599311b77c4647d5f3c30b4",
+      "base_revision_reason": "Exact QPBT-056 Git base plus immutable combined Types.lean SHA-256 d382ec29cfb8e01e73c6d48546ab6f96f6f50fba46113d9f6652ac9f0b1016af after first scoped PASS.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-056-f06-a01",
+      "owned_paths": [],
+      "started_at": "2026-09-02T22:04:59.913753Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "requested_model": "gpt-5.6-sol",
+      "id": "i056-simplifier-a01-types",
+      "name": "i056-simplifier-a01-types",
+      "role": "simplifier",
+      "validation_command": "Authenticate uncommitted Types.lean SHA-256 d382ec29cfb8e01e73c6d48546ab6f96f6f50fba46113d9f6652ac9f0b1016af. Audit exact 14-name/two-import surface, private helper discipline, debt absence, duplication, proof clarity, and only material complexity reductions without changing the frozen API. Write only /tmp/i056-simplifier-a01.md; no compile/build/cache/network/Git/repository writes/nested agents.",
+      "result_envelope_path": "/tmp/i056-simplifier-a01.md",
+      "dispatch_condition": "QPBT-056 combined candidate first passed scoped Lean and the orchestrator requested an immutable simplification/surface pre-audit."
     }
   ]
 }
