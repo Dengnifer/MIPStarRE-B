@@ -24702,6 +24702,80 @@
         "nested_agents": 0
       },
       "timing_quality": "runtime-measured"
+    },
+    {
+      "id": "i054-reviewer-a03-f06a-contract",
+      "name": "i054-reviewer-a03-f06a-contract",
+      "role": "reviewer",
+      "issue_id": "QPBT-054",
+      "attempt": 3,
+      "dispatch_condition": "LPR-031 is ready with six passed checks and a no-byte-change writable binding; one fresh independent source/API review remains.",
+      "pr_id": "LPR-031",
+      "read_only": true,
+      "base_revision": "639c883737e07b91156a9cbc31ec1aa65100a935",
+      "base_revision_reason": "Formal review base fixed by immutable LPR-031; exact candidate and canonical checkpoint are bound by the review manifest.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-054-f06a-contract-a01",
+      "owned_paths": [],
+      "validation_command": "Authenticate manifest SHA-256 6ad3b37ad21d3ac9f10b73b594c178e2d0c3b6581ae4c929d7b29184227c9630 and every listed Git/filesystem identity. Review exact base 639c883/head 83062f7 for mathematical truth, pinned-source fidelity, whole-block Lean API exactness, downstream Types implementability, and forbidden proof debt. Run no Lean/Lake/build/cache/materialization/network/GitHub/credential/write/nested-agent action.",
+      "result_envelope_path": "workflow/reviews/qpbt-054-review-a03.md",
+      "external_id": "/root/i054_reviewer_a03_f06a_contract",
+      "candidate_head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+      "candidate_tree": "5e946206cb60ad88e2df37eaec49f8f1922ffa3d",
+      "candidate_parent_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+      "candidate_patch_sha256": "b3fca84ea6dda5beba17b5815eb94218aa4d58de4e13a2e5c91a9c6c45635373",
+      "review_manifest_path": ".workflow-runtime/review-manifests/i054-reviewer-a03-f06a-contract/manifest.json",
+      "review_manifest_sha256": "6ad3b37ad21d3ac9f10b73b594c178e2d0c3b6581ae4c929d7b29184227c9630",
+      "status": "running",
+      "parent_session_id": "i041-orchestrator-a12-f04-closeout",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "started_at": "2026-09-02T19:04:24.751Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null
+    },
+    {
+      "id": "i037-integrator-a17-pr032-bind",
+      "name": "i037-integrator-a17-pr032-bind",
+      "role": "integrator",
+      "issue_id": "QPBT-037",
+      "attempt": 17,
+      "dispatch_condition": "LPR-032 is draft with six passed candidate checks; bind one writable no-change adoption session before immutable review.",
+      "pr_id": "LPR-032",
+      "read_only": false,
+      "base_revision": "4dec80aa8271efac036a4a3ad4a7eb51797f75d8",
+      "base_revision_reason": "Clean canonical checkpoint containing draft LPR-032 and archived Pauli writer/scout evidence.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-037-pr032-bind-a17",
+      "owned_paths": [
+        "workflow/reviews/qpbt-037-pr032-bind-a17.md"
+      ],
+      "validation_command": "Authenticate exact LPR-032 base/head/tree/parent, one changed path/blob/file hash, 6/6 checks, candidate report, and clean candidate worktree. Write and commit only the binding report; no candidate-byte, Lean/Lake/build/cache/materialization/network/GitHub/credential/nested-agent/state/metrics action.",
+      "result_envelope_path": "workflow/reviews/qpbt-037-pr032-bind-a17.md",
+      "external_id": "/root/i037_integrator_a17_pr032_bind",
+      "status": "running",
+      "parent_session_id": "i041-orchestrator-a12-f04-closeout",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "started_at": "2026-09-02T19:04:24.751Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null
     }
   ]
 }
