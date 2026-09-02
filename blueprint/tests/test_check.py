@@ -496,7 +496,8 @@ class BlueprintCheckTests(unittest.TestCase):
                     )
                 elif mutation == "fabricated_machine":
                     node["encoding"] = node["encoding"].replace(
-                        "packSixTapes is an injective administrative encoding only.",
+                        "packSixTapes first fixes tape order with List.ofFn and is an "
+                        "injective administrative encoding only.",
                         "an axiomatized one-tape machine.",
                     )
                 else:
@@ -517,16 +518,26 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertIn("1 <= level", node["integrity"]["lean_conclusion"])
         self.assertIn("RuntimeBigO", node["integrity"]["lean_conclusion"])
         self.assertIn("valid-query finite maximum", node["boundary_hypotheses"])
-        self.assertIn("ignored-tape semantics", node["boundary_hypotheses"])
-        self.assertIn("dependent u/y domains", node["integrity"]["lean_assumptions"])
+        self.assertIn("canonical blank normalization", node["boundary_hypotheses"])
+        self.assertIn("does not claim the paper's stronger arbitrary unused-payload invariance",
+                      node["boundary_hypotheses"])
+        self.assertIn("concrete FieldExponentProgram", node["boundary_hypotheses"])
+        self.assertIn("field-exponent execution", node["boundary_hypotheses"])
+        self.assertIn("CLPrefix/CLFactorInput domains",
+                      node["integrity"]["lean_assumptions"])
         self.assertIn("exact PMF.map pushforward", node["integrity"]["lean_conclusion"])
 
         mutations = (
             ("statement", "positive-index", "all-index"),
             ("encoding", "canonical field codec", "arbitrary caller codec"),
-            ("encoding", "dependent subtypes", "untyped strings"),
+            ("encoding", "dependent valid u/y subtypes", "untyped strings"),
             ("boundary_hypotheses", "valid-query finite maximum", "upper-bound field"),
-            ("boundary_hypotheses", "ignored-tape semantics", "one-tape serialization"),
+            ("boundary_hypotheses", "canonical blank normalization",
+             "arbitrary raw-payload invariance"),
+            ("boundary_hypotheses", "concrete FieldExponentProgram",
+             "arbitrary exponent function"),
+            ("boundary_hypotheses", "field-exponent execution",
+             "uncharged metadata"),
             ("integrity.lean_conclusion", "RuntimeBigO", "IsBigO Filter.atTop"),
             ("integrity.lean_conclusion", "exact PMF.map pushforward", "asymptotic law"),
         )
@@ -549,8 +560,11 @@ class BlueprintCheckTests(unittest.TestCase):
         for name in (
             "MIPStarRE.QPBT.RuntimeBigO",
             "MIPStarRE.QPBT.CLQueryDecomposition",
-            "MIPStarRE.QPBT.CLSamplerQuery.tapes",
-            "MIPStarRE.QPBT.ExecutableCLSampler.time_eq_validQueryMax",
+            "MIPStarRE.QPBT.CLSamplerQuery.canonicalTapes",
+            "MIPStarRE.QPBT.FieldExponentProgram",
+            "MIPStarRE.QPBT.ExecutableCLSampler.fieldProgram",
+            "MIPStarRE.QPBT.ExecutableCLSampler.queryTime_eq_validQueryMax",
+            "MIPStarRE.QPBT.ExecutableCLSampler.time_eq_max",
             "MIPStarRE.QPBT.ExecutableCLSampler.sample_downsize",
         ):
             with self.subTest(name=name):
@@ -571,6 +585,83 @@ class BlueprintCheckTests(unittest.TestCase):
             "implementation contract must remain exact" in error
             for error in self.errors(nodes=no_asymptotics)
         ))
+
+    def test_executable_cl_exponent_gap_is_reciprocal_and_issue_bound(self) -> None:
+        node_id = check.EXECUTABLE_CL_OWNER_ID
+        node = next(item for item in self.nodes["nodes"] if item["id"] == node_id)
+        gap = next(item for item in self.gaps["gaps"] if item["id"] == "G19")
+
+        self.assertEqual(["G19"], node["gap_ids"])
+        self.assertEqual([node_id], gap["affected_nodes"])
+        self.assertEqual("QPBT-054", gap["issue"])
+        self.assertIn("finite-fields.tex:245-247,283-307 [1561-1563,1599-1623]",
+                      gap["source"])
+        for required in ("arbitrary admissible field-size function", "one downsized Turing machine",
+                         "log q(n)", "TIME_S(n)"):
+            self.assertIn(required, gap["paper_problem"])
+        self.assertIn("concrete intrinsic FieldExponentProgram", gap["disposition"])
+        self.assertIn("Do not fabricate or assert an arbitrary admissible-family-to-machine theorem",
+                      gap["disposition"])
+        self.assertIn("expands TIME_S(n) to charge intrinsic exponent computation",
+                      gap["public_effect"])
+        self.assertIn("no arbitrary family-to-machine premise or theorem is exposed",
+                      gap["public_effect"])
+
+        missing_from_node = copy.deepcopy(self.nodes)
+        next(item for item in missing_from_node["nodes"]
+             if item["id"] == node_id)["gap_ids"] = []
+        self.assertTrue(any(
+            "missing reciprocal link" in error
+            for error in self.errors(nodes=missing_from_node)
+        ))
+
+        missing_from_gap = copy.deepcopy(self.gaps)
+        next(item for item in missing_from_gap["gaps"]
+             if item["id"] == "G19")["affected_nodes"] = []
+        self.assertTrue(any(
+            "lacks reciprocal affected-node link" in error
+            for error in self.errors(gaps=missing_from_gap)
+        ))
+
+    def test_executable_cl_signature_rejects_concrete_a04_defects(self) -> None:
+        node = next(item for item in self.nodes["nodes"]
+                    if item["id"] == check.EXECUTABLE_CL_OWNER_ID)
+        manifest = node["implementation_contract"]["signature_manifest"]
+        text = (ROOT.parent / manifest["path"]).read_text(encoding="utf-8")
+        block = text.split(manifest["begin_marker"], 1)[1].split(
+            manifest["end_marker"], 1
+        )[0].strip()
+        self.assertEqual([], check.executable_cl_signature_errors(block))
+
+        for required in (
+            "abbrev CLPrefix",
+            "Turing.FinTM2",
+            "Turing.TM2OutputsInTime",
+            "execution.runInTime.toEvalsTo.steps",
+            "def CLSamplerQuery.canonicalTapes",
+            "structure FieldExponentProgram",
+            "fieldProgram : FieldExponentProgram Q",
+            "(S.validQueries n hn).sup (S.executedSteps n hn)",
+            "Nat.max (S.queryTime n hn) (S.fieldProgram.steps n hn)",
+        ):
+            with self.subTest(missing=required):
+                self.assertIn(required, block)
+                mutated = block.replace(required, "REMOVED_CONTRACT_TERM")
+                self.assertTrue(check.executable_cl_signature_errors(mutated))
+
+        for forbidden in (
+            "factor_cover : Prop",
+            "validQueryFinset",
+            "output : SixTapeInput -> List Bool",
+            "run : SixTapeInput -> List Bool -> Nat -> Prop",
+            "def CLSamplerQuery.tapes",
+            "theorem ExecutableCLSampler.time_eq_validQueryMax",
+            "axiom fabricatedRuntime : Prop",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertTrue(check.executable_cl_signature_errors(
+                    f"{block}\n{forbidden}"
+                ))
 
     def test_typed_finiteness_and_executable_ownership_wording_is_adversarial(self) -> None:
         finiteness_mutations = (
@@ -652,7 +743,7 @@ class BlueprintCheckTests(unittest.TestCase):
                    if node["id"] == "F06-CL")
         f06["boundary_hypotheses"] = f06["boundary_hypotheses"].replace(
             "F06A-EXECUTABLE-CL alone owns the binary-string representation, six-input "
-            "dimension/marginal/linear/factor query machine with explicit ignored tapes, "
+            "dimension/marginal/linear/factor query machine with canonical blank normalization, "
             "associated sampler distribution and step count, valid-query finite maximum "
             "and global positive-index RuntimeBigO, executable downsizing transformation, "
             "dimension s(n) * log q(n), associated downsized maps, and O(TIME_S(n) "
