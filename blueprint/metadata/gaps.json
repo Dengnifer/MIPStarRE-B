@@ -170,6 +170,16 @@
       "disposition": "Use POVMConsistencyBigO before and after the same MeasurementFamily.postprocess on Alice/Bob families, and quantify hpsi immediately after psi in both consistency-triangle signatures.",
       "public_effect": "Corrects two planned paper-labelled contracts before implementation; no paper theorem is weakened and no new assumption is exported to callers.",
       "issue": "QPBT-041"
+    },
+    {
+      "id": "G18",
+      "class": "source-internal-ambiguity",
+      "source": "top-level/preliminaries.tex:6,19-25 [903,916-922]; strategies-distance.tex:213-282 [3096-3165], especially 238 [3121]",
+      "affected_nodes": ["F04-ASYMPTOTIC", "F04-CONSISTENCY", "F04-DISTANCE-LAWS"],
+      "paper_problem": "The top-level convention defines O(g) using one positive constant for every positive integer index, while the local consistency footnote says its O(g) is taken as n tends to infinity, conventionally suggesting an eventual relation.",
+      "disposition": "Treat the explicit top-level convention as controlling: use PaperBigO for every paper-facing F04 relation and law conclusion, retain IsBigOAtTop only as an auxiliary, and expose the one-way PaperBigO.isBigOAtTop bridge.",
+      "public_effect": "Paper-labelled F04 asymptotic claims use the stronger global positive-index convention; the auxiliary bridge makes their eventual Big-O consequence reusable without asserting a false converse.",
+      "issue": "QPBT-041"
     }
   ]
 }

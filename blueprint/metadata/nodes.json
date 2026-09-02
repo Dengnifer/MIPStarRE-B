@@ -123,7 +123,7 @@
       "implementation_contract": {
         "writer_lane": "approximation",
         "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
-        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
+        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
         "signature_manifest": {
           "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
           "begin_marker": "<!-- BEGIN F03-SIGNATURES -->",
@@ -161,7 +161,7 @@
       "implementation_contract": {
         "writer_lane": "approximation",
         "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
-        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
+        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
         "signature_manifest": {
           "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
           "begin_marker": "<!-- BEGIN F04-FINITE-SIGNATURES -->",
@@ -191,31 +191,33 @@
       "source": {"path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex", "label": "def:state-distance", "generated_lines": [213, 224], "original_lines": [3096, 3107]},
       "additional_sources": [
         {"path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex", "label": "def:povm-distance", "generated_lines": [252, 282], "original_lines": [3135, 3165]},
-        {"path": "references/2001.04383v3/sections/qpbt/appendix-preliminaries.tex", "label": "", "generated_lines": [49, 53], "original_lines": [13134, 13138]}
+        {"path": "references/2001.04383v3/sections/qpbt/appendix-preliminaries.tex", "label": "", "generated_lines": [49, 53], "original_lines": [13134, 13138]},
+        {"path": "references/2001.04383v3/sections/top-level/preliminaries.tex", "label": "", "generated_lines": [6, 6], "original_lines": [903, 903]},
+        {"path": "references/2001.04383v3/sections/top-level/preliminaries.tex", "label": "", "generated_lines": [19, 25], "original_lines": [916, 922]}
       ],
-      "statement": "Define [0,1]-valued Nat-indexed error profiles and atTop Big-O relations for state families, raw-operator families, POVM families, and strategy-family comparisons. The strategy comparison helper consumes explicit marginals of the joint game PMF and an explicit first/second state choice; the paper's strategy-distance relation existentially chooses one of those branches.",
-      "lean": {"module": "MIPStarRE.QPBT.Basic.Approximation", "names": ["MIPStarRE.QPBT.ErrorProfile", "MIPStarRE.QPBT.IsBigOAtTop", "MIPStarRE.QPBT.StateFamiliesBigO", "MIPStarRE.QPBT.OperatorFamiliesBigO", "MIPStarRE.QPBT.MeasurementFamiliesBigO", "MIPStarRE.QPBT.aliceQuestionMarginal", "MIPStarRE.QPBT.bobQuestionMarginal", "MIPStarRE.QPBT.StrategyStateChoice", "MIPStarRE.QPBT.strategyComparisonState", "MIPStarRE.QPBT.StrategyFamiliesBigO"]},
+      "statement": "Define [0,1]-valued Nat-indexed error profiles; the paper's global positive-index Big-O predicate; an auxiliary atTop predicate with a public one-way bridge from the paper predicate; and global distance relations for state, raw-operator, POVM, and strategy families. The strategy comparison helper consumes explicit joint-PMF marginals and a first/second state choice; the paper-facing strategy relation existentially chooses one branch.",
+      "lean": {"module": "MIPStarRE.QPBT.Basic.Approximation", "names": ["MIPStarRE.QPBT.ErrorProfile", "MIPStarRE.QPBT.IsBigOAtTop", "MIPStarRE.QPBT.PaperBigO", "MIPStarRE.QPBT.PaperBigO.isBigOAtTop", "MIPStarRE.QPBT.StateFamiliesBigO", "MIPStarRE.QPBT.OperatorFamiliesBigO", "MIPStarRE.QPBT.MeasurementFamiliesBigO", "MIPStarRE.QPBT.aliceQuestionMarginal", "MIPStarRE.QPBT.bobQuestionMarginal", "MIPStarRE.QPBT.StrategyStateChoice", "MIPStarRE.QPBT.strategyComparisonState", "MIPStarRE.QPBT.StrategyFamiliesBigO"]},
       "implementation_contract": {
         "writer_lane": "approximation",
         "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
-        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
+        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
         "signature_manifest": {
-          "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
-          "begin_marker": "<!-- BEGIN F04-ASYMPTOTIC-SIGNATURES -->",
-          "end_marker": "<!-- END F04-ASYMPTOTIC-SIGNATURES -->",
-          "sha256": "c6ba3861dbe261c7f6d1b23d36673521521921dbf6cec150bb923f8e64561c47"
+          "path": "workflow/reviews/qpbt-032-f04-contract-correction-a01.md",
+          "begin_marker": "<!-- BEGIN F04-ASYMPTOTIC-GLOBAL-SIGNATURES -->",
+          "end_marker": "<!-- END F04-ASYMPTOTIC-GLOBAL-SIGNATURES -->",
+          "sha256": "cb40edd761efd6b50b35bd1a24cb8651f9dc07c12c1fbf60662eecda3f0f0587"
         },
-        "reused_api": ["Asymptotics.IsBigO", "Filter.atTop", "PMF.map"],
+        "reused_api": ["Asymptotics.IsBigO", "Asymptotics.IsBigO.of_bound", "Filter.atTop", "PMF.map"],
         "validation_commands": ["lake env lean MIPStarRE/QPBT/Basic/Approximation.lean"],
         "allowed_minimal_sorries": [],
         "proof_complete_sorry_count": 0
       },
       "transitive_definitions": ["F03-MEASUREMENT", "F04-DISTANCE"],
       "prerequisites": ["F04-DISTANCE"],
-      "encoding": "Use Asymptotics.IsBigO Filter.atTop. ErrorProfile is Nat -> Set.Icc 0 1, while derived law scales may be arbitrary Nat -> Real. PMF.map Prod.fst/Prod.snd supplies the two question marginals. StrategyStateChoice indexes the two admissible comparison-state branches; a paper-facing strategy-distance proposition must existentially quantify that helper choice.",
-      "boundary_hypotheses": "Finite question/outcome/coordinate types only at PMF sums, normalized states through PureStrategy, and explicit Nat-indexed data. StrategyFamiliesBigO is a choice-indexed helper, not by itself the paper's existential either-state relation. No universal Big-O constant is replaced by an exact bound.",
-      "gap_ids": [],
-      "integrity": {"paper_assumptions": "Nat-indexed normalized states/strategies, delta : Nat -> [0,1], finite distributions, and state-dependent POVM/operator families; strategy distance permits either the first or second strategy state.", "lean_assumptions": "The same indexed data over explicit finite coordinate carriers, PMFs, and joint-PMF marginals; StrategyFamiliesBigO additionally takes the first/second comparison-state choice as an explicit helper parameter.", "paper_conclusion": "Squared state norm and averaged operator/POVM distance are O(delta), while strategy distance holds for an existential choice of either strategy state, as n tends to infinity.", "lean_conclusion": "Asymptotics.IsBigO Filter.atTop states the component relations without conflating them with finite exact bounds; existential quantification over StrategyStateChoice is required when forming the paper-facing strategy-distance proposition.", "verdict": "faithful boundary"}
+      "encoding": "ErrorProfile is Nat -> Set.Icc 0 1, while derived law scales may be arbitrary Nat -> Real. PaperBigO follows the explicit top-level convention: one C > 0 bounds norms at every 0 < n; Lean's index zero is unconstrained. IsBigOAtTop remains an auxiliary Asymptotics.IsBigO Filter.atTop relation, and PaperBigO.isBigOAtTop exposes only the valid global-to-eventual direction. PMF.map Prod.fst/Prod.snd supplies the question marginals. StrategyStateChoice indexes the two comparison-state branches; a paper-facing strategy-distance proposition must existentially quantify that helper choice.",
+      "boundary_hypotheses": "Finite question/outcome/coordinate types only at PMF sums, normalized states through PureStrategy, and explicit Nat-indexed data. Every paper-facing asymptotic relation uses one positive Real constant uniformly for all positive indices; no condition is imposed at zero. StrategyFamiliesBigO is a choice-indexed helper, not by itself the paper's existential either-state relation. No eventual bound is promoted back to a global bound, and no derived real scale is clamped to [0,1].",
+      "gap_ids": ["G18"],
+      "integrity": {"paper_assumptions": "Positive-integer-indexed normalized states/strategies, delta : N -> [0,1], finite distributions, and state-dependent POVM/operator families; strategy distance permits either the first or second strategy state. The global preliminaries quantify one bound over every positive index, while the consistency footnote says n tends to infinity.", "lean_assumptions": "The same data over Lean Nat with 0 < n guards, explicit finite coordinate carriers, PMFs, and joint-PMF marginals; StrategyFamiliesBigO additionally takes the first/second comparison-state choice as a helper parameter. IsBigOAtTop is auxiliary only.", "paper_conclusion": "Squared state norm and averaged operator/POVM distance satisfy the paper's global O(delta) convention, while strategy distance holds for an existential choice of either strategy state.", "lean_conclusion": "PaperBigO states the global positive-index component relations and has a public one-way bridge to Asymptotics.IsBigO Filter.atTop; existential quantification over StrategyStateChoice is required when forming the paper-facing strategy-distance proposition.", "verdict": "faithful boundary"}
     },
     {
       "id": "F04-CONSISTENCY",
@@ -228,31 +230,33 @@
       "source": {"path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex", "label": "def:consistency", "generated_lines": [226, 250], "original_lines": [3109, 3133]},
       "additional_sources": [
         {"path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex", "label": "def:consistent-measurement", "generated_lines": [138, 150], "original_lines": [3021, 3033]},
-        {"path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex", "label": "fact:triangle-for-simeq", "generated_lines": [383, 388], "original_lines": [3266, 3271]}
+        {"path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex", "label": "fact:triangle-for-simeq", "generated_lines": [383, 388], "original_lines": [3266, 3271]},
+        {"path": "references/2001.04383v3/sections/top-level/preliminaries.tex", "label": "", "generated_lines": [6, 6], "original_lines": [903, 903]},
+        {"path": "references/2001.04383v3/sections/top-level/preliminaries.tex", "label": "", "generated_lines": [19, 25], "original_lines": [916, 922]}
       ],
-      "statement": "Define exact same-measurement consistency by equality of Alice/Bob local actions; define the finite off-diagonal mismatch value and exact bound; lift it to indexed Big-O consistency; and state the normalized-state three-premise consistency-triangle contract with scale epsilon + 2*sqrt(delta+gamma).",
+      "statement": "Define exact same-measurement consistency by equality of Alice/Bob local actions; define the finite off-diagonal mismatch value and exact bound; lift it to the paper's global positive-index Big-O consistency; and state the normalized-state three-premise global consistency-triangle contract with scale epsilon + 2*sqrt(delta+gamma).",
       "lean": {"module": "MIPStarRE.QPBT.Basic.Approximation", "names": ["MIPStarRE.QPBT.MeasurementConsistentOn", "MIPStarRE.QPBT.povmConsistencyValue", "MIPStarRE.QPBT.POVMConsistencyBoundedBy", "MIPStarRE.QPBT.POVMConsistencyBigO", "MIPStarRE.QPBT.POVMConsistencyBigOTriangleLaw", "MIPStarRE.QPBT.povmConsistencyBigO_triangle"]},
       "implementation_contract": {
         "writer_lane": "approximation",
         "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
-        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
+        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
         "signature_manifest": {
           "path": "workflow/reviews/qpbt-032-f04-contract-correction-a01.md",
-          "begin_marker": "<!-- BEGIN F04-CONSISTENCY-CORRECTED-SIGNATURES -->",
-          "end_marker": "<!-- END F04-CONSISTENCY-CORRECTED-SIGNATURES -->",
-          "sha256": "4be1de3f9089e86b39de0215aa013581f2ee4de8a9e07080208c311e0e58bb29"
+          "begin_marker": "<!-- BEGIN F04-CONSISTENCY-GLOBAL-SIGNATURES -->",
+          "end_marker": "<!-- END F04-CONSISTENCY-GLOBAL-SIGNATURES -->",
+          "sha256": "c013337a66ae81ac4016cbd6b62d18cb82e49631237ce4ce629c0b9160706b06"
         },
-        "reused_api": ["Complex.re", "inner", "Finset.erase"],
+        "reused_api": ["Complex.re", "inner", "Finset.erase", "PaperBigO"],
         "validation_commands": ["lake env lean MIPStarRE/QPBT/Basic/Approximation.lean"],
         "allowed_minimal_sorries": [],
         "proof_complete_sorry_count": 0
       },
       "transitive_definitions": ["F03-MEASUREMENT", "F04-ASYMPTOTIC", "F04-DISTANCE"],
       "prerequisites": ["F03-MEASUREMENT", "F04-ASYMPTOTIC"],
-      "encoding": "The finite value is the PMF-weighted off-diagonal sum of real inner products after explicit Alice/Bob local lifts. MeasurementConsistentOn intentionally expresses the action equality for any POVM; the paper's exact-consistency definition additionally requires that M be projective. The paper-facing relation uses IsBigOAtTop; its derived triangle scale is Nat -> Real and is not clamped back to [0,1]. The named Law declaration freezes the theorem statement; its proof is a later node obligation, not a new assumption.",
-      "boundary_hypotheses": "Finite question/outcome/local coordinate types and explicit indexed PMFs/states/families. The triangle Law and theorem take hpsi : forall n, norm (psi n) = 1 immediately after psi, then exactly the paper's three consistency premises. Paper uses of MeasurementConsistentOn must separately supply projectivity of M.",
-      "gap_ids": ["G17"],
-      "integrity": {"paper_assumptions": "A projective measurement M for exact same-measurement consistency; two finite POVM families on a normalized bipartite state and distribution; for Proposition 4.29, the normalized state followed by the three displayed consistency premises.", "lean_assumptions": "MeasurementConsistentOn generalizes the action equality to an arbitrary finite POVM, with paper call sites separately requiring projectivity. The indexed triangle has explicit PMF and finite carriers, then hpsi : forall n, norm (psi n) = 1, local tensor lifts, Nat-indexed families, and [0,1]-valued input profiles; the derived scale is real-valued.", "paper_conclusion": "A projective M has equal Alice/Bob local actions exactly when consistent; off-diagonal outcomes have O(delta) mass; and the three-premise consistency triangle has scale epsilon + 2*sqrt(delta+gamma).", "lean_conclusion": "The reusable action-equality generalization, the same finite value and indexed Big-O relation, and the normalized-state triangle Law/theorem with the exact premise order and scale.", "verdict": "faithful boundary"}
+      "encoding": "The finite value is the PMF-weighted off-diagonal sum of real inner products after explicit Alice/Bob local lifts. MeasurementConsistentOn intentionally expresses the action equality for any POVM; the paper's exact-consistency definition additionally requires that M be projective. The paper-facing consistency relation and triangle conclusion use PaperBigO with one constant over every positive index; IsBigOAtTop is available only through the one-way bridge. The derived triangle scale is Nat -> Real and is not clamped back to [0,1]. The named Law declaration freezes the theorem statement; its proof is a later node obligation, not a new assumption.",
+      "boundary_hypotheses": "Finite question/outcome/local coordinate types and explicit indexed PMFs/states/families. Every paper-facing consistency bound is global over all 0 < n and imposes no condition at zero. The triangle Law and theorem take hpsi : forall n, norm (psi n) = 1 immediately after psi, then exactly the paper's three consistency premises. Paper uses of MeasurementConsistentOn must separately supply projectivity of M.",
+      "gap_ids": ["G17", "G18"],
+      "integrity": {"paper_assumptions": "A projective measurement M for exact same-measurement consistency; positive-integer-indexed finite POVM families on a normalized bipartite state and distribution; for Proposition 4.29, the normalized state followed by the three displayed global consistency premises. The local n-to-infinity footnote conflicts with the explicit global Big-O convention.", "lean_assumptions": "MeasurementConsistentOn generalizes the action equality to an arbitrary finite POVM, with paper call sites separately requiring projectivity. The indexed triangle has explicit PMF and finite carriers, hpsi : forall n, norm (psi n) = 1, local tensor lifts, [0,1]-valued profiles, and PaperBigO premises quantified over every 0 < n; the derived scale is real-valued.", "paper_conclusion": "A projective M has equal Alice/Bob local actions exactly when consistent; off-diagonal outcomes satisfy the global O(delta) convention; and the three-premise consistency triangle has global scale epsilon + 2*sqrt(delta+gamma).", "lean_conclusion": "The reusable action-equality generalization, the same finite value, global positive-index consistency relation, and normalized-state global triangle Law/theorem with exact premise order and scale.", "verdict": "faithful boundary"}
     },
     {
       "id": "F04A-GAME-SEMANTICS",
@@ -286,31 +290,33 @@
       "fidelity": "exact",
       "source": {"path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex", "label": "fact:triangle", "generated_lines": [377, 381], "original_lines": [3260, 3264]},
       "additional_sources": [
-        {"path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex", "label": "fact:data-processing", "generated_lines": [391, 395], "original_lines": [3274, 3278]}
+        {"path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex", "label": "fact:data-processing", "generated_lines": [391, 395], "original_lines": [3274, 3278]},
+        {"path": "references/2001.04383v3/sections/top-level/preliminaries.tex", "label": "", "generated_lines": [6, 6], "original_lines": [903, 903]},
+        {"path": "references/2001.04383v3/sections/top-level/preliminaries.tex", "label": "", "generated_lines": [19, 25], "original_lines": [916, 922]}
       ],
-      "statement": "Prove the finite squared-distance triangle bound with explicit factor 2, the indexed Big-O measurement triangle law where the constant is absorbed, and Fact 4.26 as heterogeneous Alice/Bob POVM-consistency data processing under the same explicit outcome postprocess on both families.",
+      "statement": "Prove the finite squared-distance triangle bound with explicit factor 2, the global positive-index Big-O measurement triangle law where the constant is absorbed, and Fact 4.26 as global heterogeneous Alice/Bob POVM-consistency data processing under the same explicit outcome postprocess on both families.",
       "lean": {"module": "MIPStarRE.QPBT.Basic.Approximation", "names": ["MIPStarRE.QPBT.FiniteMeasurementTriangleLaw", "MIPStarRE.QPBT.MeasurementFamiliesBigOTriangleLaw", "MIPStarRE.QPBT.POVMConsistencyBigOPostprocessLaw", "MIPStarRE.QPBT.finiteMeasurement_triangle", "MIPStarRE.QPBT.measurementFamiliesBigO_triangle", "MIPStarRE.QPBT.povmConsistencyBigO_postprocess"]},
       "implementation_contract": {
         "writer_lane": "approximation",
         "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
-        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
+        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
         "signature_manifest": {
           "path": "workflow/reviews/qpbt-032-f04-contract-correction-a01.md",
-          "begin_marker": "<!-- BEGIN F04-DISTANCE-LAWS-CORRECTED-SIGNATURES -->",
-          "end_marker": "<!-- END F04-DISTANCE-LAWS-CORRECTED-SIGNATURES -->",
-          "sha256": "54d5bf5cec924270ebb9ab5fbe82f7edf89db7bd34ddcde07e4a8feee2e8cac3"
+          "begin_marker": "<!-- BEGIN F04-DISTANCE-LAWS-GLOBAL-SIGNATURES -->",
+          "end_marker": "<!-- END F04-DISTANCE-LAWS-GLOBAL-SIGNATURES -->",
+          "sha256": "3caa7d20803ce7fb5ec07a63ae783e4cc03fdad79eeb35bc7091d78d19358b97"
         },
-        "reused_api": ["MeasurementFamily.postprocess", "POVMConsistencyBigO", "Asymptotics.IsBigO"],
+        "reused_api": ["MeasurementFamily.postprocess", "POVMConsistencyBigO", "PaperBigO", "Asymptotics.IsBigO"],
         "validation_commands": ["lake env lean MIPStarRE/QPBT/Basic/Approximation.lean"],
         "allowed_minimal_sorries": [],
         "proof_complete_sorry_count": 0
       },
       "transitive_definitions": ["F03-MEASUREMENT", "F04-ASYMPTOTIC", "F04-CONSISTENCY", "F04-DISTANCE"],
       "prerequisites": ["F04-CONSISTENCY"],
-      "encoding": "Each planned Law declaration is the exact elaborated implication contract. The finite helper exposes factor 2 for squared norms and IsBigO absorbs that universal factor. Fact 4.26 is represented only by POVMConsistencyBigO before and after applying the same MeasurementFamily.postprocess to heterogeneous Alice/Bob families; no same-space distance law retains that paper label.",
-      "boundary_hypotheses": "Finite PMF, measurement, outcome, and local coordinate types; two input error profiles for the distance triangle; and one shared outcome map for heterogeneous Alice/Bob consistency postprocessing. Paper-labelled calls supply normalized states where the source's quantum-state convention requires them.",
-      "gap_ids": ["G17"],
-      "integrity": {"paper_assumptions": "For Fact 4.28, two consecutive same-space state-dependent closeness relations. For Fact 4.26, heterogeneous Alice/Bob POVM families on a bipartite state, one cross-player consistency relation, and one shared outcome map.", "lean_assumptions": "The same finite PMF and family data over explicit carriers. The finite distance helper exposes factor 2 and its paper-facing triangle is indexed atTop Big-O; data processing starts from POVMConsistencyBigO for distinct Alice/Bob coordinate types and applies the same MeasurementFamily.postprocess map on both sides.", "paper_conclusion": "Distance triangle has scale delta+epsilon up to Big-O constants, and cross-player POVM consistency is preserved by common postprocessing at the same error profile.", "lean_conclusion": "The exact finite distance factor, the indexed distance-triangle implication, and the heterogeneous POVMConsistencyBigO postprocess implication. No same-space MeasurementFamiliesBigO postprocess theorem is attributed to Fact 4.26.", "verdict": "exact"}
+      "encoding": "Each planned Law declaration is the exact elaborated implication contract. The finite helper exposes factor 2 for squared norms; PaperBigO absorbs that universal factor while preserving one global constant over every positive index. Fact 4.26 is represented only by global POVMConsistencyBigO before and after applying the same MeasurementFamily.postprocess to heterogeneous Alice/Bob families; no same-space distance law retains that paper label. IsBigOAtTop is an auxiliary consequence, not a paper-facing conclusion.",
+      "boundary_hypotheses": "Finite PMF, measurement, outcome, and local coordinate types; two input error profiles for the distance triangle; and one shared outcome map for heterogeneous Alice/Bob consistency postprocessing. Every paper-facing asymptotic premise and conclusion is global over all 0 < n with index zero unconstrained. Paper-labelled calls supply normalized states where the source's quantum-state convention requires them.",
+      "gap_ids": ["G17", "G18"],
+      "integrity": {"paper_assumptions": "For Fact 4.28, two consecutive global same-space state-dependent closeness relations. For Fact 4.26, heterogeneous Alice/Bob POVM families on a bipartite state, one global cross-player consistency relation, and one shared outcome map. The top-level global Big-O definition controls the local n-to-infinity ambiguity.", "lean_assumptions": "The same finite PMF and family data over explicit carriers. The finite distance helper exposes factor 2 and its paper-facing triangle uses PaperBigO over every 0 < n; data processing starts from global POVMConsistencyBigO for distinct Alice/Bob coordinate types and applies the same MeasurementFamily.postprocess map on both sides.", "paper_conclusion": "The global distance triangle has scale delta+epsilon up to one universal constant, and global cross-player POVM consistency is preserved by common postprocessing at the same error profile.", "lean_conclusion": "The exact finite distance factor, the global positive-index distance-triangle implication, and the global heterogeneous POVMConsistencyBigO postprocess implication. No same-space MeasurementFamiliesBigO postprocess theorem is attributed to Fact 4.26.", "verdict": "exact"}
     },
     {
       "id": "F05-PAULI",

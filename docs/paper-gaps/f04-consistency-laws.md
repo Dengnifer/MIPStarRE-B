@@ -2,10 +2,11 @@
 
 ## Scope
 
-This note records a formalization-contract mismatch against
-arXiv:2001.04383v3. The paper statements are unambiguous; the discrepancy was
-introduced by the frozen F04 blueprint contract in
-`workflow/reviews/qpbt-023-leaf-contract-a04.md`.
+This note records a formalization-contract mismatch and a source-internal
+asymptotic ambiguity in arXiv:2001.04383v3. G17 was introduced by the frozen
+F04 blueprint contract in `workflow/reviews/qpbt-023-leaf-contract-a04.md`;
+G18 reconciles the paper's global Big-O definition with a local `n -> infinity`
+footnote.
 
 The authenticated source inputs are:
 
@@ -15,6 +16,8 @@ The authenticated source inputs are:
   `38b3e662bb85bb902fcd056436fe9ecbe9e68d1990a074d0c0c12b39d5972ea9`;
 - `sections/dependencies/strategies-distance.tex` SHA-256
   `a3a2e3fd8f2c594f790c1c1f0df0aba93cfc3d2f905048437c93890cc9033e5f`;
+- `sections/top-level/preliminaries.tex` SHA-256
+  `045ef86cf9bb1ca5898f66de29f814fc869a54d357160286322c4cad7786aab1`;
 - upstream MIPStarRE commit
   `507e81220d95266ff3d589d125b2f87c7300a9fb`, archive SHA-256
   `656d92a4ad1fb24216ab0b26c6956b1cfb88ba7816257baa0e668415c0a7adcc`,
@@ -64,6 +67,25 @@ that file has SHA-256
 Its additional finite-distribution mass premise is discharged by the QPBT PMF
 carrier.
 
+## G18: global versus eventual Big-O
+
+The top-level preliminaries define `N` as the positive integers at split line 6
+and define `f(n) = O(g(n))` at lines 19-25 by one constant `C > 0` that bounds
+every positive index. The consistency footnote at
+`strategies-distance.tex:238` instead says the `O` is taken as `n -> infinity`,
+which conventionally suggests an eventual relation.
+
+The explicit top-level definition controls. `PaperBigO value scale` therefore
+means that one positive real `C` bounds `norm (value n)` by
+`C * norm (scale n)` for every Lean natural satisfying `0 < n`; index zero is
+administrative and unconstrained. All paper-facing F04 asymptotic relations and
+law conclusions use `PaperBigO`.
+
+`IsBigOAtTop` remains an auxiliary Mathlib-facing relation, with a public
+one-way bridge `PaperBigO.isBigOAtTop`. The reverse direction is not asserted:
+an eventual bound does not determine the finitely many earlier positive
+indices, particularly when the scale vanishes there.
+
 ## Faithful boundary notes
 
 `MeasurementConsistentOn` expresses equality of the Alice and Bob local
@@ -83,12 +105,13 @@ boundary ambiguity rather than being silently decided here.
 
 ## Disposition
 
-`workflow/reviews/qpbt-032-f04-contract-correction-a01.md` supersedes only the
-F04 consistency and distance-law signature blocks from the historical QPBT-023
-report. Historical evidence is not edited. `blueprint/metadata/gaps.json`
-records reciprocal `G17` links from `F04-CONSISTENCY` and
-`F04-DISTANCE-LAWS`.
+`workflow/reviews/qpbt-032-f04-contract-correction-a01.md` supersedes the F04
+asymptotic, consistency, and distance-law signature blocks from the historical
+QPBT-023 report and its own earlier atTop-only correction blocks. Historical
+evidence remains identified in that report. `blueprint/metadata/gaps.json`
+records G17 on `F04-CONSISTENCY` and `F04-DISTANCE-LAWS`, and G18 on
+`F04-ASYMPTOTIC`, `F04-CONSISTENCY`, and `F04-DISTANCE-LAWS`; both are owned by
+local issue `QPBT-041`.
 
-This correction changes planned contracts before their Lean implementation. It
-does not weaken a paper theorem, add a public assumption, or claim a completed
-proof.
+These corrections change planned contracts before integration. They do not
+weaken a paper theorem, add a public assumption, or claim a completed proof.
