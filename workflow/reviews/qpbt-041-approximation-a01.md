@@ -107,5 +107,21 @@ implementation SHA in the correction report is replaced by the exact commit.
 The API review found no other blocking layering or simplification issue. Its
 only cleanup suggestion is to relocate a generic measurement-completeness
 lemma currently duplicated privately because the reusable copy sits in a
-higher LDT layer. That non-critical refactor is deferred to a numbered issue
-and is not part of this integration repair.
+higher LDT layer. That non-critical refactor is deferred to `QPBT-053` and is
+not part of this integration repair.
+
+## Formal integration review
+
+Fresh read-only session `i041-reviewer-a13-f04-final` approved the exact
+candidate with no findings. It authenticated base
+`4a6683795a71712d6a5c52b7539c2f532fd39f71`, head
+`54643d8ab4ac7b2e0c6d8efd96222d1417cfa600`, tree
+`51a69bfbe9c3318f961bbcb2c429076b3f2ba9c7`, sole parent
+`34ac974fed9b9981ff2f73516a8ce7c0f545320d`, and binary-patch SHA-256
+`fc1ff2601abd2957dcbbbcd632af472b4ef447a29b6cf7672272dedff4796fea`.
+All eleven manifest entries matched. The reviewer confirmed that the three
+old-head findings were resolved, all four F04 nodes were proved, the complete
+proof-debt scan was empty, and the existing exact-head checks preceded review.
+After append-only reconciliation of the two direct-add issuance events,
+workflow validation passed with 54 issues, 29 local PRs, 435 issued sessions,
+and 7 stages. Verdict: `APPROVE`; `finding_ids: []`.

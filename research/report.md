@@ -1568,3 +1568,31 @@ Full provenance is retained in
 `workflow/reviews/qpbt-045-root-warm-a01.md`. QPBT-045 and LPR-024 are now
 closed/merged; QPBT-050 remains the independent fsmonitor-hardening follow-up,
 and QPBT-048's fresh mathematical/API review is the next Lean-entry gate.
+
+### Complexity correction checkpoint (2026-09-03)
+
+The workflow became materially larger than the formalization surface. At this
+checkpoint the goal service reports `41,105,201` cumulative tokens and
+`116,980` seconds (32.49 hours), without a reliable per-stage allocation. The
+ledger contains 436 issued sessions. Ignored workflow runtime occupies
+`192,748,410,863` bytes, while workflow, script, test, and research files total
+116,584 lines. By comparison, authored QPBT Lean is 1,631 lines; before the F04
+slice, `Approximation.lean` was 302 lines, and the reviewed F04 implementation
+added 1,329 lines. These figures are not a code-quality comparison, but they do
+show that coordination and evidence collection have dominated the cost.
+
+The correction is a scope freeze, not another framework revision. Stage-1
+workflow changes are admitted only for an acceptance test, a concrete safety
+issue, or a direct user requirement. Workflow feature work is otherwise
+deferred to numbered issues. Parallelism is reserved for independent source,
+implementation, review, and integration-preparation lanes; dependent proof
+work and the build/merge/cache gates remain singleton. First and second benign
+tooling occurrences are recorded without expanding protocols, and optional
+cleanup is kept off the implementation critical path.
+
+This checkpoint still produced substantive Lean progress: the F04 distance,
+asymptotic, consistency, and distance-law layer exposes 50 reviewed public
+names, has no `sorry` or forbidden assumptions, passes the scoped, target, full
+build, blueprint, source, declaration, and axiom gates, and received a fresh
+immutable approval. The only simplification suggestion was deferred as
+`QPBT-053`.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 24,
+  "next_sequence": 30,
   "pull_requests": [
     {
       "id": "LPR-001",
@@ -7687,6 +7687,153 @@
         "report_sha256": "83ba28b9e524c0db3bc43a749ee66d41f1a82db63c44dff80bad08a9cc878668",
         "completed_at": "2026-09-02T00:31:52.763476Z"
       }
+    },
+    {
+      "id": "LPR-029",
+      "title": "feat(QPBT/Basic): formalize approximation and consistency",
+      "status": "merged",
+      "issue_ids": [
+        "QPBT-041",
+        "QPBT-046"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-041-approximation-a01",
+      "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+      "head_sha": "54643d8ab4ac7b2e0c6d8efd96222d1417cfa600",
+      "implementer_session_ids": [
+        "i041-orchestrator-a12-f04-closeout"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-041-auth",
+          "name": "F04 immutable candidate authentication",
+          "command": "Authenticate exact base/head/tree/parent, binary patch SHA-256, and eleven path/blob/file-SHA entries",
+          "status": "passed",
+          "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+          "head_sha": "54643d8ab4ac7b2e0c6d8efd96222d1417cfa600",
+          "completed_at": "2026-09-02T16:27:00Z",
+          "result_path": "workflow/reviews/qpbt-041-approximation-a01.md",
+          "result": "base/head/tree/patch and 11/11 files passed"
+        },
+        {
+          "id": "check-qpbt-041-scoped",
+          "name": "F04 scoped Lean elaboration",
+          "command": "lake env lean MIPStarRE/QPBT/Basic/Approximation.lean",
+          "status": "passed",
+          "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+          "head_sha": "54643d8ab4ac7b2e0c6d8efd96222d1417cfa600",
+          "completed_at": "2026-09-02T16:27:00Z",
+          "result_path": "workflow/reviews/qpbt-041-approximation-a01.md",
+          "result": "passed with one documented unused proof-parameter linter warning",
+          "wall_seconds": 15.78,
+          "max_rss_kb": 6802736
+        },
+        {
+          "id": "check-qpbt-041-target",
+          "name": "F04 affected target build",
+          "command": "lake build MIPStarRE.QPBT.Basic.Approximation",
+          "status": "passed",
+          "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+          "head_sha": "54643d8ab4ac7b2e0c6d8efd96222d1417cfa600",
+          "completed_at": "2026-09-02T16:27:00Z",
+          "result_path": "workflow/reviews/qpbt-041-approximation-a01.md",
+          "result": "8692 jobs replayed",
+          "wall_seconds": 6.54,
+          "max_rss_kb": 938708
+        },
+        {
+          "id": "check-qpbt-041-full",
+          "name": "F04 private full build",
+          "command": "lake build",
+          "status": "passed",
+          "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+          "head_sha": "54643d8ab4ac7b2e0c6d8efd96222d1417cfa600",
+          "completed_at": "2026-09-02T16:27:00Z",
+          "result_path": "workflow/reviews/qpbt-041-approximation-a01.md",
+          "result": "8992 jobs passed",
+          "wall_seconds": 6.93,
+          "max_rss_kb": 943788
+        },
+        {
+          "id": "check-qpbt-041-blueprint",
+          "name": "F04 blueprint and pinned-source synchronization",
+          "command": "python3 -m unittest discover -s blueprint/tests -p test_*.py; python3 blueprint/check.py --check --source-root /home/drx/MIPStarRE-auto/references/2001.04383v3",
+          "status": "passed",
+          "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+          "head_sha": "54643d8ab4ac7b2e0c6d8efd96222d1417cfa600",
+          "completed_at": "2026-09-02T16:27:00Z",
+          "result_path": "workflow/reviews/qpbt-041-approximation-a01.md",
+          "result": "32/32 tests; 54 nodes/12 chapters; deterministic outputs",
+          "wall_seconds": 1.9
+        },
+        {
+          "id": "check-qpbt-041-audit",
+          "name": "F04 declaration and axiom audit",
+          "command": "lake env lean /tmp/QPBTApproximationAudit.lean; lake env lean /tmp/QPBTStrategyAudit.lean",
+          "status": "passed",
+          "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+          "head_sha": "54643d8ab4ac7b2e0c6d8efd96222d1417cfa600",
+          "completed_at": "2026-09-02T16:27:00Z",
+          "result_path": "workflow/reviews/qpbt-041-approximation-a01.md",
+          "result": "signatures passed; theorem axioms only propext, Classical.choice, Quot.sound"
+        },
+        {
+          "id": "check-qpbt-041-hygiene",
+          "name": "F04 workflow, proof-debt, import, and diff gates",
+          "command": "python3 scripts/workflow.py validate; exact owned-file debt/import scans; git diff --check BASE..HEAD",
+          "status": "passed",
+          "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+          "head_sha": "54643d8ab4ac7b2e0c6d8efd96222d1417cfa600",
+          "completed_at": "2026-09-02T16:27:00Z",
+          "result_path": "workflow/reviews/qpbt-041-approximation-a01.md",
+          "result": "workflow valid; zero proof debt; exact six imports; diff clean"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-041-pr029-a13-final",
+          "reviewer_session_id": "i041-reviewer-a13-f04-final",
+          "verdict": "approve",
+          "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+          "head_sha": "54643d8ab4ac7b2e0c6d8efd96222d1417cfa600",
+          "started_at": "2026-09-02T16:29:56.033051Z",
+          "completed_at": "2026-09-02T16:40:43.234404Z",
+          "result_path": "workflow/reviews/qpbt-041-approximation-a01.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "64544c2466e62d00d0a7b626851f0ca9dd5af0740ad75c0e3cb2c7b890e23c96",
+          "patch_sha256": "fc1ff2601abd2957dcbbbcd632af472b4ef447a29b6cf7672272dedff4796fea",
+          "integration_gate": "approved for exact guarded integration"
+        }
+      ],
+      "findings": [],
+      "integration_sha": "54643d8ab4ac7b2e0c6d8efd96222d1417cfa600",
+      "merged_at": "2026-09-02T16:41:31.812980Z",
+      "created_at": "2026-09-02T16:27:52.017183Z",
+      "updated_at": "2026-09-02T16:41:31.812980Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "blueprint/generated/graph.dot",
+        "blueprint/generated/graph.json",
+        "blueprint/metadata/gaps.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/gaps.tex",
+        "docs/paper-gaps/f04-consistency-laws.md",
+        "workflow/reviews/qpbt-032-f04-contract-correction-a01.md",
+        "workflow/reviews/qpbt-032-generated-refresh-a03.md",
+        "workflow/reviews/qpbt-041-approximation-a01.md"
+      ],
+      "motivation": "Land the source-faithful finite approximation, indexed distance, consistency, and distance-law layer required by QPBT.",
+      "description": "Implement the corrected F04 contract, including global positive-index Big-O, existential either-state strategy distance, finite and asymptotic consistency, and all associated proofs.",
+      "testing": "Scoped Lean, affected target, full build, declaration and axiom audits, blueprint tests and pinned-source synchronization, workflow validation, exact manifest authentication, and three independent changed-head reviews passed.",
+      "addresses": "QPBT-041 and QPBT-046",
+      "provenance_session_ids": [
+        "i041-orchestrator-a12-f04-closeout",
+        "i041-reviewer-a13-f04-final"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": "Post-closeout exact-main cache warm remains; no candidate gate remains."
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 41,
+  "next_sequence": 54,
   "issues": [
     {
       "id": "QPBT-000",
@@ -2182,7 +2182,7 @@
       "title": "feat(QPBT/Basic): complete finite strategy and consistency semantics",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "done",
       "parent_id": "QPBT-005",
       "dependency_ids": [
         "QPBT-032",
@@ -2203,7 +2203,7 @@
         "After QPBT-045 restores the cache recipe, seed one private worktree from the authenticated current-main cache, pass scoped Lean and the affected target, run declaration/source synchronization and owned-scope proof-debt/import scans, then run one private full build before fresh immutable review",
         "Record a statement-integrity table for all four paper nodes, exact source/report/signature hashes, the complete tracked-sorry inventory, cache key/hit/lock wait/build counters, and reviewer dispositions"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i041-orchestrator-a12-f04-closeout",
       "source_refs": [
         "blueprint/metadata/nodes.json#F04-DISTANCE",
         "blueprint/metadata/nodes.json#F04-ASYMPTOTIC",
@@ -2221,9 +2221,9 @@
         "MIPStarRE/QPBT/Basic/Approximation.lean"
       ],
       "created_at": "2026-09-01T15:48:00Z",
-      "updated_at": "2026-09-01T15:57:46.106237Z",
-      "blocked_reason": "The authenticated hot-main cache recipe currently fails before Lean compilation when authored QPBT sources exist.",
-      "unblock_condition": "QPBT-045 done and a guarded exact-main warm publishes a verified cache."
+      "updated_at": "2026-09-02T16:41:41.357806Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-042",
@@ -2377,7 +2377,7 @@
       "title": "Prove the F04 strategy-distance and consistency suite",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "done",
       "parent_id": "QPBT-007",
       "dependency_ids": [
         "QPBT-041"
@@ -2397,7 +2397,7 @@
         "Pass scoped Lean, affected target, declaration/source synchronization, complete proof-debt/assumption scan, one private full build, and fresh immutable mathematical review",
         "Record statement integrity, paper gaps if any, exact proof-debt closure, cache/build metrics, and all reviewer findings/dispositions"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i046-orchestrator-a01-proof-closeout",
       "source_refs": [
         "workflow/state/issues.json#QPBT-041",
         "blueprint/metadata/nodes.json#F04-DISTANCE",
@@ -2411,9 +2411,9 @@
         "MIPStarRE/QPBT/Basic/Approximation.lean"
       ],
       "created_at": "2026-09-01T15:54:30Z",
-      "updated_at": "2026-09-01T15:54:30Z",
-      "blocked_reason": "QPBT-041 must first publish the exact declaration skeleton and its tracked proof-debt inventory.",
-      "unblock_condition": "QPBT-041 done."
+      "updated_at": "2026-09-02T16:52:29.430407Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-047",
@@ -2710,6 +2710,45 @@
       "blocked_reason": null,
       "unblock_condition": "Repair A06-001 and the null-identity residual of A04-001/A04-002 on a changed head, then obtain a fresh immutable review before guarded integration.",
       "repair_round": 5
+    },
+    {
+      "id": "QPBT-053",
+      "title": "refactor(LDT): lower the generic measurement-completeness adapter",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-041"
+      ],
+      "labels": [
+        "lean",
+        "refactor",
+        "ldt",
+        "deferred",
+        "non-critical"
+      ],
+      "acceptance_gates": [
+        "Move the generic measurement-completeness derivation currently stranded in MIPStarRE/LDT/Test/StrategyRole/Algebra.lean to the lowest existing LDT preliminary layer shared by its actual consumers",
+        "Replace the private duplicate in MIPStarRE/QPBT/Basic/Approximation.lean and preserve every public F04 declaration and theorem statement",
+        "Add no new public abstraction beyond the relocated generic theorem and do not broaden imports or introduce proof debt",
+        "Pass scoped Lean for both consumers, affected targets, one private full build, proof-debt/import scans, and fresh immutable review"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean:842",
+        "MIPStarRE/LDT/Test/StrategyRole/Algebra.lean:94",
+        "workflow/reviews/qpbt-041-approximation-a01.md"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "MIPStarRE/LDT/Test/StrategyRole/Algebra.lean",
+        "MIPStarRE/LDT/Preliminaries/ComparisonCore.lean"
+      ],
+      "created_at": "2026-09-02T16:27:52.017183Z",
+      "updated_at": "2026-09-02T16:27:52.017183Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     }
   ]
 }
