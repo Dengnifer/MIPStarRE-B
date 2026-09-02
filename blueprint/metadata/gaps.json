@@ -192,16 +192,6 @@
       "issue": "QPBT-054"
     },
     {
-      "id": "G20",
-      "class": "incorrect-construction",
-      "source": "conditionally-linear.tex:126-129 [2288-2291]",
-      "affected_nodes": ["F06-CL"],
-      "paper_problem": "The level-raising remark sets V_1 = V and V_{>1} = {0} while making both the head and recursive-tail maps zero. Under the paper's recursive definition this constructs only the zero function, not an arbitrary lower-level conditionally-linear function.",
-      "disposition": "Prepend an empty head register with the zero head map and retain the full register and original function in the recursive tail. This increases the certificate level without changing the realized function.",
-      "public_effect": "Internal proof repair only; the source-faithful F06 definitions and theorem statements are unchanged.",
-      "issue": "QPBT-055"
-    },
-    {
       "id": "G21",
       "class": "index-typo-and-omitted-case",
       "source": "conditionally-linear.tex:411-418,425-428,432-455 [2573-2580,2587-2590,2594-2617]",

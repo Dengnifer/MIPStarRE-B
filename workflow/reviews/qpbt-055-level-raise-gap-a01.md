@@ -1,20 +1,21 @@
-# QPBT-055 CL structural paper-gap record (A01)
+# QPBT-055 CL structural proof and paper-gap record (A01)
 
 ## Result
 
-The pinned paper's level-raising recipe at
-`conditionally-linear.tex:126-129` does not embed an arbitrary lower-level
-conditionally-linear function. It takes the first register to be the full
-space, the recursive-tail register to be zero, and both displayed maps to be
-zero. Substitution into Definition `def:cl` therefore realizes the zero
-function.
+The pinned paper's level-raising argument at
+`conditionally-linear.tex:124-129` is valid but terse. Its displayed full-head,
+zero-tail data prove precisely that the unique zero-level function is also a
+one-level function. Structural induction then promotes every recursive tail of
+an existing certificate, establishing that each level contains the preceding
+level. The initial candidate incorrectly read the displayed base witness as a
+claimed direct wrapper for an arbitrary function; independent review rejected
+that reading, so the proposed `G20` paper gap has been removed.
 
-The source-faithful level-raising repair is to prepend an empty head register with
-the zero head map, retain the full register in the recursive tail, and reuse
-the original conditionally-linear function there. This raises the certificate
-level by one without changing its realized function. The repair changes no
-public F06 declaration, hypothesis, conclusion, import, or signature-manifest
-byte.
+Lean may implement the same inclusion more directly by prepending an empty
+head register with the zero head map, retaining the full register in the
+recursive tail, and reusing the original certified function. This is an
+equivalent implementation strategy, not a paper repair. It changes no public
+F06 declaration, hypothesis, conclusion, import, or signature-manifest byte.
 
 The same pinned source has two downsize-proof defects. At lines 425-428 and
 453-455 it indexes an original-field linear map by the downsized prefix even
@@ -36,11 +37,12 @@ It separately preserves the already-known `V x V` seed typo at source line
 
 ## Changes
 
-- Added reciprocal paper-gap record `G20` in
-  `blueprint/metadata/gaps.json`.
-- Added reciprocal paper-gap record `G21` for the downsize prefix and omitted
+- Removed the review-rejected provisional `G20` record and documented the
+  paper's valid base-case-plus-structural-induction argument in `F06-CL`.
+- Retained reciprocal paper-gap record `G21` for the downsize prefix and omitted
   zero-level case.
-- Linked `F06-CL` to both gaps and documented the proof repairs in
+- Linked `F06-CL` only to `G21` and documented the level-raising implementation
+  alternative and downsize proof repairs in
   `blueprint/metadata/nodes.json`.
 - Regenerated only the expected graph, chapter-02, and gap-table outputs.
 - Added canonical issue `QPBT-055` as a Stage 04A preflight issue.
@@ -54,17 +56,29 @@ SHA-256
 
 | Field | Paper | Lean disposition |
 | --- | --- | --- |
-| Assumptions | An existing lower-level CL function and a direct-sum decomposition of its register | The same certified function and its existing full register |
-| Construction | Full zero head, zero recursive register, and zero recursive map | Empty zero head and the original certified function on the full recursive tail |
-| Claimed result | The lower-level function is also a function at the next level | The realized function is definitionally preserved while its certificate level increases |
-| Public effect | No new public theorem is stated | No F06 signature changes; internal proof repair only |
-| Verdict | Displayed construction is incorrect | Documented mismatch `G20`; claimed inclusion is retained |
+| Assumptions | An existing lower-level CL function and the recursive certificate definition | The same certified function and its existing full register |
+| Construction | Prove zero-level to one-level inclusion, then structurally promote recursive tails | Direct equivalent wrapper: empty zero head and the original certified function on the full recursive tail |
+| Claimed result | Every lower-level function is also a function at the next level | The realized function is definitionally preserved while its certificate level increases |
+| Public effect | No new public theorem is stated | No F06 signature changes; internal implementation choice only |
+| Verdict | Valid base case plus structural induction | Exact implementation alternative; no paper gap |
 
 For downsize, the paper and Lean hypotheses remain the same. Lean uses the
 type-correct original prefix obtained through the inverse coordinate map and
 includes the source-permitted zero-level case. The map, sampler pushforward,
 and every frozen public signature remain unchanged; this is documented
 mismatch `G21`.
+
+## Review disposition
+
+The first immutable review authenticated all 16 manifest entries at candidate
+`98c0fe23dee3ee1d657c4e5612708e875f6c405a` and requested changes on one high
+source-fidelity finding: provisional G20 misclassified the paper's valid base
+case as an incorrect construction. The exact review is
+`workflow/reviews/qpbt-055-review-a01.md`, SHA-256
+`ca42e1aff706edc80e168bbcc0b555d42820375db39d7a405b94a603c22bda8f`.
+This revision accepts that finding, removes G20 and its reciprocal/generated
+links, and retains G21 unchanged. A fresh immutable review of the repaired head
+is required before issue closure.
 
 ## Authentication
 
@@ -90,21 +104,21 @@ recorded after commit to avoid a self-reference.
 
 | Command | Result |
 | --- | --- |
-| `python3 blueprint/check.py --write` | pass twice; 54 nodes, 12 chapters; second run byte-idempotent |
-| `python3 -m unittest discover -s blueprint/tests -p 'test_*.py'` | pass after each gap edit, final 34/34 in 2.668 seconds |
+| `python3 blueprint/check.py --write` | pass twice for the review repair; 54 nodes, 12 chapters; second run byte-idempotent |
+| `python3 -m unittest discover -s blueprint/tests -p 'test_*.py'` | repair pass, 34/34 in 2.813 seconds |
 | `python3 blueprint/check.py --check --source-root references/2001.04383v3` | pass, 54 nodes and 12 chapters |
 | `python3 scripts/reference_source.py verify --reference-root /home/drx/MIPStarRE-auto/references/2001.04383v3 --runtime-root /home/drx/MIPStarRE-auto/.workflow-runtime/reference-source` | pass, 39 files and 646 labels |
-| `python3 scripts/workflow.py validate` | pass, 56 issues, 32 PRs, 462 issued sessions, 7 stages |
+| `python3 scripts/workflow.py validate` | pass, 59 issues, 32 PRs, 463 issued sessions, 7 stages |
 | `python3 scripts/check_workflow.py --root . --skip-tests` | pass |
 | `git diff --check` | pass |
 
-One initial read-only invocation used the nonexistent path
+Before the initial candidate, one read-only invocation used the nonexistent path
 `scripts/verify_reference_snapshot.py`; it failed before doing work. The
-canonical `reference_source.py verify` command above then passed. There were
-four blueprint generation runs, two unit-test runs, two pinned-source checks,
-two reference checks, four workflow validations, two aggregate workflow checks, zero
-Lean/Lake/build/cache/network/GitHub/credential actions, and no new subagent
-for this root-owned gap record. Root token usage is `null` because the backend
-does not expose per-operation counts.
+canonical `reference_source.py verify` command above then passed. The review
+repair added two byte-idempotence generation runs and one parallel pass each of
+the unit, default, pinned-source, reference, workflow, aggregate-workflow, and
+diff-hygiene checks. It used zero Lean/Lake/build/cache/network/GitHub/
+credential actions. Root token usage is `null` because the backend does not
+expose per-operation counts.
 
-Evidence cutoff: `2026-09-02T21:06:42Z`.
+Repair evidence cutoff: `2026-09-02T21:22:39Z`.

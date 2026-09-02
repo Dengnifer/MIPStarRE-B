@@ -2052,10 +2052,10 @@
     },
     {
       "id": "QPBT-038",
-      "title": "feat(QPBT/Game): implement mathematical, executable, and typed CL interfaces",
+      "title": "feat(QPBT/Game): integrate Types interfaces through sequential proof gates",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "blocked",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2065,49 +2065,38 @@
       ],
       "labels": [
         "lean",
-        "minimal-skeleton",
         "conditionally-linear",
         "executable-cl",
         "typed-game",
         "f06",
         "f06a",
         "f07",
-        "exact-ownership"
+        "sequential-integration-parent"
       ],
       "acceptance_gates": [
-        "Implement only MIPStarRE/QPBT/Game/Types.lean in the reviewed order F06-CL, F06A-EXECUTABLE-CL, then F07-TYPED, from the corrected exact manifests produced by QPBT-054",
-        "Encode the source recursive conditionally-linear certificate and preserve arbitrary input maps under level raising, direct sum, and basis-mediated downsize; define the CL distribution from one shared uniform seed and prove exact product/pushforward laws",
-        "Implement the source-faithful F06A operational layer with six logical tapes, typed valid prefix/factor queries, canonical F01-derived codec boundary, actual Turing execution witnesses and exact step maximum, associated maps/distribution, executable downsize, dimension s(n) * Nat.log 2(q(n)), and global-positive RuntimeBigO compiler theorem",
-        "Preserve the finite ordered type graph with loops/orientation weights, bind edge-conditioned typed sampling to the corresponding CL distribution, downsize both typed families pointwise, and keep arbitrary dependent TypedQuestion/TypedDecider fibers without pointwise finiteness",
-        "Use exactly the corrected direct-import union frozen by F06/F06A/F07; no unbound raw-string efficiency claim, arbitrary output/steps/run relation, codec-coherence input, generic obligation, or reassignment to F07A/K03/K04 is permitted",
-        "Introduce no sorry, admit, axiom, constant, public bridge assumption, new certificate constructor, or second incompatible map/sampler representation",
-        "Seed a private exact-main cache; pass whole-file elaboration, affected target, exact tape/output/dimension/loop/codec/debt/import scans, blueprint declaration/source synchronization, one private full build, and a fresh immutable mathematical/API review"
+        "Integrate QPBT-056, QPBT-057, and QPBT-058 strictly in dependency order into the single MIPStarRE/QPBT/Game/Types.lean history",
+        "Require each child to preserve its immutable F06, F06A, or F07 public signature manifest and to pass proof-complete scoped, target, debt, synchronization, private full-build, and immutable review gates",
+        "Do not close this parent until all three direct children are done and the combined 81-name Types surface passes exact import, declaration, source-fidelity, and clean private full-build checks",
+        "Retain the QPBT-038 A01 rejected candidate and A03 compiler blocker only as negative evidence; never reuse degenerate definitions or expose compiler obligations publicly"
       ],
-      "owner_session_id": "i038-orchestrator-a03-types",
+      "owner_session_id": null,
       "source_refs": [
-        "workflow/reviews/qpbt-033-q014-split-a01.md#F06F07--Types",
-        "workflow/reviews/qpbt-035-q014-contract-a04.md#F06-A04-SIGNATURES",
-        "workflow/reviews/qpbt-035-q014-contract-a07.md#F07-A07-SIGNATURES",
         "workflow/reviews/qpbt-038-types-a01.md",
-        "workflow/reviews/qpbt-038-unblock-scout-a13.md",
-        "workflow/reviews/qpbt-048-source-fidelity-repair-a04.md",
-        "workflow/reviews/qpbt-048-runtime-api-a05.md",
+        "workflow/reviews/qpbt-038-types-decomposition-a02.md",
+        "workflow/reviews/qpbt-038-types-a03.md",
+        "workflow/reviews/qpbt-054-review-a10.md",
         "blueprint/metadata/nodes.json#F06-CL",
         "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
         "blueprint/metadata/nodes.json#F07-TYPED",
-        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:1-552,553-626,628-660,662-712",
-        "references/2001.04383v3/sections/dependencies/types.tex:57-195",
-        "workflow/reviews/qpbt-038-types-decomposition-a02.md",
-        "workflow/reviews/qpbt-054-review-a10.md",
-        "blueprint/metadata/gaps.json#G19"
+        "QPBT-056",
+        "QPBT-057",
+        "QPBT-058"
       ],
-      "owned_paths": [
-        "MIPStarRE/QPBT/Game/Types.lean"
-      ],
+      "owned_paths": [],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-02T20:50:08.812873Z",
-      "blocked_reason": null,
-      "unblock_condition": null
+      "updated_at": "2026-09-02T21:20:20.634950Z",
+      "blocked_reason": "The original 81-name single attempt is decomposed after the frozen F06A compiler gate proved unavailable in the pinned API; child issues now isolate the mathematical F06, internal compiler plus F06A, and F07 proof surfaces.",
+      "unblock_condition": "Complete and independently review QPBT-056, QPBT-057, and QPBT-058 in order, then run the combined Types integration gate."
     },
     {
       "id": "QPBT-040",
@@ -2837,7 +2826,7 @@
     },
     {
       "id": "QPBT-055",
-      "title": "docs(blueprint): record CL structural proof defects",
+      "title": "docs(blueprint): record CL proof strategy and downsize defects",
       "kind": "blueprint",
       "execution_category": "preflight",
       "status": "in_progress",
@@ -2853,11 +2842,11 @@
         "source-fidelity"
       ],
       "acceptance_gates": [
-        "Record that conditionally-linear.tex:126-129 assigns V_1 = V and V_{>1} = {0} with zero maps, so the displayed construction yields the zero function rather than embedding an arbitrary lower-level CL function",
+        "Record that conditionally-linear.tex:124-129 gives a valid zero-to-one base witness whose recursive structural promotion proves every level inclusion; document empty-head/full-tail only as an equivalent Lean implementation strategy, not a paper defect",
         "Record that conditionally-linear.tex:425-428 and 453-455 index an original-field linear map by a downsized prefix, and that the proof of the ell >= 0 downsize lemma omits ell = 0",
-        "Link reciprocal numbered paper-gap notes to F06-CL; use empty-head/full-tail level raising, source-prefix pullback in conjugation, and the existing zero certificate for ell = 0 without changing any frozen F06 public signature",
+        "Link reciprocal numbered paper-gap note G21 only to F06-CL; use source-prefix pullback in conjugation and the existing zero certificate for ell = 0 without changing any frozen F06 public signature",
         "Preserve the separate already-recorded V x V seed typo and do not alter F06A or F07 ownership",
-        "Regenerate blueprint outputs byte-idempotently and pass blueprint unit/default/pinned-source, reference, workflow, and diff-hygiene gates"
+        "Regenerate blueprint outputs byte-idempotently, resolve the immutable A01 review finding, and pass blueprint unit/default/pinned-source, reference, workflow, diff-hygiene, and fresh immutable re-review gates"
       ],
       "owner_session_id": null,
       "source_refs": [
@@ -2866,7 +2855,8 @@
         "/tmp/i038-scout-a03-f06.md",
         "/tmp/i038-scout-a03-downsize.md",
         "workflow/reviews/qpbt-035-q014-contract-a04.md#F06-A04-SIGNATURES",
-        "blueprint/metadata/nodes.json#F06-CL"
+        "blueprint/metadata/nodes.json#F06-CL",
+        "workflow/reviews/qpbt-055-review-a01.md"
       ],
       "owned_paths": [
         "blueprint/metadata/gaps.json",
@@ -2874,10 +2864,142 @@
         "blueprint/generated/graph.json",
         "blueprint/src/generated/gaps.tex",
         "blueprint/src/generated/chapter-02-entries.tex",
-        "workflow/reviews/qpbt-055-level-raise-gap-a01.md"
+        "workflow/reviews/qpbt-055-level-raise-gap-a01.md",
+        "workflow/reviews/qpbt-055-review-a01.md"
       ],
       "created_at": "2026-09-02T21:01:19Z",
-      "updated_at": "2026-09-02T21:04:31.497511Z",
+      "updated_at": "2026-09-02T21:20:19.693095Z",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-056",
+      "title": "feat(QPBT/Game): implement mathematical CL maps and samplers",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-038",
+      "dependency_ids": [
+        "QPBT-013",
+        "QPBT-035",
+        "QPBT-048",
+        "QPBT-054",
+        "QPBT-055"
+      ],
+      "labels": [
+        "lean",
+        "conditionally-linear",
+        "f06",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement exactly the 14 F06-CL declarations in MIPStarRE/QPBT/Game/Types.lean from the immutable F06-A04 marker SHA-256 120d85e82d04ef226509ff6ff2b0f70776b65db537ba76a74c8307312b203461, with only Mathlib.Probability.Distributions.Uniform and MIPStarRE.QPBT.Basic.Field as direct imports",
+        "Encode the recursive certificate faithfully; implement arbitrary-map level raising by an exact proof strategy such as empty-head/full-tail, componentwise direct sum after level equalization, and basis-mediated downsize with the G21 inverse-prefix and level-zero repairs",
+        "Define CLSampler.sample from one shared uniform seed, prove the exact independent direct-sum bind/map law, and prove the exact downsize PMF pushforward, including all zero-dimension and zero-level boundary cases",
+        "Preserve every frozen public hypothesis, conclusion, quantifier, and name; introduce no sorry, admit, axiom, constant, public obligation, degenerate zero replacement, or incompatible second representation",
+        "Seed a private exact-main cache; pass whole-file Lean elaboration, the affected target, exact name/import/debt scans, blueprint declaration/source synchronization, one private full build after scoped stability, and fresh immutable mathematical/API review"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-035-q014-contract-a04.md#F06-A04-SIGNATURES",
+        "workflow/reviews/qpbt-038-types-a03.md#Mathematical-handoff",
+        "workflow/reviews/qpbt-055-level-raise-gap-a01.md",
+        "blueprint/metadata/nodes.json#F06-CL",
+        "blueprint/metadata/gaps.json#G21",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:1-552",
+        "references/2001.04383v3/sections/dependencies/finite-fields.tex:234-307"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-056-f06-a01.md"
+      ],
+      "created_at": "2026-09-02T21:17:11Z",
+      "updated_at": "2026-09-02T21:20:20.324192Z",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-057",
+      "title": "feat(QPBT/Game): implement executable CL compiler and sampler",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-038",
+      "dependency_ids": [
+        "QPBT-056"
+      ],
+      "labels": [
+        "lean",
+        "conditionally-linear",
+        "f06a",
+        "turing-machine",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Extend the integrated F06 file with exactly the 56 F06A-EXECUTABLE-CL public declarations from immutable marker SHA-256 cfe433e36d0670c344b29ab5107557842e7d4fc8358fba2713b8ff2ee107a3a1 and preserve the frozen four-import union",
+        "Implement a proof-complete internal FinTM2 lifting, six-tape parser, composition/simulation, and resource layer sufficient for executable downsize; keep helper obligations internal and discharged rather than exposing any bridge, witness, package, producer, Hypotheses, Assumptions, or arbitrary implication input",
+        "Construct all four downsize query modes, the intrinsic exponent program, genuine query-indexed TM2OutputsInTime executions, exact extracted step maxima, canonical F01-derived codec behavior, dimension s(n) * Nat.log 2(q(n)), associated-map equality, exact PMF pushforward, and the global-positive RuntimeBigO theorem",
+        "Do not use Mathlib proof_wanted declarations, fabricate run relations, weaken a frozen public signature, introduce sorry/admit/axiom/constant, or move F06A obligations to F07, F07A, K03, or K04",
+        "Use the QPBT-056 private-cache lineage; pass whole-file elaboration, affected target, exact signature/tape/output/dimension/codec/import/debt scans, blueprint synchronization, one private full build after scoped stability, and fresh immutable compiler/resource and source-fidelity reviews"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-054-f06a-repair-a04.md#F06A-A04-SIGNATURES",
+        "workflow/reviews/qpbt-038-types-a03.md#Exact-blocker-and-discharge-plan",
+        "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
+        "blueprint/metadata/gaps.json#G19",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-712",
+        "references/2001.04383v3/sections/top-level/preliminaries.tex:1-143",
+        "references/2001.04383v3/sections/dependencies/finite-fields.tex:234-263,283-307,350-411"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-057-f06a-a01.md"
+      ],
+      "created_at": "2026-09-02T21:17:11Z",
+      "updated_at": "2026-09-02T21:17:11Z",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-058",
+      "title": "feat(QPBT/Game): implement typed samplers and deciders",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-038",
+      "dependency_ids": [
+        "QPBT-057"
+      ],
+      "labels": [
+        "lean",
+        "typed-game",
+        "f07",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Extend the integrated F06/F06A file with exactly the 11 F07-TYPED declarations from immutable marker SHA-256 99cfe240da252a94527d50c53d39a9673ee8d673cf6eba9730fb1a7e92df9d46 and preserve the frozen import union",
+        "Implement the finite ordered type graph with nonempty symmetric edge support, correct loop/orientation weights, its exact uniform distribution point law, and edge-conditioned typed sampling bound to the corresponding shared-seed F06 distribution",
+        "Downsize both typed CL families pointwise and prove the exact PMF pushforward while preserving arbitrary dependent TypedQuestion and TypedDecider fibers without adding pointwise finiteness assumptions",
+        "Preserve every frozen signature and F07/F07A ownership boundary; introduce no sorry, admit, axiom, constant, public obligation, executable claim owned by F06A, or detyping claim owned by F07A",
+        "Use the QPBT-057 private-cache lineage; pass whole-file elaboration, affected target, exact name/loop/fiber/import/debt scans, blueprint declaration/source synchronization, one private full build after scoped stability, and fresh immutable mathematical/API review"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-035-q014-contract-a07.md#F07-A07-SIGNATURES",
+        "workflow/reviews/qpbt-038-types-a03.md#Mathematical-handoff",
+        "blueprint/metadata/nodes.json#F07-TYPED",
+        "references/2001.04383v3/sections/dependencies/types.tex:57-195"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-058-f07-a01.md"
+      ],
+      "created_at": "2026-09-02T21:17:11Z",
+      "updated_at": "2026-09-02T21:17:11Z",
       "blocked_reason": null,
       "unblock_condition": null
     }
