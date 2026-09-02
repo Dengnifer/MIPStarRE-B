@@ -1,5 +1,10 @@
 # Protocol Changelog
 
+## 0.1.11 candidate (QPBT-049)
+
+Add an explicit post-confirmation collaboration task-release lease. Running now
+requires one identity-bound `session.released` event after issuance.
+
 ## 0.1.10 candidate (QPBT-045) - 2026-09-02
 
 INC-060 is the second occurrence of

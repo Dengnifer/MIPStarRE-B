@@ -58,7 +58,10 @@ thread.
    it writes nothing; immediately interrupt and retire the still-bootstrap-only
    external thread, then retry from step 1.
 5. Only after canonical confirmation may the coordinator deliver the full task
-   packet and move the session through the launch lease to `running`.
+   packet. It must then record one `session.released` event binding the same
+   external ID; only that post-confirmation release permits `issued -> running`.
+   Missing, duplicate, pre-issuance, wrong-ID, and reverse-chronological release
+   attestations fail closed.
 
 Every collaboration session newly issued through the dispatcher requires a
 confirmed, non-empty immutable external thread identity. Active collaboration
