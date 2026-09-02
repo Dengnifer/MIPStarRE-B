@@ -8388,7 +8388,7 @@
     {
       "id": "LPR-033",
       "title": "feat(QPBT/Game): implement mathematical CL maps and samplers",
-      "status": "draft",
+      "status": "ready",
       "issue_ids": [
         "QPBT-056"
       ],
@@ -8396,7 +8396,9 @@
       "head": "issue/qpbt-056-f06-a01",
       "base_sha": "4cc1762f85da1bd46599311b77c4647d5f3c30b4",
       "head_sha": "c1bfd95226e0c068f7d818689f56ab41088ff545",
-      "implementer_session_ids": [],
+      "implementer_session_ids": [
+        "i056-integrator-a02-pr033-bind"
+      ],
       "checks": [
         {
           "id": "check-qpbt-056-auth",
@@ -8466,6 +8468,17 @@
           "completed_at": "2026-09-02T22:23:16.245583Z",
           "result_path": "workflow/reviews/qpbt-056-f06-a01.md",
           "result": "exact frozen surface; no target debt or forbidden assumptions; workflow checks and committed diff hygiene passed"
+        },
+        {
+          "id": "check-qpbt-056-pr-bind",
+          "name": "LPR-033 PR-bound no-byte-change adoption",
+          "command": "Authenticate the exact candidate identity, two-path manifest, six passed checks, writer report, and clean worktree; commit only the binding report",
+          "status": "passed",
+          "base_sha": "4cc1762f85da1bd46599311b77c4647d5f3c30b4",
+          "head_sha": "c1bfd95226e0c068f7d818689f56ab41088ff545",
+          "completed_at": "2026-09-02T22:41:17.566555Z",
+          "result_path": "workflow/reviews/qpbt-056-pr033-bind-a02.md",
+          "result": "Exact candidate and 6/6 checks authenticated; binding report adopted at 71be5c6; zero candidate-byte changes"
         }
       ],
       "reviews": [],
@@ -8473,7 +8486,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T22:23:16.245583Z",
-      "updated_at": "2026-09-02T22:33:45.196080Z",
+      "updated_at": "2026-09-02T22:42:09.950727Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Types.lean",
         "workflow/reviews/qpbt-056-f06-a01.md"
@@ -8487,10 +8500,11 @@
         "i056-prover-a01-directsum",
         "i056-prover-a01-downsize",
         "i056-scout-a01-fidelity",
-        "i056-simplifier-a01-types"
+        "i056-simplifier-a01-types",
+        "i056-integrator-a02-pr033-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "A PR-bound no-byte-change adoption check, fresh immutable mathematical/API review of the final commit, and guarded integration remain."
+      "unexecuted_gate": "One fresh immutable mathematical/API review of the final commit and guarded integration remain."
     }
   ]
 }
