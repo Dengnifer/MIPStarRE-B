@@ -8537,7 +8537,7 @@
     {
       "id": "LPR-034",
       "title": "feat(cache): add authenticated input preflight",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-051"
       ],
@@ -8627,12 +8627,82 @@
           "result": "Exact candidate and 6/6 checks authenticated; report blob a06423d; zero candidate-byte changes"
         }
       ],
-      "reviews": [],
-      "findings": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-051-pr034-a03-security",
+          "reviewer_session_id": "i051-reviewer-a03-cache-security",
+          "verdict": "request_changes",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "started_at": "2026-09-02T23:27:24.745856Z",
+          "completed_at": "2026-09-02T23:34:34Z",
+          "result_path": "workflow/reviews/qpbt-051-review-a03.md",
+          "finding_ids": [
+            "F051-A03-001",
+            "F051-A03-002",
+            "F051-A03-003"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "1d0bed1c5eb92a00abc35dc510eb6a8f372758544cf8615e285de99ddb04fda4",
+          "manifest_sha256": "40ebd81772e58a7eeaba9e5ec4bcccde15f0c5c247292d10a87e4a5798118510",
+          "patch_sha256": "c083e3a1389cf63dd39f19027f25ae7fd00ef43317e8b62f4d065b1827d5cada",
+          "integration_gate": "blocked pending an identity-bound captured-byte loader, final authored verification, and operation-wide prepare transaction"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F051-A03-001",
+          "introduced_review_id": "review-qpbt-051-pr034-a03-security",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "Mutable verifier and pin bytes are executed or parsed without binding the consumed bytes to the cache identity.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 2159,
+          "required_change": "Consume bounded no-follow snapshots authenticated against identity.inputs for every verifier, pin, and manifest input, including the target materializer/pin, and regress dirty and substituted bytes before hit, lock, seed, or materialization."
+        },
+        {
+          "id": "F051-A03-002",
+          "introduced_review_id": "review-qpbt-051-pr034-a03-security",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "prepare can return stale authored-QPBT evidence because it does not recheck after foundation verification.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 2993,
+          "required_change": "Recompute authored QPBT after verify_materialized, compare it with the initial and verifier evidence, return only the final inventory, and regress verifier-side mutation."
+        },
+        {
+          "id": "F051-A03-003",
+          "introduced_review_id": "review-qpbt-051-pr034-a03-security",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "prepare releases the target lock after seed, permitting interleaving, stale cache evidence, and incomplete rollback.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 2978,
+          "required_change": "Hold one per-target operation lock through admission, cache publication, authenticated loading, materialization, final verification, and deep final identity checks; retain and restore replaced .lake through the whole transaction and add interleaving/rollback regressions."
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T23:07:18.585757Z",
-      "updated_at": "2026-09-02T23:21:20.444399Z",
+      "updated_at": "2026-09-02T23:38:12.527705Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -8650,7 +8720,7 @@
         "i051-integrator-a02-pr034-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "One fresh immutable security review of the final candidate and guarded integration remain."
+      "unexecuted_gate": "Three formal security findings require a changed head and fresh immutable resolution review before integration."
     }
   ]
 }
