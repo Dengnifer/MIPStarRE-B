@@ -3608,3 +3608,4 @@
 {"schema_version":1,"timestamp":"2026-09-02T18:57:50.090657Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issued-session","id":"i054-integrator-a02-pr031-bind","fields":["outcome_path","run_outcome","report_sha256","checks","timing_quality"]}}
 {"schema_version":1,"timestamp":"2026-09-02T18:57:50.420540Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"archived","session_id":"i054-integrator-a02-pr031-bind"}}
 {"schema_version":1,"timestamp":"2026-09-02T18:58:08.385464Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-031","fields":["checks","unexecuted_gate"]}}
+{"schema_version":1,"timestamp":"2026-09-02T18:59:54.395283Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-032"}}

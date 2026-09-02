@@ -8067,6 +8067,109 @@
       ],
       "requested_external_review": true,
       "unexecuted_gate": "Obtain one fresh immutable mathematical/API review of exact head 83062f78, then guardedly integrate and update QPBT-038 readiness."
+    },
+    {
+      "id": "LPR-032",
+      "title": "feat(QPBT/Basic): implement Pauli observables",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-037"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-037-pauli-a02",
+      "base_sha": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+      "head_sha": "cdb83f4017cfc182eb2611be0fbc5cd3635fbf64",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-037-auth",
+          "name": "QPBT-037 immutable candidate authentication",
+          "command": "Authenticate exact commit, tree, sole parent, one changed path, file SHA-256, and clean worktree",
+          "status": "passed",
+          "base_sha": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+          "head_sha": "cdb83f4017cfc182eb2611be0fbc5cd3635fbf64",
+          "completed_at": "2026-09-02T18:54:48.348609Z",
+          "result_path": "workflow/reviews/qpbt-037-pauli-a15.md",
+          "result": "head cdb83f40, tree 239f65b9, sole parent c5f4b277, one new 857-line file, clean worktree"
+        },
+        {
+          "id": "check-qpbt-037-lean",
+          "name": "QPBT-037 scoped Lean elaboration",
+          "command": "lake env lean MIPStarRE/QPBT/Basic/Pauli.lean",
+          "status": "passed",
+          "base_sha": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+          "head_sha": "cdb83f4017cfc182eb2611be0fbc5cd3635fbf64",
+          "completed_at": "2026-09-02T18:54:48.348609Z",
+          "result_path": "workflow/reviews/qpbt-037-pauli-a15.md",
+          "result": "passed in 7.43 seconds with zero diagnostics",
+          "wall_seconds": 7.43
+        },
+        {
+          "id": "check-qpbt-037-target",
+          "name": "QPBT-037 affected target build",
+          "command": "lake build MIPStarRE.QPBT.Basic.Pauli",
+          "status": "passed",
+          "base_sha": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+          "head_sha": "cdb83f4017cfc182eb2611be0fbc5cd3635fbf64",
+          "completed_at": "2026-09-02T18:54:48.348609Z",
+          "result_path": "workflow/reviews/qpbt-037-pauli-a15.md",
+          "result": "passed in 27.07 seconds; Pauli target compiled in 8.0 seconds",
+          "wall_seconds": 27.07
+        },
+        {
+          "id": "check-qpbt-037-full",
+          "name": "QPBT-037 private full build",
+          "command": "lake build",
+          "status": "passed",
+          "base_sha": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+          "head_sha": "cdb83f4017cfc182eb2611be0fbc5cd3635fbf64",
+          "completed_at": "2026-09-02T18:54:48.348609Z",
+          "result_path": "workflow/reviews/qpbt-037-pauli-a15.md",
+          "result": "passed in 6.24 seconds across 8992 jobs using the isolated private seed",
+          "wall_seconds": 6.24
+        },
+        {
+          "id": "check-qpbt-037-blueprint",
+          "name": "QPBT-037 blueprint synchronization",
+          "command": "python3 blueprint/check.py --check and pinned-source check",
+          "status": "passed",
+          "base_sha": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+          "head_sha": "cdb83f4017cfc182eb2611be0fbc5cd3635fbf64",
+          "completed_at": "2026-09-02T18:54:48.348609Z",
+          "result_path": "workflow/reviews/qpbt-037-pauli-a15.md",
+          "result": "default and pinned-source checks passed with 54 nodes"
+        },
+        {
+          "id": "check-qpbt-037-hygiene",
+          "name": "QPBT-037 source-boundary and proof-debt hygiene",
+          "command": "exact import and G09 phase/order scans; owned-file debt scan; git diff --check",
+          "status": "passed",
+          "base_sha": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+          "head_sha": "cdb83f4017cfc182eb2611be0fbc5cd3635fbf64",
+          "completed_at": "2026-09-02T18:54:48.348609Z",
+          "result_path": "workflow/reviews/qpbt-037-pauli-a15.md",
+          "result": "exact four imports; no owned-file debt; corrected twisted order and phase; clean diff"
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-02T18:59:54.107Z",
+      "updated_at": "2026-09-02T18:59:54.107Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Basic/Pauli.lean"
+      ],
+      "motivation": "Land the source-faithful scalar and tensor generalized Pauli algebra required by QPBT.",
+      "description": "Define characteristic-two X/Z matrices, genuine Fourier and computational rank-one measurements, product laws, twisted commutation, and scalar/tensor spectral expansion and inversion.",
+      "testing": "Scoped Lean, affected target, one private full build, blueprint source synchronization, exact import/phase/debt scans, immutable candidate authentication, and clean diff passed.",
+      "addresses": "QPBT-037",
+      "provenance_session_ids": [
+        "i037-orchestrator-a15-pauli",
+        "i037-prover-a16-tensor"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": "Bind one writable no-change adoption session, obtain one fresh immutable mathematical/API review of exact head cdb83f40, then guardedly integrate."
     }
   ]
 }
