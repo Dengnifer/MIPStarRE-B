@@ -2623,7 +2623,7 @@
     },
     {
       "id": "QPBT-051",
-      "title": "Add complete-input preflight for authenticated hot-cache warms",
+      "title": "Add authenticated cache-input and issue-worktree source preflight",
       "kind": "workflow",
       "execution_category": "implementation",
       "status": "planned",
@@ -2637,6 +2637,8 @@
         "hot-cache",
         "preflight",
         "authenticated-inputs",
+        "issue-worktree",
+        "materialization",
         "recurrence-threshold",
         "safety",
         "exact-ownership"
@@ -2644,15 +2646,20 @@
       "acceptance_gates": [
         "Reproduce and durably record the current-main warm invocation that omitted the authenticated Mathlib, MIPStarRE, and Lake-package input tuple and failed closed before lock acquisition, snapshot creation, or compilation.",
         "Add the smallest complete-input preflight for the canonical warm so all three authenticated local inputs are named, present, non-symlinked, and hash/shape validated before any builder election; preserve the exactly-one Mathlib selector rule and fail closed without changing cache identity.",
-        "Add focused regressions for each missing input, conflicting selectors, malformed paths, and successful preflight, proving no lock-held build, snapshot, or READY is published on preflight failure.",
-        "Update the local build/orchestration protocol and changelog with the preflight command, run focused and aggregate workflow/checker/diff gates, obtain a fresh immutable review, and record the third-occurrence incident disposition."
+        "Add one issue-worktree preparation path that, after a successful private cache seed, authenticates and materializes the pinned MIPStarRE foundation in replacement/preservation mode and verifies it before any target or full build; fail closed without compiling or altering authored QPBT bytes.",
+        "Add focused regressions for each missing warm input, conflicting selectors, malformed paths, successful preflight, source-absent seeded worktrees, mandatory replace-existing materialization, and successful verified preparation, proving no lock-held build, snapshot, READY, or authored-source drift on failure.",
+        "Update the local build/orchestration protocol and changelog with the preflight and preparation commands, run focused and aggregate workflow/checker/diff gates, obtain a fresh immutable review, and record the third-occurrence incident disposition."
       ],
       "owner_session_id": null,
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-052",
         "research/metrics/incidents.jsonl#INC-065",
+        "research/metrics/incidents.jsonl#INC-070",
+        "research/metrics/incidents.jsonl#INC-071",
         "workflow/reviews/qpbt-045-root-warm-a01.md",
+        "workflow/reviews/qpbt-056-f06-a01.md",
         "scripts/hot_main_cache.py",
+        "scripts/materialize_mipstarre.py",
         "protocols/local-development.md",
         "protocols/orchestration.md"
       ],
@@ -2665,9 +2672,9 @@
         "workflow/reviews/qpbt-051-input-preflight.md"
       ],
       "created_at": "2026-09-01T19:00:00Z",
-      "updated_at": "2026-09-01T19:00:00Z",
-      "blocked_reason": "Depends on QPBT-045 completion and the overlapping QPBT-050 Git-diagnostics hardening.",
-      "unblock_condition": "QPBT-045 and QPBT-050 are done; then assign one orchestrator with an isolated worktree."
+      "updated_at": "2026-09-02T22:26:53.935177Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-052",
@@ -2882,7 +2889,7 @@
       "title": "feat(QPBT/Game): implement mathematical CL maps and samplers",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-013",
@@ -2920,7 +2927,7 @@
         "workflow/reviews/qpbt-056-f06-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-02T21:41:33.456811Z",
+      "updated_at": "2026-09-02T22:24:43.452415Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
