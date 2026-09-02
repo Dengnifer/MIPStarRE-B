@@ -24653,7 +24653,7 @@
       "name": "i054-integrator-a02-pr031-bind",
       "role": "integrator",
       "issue_id": "QPBT-054",
-      "status": "finished",
+      "status": "archived",
       "attempt": 2,
       "parent_session_id": "i041-orchestrator-a12-f04-closeout",
       "priority": 1,
@@ -24679,9 +24679,29 @@
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
-      "external_id": "/root/i054_integrator_a02_pr031_bind"
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-054-pr031-bind-a02.md",
+      "external_id": "/root/i054_integrator_a02_pr031_bind",
+      "run_outcome": "candidate-identity-bound-without-byte-change",
+      "report_sha256": "ffa412ce9a1f665845424b2e3838820f76333f7b7b6a6cd4277c808915614629",
+      "checks": {
+        "binding_commit": "863f4bd2c5c820d7bcf3503b26f5b2bbaad1a379",
+        "binding_adoption_commit": "57b4778",
+        "report_sha256": "ffa412ce9a1f665845424b2e3838820f76333f7b7b6a6cd4277c808915614629",
+        "candidate_head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+        "candidate_tree": "5e946206cb60ad88e2df37eaec49f8f1922ffa3d",
+        "candidate_parent_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+        "candidate_patch_sha256": "b3fca84ea6dda5beba17b5815eb94218aa4d58de4e13a2e5c91a9c6c45635373",
+        "signature_sha256": "0e376f7539828c204b37ea88ad8f7330ad699a57c216ebe4d02397c5753b5948",
+        "registered_checks": "5/5 passed",
+        "candidate_byte_changes": 0,
+        "lean_runs": 0,
+        "builds": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "nested_agents": 0
+      },
+      "timing_quality": "runtime-measured"
     }
   ]
 }

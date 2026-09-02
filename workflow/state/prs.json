@@ -8029,6 +8029,17 @@
           "completed_at": "2026-09-02T18:46:52.097261Z",
           "result_path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
           "result": "signature 0e376f75; graph.dot correctly unchanged; no repository proof debt; clean diff"
+        },
+        {
+          "id": "check-qpbt-054-binding",
+          "name": "QPBT-054 no-change PR binding",
+          "command": "Authenticate exact candidate identities and registered checks in a dedicated writable report-only session",
+          "status": "passed",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+          "completed_at": "2026-09-02T18:58:08.084Z",
+          "result_path": "workflow/reviews/qpbt-054-pr031-bind-a02.md",
+          "result": "candidate bytes unchanged; exact head, tree, parent, six paths, patch, signature, and 5/5 checks authenticated"
         }
       ],
       "reviews": [],
@@ -8036,7 +8047,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T18:46:52.097261Z",
-      "updated_at": "2026-09-02T18:50:20.844803Z",
+      "updated_at": "2026-09-02T18:58:08.315999Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.json",
@@ -8055,7 +8066,7 @@
         "i054-integrator-a02-pr031-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Bind one writable adoption session, obtain fresh independent immutable mathematical/API review of exact head 83062f78, then guardedly integrate and update QPBT-038 readiness."
+      "unexecuted_gate": "Obtain one fresh immutable mathematical/API review of exact head 83062f78, then guardedly integrate and update QPBT-038 readiness."
     }
   ]
 }
