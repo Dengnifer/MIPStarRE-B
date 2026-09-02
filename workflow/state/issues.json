@@ -2230,7 +2230,7 @@
       "title": "feat(QPBT/Game): implement finite game and strategy semantics",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-035",
@@ -2263,7 +2263,7 @@
         "MIPStarRE/QPBT/Game/Semantics.lean"
       ],
       "created_at": "2026-09-01T15:48:30Z",
-      "updated_at": "2026-09-02T17:27:35.508735Z",
+      "updated_at": "2026-09-02T17:50:50.735726Z",
       "blocked_reason": null,
       "unblock_condition": null
     },

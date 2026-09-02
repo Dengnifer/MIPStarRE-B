@@ -7838,7 +7838,7 @@
     {
       "id": "LPR-030",
       "title": "feat(QPBT/Game): define finite game semantics",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-042"
       ],
@@ -7940,16 +7940,16 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "bfcbfe5d2fb444cbb9542d8c123f2e5ba48ad97e",
+      "merged_at": "2026-09-02T17:50:50.402362Z",
       "created_at": "2026-09-02T17:28:37.879133Z",
-      "updated_at": "2026-09-02T17:47:42.462717Z",
+      "updated_at": "2026-09-02T17:50:50.402362Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Semantics.lean"
       ],
       "motivation": "Land the source-faithful finite game and quantum-strategy semantics needed by the QPBT dependency graph.",
       "description": "Define finite games, the reviewed game-indexed strategy wrapper, exact fixed and supremal values, projective/symmetric/commuting/consistent/PCC/SPCC predicates, Schmidt rank, and entanglement requirement.",
-      "testing": "Scoped Lean, affected target, one private full build, pinned-source blueprint check, exact declaration/debt/import/path scans, and immutable identity authentication passed.",
+      "testing": "Scoped Lean, affected target, one private full build, pinned-source blueprint check, exact declaration/debt/import/path scans, immutable review, and guarded integration identity checks passed.",
       "addresses": "QPBT-042",
       "provenance_session_ids": [
         "i042-orchestrator-a01-semantics",
@@ -7957,7 +7957,7 @@
         "i042-reviewer-a03-semantics"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable mathematical/API review approved with no findings; guarded integration remains."
+      "unexecuted_gate": "Completed: exact approved head 16a41327abd1a3fd749c8872c2773f013046d762 was integrated as the second parent of bfcbfe5d2fb444cbb9542d8c123f2e5ba48ad97e; integrated blob and file SHA-256 match the immutable review."
     }
   ]
 }

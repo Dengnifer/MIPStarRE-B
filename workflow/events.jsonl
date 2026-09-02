@@ -3536,3 +3536,6 @@
 {"schema_version":1,"timestamp":"2026-09-02T17:47:42.208724Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-030","fields":["reviews","provenance_session_ids","unexecuted_gate"]}}
 {"schema_version":1,"timestamp":"2026-09-02T17:47:42.530923Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"approved","id":"LPR-030"}}
 {"schema_version":1,"timestamp":"2026-09-02T17:47:42.828228Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04B","fields":["subagents_issued","outputs"]}}
+{"schema_version":1,"timestamp":"2026-09-02T17:50:50.157714Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-030","fields":["integration_sha","unexecuted_gate","testing"]}}
+{"schema_version":1,"timestamp":"2026-09-02T17:50:50.470780Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"merged","id":"LPR-030"}}
+{"schema_version":1,"timestamp":"2026-09-02T17:50:50.794072Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"done","id":"QPBT-042"}}

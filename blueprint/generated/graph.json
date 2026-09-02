@@ -2016,7 +2016,7 @@
           "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
         }
       ],
-      "boundary_hypotheses": "Question, answer, and coordinate carriers are explicit finite decidable types. Shared-space predicates use one coordinate type for both players. Canonical Fin dimensions represent arbitrary finite coordinate Hilbert spaces. QPBT-041 must first implement the accepted F04 foundation before QPBT-042 elaborates this node. No executable sampler, machine description, cost model, caller-supplied semantic obligation, placeholder declaration, or public bridge assumption enters this node.",
+      "boundary_hypotheses": "Question, answer, and coordinate carriers are explicit finite decidable types. Shared-space predicates use one coordinate type for both players. Canonical Fin dimensions represent arbitrary finite coordinate Hilbert spaces. No executable sampler, machine description, cost model, caller-supplied semantic obligation, placeholder declaration, or public bridge assumption enters this node.",
       "chapter": "02",
       "consumers": [
         "F07A-DETYPING"
@@ -2073,7 +2073,7 @@
         "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
       },
       "statement": "Define finite two-player one-round games; a game-indexed wrapper around the established finite pure tensor strategy; exact strategy and supremal game values; projective, symmetric, support-commuting, consistent, PCC, and SPCC predicates; coefficient-matrix Schmidt rank; and the extended-natural entanglement requirement.",
-      "status": "not-started",
+      "status": "proved",
       "title": "Finite two-player game and quantum strategy semantics",
       "transitive_definitions": [
         "F03-MEASUREMENT",
@@ -3904,7 +3904,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "6a377d11d31585151e2e01528147f239ed71f1fe1b638fbb2865757841826f32",
+  "source_sha256": "81b76ed1e24641d547a32ae0773adf1b279218417b744034a5438cc405ec1f18",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",

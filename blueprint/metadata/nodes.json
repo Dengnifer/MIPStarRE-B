@@ -264,7 +264,7 @@
       "title": "Finite two-player game and quantum strategy semantics",
       "kind": "definition",
       "public": false,
-      "status": "not-started",
+      "status": "proved",
       "fidelity": "faithful-boundary",
       "source": {"path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex", "label": "def:game", "generated_lines": [4, 51], "original_lines": [2887, 2934]},
       "additional_sources": [
@@ -276,7 +276,7 @@
       "transitive_definitions": ["F03-MEASUREMENT", "F04-ASYMPTOTIC", "F04-CONSISTENCY", "F04-DISTANCE"],
       "prerequisites": ["F04-CONSISTENCY"],
       "encoding": "Reuse the accepted PureStrategy and MeasurementConsistentOn declarations. FiniteGame stores a PMF and Bool predicate. FiniteGameStrategy is a one-field game-indexed wrapper, not a second strategy representation. Quantify all finite Hilbert coordinates canonically by Fin dimensions, define game value by real sSup, Schmidt rank by Matrix.rank of the coefficient matrix, and Ent by WithTop Nat sInf so the empty attainable set is infinity.",
-      "boundary_hypotheses": "Question, answer, and coordinate carriers are explicit finite decidable types. Shared-space predicates use one coordinate type for both players. Canonical Fin dimensions represent arbitrary finite coordinate Hilbert spaces. QPBT-041 must first implement the accepted F04 foundation before QPBT-042 elaborates this node. No executable sampler, machine description, cost model, caller-supplied semantic obligation, placeholder declaration, or public bridge assumption enters this node.",
+      "boundary_hypotheses": "Question, answer, and coordinate carriers are explicit finite decidable types. Shared-space predicates use one coordinate type for both players. Canonical Fin dimensions represent arbitrary finite coordinate Hilbert spaces. No executable sampler, machine description, cost model, caller-supplied semantic obligation, placeholder declaration, or public bridge assumption enters this node.",
       "gap_ids": [],
       "integrity": {"paper_assumptions": "Finite question and answer alphabets, a question distribution, Boolean decision predicate, normalized finite-dimensional pure tensor strategies with POVMs, and a common local Hilbert space for commuting/consistent/PCC predicates.", "lean_assumptions": "Explicit Fintype/DecidableEq carriers, Mathlib PMF, the reviewed PureStrategy and MeasurementConsistentOn interfaces, and canonical Fin coordinate representatives for the dimension-varying extrema.", "paper_conclusion": "Exact fixed-strategy and game values; projective, symmetric, commuting, consistent, PCC, and SPCC predicates; Schmidt rank; and the minimum rank requirement or infinity.", "lean_conclusion": "The same formulas, predicates, supremum, matrix rank, and extended-natural minimum, with the game-strategy association represented by a data-free wrapper.", "verdict": "faithful boundary"}
     },
