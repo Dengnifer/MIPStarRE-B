@@ -180,6 +180,16 @@
       "disposition": "Treat the explicit top-level convention as controlling: use PaperBigO for every paper-facing F04 relation and law conclusion, retain IsBigOAtTop only as an auxiliary, and expose the one-way PaperBigO.isBigOAtTop bridge.",
       "public_effect": "Paper-labelled F04 asymptotic claims use the stronger global positive-index convention; the auxiliary bridge makes their eventual Big-O consequence reusable without asserting a false converse.",
       "issue": "QPBT-041"
+    },
+    {
+      "id": "G19",
+      "class": "missing-executable-boundary",
+      "source": "conditionally-linear.tex:566-568,599-600,632-674,709-710 [2728-2730,2761-2762,2794-2836,2871-2872]; finite-fields.tex:245-247,283-307 [1561-1563,1599-1623]",
+      "affected_nodes": ["F06A-EXECUTABLE-CL"],
+      "paper_problem": "The paper permits an arbitrary admissible field-size function q, hence an arbitrary odd exponent k(n) with q(n) = 2^k(n), but defines one downsized Turing machine that must compute output widths log q(n) from n. It neither supplies that machine with a way to compute the exponent nor charges this computation in TIME_S(n).",
+      "disposition": "Require concrete intrinsic FieldExponentProgram data at the faithful Lean executable boundary and define TIME_S(n) to charge both its execution and the sampler's valid queries. Do not fabricate or assert an arbitrary admissible-family-to-machine theorem.",
+      "public_effect": "The executable boundary expands TIME_S(n) to charge intrinsic exponent computation; mathematical admissible-family statements are unchanged, and no arbitrary family-to-machine premise or theorem is exposed.",
+      "issue": "QPBT-054"
     }
   ]
 }

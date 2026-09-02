@@ -2420,7 +2420,9 @@
       ],
       "encoding": "For every positive n, q(n) = 2^(exponent n) with Odd (exponent n), and Nat.log 2 (q(n)) is the paper's log q(n). The canonical field codec is the F01-selected basis/table representation, with fixed coordinate order; no caller-supplied codec or coherence premise is accepted. SixTapeInput is Fin 6 -> List Bool. CLSamplerQuery has exactly four constructors and its positive-index proof supplies the canonical codec to every query. Its canonicalTapes encoding exposes the paper layouts and writes [] on every unused tape; it does not assert invariance under arbitrary unused-tape contents. stage.val encodes paper j = stage.val + 1. packSixTapes first fixes tape order with List.ofFn and is an injective administrative encoding only. CLQueryDecomposition carries selected marginals, prefix-range-indexed factors, factor-space linear maps, and the lem:cl-kth realization equations, partition, support, and dependency laws as data. CLPrefix and CLFactorInput are the dependent valid u/y subtypes; malformed encodings and index zero are outside the paper contract. An intrinsic FieldExponentProgram computes exponent n from n; it is attached to the executable sampler and is not a fifth sampler query mode. The sampler PMF is exactly CLSampler.sample from one shared uniform seed.",
       "fidelity": "faithful-boundary",
-      "gap_ids": [],
+      "gap_ids": [
+        "G19"
+      ],
       "id": "F06A-EXECUTABLE-CL",
       "implementation_contract": {
         "allowed_minimal_sorries": [],
@@ -3926,7 +3928,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "4a5d9c0ce8684a953a78f44447339cfeb687c7d5561aa3e337c731ef81e32eac",
+  "source_sha256": "145a38360b63feb7a6af2fab7385d32f4c2ce8620090b1b9d9c0290ab667f104",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",

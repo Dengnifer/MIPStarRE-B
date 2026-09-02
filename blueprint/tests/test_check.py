@@ -586,6 +586,43 @@ class BlueprintCheckTests(unittest.TestCase):
             for error in self.errors(nodes=no_asymptotics)
         ))
 
+    def test_executable_cl_exponent_gap_is_reciprocal_and_issue_bound(self) -> None:
+        node_id = check.EXECUTABLE_CL_OWNER_ID
+        node = next(item for item in self.nodes["nodes"] if item["id"] == node_id)
+        gap = next(item for item in self.gaps["gaps"] if item["id"] == "G19")
+
+        self.assertEqual(["G19"], node["gap_ids"])
+        self.assertEqual([node_id], gap["affected_nodes"])
+        self.assertEqual("QPBT-054", gap["issue"])
+        self.assertIn("finite-fields.tex:245-247,283-307 [1561-1563,1599-1623]",
+                      gap["source"])
+        for required in ("arbitrary admissible field-size function", "one downsized Turing machine",
+                         "log q(n)", "TIME_S(n)"):
+            self.assertIn(required, gap["paper_problem"])
+        self.assertIn("concrete intrinsic FieldExponentProgram", gap["disposition"])
+        self.assertIn("Do not fabricate or assert an arbitrary admissible-family-to-machine theorem",
+                      gap["disposition"])
+        self.assertIn("expands TIME_S(n) to charge intrinsic exponent computation",
+                      gap["public_effect"])
+        self.assertIn("no arbitrary family-to-machine premise or theorem is exposed",
+                      gap["public_effect"])
+
+        missing_from_node = copy.deepcopy(self.nodes)
+        next(item for item in missing_from_node["nodes"]
+             if item["id"] == node_id)["gap_ids"] = []
+        self.assertTrue(any(
+            "missing reciprocal link" in error
+            for error in self.errors(nodes=missing_from_node)
+        ))
+
+        missing_from_gap = copy.deepcopy(self.gaps)
+        next(item for item in missing_from_gap["gaps"]
+             if item["id"] == "G19")["affected_nodes"] = []
+        self.assertTrue(any(
+            "lacks reciprocal affected-node link" in error
+            for error in self.errors(gaps=missing_from_gap)
+        ))
+
     def test_executable_cl_signature_rejects_concrete_a04_defects(self) -> None:
         node = next(item for item in self.nodes["nodes"]
                     if item["id"] == check.EXECUTABLE_CL_OWNER_ID)
