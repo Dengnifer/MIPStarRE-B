@@ -7962,16 +7962,18 @@
     {
       "id": "LPR-031",
       "title": "fix(blueprint): elaborate executable CL contract",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-054"
       ],
       "base": "main",
       "head": "issue/qpbt-054-f06a-contract-a01",
       "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
-      "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+      "head_sha": "f4259860776f85e65cbe78718b58734d7be31a80",
       "implementer_session_ids": [
-        "i054-integrator-a02-pr031-bind"
+        "i054-integrator-a02-pr031-bind",
+        "i054-orchestrator-a04-f06a-repair",
+        "i054-orchestrator-a07-gap-linkage"
       ],
       "checks": [
         {
@@ -8040,6 +8042,39 @@
           "completed_at": "2026-09-02T18:58:08.084Z",
           "result_path": "workflow/reviews/qpbt-054-pr031-bind-a02.md",
           "result": "candidate bytes unchanged; exact head, tree, parent, six paths, patch, signature, and 5/5 checks authenticated"
+        },
+        {
+          "id": "check-qpbt-054-repair-a04",
+          "name": "QPBT-054 changed-head semantic repair and validation",
+          "command": "Authenticate repaired head/tree/parent/patch and six paths; whole-block Lean elaboration; 33 blueprint tests; default and pinned blueprint checks; pinned source, workflow, Python, generated-output, contract-debt, and diff checks",
+          "status": "passed",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "3a248eac86fa8b782134a4fae88169f514a0168d",
+          "completed_at": "2026-09-02T19:40:29.769280Z",
+          "result_path": "workflow/reviews/qpbt-054-f06a-repair-a04.md",
+          "result": "head 3a248eac, tree 77cf487b, sole parent 83062f78, patch a2962b67; intrinsic executable exponent runtime and honest canonical blank boundary; whole-block probe 4.72s; 33/33 tests; 54 nodes and 12 chapters; 39 source files and 646 labels; all remaining gates passed"
+        },
+        {
+          "id": "check-qpbt-054-final-candidate-auth",
+          "name": "QPBT-054 full-base immutable candidate authentication",
+          "command": "Authenticate fixed PR base/head/tree/ancestry, all seven paths changed from base, every head blob, full-base binary patch SHA-256, six-path repair delta, and clean candidate worktree",
+          "status": "passed",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "3a248eac86fa8b782134a4fae88169f514a0168d",
+          "completed_at": "2026-09-02T19:51:03.000000Z",
+          "result_path": "workflow/reviews/qpbt-054-f06a-repair-a04.md",
+          "result": "head 3a248eac, tree 77cf487b, ancestry 639c883 -> 83062f78 -> 3a248eac; seven full-base paths; full-base patch 39483901; six-path repair patch a2962b67; clean worktree"
+        },
+        {
+          "id": "check-qpbt-054-gap-linkage-a07",
+          "name": "QPBT-054 reciprocal G19 linkage and final candidate authentication",
+          "command": "Authenticate final head/tree/ancestry, ten full-base paths and binary patch; verify reciprocal G19/F06A/QPBT-054 linkage, frozen signature, 34 blueprint tests, deterministic generation, default/pinned/source/workflow/Python gates, and committed-delta diff hygiene",
+          "status": "passed",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "f4259860776f85e65cbe78718b58734d7be31a80",
+          "completed_at": "2026-09-02T20:16:05.293275Z",
+          "result_path": "workflow/reviews/qpbt-054-gap-linkage-a07.md",
+          "result": "head f4259860, tree 9a37c6ff, ancestry through 83062f78/3a248eac/1c5f12b, full-base patch f8fb63fb; G19 reciprocal and issue-bound; signature cfe433e3 unchanged; 34/34 tests and all non-build gates passed; committed delta clean"
         }
       ],
       "reviews": [
@@ -8060,6 +8095,55 @@
           "report_sha256": "292048ebca30f25ee9d21e45dd05ee6bd7db64e438e418c4ec5452e2b245758c",
           "manifest_sha256": "6ad3b37ad21d3ac9f10b73b594c178e2d0c3b6581ae4c929d7b29184227c9630",
           "integration_gate": "blocked: executable exponent access/runtime and ignored-tape semantics require a changed head and fresh review"
+        },
+        {
+          "id": "review-qpbt-054-pr031-a06-f06a-repair",
+          "reviewer_session_id": "i054-reviewer-a06-f06a-repair",
+          "verdict": "request_changes",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "3a248eac86fa8b782134a4fae88169f514a0168d",
+          "started_at": "2026-09-02T19:55:52.167101Z",
+          "completed_at": "2026-09-02T20:01:29.512911Z",
+          "result_path": "workflow/reviews/qpbt-054-review-a06.md",
+          "finding_ids": [
+            "F-LPR031-A06-001"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "735079aa8fc81d00dcb05526f09b2d61e49e7923d3dc12c6c26b8b19871d632f",
+          "manifest_sha256": "b0632513d1f7065251f77f912b557bd1ba1e20e020dd9aeb138faf54f444b4df",
+          "integration_gate": "blocked: add reciprocal numbered exponent-computability/TIME_S gap linkage, regenerate consumers, and obtain fresh review on a changed head"
+        },
+        {
+          "id": "review-qpbt-054-pr031-a08-gap-linkage",
+          "reviewer_session_id": "i054-reviewer-a08-gap-linkage",
+          "verdict": "request_changes",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "f4259860776f85e65cbe78718b58734d7be31a80",
+          "started_at": "2026-09-02T20:25:54.839315Z",
+          "completed_at": "2026-09-02T20:29:32.169904Z",
+          "result_path": "workflow/reviews/qpbt-054-review-a08.md",
+          "finding_ids": [
+            "F-LPR031-A08-001"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "9d4f126a93b4d3831ff8b345fcb88784d9bf78f06e758cd15aa8e4bea4545405",
+          "manifest_sha256": "49e1ef32b687b9095b6326d5019986e8ca7eb750d5dbb6d7444576e69b4c8904",
+          "integration_gate": "blocked: correct the malformed gaps.json blob identity in a newly frozen exact manifest and obtain fresh explicit immutable authentication"
+        },
+        {
+          "id": "review-qpbt-054-pr031-a10-manifest-auth",
+          "reviewer_session_id": "i054-reviewer-a10-manifest-auth",
+          "verdict": "approve",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "f4259860776f85e65cbe78718b58734d7be31a80",
+          "started_at": "2026-09-02T20:33:59.421671Z",
+          "completed_at": "2026-09-02T20:37:32.910015Z",
+          "result_path": "workflow/reviews/qpbt-054-review-a10.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "591845da930f68f923429729c8142fcdcea46ee8b2ea9022842d833097d8f395",
+          "manifest_sha256": "6c369cf726f1c369e9406f6bb597078dddc28805d1be1f2c16df025576be3628",
+          "integration_gate": "approved: all 20 corrected-manifest entries authenticated on unchanged head f425986; A08 substantive G19 resolution remains bound"
         }
       ],
       "findings": [
@@ -8069,14 +8153,17 @@
           "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
           "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
           "severity": "high",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Head 3a248eac adds intrinsic FieldExponentProgram execution data and charges its exact steps in ExecutableCLSampler.time; A06 independently confirmed no arbitrary function-to-machine theorem or obligation.",
+          "resolved_by_review_id": "review-qpbt-054-pr031-a06-f06a-repair",
           "summary": "The declared downsize finite machine would have to compute an arbitrary potentially noncomputable exponent family.",
           "path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
           "line": 88,
-          "required_change": "Add intrinsic executable exponent or field-size data and account for its runtime, or record and discharge a tracked paper gap before claiming the downsize constructor."
+          "required_change": "Add intrinsic executable exponent or field-size data and account for its runtime, or record and discharge a tracked paper gap before claiming the downsize constructor.",
+          "confirmation_review_ids": [
+            "review-qpbt-054-pr031-a10-manifest-auth"
+          ]
         },
         {
           "id": "F-LPR031-A03-002",
@@ -8084,40 +8171,84 @@
           "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
           "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
           "severity": "medium",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Head 3a248eac renames the boundary canonicalTapes, writes blank unused tapes, and explicitly disclaims arbitrary unused-payload invariance; A06 independently confirmed the claim is consistent.",
+          "resolved_by_review_id": "review-qpbt-054-pr031-a06-f06a-repair",
           "summary": "Canonical blank unused tapes do not establish the paper's ignored-tape invariance.",
           "path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
           "line": 211,
-          "required_change": "Quantify arbitrary ignored tape payloads and prove output invariance, or consistently document canonical blanking as a boundary normalization without claiming ignored-tape behavior."
+          "required_change": "Quantify arbitrary ignored tape payloads and prove output invariance, or consistently document canonical blanking as a boundary normalization without claiming ignored-tape behavior.",
+          "confirmation_review_ids": [
+            "review-qpbt-054-pr031-a10-manifest-auth"
+          ]
+        },
+        {
+          "id": "F-LPR031-A06-001",
+          "introduced_review_id": "review-qpbt-054-pr031-a06-f06a-repair",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "3a248eac86fa8b782134a4fae88169f514a0168d",
+          "severity": "medium",
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Head f425986 adds reciprocal G19 linkage to F06A-EXECUTABLE-CL and QPBT-054, generated consumers, and a two-direction regression; A08 reviewed the substance and A10 authenticated the unchanged exact candidate.",
+          "resolved_by_review_id": "review-qpbt-054-pr031-a10-manifest-auth",
+          "summary": "The new exponent-computability and TIME_S boundary is described in prose but not linked into the canonical numbered gap ledger.",
+          "path": "blueprint/metadata/nodes.json",
+          "line": 425,
+          "required_change": "Add a reciprocal numbered gap entry tied to F06A-EXECUTABLE-CL and QPBT-054, add its ID to the node, regenerate consumers, and assert the linkage in a regression test."
+        },
+        {
+          "id": "F-LPR031-A08-001",
+          "introduced_review_id": "review-qpbt-054-pr031-a08-gap-linkage",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "f4259860776f85e65cbe78718b58734d7be31a80",
+          "severity": "medium",
+          "status": "resolved",
+          "disposition": "rejected",
+          "disposition_evidence": "This was an authentication defect in the superseded A08 runtime manifest, not a defect in candidate head f425986. A separately frozen A10 manifest corrects the exact blob identity, and fresh A10 review authenticated all 20 entries without requiring or claiming a candidate-head fix.",
+          "resolved_by_review_id": "review-qpbt-054-pr031-a10-manifest-auth",
+          "summary": "The A08 immutable manifest gives blueprint/metadata/gaps.json a malformed 39-character Git blob identity.",
+          "path": ".workflow-runtime/review-manifests/i054-reviewer-a08-gap-linkage/manifest.json",
+          "line": 68,
+          "required_change": "Freeze a new manifest with the exact 40-character blob ed9f21e6797dcaebf088236c829f7c27ea432bb5 and obtain fresh immutable authentication; no candidate byte change is required."
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T18:46:52.097261Z",
-      "updated_at": "2026-09-02T19:14:44.162929Z",
+      "updated_at": "2026-09-02T20:40:48.727664Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.json",
+        "blueprint/metadata/gaps.json",
         "blueprint/metadata/nodes.json",
         "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/gaps.tex",
         "blueprint/tests/test_check.py",
-        "workflow/reviews/qpbt-054-f06a-contract-a01.md"
+        "workflow/reviews/qpbt-054-f06a-contract-a01.md",
+        "workflow/reviews/qpbt-054-f06a-repair-a04.md",
+        "workflow/reviews/qpbt-054-gap-linkage-a07.md"
       ],
       "motivation": "Replace the stale non-elaborated F06A pseudo-signatures before reopening the executable Types implementation.",
-      "description": "Freeze a source-faithful, whole-block-elaborated executable conditionally-linear sampler contract with typed prefix/factor carriers, real FinTM2 execution witnesses, exact step maxima, and downsizing/runtime statements.",
-      "testing": "Whole-block Lean elaboration, blueprint default/pinned checks, 33 regression tests, pinned reference verification, workflow validation, deterministic generation, immutable identity and diff hygiene passed.",
+      "description": "Freeze a source-faithful, whole-block-elaborated executable conditionally-linear sampler contract with typed prefix/factor carriers, real FinTM2 execution witnesses, an intrinsic executable field-exponent program charged to sampler time, canonical blank unused-tape normalization, exact downsize statements, and reciprocal numbered G19 documentation of the exponent-computability boundary.",
+      "testing": "Final-head and full-base authentication, reciprocal G19 regression, frozen-signature authentication, 34 blueprint tests, deterministic generation, default and pinned blueprint checks, pinned reference verification, workflow validation, Python compilation, contract-debt scans, and committed-delta hygiene passed.",
       "addresses": "QPBT-054",
       "provenance_session_ids": [
         "i054-orchestrator-a01-f06a-contract",
         "i054-probe-a01-turing-api",
         "i054-integrator-a02-pr031-bind",
-        "i054-reviewer-a03-f06a-contract"
+        "i054-reviewer-a03-f06a-contract",
+        "i054-orchestrator-a04-f06a-repair",
+        "i054-prover-a05-runtime-boundary",
+        "i054-reviewer-a06-f06a-repair",
+        "i054-orchestrator-a07-gap-linkage",
+        "i054-reviewer-a08-gap-linkage",
+        "i054-integrator-a09-merge-preflight",
+        "i054-reviewer-a10-manifest-auth"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Resolve F-LPR031-A03-001 and F-LPR031-A03-002 on a changed head, rerun affected checks, and obtain a fresh immutable review."
+      "unexecuted_gate": "Guarded local no-ff merge of exact approved head f425986 into the current canonical main, preserving the ten authenticated candidate blobs and recording exact merge parents."
     },
     {
       "id": "LPR-032",

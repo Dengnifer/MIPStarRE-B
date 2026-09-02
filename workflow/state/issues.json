@@ -2772,7 +2772,7 @@
       "title": "fix(blueprint): replace the non-elaborated F06A executable contract",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2791,14 +2791,14 @@
       ],
       "acceptance_gates": [
         "Replace the F06A signature manifest with a complete syntactically valid Lean declaration block: no prose subtypes, forward references, undeclared validQueryFinset, or naked Prop placeholders for the source decomposition laws",
-        "Use a genuine operational Turing.FinTM2/TM2OutputsInTime boundary with six logical tapes, explicit ignored-tape layouts, and exact executed-step extraction; arbitrary output/steps/run relation fields do not satisfy the source",
+        "Use a genuine operational Turing.FinTM2/TM2OutputsInTime boundary with six logical tapes, canonical blank unused-tape layouts without claiming invariance for arbitrary unused payloads, and exact executed-step extraction; arbitrary output/steps/run relation fields do not satisfy the source",
         "Represent valid previous-marginal prefixes and factor-space inputs by explicit dependent carriers, and bind every decomposition field to the recursive F06 certificate without eliminating proof data into executable choices",
         "Freeze a canonical F01-derived binary codec boundary and exact sampler, associated-map, downsize dimension, PMF pushforward, and global-positive RuntimeBigO theorem statements without adding codec, runtime, compiler, bridge, or generic obligation assumptions",
         "Run a bounded whole-block Lean elaboration probe for every final public signature and direct import before changing the canonical manifest hash; record all paper ambiguities and statement-integrity rows",
-        "Update F06A metadata/checker mutations and deterministic generated consumers, then pass blueprint unit/default/pinned-source checks, reference authentication, workflow validation, and git diff --check",
+        "Update F06A metadata/checker mutations, reciprocal numbered G19 paper-gap linkage, and deterministic generated consumers, then pass blueprint unit/default/pinned-source checks, reference authentication, workflow validation, and committed-delta git diff --check",
         "Obtain a fresh independent immutable mathematical/API review before QPBT-038 becomes ready; do not modify MIPStarRE/QPBT/Game/Types.lean in this contract issue"
       ],
-      "owner_session_id": "i054-orchestrator-a04-f06a-repair",
+      "owner_session_id": "i054-orchestrator-a07-gap-linkage",
       "source_refs": [
         "workflow/reviews/qpbt-038-unblock-scout-a13.md",
         "workflow/reviews/qpbt-048-source-fidelity-repair-a04.md:64-194",
@@ -2807,7 +2807,11 @@
         "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-626,628-660,662-712",
         "references/2001.04383v3/sections/top-level/preliminaries.tex:1-35",
-        "references/2001.04383v3/sections/dependencies/finite-fields.tex:234-263,283-307,350-411"
+        "references/2001.04383v3/sections/dependencies/finite-fields.tex:234-263,283-307,350-411",
+        "workflow/reviews/qpbt-054-review-a03.md",
+        "workflow/reviews/qpbt-054-f06a-repair-a04.md",
+        "workflow/reviews/qpbt-054-review-a06.md",
+        "workflow/reviews/qpbt-054-gap-linkage-a07.md"
       ],
       "owned_paths": [
         "blueprint/check.py",
@@ -2816,10 +2820,15 @@
         "blueprint/generated/graph.json",
         "blueprint/generated/graph.dot",
         "blueprint/src/generated/chapter-02-entries.tex",
-        "workflow/reviews/qpbt-054-f06a-contract-a01.md"
+        "workflow/reviews/qpbt-054-f06a-contract-a01.md",
+        "workflow/reviews/qpbt-054-f06a-repair-a04.md",
+        "blueprint/metadata/gaps.json",
+        "blueprint/src/generated/gaps.tex",
+        "workflow/reviews/qpbt-054-review-a06.md",
+        "workflow/reviews/qpbt-054-gap-linkage-a07.md"
       ],
       "created_at": "2026-09-02T18:04:14.866664Z",
-      "updated_at": "2026-09-02T19:17:42.305637Z",
+      "updated_at": "2026-09-02T20:18:15.175437Z",
       "blocked_reason": null,
       "unblock_condition": null
     }
