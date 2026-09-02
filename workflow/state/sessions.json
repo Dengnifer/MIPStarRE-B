@@ -24366,8 +24366,16 @@
       "ended_at": null,
       "elapsed_seconds": null,
       "timing_quality": "bounded-by-parent-window",
-      "timing_bounds": {"not_before": "2026-09-02T05:04:14Z", "not_after": "2026-09-02T06:43:07Z"},
-      "token_usage": {"input": null, "output": null, "total": null, "availability_reason": "Collaboration backend does not expose per-agent token usage"},
+      "timing_bounds": {
+        "not_before": "2026-09-02T05:04:14Z",
+        "not_after": "2026-09-02T06:43:07Z"
+      },
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
       "archive_status": "retired-locally-no-cli-session",
       "outcome_path": "workflow/reviews/qpbt-053-github-dispatcher-a03.md",
       "report_sha256": "f2fa9746b4479d5b5ce7e4bda5efc3fc273b66bfe546fd4c200192c994d51276",
@@ -24401,8 +24409,16 @@
       "ended_at": null,
       "elapsed_seconds": null,
       "timing_quality": "bounded-by-parent-window",
-      "timing_bounds": {"not_before": "2026-09-02T05:04:14Z", "not_after": "2026-09-02T06:43:07Z"},
-      "token_usage": {"input": null, "output": null, "total": null, "availability_reason": "Collaboration backend does not expose per-agent token usage"},
+      "timing_bounds": {
+        "not_before": "2026-09-02T05:04:14Z",
+        "not_after": "2026-09-02T06:43:07Z"
+      },
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
       "archive_status": "retired-locally-no-cli-session",
       "outcome_path": "workflow/reviews/qpbt-053-github-dispatcher-a03.md",
       "report_sha256": "f2fa9746b4479d5b5ce7e4bda5efc3fc273b66bfe546fd4c200192c994d51276",
@@ -24434,8 +24450,16 @@
       "ended_at": null,
       "elapsed_seconds": null,
       "timing_quality": "bounded-by-parent-window",
-      "timing_bounds": {"not_before": "2026-09-02T05:04:14Z", "not_after": "2026-09-02T06:43:07Z"},
-      "token_usage": {"input": null, "output": null, "total": null, "availability_reason": "Collaboration backend does not expose per-agent token usage"},
+      "timing_bounds": {
+        "not_before": "2026-09-02T05:04:14Z",
+        "not_after": "2026-09-02T06:43:07Z"
+      },
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
       "archive_status": "retired-locally-no-cli-session",
       "outcome_path": "workflow/reviews/qpbt-053-github-dispatcher-a03.md",
       "report_sha256": "f2fa9746b4479d5b5ce7e4bda5efc3fc273b66bfe546fd4c200192c994d51276",
@@ -24460,15 +24484,26 @@
       "read_only": false,
       "base_revision": "0b7370c57827cbc614b6c2df6f585d328f5f55a5",
       "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-053-github-canonical-a01",
-      "owned_paths": ["scripts/local_agent.py", "tests/test_local_agent.py"],
+      "owned_paths": [
+        "scripts/local_agent.py",
+        "tests/test_local_agent.py"
+      ],
       "validation_command": "python3 tests/test_local_agent.py",
       "result_envelope_path": "workflow/reviews/qpbt-030-local-agent-repair-a01.md",
       "started_at": null,
       "ended_at": null,
       "elapsed_seconds": null,
       "timing_quality": "bounded-by-parent-window",
-      "timing_bounds": {"not_before": "2026-09-02T05:04:14Z", "not_after": "2026-09-02T06:44:59Z"},
-      "token_usage": {"input": null, "output": null, "total": null, "availability_reason": "Collaboration backend does not expose per-agent token usage"},
+      "timing_bounds": {
+        "not_before": "2026-09-02T05:04:14Z",
+        "not_after": "2026-09-02T06:44:59Z"
+      },
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
       "archive_status": "retired-locally-no-cli-session",
       "outcome_path": "workflow/reviews/qpbt-030-local-agent-repair-a01.md",
       "report_sha256": "347fe6fd6a62184c35536e5f6d046bcabe1392317ccfed10eabd96b07d8bc6be",
@@ -24493,15 +24528,25 @@
       "read_only": false,
       "base_revision": "0b7370c57827cbc614b6c2df6f585d328f5f55a5",
       "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-053-github-canonical-a01",
-      "owned_paths": ["tests/test_workflow.py"],
+      "owned_paths": [
+        "tests/test_workflow.py"
+      ],
       "validation_command": "python3 tests/test_workflow.py",
       "result_envelope_path": "workflow/reviews/qpbt-030-workflow-admission-tests-a01.md",
       "started_at": null,
       "ended_at": null,
       "elapsed_seconds": null,
       "timing_quality": "bounded-by-parent-window",
-      "timing_bounds": {"not_before": "2026-09-02T05:04:14Z", "not_after": "2026-09-02T06:44:59Z"},
-      "token_usage": {"input": null, "output": null, "total": null, "availability_reason": "Collaboration backend does not expose per-agent token usage"},
+      "timing_bounds": {
+        "not_before": "2026-09-02T05:04:14Z",
+        "not_after": "2026-09-02T06:44:59Z"
+      },
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
       "archive_status": "retired-locally-no-cli-session",
       "outcome_path": "workflow/reviews/qpbt-030-workflow-admission-tests-a01.md",
       "report_sha256": "0f0dff9c16a34618803cc7db92d3b0f990dcdbb4bce922f6e08f7cbe4ac57c91",
@@ -24533,8 +24578,16 @@
       "ended_at": null,
       "elapsed_seconds": null,
       "timing_quality": "bounded-by-parent-window",
-      "timing_bounds": {"not_before": "2026-09-02T06:43:07Z", "not_after": "2026-09-02T07:09:50Z"},
-      "token_usage": {"input": null, "output": null, "total": null, "availability_reason": "Collaboration backend does not expose per-agent token usage"},
+      "timing_bounds": {
+        "not_before": "2026-09-02T06:43:07Z",
+        "not_after": "2026-09-02T07:09:50Z"
+      },
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
       "archive_status": "retired-locally-no-cli-session",
       "outcome_path": "workflow/reviews/qpbt-030-admission-repairs-a01.md",
       "report_sha256": "a012b0e29a741c03e6146a85108c5f92230e302836248819376660dad60e33b5",
@@ -24568,8 +24621,16 @@
       "ended_at": null,
       "elapsed_seconds": null,
       "timing_quality": "bounded-by-parent-window",
-      "timing_bounds": {"not_before": "2026-09-02T06:43:07Z", "not_after": "2026-09-02T07:09:50Z"},
-      "token_usage": {"input": null, "output": null, "total": null, "availability_reason": "Collaboration backend does not expose per-agent token usage"},
+      "timing_bounds": {
+        "not_before": "2026-09-02T06:43:07Z",
+        "not_after": "2026-09-02T07:09:50Z"
+      },
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
       "archive_status": "retired-locally-no-cli-session",
       "outcome_path": "workflow/reviews/qpbt-030-admission-repairs-a01.md",
       "report_sha256": "a012b0e29a741c03e6146a85108c5f92230e302836248819376660dad60e33b5",
@@ -24594,21 +24655,193 @@
       "read_only": false,
       "base_revision": "0b7370c57827cbc614b6c2df6f585d328f5f55a5",
       "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-053-github-canonical-a01",
-      "owned_paths": ["scripts/local_agent.py", "tests/test_local_agent.py"],
+      "owned_paths": [
+        "scripts/local_agent.py",
+        "tests/test_local_agent.py"
+      ],
       "validation_command": "python3 tests/test_local_agent.py",
       "result_envelope_path": "workflow/reviews/qpbt-030-local-agent-pr-claim-a03.md",
       "started_at": null,
       "ended_at": null,
       "elapsed_seconds": null,
       "timing_quality": "bounded-by-parent-window",
-      "timing_bounds": {"not_before": "2026-09-02T06:43:07Z", "not_after": "2026-09-02T07:09:50Z"},
-      "token_usage": {"input": null, "output": null, "total": null, "availability_reason": "Collaboration backend does not expose per-agent token usage"},
+      "timing_bounds": {
+        "not_before": "2026-09-02T06:43:07Z",
+        "not_after": "2026-09-02T07:09:50Z"
+      },
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
       "archive_status": "retired-locally-no-cli-session",
       "outcome_path": "workflow/reviews/qpbt-030-local-agent-pr-claim-a03.md",
       "report_sha256": "6bd2f6aa0b77e8acecf9f7d971f348c07e8a06cd4fd9e6579096e6bc49c92967",
       "run_outcome": "claim-pr-identity-repair-delivered",
       "subagents": 0,
       "requested_model": "gpt-5.6-sol"
+    },
+    {
+      "id": "i031-reviewer-a01-pr29-immutable",
+      "name": "i031-reviewer-a01-pr29-immutable",
+      "backend": "codex-collaboration",
+      "role": "reviewer",
+      "status": "archived",
+      "issue_id": null,
+      "github_issue_number": 31,
+      "stage_id": "STAGE-04A",
+      "pr_id": null,
+      "github_pull_request_number": 29,
+      "github_pull_request_base_ref": "main",
+      "github_pull_request_base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+      "github_pull_request_head_ref": "workflow/qpbt-053-github-canonical",
+      "github_pull_request_head_sha": "1356fc25110770adcd10f5056767f3803630e76f",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i031_reviewer_a01_pr29_immutable",
+      "attempt": 1,
+      "read_only": true,
+      "base_revision": "1356fc25110770adcd10f5056767f3803630e76f",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-031-pr29-review-a01",
+      "owned_paths": [],
+      "validation_command": "python3 -m unittest discover -s tests -p 'test_*.py'",
+      "result_envelope_path": ".workflow-runtime/runs/i031-reviewer-a01-pr29-immutable/result.json",
+      "started_at": "2026-09-02T07:52:05.190482Z",
+      "ended_at": "2026-09-02T08:13:34.751397Z",
+      "elapsed_seconds": 1289.560915,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "retired-locally-no-cli-session",
+      "outcome_path": ".workflow-runtime/runs/i031-reviewer-a01-pr29-immutable/result.json",
+      "timing_quality": "runtime-measured",
+      "result_digest": "007961336b1dd167aa5c527a3fa40fafc02eae503d042eeb5529add64bae2f39"
+    },
+    {
+      "id": "i031-orchestrator-a01-review-repairs",
+      "name": "i031-orchestrator-a01-review-repairs",
+      "backend": "codex-collaboration",
+      "role": "orchestrator",
+      "status": "archived",
+      "issue_id": null,
+      "github_issue_number": 31,
+      "stage_id": "STAGE-04A",
+      "pr_id": null,
+      "github_pull_request_number": 29,
+      "github_pull_request_base_ref": "main",
+      "github_pull_request_base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+      "github_pull_request_head_ref": "workflow/qpbt-053-github-canonical",
+      "github_pull_request_head_sha": "1356fc25110770adcd10f5056767f3803630e76f",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i031_orchestrator_a01_review_repairs",
+      "attempt": 1,
+      "read_only": false,
+      "base_revision": "1356fc25110770adcd10f5056767f3803630e76f",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-031-review-repairs-a01",
+      "owned_paths": [
+        "protocols/CHANGELOG.md",
+        "workflow/reviews/qpbt-031-review-repairs-a01.md"
+      ],
+      "validation_command": "python3 -m unittest discover -s tests -p 'test_*.py'",
+      "result_envelope_path": ".workflow-runtime/runs/i031-orchestrator-a01-review-repairs/result.json",
+      "started_at": "2026-09-02T08:14:51.498476Z",
+      "ended_at": "2026-09-02T09:45:21.613519Z",
+      "elapsed_seconds": 5430.115043,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "retired-locally-no-cli-session",
+      "outcome_path": ".workflow-runtime/runs/i031-orchestrator-a01-review-repairs/result.json",
+      "timing_quality": "runtime-measured",
+      "result_digest": "9a83ed4655cd406f100347b05821ece560a1334cb26426828a04538a7beeeb51"
+    },
+    {
+      "id": "i031-fixer-a01-review-cli",
+      "name": "i031-fixer-a01-review-cli",
+      "backend": "codex-collaboration",
+      "role": "fixer",
+      "status": "archived",
+      "issue_id": null,
+      "github_issue_number": 31,
+      "stage_id": "STAGE-04A",
+      "pr_id": null,
+      "github_pull_request_number": 29,
+      "github_pull_request_base_ref": "main",
+      "github_pull_request_base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+      "github_pull_request_head_ref": "workflow/qpbt-053-github-canonical",
+      "github_pull_request_head_sha": "1356fc25110770adcd10f5056767f3803630e76f",
+      "parent_session_id": "i031-orchestrator-a01-review-repairs",
+      "external_id": "/root/i053_reviewer_a03_dispatcher_retry/i053_security_a01_direct_api#logical:i031-fixer-a01-review-cli",
+      "attempt": 1,
+      "read_only": false,
+      "base_revision": "1356fc25110770adcd10f5056767f3803630e76f",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-031-review-repairs-a01",
+      "owned_paths": [
+        "scripts/github_workflow.py",
+        "tests/test_github_workflow.py"
+      ],
+      "validation_command": "python3 tests/test_github_workflow.py",
+      "result_envelope_path": ".workflow-runtime/runs/i031-fixer-a01-review-cli/result.json",
+      "started_at": "2026-09-02T08:20:01.592379Z",
+      "ended_at": "2026-09-02T09:45:21.613519Z",
+      "elapsed_seconds": 5120.02114,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "retired-locally-no-cli-session",
+      "outcome_path": ".workflow-runtime/runs/i031-fixer-a01-review-cli/result.json",
+      "timing_quality": "runtime-measured",
+      "result_digest": "2324b68db14d1e87977a8577b8061640b33dc11e42af5d194e8d6cfc84e6c3f2"
+    },
+    {
+      "id": "i031-fixer-a01-workflow-authority",
+      "name": "i031-fixer-a01-workflow-authority",
+      "backend": "codex-collaboration",
+      "role": "fixer",
+      "status": "archived",
+      "issue_id": null,
+      "github_issue_number": 31,
+      "stage_id": "STAGE-04A",
+      "pr_id": null,
+      "github_pull_request_number": 29,
+      "github_pull_request_base_ref": "main",
+      "github_pull_request_base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+      "github_pull_request_head_ref": "workflow/qpbt-053-github-canonical",
+      "github_pull_request_head_sha": "1356fc25110770adcd10f5056767f3803630e76f",
+      "parent_session_id": "i031-orchestrator-a01-review-repairs",
+      "external_id": "/root/i031_reviewer_a01_pr29_immutable#logical:i031-fixer-a01-workflow-authority",
+      "attempt": 1,
+      "read_only": false,
+      "base_revision": "1356fc25110770adcd10f5056767f3803630e76f",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-031-review-repairs-a01",
+      "owned_paths": [
+        "scripts/workflow.py",
+        "tests/test_workflow.py"
+      ],
+      "validation_command": "python3 tests/test_workflow.py",
+      "result_envelope_path": ".workflow-runtime/runs/i031-fixer-a01-workflow-authority/result.json",
+      "started_at": "2026-09-02T08:20:01.310849Z",
+      "ended_at": "2026-09-02T09:45:21.613519Z",
+      "elapsed_seconds": 5120.30267,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "retired-locally-no-cli-session",
+      "outcome_path": ".workflow-runtime/runs/i031-fixer-a01-workflow-authority/result.json",
+      "timing_quality": "runtime-measured",
+      "result_digest": "f67d31b67e7dd050701946509c5b0d89111728ce84de104a5493e43489069bdd"
     }
   ]
 }
