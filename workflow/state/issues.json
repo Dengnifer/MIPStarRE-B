@@ -1932,7 +1932,7 @@
       "title": "feat(QPBT/Basic): implement Pauli algebra and projectors",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -1970,7 +1970,7 @@
         "MIPStarRE/QPBT/Basic/Pauli.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-02T18:54:44.348092Z",
+      "updated_at": "2026-09-02T19:23:30.856275Z",
       "blocked_reason": null,
       "unblock_condition": null
     },

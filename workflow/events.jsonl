@@ -3642,3 +3642,6 @@
 {"schema_version":1,"timestamp":"2026-09-02T19:21:07.930117Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"archived","session_id":"i037-reviewer-a18-pauli"}}
 {"schema_version":1,"timestamp":"2026-09-02T19:21:19.038972Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-032","fields":["reviews","provenance_session_ids","unexecuted_gate"]}}
 {"schema_version":1,"timestamp":"2026-09-02T19:21:23.040215Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"approved","id":"LPR-032"}}
+{"schema_version":1,"timestamp":"2026-09-02T19:23:20.745758Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-032","fields":["integration_sha","unexecuted_gate"]}}
+{"schema_version":1,"timestamp":"2026-09-02T19:23:26.423907Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"merged","id":"LPR-032"}}
+{"schema_version":1,"timestamp":"2026-09-02T19:23:30.916190Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"done","id":"QPBT-037"}}
