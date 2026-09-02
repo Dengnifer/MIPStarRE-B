@@ -7095,6 +7095,23 @@
           "report_sha256": "e4d2cafe70963d59ebb68ba4854a60d31bdeefbb43ee49f43cf354c7ae7e7036",
           "manifest_sha256": "9c8a5a2e835d5afd3363d708be5298a8141a64aac52b3652083754aef1e57e6e",
           "integration_gate": "blocked: release must precede terminal/archive events and issuance identity must match the session"
+        },
+        {
+          "id": "review-qpbt-052-pr025-a06-release-contract",
+          "reviewer_session_id": "i052-reviewer-a06-release-contract",
+          "verdict": "request_changes",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+          "started_at": "2026-09-02T00:15:55.135924Z",
+          "completed_at": "2026-09-02T00:37:17.800036Z",
+          "result_path": "workflow/reviews/qpbt-052-review-a06.md",
+          "finding_ids": [
+            "F-LPR025-A06-001"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "e450b2d2f8782bdf5975fbf1b4443d80857bff60ee54e81abd0cf977a8a20347",
+          "manifest_sha256": "ed1d478437c5e52e80e2828ca3439138c7483235b51c49ffbff7f24a30cb8184",
+          "integration_gate": "blocked: marked null-identity issuance bypass must be repaired on a changed head and re-reviewed"
         }
       ],
       "findings": [
@@ -7134,10 +7151,10 @@
           "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
           "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
           "severity": "blocker",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A06 independently confirmed the markerless compatibility, lock-held CLI/local-agent transaction, and equal-timestamp ordering repairs on exact head 2310617.",
+          "resolved_by_review_id": "review-qpbt-052-pr025-a06-release-contract",
           "summary": "New release validator rejects valid legacy collaboration histories.",
           "path": "scripts/workflow.py",
           "line": 1525,
@@ -7149,10 +7166,10 @@
           "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
           "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
           "severity": "high",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A06 independently confirmed the markerless compatibility, lock-held CLI/local-agent transaction, and equal-timestamp ordering repairs on exact head 2310617.",
+          "resolved_by_review_id": "review-qpbt-052-pr025-a06-release-contract",
           "summary": "Direct CLI transition bypasses pre/post event-log validation.",
           "path": "scripts/workflow.py",
           "line": 3184,
@@ -7164,10 +7181,10 @@
           "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
           "head_sha": "687803efcfd2e092960435606e6eb1ff45cdcdf6",
           "severity": "high",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A06 independently confirmed the markerless compatibility, lock-held CLI/local-agent transaction, and equal-timestamp ordering repairs on exact head 2310617.",
+          "resolved_by_review_id": "review-qpbt-052-pr025-a06-release-contract",
           "summary": "Equal timestamps permit release-before-issuance chronology inversion.",
           "path": "scripts/workflow.py",
           "line": 1518,
@@ -7202,12 +7219,27 @@
           "path": "scripts/workflow.py",
           "line": 1525,
           "required_change": "Validate issuance payload external_id and backend/contract consistency against the immutable session identity, retaining markerless legacy compatibility."
+        },
+        {
+          "id": "F-LPR025-A06-001",
+          "introduced_review_id": "review-qpbt-052-pr025-a06-release-contract",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "A marked terminal collaboration lifecycle accepts null session and issuance identities, disabling release enforcement.",
+          "path": "scripts/workflow.py",
+          "line": 1541,
+          "required_change": "Require a non-empty session and issuance external_id for every marked issuance, bind them exactly, and make release_required independent of identity truthiness; add null/missing terminal and archive regressions."
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:00Z",
-      "updated_at": "2026-09-02T00:09:30.777970Z",
+      "updated_at": "2026-09-02T00:39:23.173935Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -7220,11 +7252,12 @@
         "workflow/reviews/qpbt-049-review-a03.md",
         "workflow/reviews/qpbt-052-release-contract-repair-a03.md",
         "workflow/reviews/qpbt-052-review-a04.md",
-        "workflow/reviews/qpbt-052-release-contract-repair-a05.md"
+        "workflow/reviews/qpbt-052-release-contract-repair-a05.md",
+        "workflow/reviews/qpbt-052-review-a06.md"
       ],
       "motivation": "Prevent collaboration task packets from being released before immutable backend identity confirmation.",
       "description": "Add a post-confirmation identity-bound release event and fail-closed lifecycle validation.",
-      "testing": "A05 adds strict terminal/archive release chronology and marked issuance identity/backend/contract validation; 5 focused, 84 workflow, 65 local-agent, compileall, checker, validation, and diff gates passed.",
+      "testing": "A06 authenticated exact head 2310617; 84 workflow and 65 local-agent tests plus compileall/checker/validation passed, but an independent null-identity hostile probe exposed a blocker.",
       "addresses": "QPBT-049",
       "provenance_session_ids": [
         "i049-orchestrator-a01-task-release",
@@ -7232,10 +7265,11 @@
         "i049-reviewer-a03-release-repair",
         "i052-orchestrator-a03-release-contract-repair",
         "i052-reviewer-a04-release-contract",
-        "i052-orchestrator-a05-release-contract-repair"
+        "i052-orchestrator-a05-release-contract-repair",
+        "i052-reviewer-a06-release-contract"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Obtain a fresh independent immutable review of exact changed head 2310617, including all still-open A03/A04 finding dispositions, then guarded integration."
+      "unexecuted_gate": "Repair F-LPR025-A06-001 and the resulting unresolved A04-001/A04-002 null-identity path on a changed head, then obtain a fresh immutable review before integration."
     },
     {
       "id": "LPR-026",

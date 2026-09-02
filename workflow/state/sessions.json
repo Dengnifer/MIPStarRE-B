@@ -23870,21 +23870,62 @@
       "validation_command": "Read AGENTS.md, QPBT-049/QPBT-052, LPR-025, A03/A04 findings, A05 repair report, and exact cumulative candidate. Authenticate base/head/tree/parent/manifests, verify all five open findings and hostile chronology/identity/transaction compatibility, run scoped suites read-only, and write findings-first immutable review.",
       "result_envelope_path": "workflow/reviews/qpbt-052-review-a06.md",
       "dispatch_condition": "A05 changed head 2310617 passes scoped gates; issue only to a fresh reviewer after the repair session is archived.",
-      "status": "running",
+      "status": "archived",
       "external_id": "/root/i052_reviewer_a06_release_contract",
       "started_at": "2026-09-02T00:15:55.135924Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-02T00:37:17.800036Z",
+      "elapsed_seconds": 1282.664,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-052-review-a06.md",
       "task_released_at": "2026-09-02T00:15:14.861973Z",
-      "task_release_protocol": "bootstrap-only thread confirmed before full packet"
+      "task_release_protocol": "bootstrap-only thread confirmed before full packet",
+      "report_sha256": "e450b2d2f8782bdf5975fbf1b4443d80857bff60ee54e81abd0cf977a8a20347",
+      "run_outcome": "formal-request-changes-one-blocker",
+      "verdict": "request_changes",
+      "finding_ids": [
+        "F-LPR025-A06-001"
+      ],
+      "checks": {
+        "formal_pr_base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+        "comparison_base_sha": "40d3e565426f74a0e3c60798ec7e2b5f7e35cfbf",
+        "head_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+        "candidate_tree": "d8a0402804ed6066b4c7143285446815925ce267",
+        "parent_sha": "40d3e565426f74a0e3c60798ec7e2b5f7e35cfbf",
+        "manifest_sha256": "ed1d478437c5e52e80e2828ca3439138c7483235b51c49ffbff7f24a30cb8184",
+        "review_report_sha256": "e450b2d2f8782bdf5975fbf1b4443d80857bff60ee54e81abd0cf977a8a20347",
+        "focused_tests": "6/6 passed",
+        "workflow_tests": "84/84 passed",
+        "local_agent_tests": "65/65 passed",
+        "compileall": "passed",
+        "checker": "passed",
+        "workflow_validate": "passed",
+        "diff_check": "passed",
+        "hostile_null_identity_probe": "unexpectedly accepted",
+        "resolved_findings": [
+          "F-LPR025-A03-001",
+          "F-LPR025-A03-002",
+          "F-LPR025-A03-003"
+        ],
+        "unresolved_findings": [
+          "F-LPR025-A04-001",
+          "F-LPR025-A04-002",
+          "F-LPR025-A06-001"
+        ],
+        "findings": 1,
+        "builds": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "github": 0,
+        "credentials": 0,
+        "nested_agents": 0
+      },
+      "timing_quality": "runtime-measured"
     },
     {
       "id": "i039-integrator-a03-pr028-bind",
@@ -23958,6 +23999,44 @@
         "nested_agents": 0
       },
       "timing_quality": "runtime-measured"
+    },
+    {
+      "id": "i052-orchestrator-a07-null-identity-repair",
+      "name": "i052-orchestrator-a07-null-identity-repair",
+      "role": "orchestrator",
+      "issue_id": "QPBT-052",
+      "attempt": 7,
+      "priority": 1,
+      "backend": "codex-collaboration",
+      "pr_id": "LPR-025",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "read_only": false,
+      "base_revision": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+      "base_revision_reason": "Exact A06-reviewed LPR-025 head with one null-identity blocker and A04 findings unresolved only along that bypass.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-052-null-identity-repair-a07",
+      "owned_paths": [
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "workflow/reviews/qpbt-052-null-identity-repair-a07.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-052, LPR-025, exact A06 review/finding, and A05 candidate. Repair only F-LPR025-A06-001 and the null-identity residual of A04-001/A04-002: marked issuance requires non-empty exact identities and release enforcement cannot depend on identity truthiness. Add missing/null finished/failed/archived and release-after-terminal regressions while preserving markerless legacy compatibility. Run focused, full workflow/local-agent, compileall, checker, validate, diff hygiene, and exact manifest checks; commit changed candidate and report exact hashes. Do not touch Lean/Lake/cache/network/GitHub/credentials/canonical state or unrelated files.",
+      "result_envelope_path": "workflow/reviews/qpbt-052-null-identity-repair-a07.md",
+      "dispatch_condition": "A06 formal review requested changes on exact head 2310617; issue a changed-head repair after A06 is archived.",
+      "status": "running",
+      "external_id": "/root/i052_orchestrator_a07_null_identity_repair",
+      "started_at": "2026-09-02T00:42:25.395362Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "task_released_at": "2026-09-02T00:41:44.521256Z",
+      "task_release_protocol": "bootstrap-only thread confirmed before full packet"
     }
   ]
 }
