@@ -24760,22 +24760,44 @@
       "validation_command": "Authenticate exact LPR-032 base/head/tree/parent, one changed path/blob/file hash, 6/6 checks, candidate report, and clean candidate worktree. Write and commit only the binding report; no candidate-byte, Lean/Lake/build/cache/materialization/network/GitHub/credential/nested-agent/state/metrics action.",
       "result_envelope_path": "workflow/reviews/qpbt-037-pr032-bind-a17.md",
       "external_id": "/root/i037_integrator_a17_pr032_bind",
-      "status": "running",
+      "status": "archived",
       "parent_session_id": "i041-orchestrator-a12-f04-closeout",
       "priority": 1,
       "requested_model": "gpt-5.6-sol",
       "backend": "codex-collaboration",
       "started_at": "2026-09-02T19:04:24.751Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-02T19:07:33.263021Z",
+      "elapsed_seconds": 188.512,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-037-pr032-bind-a17.md",
+      "run_outcome": "candidate-identity-bound-without-byte-change",
+      "report_sha256": "315c5c8e25e5da5dcf081ecc6d58522c30c4410b46450db8b14936df4e9a368a",
+      "checks": {
+        "binding_commit": "3ac976ed5be2dfe8c5b0b579b6b8d7d63aafad6f",
+        "binding_adoption_commit": "f926dd4",
+        "report_sha256": "315c5c8e25e5da5dcf081ecc6d58522c30c4410b46450db8b14936df4e9a368a",
+        "candidate_head_sha": "cdb83f4017cfc182eb2611be0fbc5cd3635fbf64",
+        "candidate_tree": "239f65b911d5535bdd20bb442c6e9c61aa00f8ff",
+        "candidate_parent_sha": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+        "candidate_patch_sha256": "0292bed4a9457185b82b27db060091a766aa3f4b0719553da50eacd3d152d08d",
+        "file_blob": "d183c3d440bdb49870ba55f8ad06cb029531743e",
+        "file_sha256": "df003a117fb8495bd01bd7ceee45b7c58df5c9e4815bfb4e5a9e344da6b56e12",
+        "registered_checks": "6/6 passed",
+        "agent_active_seconds": 147.71,
+        "candidate_byte_changes": 0,
+        "lean_runs": 0,
+        "builds": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "nested_agents": 0
+      },
+      "timing_quality": "runtime-measured"
     }
   ]
 }
