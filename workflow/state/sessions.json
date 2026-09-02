@@ -26218,6 +26218,81 @@
         "read_only_git_commands": 1
       },
       "timing_note": "Elapsed is the conservative canonical registration-to-finish window; the report independently records 131.559 seconds between first and final immutable-input observations. One prohibited read-only git status was disclosed and made no mutation."
+    },
+    {
+      "id": "i056-integrator-a02-pr033-bind",
+      "name": "i056-integrator-a02-pr033-bind",
+      "role": "integrator",
+      "issue_id": "QPBT-056",
+      "attempt": 2,
+      "dispatch_condition": "LPR-033 is ready with six passed candidate checks; bind one writable no-change adoption session before immutable review.",
+      "pr_id": "LPR-033",
+      "read_only": false,
+      "base_revision": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+      "base_revision_reason": "Clean canonical checkpoint containing LPR-033, QPBT-056 review status, archived writer and child evidence, and incidents through INC-072.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-056-pr033-bind-a02",
+      "owned_paths": [
+        "workflow/reviews/qpbt-056-pr033-bind-a02.md"
+      ],
+      "validation_command": "Read AGENTS.md and the local review protocol. Authenticate exact LPR-033 base/head/tree/sole parent, two changed paths and blobs/file hashes, binary patch SHA-256, 6/6 checks, writer report, issue review state, and clean candidate worktree. Write and commit only workflow/reviews/qpbt-056-pr033-bind-a02.md; do not change candidate bytes and do not run Lean, Lake, build, cache, materialization, network, GitHub, credentials, or nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-056-pr033-bind-a02.md",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i056_integrator_a02_pr033_bind",
+      "started_at": "2026-09-02T22:34:57.569305Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null
+    },
+    {
+      "id": "i051-orchestrator-a01-preflight",
+      "name": "i051-orchestrator-a01-preflight",
+      "role": "orchestrator",
+      "issue_id": "QPBT-051",
+      "attempt": 1,
+      "dispatch_condition": "QPBT-045 and QPBT-050 are done; INC-071 reached the third replace-existing omission and QPBT-051 is ready with expanded exact worktree-preparation acceptance.",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+      "base_revision_reason": "Clean canonical checkpoint activating the existing preflight issue with INC-070/071 evidence and no overlapping active owner.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-051-preflight-a01",
+      "owned_paths": [
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "protocols/local-development.md",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md",
+        "workflow/reviews/qpbt-051-input-preflight.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-051, INC-052/065/070/071, the QPBT-045 warm report, QPBT-056 F06 report, current hot_main_cache/materializer code and focused tests. Implement the smallest complete authenticated-input preflight for warm plus one issue-worktree prepare path that combines private seed with mandatory preservation-mode foundation materialization and verification before compilation. Preserve cache identity and authored QPBT bytes; fail closed before lock/build/publication or authored drift. Add focused regressions, update only owned protocols and changelog, run exact focused and aggregate workflow/Python/diff gates, and commit only owned paths. No Lean build, network, GitHub, credentials, canonical state/metrics, or unowned edits. Delegate bounded read-only analysis/tests if useful and report exact statement/safety invariants, attempts, timing, tokens, and reviewer checklist.",
+      "result_envelope_path": "workflow/reviews/qpbt-051-input-preflight.md",
+      "priority": 2,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i051_orchestrator_a01_preflight",
+      "started_at": "2026-09-02T22:35:51.425165Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null
     }
   ]
 }

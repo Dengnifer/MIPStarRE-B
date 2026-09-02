@@ -8388,7 +8388,7 @@
     {
       "id": "LPR-033",
       "title": "feat(QPBT/Game): implement mathematical CL maps and samplers",
-      "status": "ready",
+      "status": "draft",
       "issue_ids": [
         "QPBT-056"
       ],
@@ -8473,7 +8473,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T22:23:16.245583Z",
-      "updated_at": "2026-09-02T22:23:16.245583Z",
+      "updated_at": "2026-09-02T22:33:45.196080Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Types.lean",
         "workflow/reviews/qpbt-056-f06-a01.md"

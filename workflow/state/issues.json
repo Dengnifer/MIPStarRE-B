@@ -2626,7 +2626,7 @@
       "title": "Add authenticated cache-input and issue-worktree source preflight",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-045",
       "dependency_ids": [
         "QPBT-045",
@@ -2650,7 +2650,7 @@
         "Add focused regressions for each missing warm input, conflicting selectors, malformed paths, successful preflight, source-absent seeded worktrees, mandatory replace-existing materialization, and successful verified preparation, proving no lock-held build, snapshot, READY, or authored-source drift on failure.",
         "Update the local build/orchestration protocol and changelog with the preflight and preparation commands, run focused and aggregate workflow/checker/diff gates, obtain a fresh immutable review, and record the third-occurrence incident disposition."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i051-orchestrator-a01-preflight",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-052",
         "research/metrics/incidents.jsonl#INC-065",
@@ -2672,7 +2672,7 @@
         "workflow/reviews/qpbt-051-input-preflight.md"
       ],
       "created_at": "2026-09-01T19:00:00Z",
-      "updated_at": "2026-09-02T22:26:53.935177Z",
+      "updated_at": "2026-09-02T22:36:00.067469Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
