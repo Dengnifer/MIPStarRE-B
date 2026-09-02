@@ -6951,9 +6951,10 @@
       "base": "main",
       "head": "issue/qpbt-049-task-release-a01",
       "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
-      "head_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+      "head_sha": "9d3b81b4c431d4b8e095d8dc94a8363c2ff07d84",
       "implementer_session_ids": [
-        "i049-orchestrator-a02-release-repair"
+        "i049-orchestrator-a02-release-repair",
+        "i052-orchestrator-a07-null-identity-repair"
       ],
       "checks": [
         {
@@ -7038,6 +7039,28 @@
           "workflow_validate": "passed",
           "diff_check": "passed",
           "findings": "A04-001 and A04-002 fixed in candidate pending fresh review"
+        },
+        {
+          "id": "check-qpbt-052-repair-a07",
+          "name": "QPBT-052 A07 null-identity release repair candidate",
+          "command": "expected-red hostile probe; 6 focused regressions twice; 87 workflow tests; 65 local-agent tests; compileall; checker; workflow validation; diff hygiene; exact two-path authentication",
+          "status": "passed",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "9d3b81b4c431d4b8e095d8dc94a8363c2ff07d84",
+          "completed_at": "2026-09-02T02:00:38.301555Z",
+          "result_path": "workflow/reviews/qpbt-052-null-identity-repair-a07.md",
+          "comparison_base_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+          "head_tree": "3bb25c9933326774ec07d23cb97071e0c61aec5c",
+          "parent_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+          "manifest_sha256": "ed1d478437c5e52e80e2828ca3439138c7483235b51c49ffbff7f24a30cb8184",
+          "report_sha256": "9001290e936762a84671f7d91f6bcc32f2cb51cf5382080b3f17b9a8697e058c",
+          "workflow_tests": "87/87 passed",
+          "local_agent_tests": "65/65 passed",
+          "compileall": "passed",
+          "checker": "passed",
+          "workflow_validate": "passed",
+          "diff_check": "passed",
+          "findings": "A04-001, A04-002, and A06-001 repaired in candidate pending fresh review"
         }
       ],
       "reviews": [
@@ -7239,7 +7262,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:00Z",
-      "updated_at": "2026-09-02T00:39:23.173935Z",
+      "updated_at": "2026-09-02T02:02:40.811941Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -7253,11 +7276,12 @@
         "workflow/reviews/qpbt-052-release-contract-repair-a03.md",
         "workflow/reviews/qpbt-052-review-a04.md",
         "workflow/reviews/qpbt-052-release-contract-repair-a05.md",
-        "workflow/reviews/qpbt-052-review-a06.md"
+        "workflow/reviews/qpbt-052-review-a06.md",
+        "workflow/reviews/qpbt-052-null-identity-repair-a07.md"
       ],
       "motivation": "Prevent collaboration task packets from being released before immutable backend identity confirmation.",
       "description": "Add a post-confirmation identity-bound release event and fail-closed lifecycle validation.",
-      "testing": "A06 authenticated exact head 2310617; 84 workflow and 65 local-agent tests plus compileall/checker/validation passed, but an independent null-identity hostile probe exposed a blocker.",
+      "testing": "A07 expected-red probe, focused regressions, 87 workflow tests, 65 local-agent tests, compileall, checker, workflow validation, diff hygiene, and exact two-path authentication passed; fresh review remains.",
       "addresses": "QPBT-049",
       "provenance_session_ids": [
         "i049-orchestrator-a01-task-release",
@@ -7266,10 +7290,11 @@
         "i052-orchestrator-a03-release-contract-repair",
         "i052-reviewer-a04-release-contract",
         "i052-orchestrator-a05-release-contract-repair",
-        "i052-reviewer-a06-release-contract"
+        "i052-reviewer-a06-release-contract",
+        "i052-orchestrator-a07-null-identity-repair"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Repair F-LPR025-A06-001 and the resulting unresolved A04-001/A04-002 null-identity path on a changed head, then obtain a fresh immutable review before integration."
+      "unexecuted_gate": "Fresh independent review must authenticate exact head 9d3b81b and dispose A04-001, A04-002, and A06-001 before guarded integration."
     },
     {
       "id": "LPR-026",
@@ -7437,7 +7462,7 @@
     {
       "id": "LPR-027",
       "title": "feat(QPBT/Basic): implement low-degree polynomial encoding",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-036"
       ],
@@ -7508,6 +7533,24 @@
           "head_sha": "8467454fefefdbac7478a2df8f8c1e2d9c25fcf5",
           "completed_at": "2026-09-01T23:06:50Z",
           "result_path": "workflow/reviews/qpbt-036-polynomial-a01.md"
+        },
+        {
+          "id": "check-qpbt-036-integration-a04",
+          "name": "QPBT-036 guarded Lean integration",
+          "command": "scoped Lean; prerequisite and affected targets; full lake build; default/pinned blueprint; workflow/checker/debt/diff; exact two-parent/path and remote authentication",
+          "status": "passed",
+          "base_sha": "358cd108db045d13f4e0095a2948dd4037be2b54",
+          "head_sha": "4e003ec80d6bd772530fef854b68dd4ee787906f",
+          "completed_at": "2026-09-02T01:37:00Z",
+          "result_path": "workflow/reviews/qpbt-036-guarded-integration-a04.md",
+          "canonical_base_sha": "309973aaccf258b92486e26ce392863ebc1fdb40",
+          "integration_tree": "081f77396adec00e1f6b7733af8d17ea18203bf5",
+          "parent_shas": [
+            "309973aaccf258b92486e26ce392863ebc1fdb40",
+            "8467454fefefdbac7478a2df8f8c1e2d9c25fcf5"
+          ],
+          "candidate_manifest_sha256": "0e7fd38a46b63c7ee660fa14fb828e19331233b0c983a687b1a38d0a2ceb3725",
+          "report_sha256": "cada3659c6892cb0b03e9b5a72006611738e00a93c720308f6ef15c956ac35a7"
         }
       ],
       "reviews": [
@@ -7528,19 +7571,20 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "4e003ec80d6bd772530fef854b68dd4ee787906f",
+      "merged_at": "2026-09-02T01:55:26.539025Z",
       "created_at": "2026-09-01T23:08:47.942383Z",
-      "updated_at": "2026-09-02T00:27:34.431747Z",
+      "updated_at": "2026-09-02T01:55:26.539025Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Basic/Polynomial.lean",
         "workflow/reviews/qpbt-036-polynomial-a01.md",
         "workflow/reviews/qpbt-036-review-a02.md",
-        "workflow/reviews/qpbt-036-pr027-bind-a03.md"
+        "workflow/reviews/qpbt-036-pr027-bind-a03.md",
+        "workflow/reviews/qpbt-036-guarded-integration-a04.md"
       ],
       "motivation": "Land the source-faithful F02 low-degree polynomial encoding contract.",
       "description": "Add Boolean/field point boundaries, individual-degree indicator polynomials, evaluation, interpolation, and injectivity declarations and proofs.",
-      "testing": "Scoped Lean, target/full builds, pinned-source blueprint synchronization, debt/import scan, diff hygiene, fresh mathematical review, and PR-bound no-byte-change adoption passed.",
+      "testing": "Scoped Lean, prerequisite and affected targets, private full build, default and pinned blueprint checks, debt/diff/workflow gates, exact two-parent integration, push, and remote SHA authentication passed.",
       "addresses": "QPBT-036",
       "provenance_session_ids": [
         "i036-orchestrator-a01-polynomial",
@@ -7548,7 +7592,7 @@
         "i036-integrator-a03-pr027-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Guarded-integrate exact approved head 8467454 onto current main, then run post-integration scoped, target/full-build, source/blueprint, debt, and diff gates.",
+      "unexecuted_gate": "No unexecuted LPR-027 gates; downstream use remains dependency-ordered.",
       "adoption": {
         "session_id": "i036-integrator-a03-pr027-bind",
         "verdict": "pass",
@@ -7564,7 +7608,7 @@
     {
       "id": "LPR-028",
       "title": "feat(QPBT/Game): define admissible parameters",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-039"
       ],
@@ -7635,6 +7679,24 @@
           "head_sha": "f6b19fc9fb87e0616b8367749ff971539bc1b45f",
           "completed_at": "2026-09-01T23:45:41.711627Z",
           "result_path": "workflow/reviews/qpbt-039-parameters-a01.md"
+        },
+        {
+          "id": "check-qpbt-039-integration-a04",
+          "name": "QPBT-039 guarded Lean integration",
+          "command": "scoped Lean; affected target; combined full lake build; default/pinned blueprint; workflow/checker/debt/diff; exact two-parent/path and remote authentication",
+          "status": "passed",
+          "base_sha": "874dc07433936e26d62c42cdd779dde42386f99d",
+          "head_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+          "completed_at": "2026-09-02T01:39:00Z",
+          "result_path": "workflow/reviews/qpbt-039-guarded-integration-a04.md",
+          "canonical_base_sha": "4e003ec80d6bd772530fef854b68dd4ee787906f",
+          "integration_tree": "66b39bdec8764c71aad5544a3ca8581ced44dbfb",
+          "parent_shas": [
+            "4e003ec80d6bd772530fef854b68dd4ee787906f",
+            "f6b19fc9fb87e0616b8367749ff971539bc1b45f"
+          ],
+          "candidate_manifest_sha256": "4a26a5faf9611c9e689ef03e253f5a4fbfe164d92ac86288eed3aac2422df539",
+          "report_sha256": "8bdad2e6f6b841a48b97ec887de995add06d73b30ffcb8ba4761cffc0834532b"
         }
       ],
       "reviews": [
@@ -7655,19 +7717,20 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+      "merged_at": "2026-09-02T01:55:27.069452Z",
       "created_at": "2026-09-01T23:48:12.813862Z",
-      "updated_at": "2026-09-02T00:33:41.566024Z",
+      "updated_at": "2026-09-02T01:55:27.069452Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Parameters.lean",
         "workflow/reviews/qpbt-039-parameters-a01.md",
         "workflow/reviews/qpbt-039-review-a02.md",
-        "workflow/reviews/qpbt-039-pr028-bind-a03.md"
+        "workflow/reviews/qpbt-039-pr028-bind-a03.md",
+        "workflow/reviews/qpbt-039-guarded-integration-a04.md"
       ],
       "motivation": "Land the source-faithful G01 admissible-parameter boundary.",
       "description": "Add the project-owned natural parameter tuple and exact odd-exponent, power-of-two, and natural-divisibility admissibility predicate.",
-      "testing": "Scoped Lean, affected target, private full build, pinned-source blueprint synchronization, debt/import scan, exact diff gate, fresh review, and PR-bound no-byte-change adoption passed.",
+      "testing": "Scoped Lean, affected target, incremental combined full build, default and pinned blueprint checks, debt/diff/workflow gates, exact two-parent integration, push, and remote SHA authentication passed.",
       "addresses": "QPBT-039",
       "provenance_session_ids": [
         "i039-orchestrator-a01-parameters",
@@ -7675,7 +7738,7 @@
         "i039-integrator-a03-pr028-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Guarded-integrate exact approved head f6b19fc onto current main, then run post-integration scoped, target/full-build, source/blueprint, debt, and diff gates.",
+      "unexecuted_gate": "No unexecuted LPR-028 gates; downstream use remains dependency-ordered.",
       "adoption": {
         "session_id": "i039-integrator-a03-pr028-bind",
         "verdict": "pass",

@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "repository": {
+    "owner": "Dengnifer",
+    "name": "MIPStarRE-B",
+    "database_id": 1352436168,
+    "node_id": "R_kgDOUJyJyA"
+  },
+  "base_ref": "main",
+  "cutover_main_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+  "issues": [
+    {"legacy_id": "QPBT-000", "number": 5, "database_id": 5318859156, "node_id": "I_kwDOUJyJyM8AAAABPQdZlA", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-000 -->"},
+    {"legacy_id": "QPBT-005", "number": 3, "database_id": 5318858801, "node_id": "I_kwDOUJyJyM8AAAABPQdYMQ", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-005 -->"},
+    {"legacy_id": "QPBT-006", "number": 2, "database_id": 5318858703, "node_id": "I_kwDOUJyJyM8AAAABPQdXzw", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-006 -->"},
+    {"legacy_id": "QPBT-007", "number": 4, "database_id": 5318858802, "node_id": "I_kwDOUJyJyM8AAAABPQdYMg", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-007 -->"},
+    {"legacy_id": "QPBT-008", "number": 9, "database_id": 5318859833, "node_id": "I_kwDOUJyJyM8AAAABPQdcOQ", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-008 -->"},
+    {"legacy_id": "QPBT-014", "number": 6, "database_id": 5318859676, "node_id": "I_kwDOUJyJyM8AAAABPQdbnA", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-014 -->"},
+    {"legacy_id": "QPBT-015", "number": 8, "database_id": 5318859816, "node_id": "I_kwDOUJyJyM8AAAABPQdcKA", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-015 -->"},
+    {"legacy_id": "QPBT-016", "number": 7, "database_id": 5318859768, "node_id": "I_kwDOUJyJyM8AAAABPQdb-A", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-016 -->"},
+    {"legacy_id": "QPBT-017", "number": 10, "database_id": 5318860479, "node_id": "I_kwDOUJyJyM8AAAABPQdevw", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-017 -->"},
+    {"legacy_id": "QPBT-028", "number": 11, "database_id": 5318860576, "node_id": "I_kwDOUJyJyM8AAAABPQdfIA", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-028 -->"},
+    {"legacy_id": "QPBT-029", "number": 12, "database_id": 5318860577, "node_id": "I_kwDOUJyJyM8AAAABPQdfIQ", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-029 -->"},
+    {"legacy_id": "QPBT-030", "number": 13, "database_id": 5318860584, "node_id": "I_kwDOUJyJyM8AAAABPQdfKA", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-030 -->"},
+    {"legacy_id": "QPBT-037", "number": 16, "database_id": 5318867769, "node_id": "I_kwDOUJyJyM8AAAABPQd7OQ", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-037 -->"},
+    {"legacy_id": "QPBT-038", "number": 15, "database_id": 5318867676, "node_id": "I_kwDOUJyJyM8AAAABPQd63A", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-038 -->"},
+    {"legacy_id": "QPBT-040", "number": 14, "database_id": 5318867664, "node_id": "I_kwDOUJyJyM8AAAABPQd60A", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-040 -->"},
+    {"legacy_id": "QPBT-041", "number": 17, "database_id": 5318868324, "node_id": "I_kwDOUJyJyM8AAAABPQd9ZA", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-041 -->"},
+    {"legacy_id": "QPBT-042", "number": 19, "database_id": 5318869241, "node_id": "I_kwDOUJyJyM8AAAABPQeA-Q", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-042 -->"},
+    {"legacy_id": "QPBT-043", "number": 21, "database_id": 5318869346, "node_id": "I_kwDOUJyJyM8AAAABPQeBYg", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-043 -->"},
+    {"legacy_id": "QPBT-044", "number": 18, "database_id": 5318869232, "node_id": "I_kwDOUJyJyM8AAAABPQeA8A", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-044 -->"},
+    {"legacy_id": "QPBT-046", "number": 20, "database_id": 5318869287, "node_id": "I_kwDOUJyJyM8AAAABPQeBJw", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-046 -->"},
+    {"legacy_id": "QPBT-047", "number": 24, "database_id": 5318870006, "node_id": "I_kwDOUJyJyM8AAAABPQeD9g", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-047 -->"},
+    {"legacy_id": "QPBT-049", "number": 23, "database_id": 5318869974, "node_id": "I_kwDOUJyJyM8AAAABPQeD1g", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-049 -->"},
+    {"legacy_id": "QPBT-051", "number": 22, "database_id": 5318869849, "node_id": "I_kwDOUJyJyM8AAAABPQeDWQ", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-051 -->"},
+    {"legacy_id": "QPBT-052", "number": 25, "database_id": 5318870356, "node_id": "I_kwDOUJyJyM8AAAABPQeFVA", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-052 -->"},
+    {"legacy_id": "QPBT-053", "number": 1, "database_id": 5318687616, "node_id": "I_kwDOUJyJyM8AAAABPQS7gA", "marker": "<!-- mipstarre-workflow:v1:issue:QPBT-053 -->"}
+  ],
+  "pull_requests": [
+    {"legacy_id": "LPR-018", "number": 27, "database_id": 4418014749, "node_id": "PR_kwDOUJyJyM8AAAABB1WOHQ", "marker": "<!-- mipstarre-workflow:v1:pull-request:LPR-018 -->", "base_ref": "main", "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71", "head_ref": "issue/qpbt-028-content-isolation-a01", "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e"},
+    {"legacy_id": "LPR-025", "number": 26, "database_id": 4418014709, "node_id": "PR_kwDOUJyJyM8AAAABB1WN9Q", "marker": "<!-- mipstarre-workflow:v1:pull-request:LPR-025 -->", "base_ref": "main", "base_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71", "head_ref": "issue/qpbt-052-release-contract-a07", "head_sha": "9d3b81b4c431d4b8e095d8dc94a8363c2ff07d84"}
+  ]
+}

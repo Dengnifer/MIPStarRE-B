@@ -15,6 +15,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 import workflow  # noqa: E402
 import check_workflow  # noqa: E402
+import github_workflow  # noqa: E402
 
 
 NOW = "2026-08-30T00:00:00Z"
@@ -1367,6 +1368,33 @@ class WorkflowValidationTests(unittest.TestCase):
         workflow.validate_documents(state)
 
 
+    def test_postcutover_session_uses_canonical_github_identity(self) -> None:
+        state = documents()
+        session = issued_session(
+            "i001-writer-a01-github-cutover",
+            role="writer",
+            read_only=True,
+        )
+        session["issue_id"] = None
+        session["github_issue_number"] = 1
+        session["github_pull_request_number"] = 26
+        session["stage_id"] = "STAGE-01"
+        state["sessions.json"]["issued"] = [session]
+        workflow.validate_documents(state)
+
+        for field, value, expected in (
+            ("github_issue_number", None, "required positive integer"),
+            ("github_issue_number", True, "expected a positive integer"),
+            ("github_pull_request_number", 0, "expected a positive integer"),
+            ("stage_id", "STAGE-404", "requires a known explicit stage"),
+        ):
+            with self.subTest(field=field, value=value):
+                invalid = copy.deepcopy(state)
+                invalid["sessions.json"]["issued"][0][field] = value
+                with self.assertRaisesRegex(workflow.ValidationError, expected):
+                    workflow.validate_documents(invalid)
+
+
 class WorkflowStoreTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
@@ -1400,6 +1428,294 @@ class WorkflowStoreTests(unittest.TestCase):
     def test_read_only_validation_creates_no_runtime_files(self) -> None:
         self.store.validate()
         self.assertFalse(self.runtime.exists())
+
+    def test_github_cutover_disables_legacy_issue_and_pr_authority_commands(self) -> None:
+        config = self.root / "workflow" / "github.json"
+        config.write_text("{}\n", encoding="utf-8")
+        parser = workflow.build_parser()
+        issue_payload = json.dumps(issue("QPBT-003", "planned"))
+        commands = [
+            ["init", "--missing-only"],
+            ["ready"],
+            ["add", "issue", "--json", issue_payload],
+            ["update", "issue", "QPBT-002", "--set", 'title="stale"'],
+            ["transition", "pr", "LPR-001", "closed"],
+        ]
+        state_before = {
+            path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())
+        }
+        events_before = self.events.read_bytes()
+
+        for command in commands:
+            with self.subTest(command=command), self.assertRaisesRegex(
+                workflow.WorkflowError,
+                "GitHub Issues and pull requests.*canonical",
+            ):
+                workflow.run_cli(
+                    parser.parse_args(["--root", str(self.root), *command])
+                )
+
+        self.assertEqual(
+            state_before,
+            {path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())},
+        )
+        self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_dispatch_requires_exact_explicit_config(self) -> None:
+        config = self.root / "workflow" / "github.json"
+        config.write_text("{}\n", encoding="utf-8")
+        candidate = planned_session("i002-reviewer-a01-github-config")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        parser = workflow.build_parser()
+        before = (self.state_dir / "sessions.json").read_bytes()
+        events_before = self.events.read_bytes()
+
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "requires --github-config workflow/github.json"
+        ):
+            workflow.run_cli(
+                parser.parse_args(
+                    [
+                        "--root",
+                        str(self.root),
+                        "dispatch",
+                        "--capacity",
+                        "1",
+                        "--session-id",
+                        str(candidate["id"]),
+                        "--dry-run",
+                    ]
+                )
+            )
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "must be exactly workflow/github.json"
+        ):
+            workflow.run_cli(
+                parser.parse_args(
+                    [
+                        "--root",
+                        str(self.root),
+                        "dispatch",
+                        "--capacity",
+                        "1",
+                        "--session-id",
+                        str(candidate["id"]),
+                        "--dry-run",
+                        "--github-config",
+                        "other.json",
+                    ]
+                )
+            )
+
+        self.assertEqual(before, (self.state_dir / "sessions.json").read_bytes())
+        self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_dispatch_uses_live_canonical_issue_projection(self) -> None:
+        config = self.root / "workflow" / "github.json"
+        config.write_text("{}\n", encoding="utf-8")
+        candidate = planned_session("i002-reviewer-a01-github-preflight")
+        candidate["github_issue_number"] = 2
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        bindings = (
+            github_workflow.IssueBinding("QPBT-001", 1, 101, "ISSUE1", "marker1"),
+            github_workflow.IssueBinding("QPBT-002", 2, 102, "ISSUE2", "marker2"),
+        )
+        authority = mock.Mock()
+        authority.issues = bindings
+        authority.issue_by_legacy_id.side_effect = lambda value: {
+            item.legacy_id: item for item in bindings
+        }[value]
+        repository = github_workflow.RepositorySnapshot(
+            github_workflow.RepositoryIdentity(
+                "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
+            ),
+            "main",
+            BASE_SHA,
+            "from-monorepo",
+        )
+        selected = github_workflow.IssueSnapshot(
+            "QPBT-002",
+            2,
+            102,
+            "ISSUE2",
+            "OPEN",
+            None,
+            "ready",
+            "formalization",
+            "QPBT-002",
+            ("kind:formalization", "status:ready"),
+            None,
+            None,
+            None,
+            None,
+            (),
+            (),
+            (1,),
+            ("QPBT-001",),
+        )
+        dependency = github_workflow.IssueSnapshot(
+            "QPBT-001",
+            1,
+            101,
+            "ISSUE1",
+            "CLOSED",
+            "COMPLETED",
+            "done",
+            "formalization",
+            "QPBT-001",
+            ("kind:formalization",),
+            None,
+            None,
+            None,
+            None,
+            (),
+            (),
+            (),
+            (),
+        )
+        snapshot = github_workflow.PreflightSnapshot(
+            repository,
+            BASE_SHA,
+            (selected, dependency),
+            (),
+        )
+        parser = workflow.build_parser()
+        arguments = parser.parse_args(
+            [
+                "--root",
+                str(self.root),
+                "dispatch",
+                "--capacity",
+                "1",
+                "--session-id",
+                str(candidate["id"]),
+                "--dry-run",
+                "--github-config",
+                "workflow/github.json",
+            ]
+        )
+        with mock.patch.object(
+            github_workflow, "load_authority", return_value=authority
+        ), mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ) as preflight:
+            result = workflow.run_cli(arguments)
+
+        self.assertEqual("ready", result["status"])
+        self.assertEqual([2], result["github_preflight"]["selected_issue_numbers"])
+        preflight.assert_called_once_with(
+            config.resolve(),
+            issue_numbers=[2],
+            pull_request_expectations=[],
+        )
+        self.assertEqual([], self.store.validate()["sessions.json"]["issued"])
+
+        guarded_store = workflow.WorkflowStore(
+            self.state_dir,
+            self.runtime,
+            self.events,
+        )
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "requires a live canonical issue projection"
+        ):
+            guarded_store.dispatch_sessions(
+                capacity=1,
+                session_ids=[str(candidate["id"])],
+                dry_run=True,
+            )
+
+    def test_github_cutover_dispatches_github_only_issue_without_shadow_row(self) -> None:
+        config = self.root / "workflow" / "github.json"
+        config.write_text("{}\n", encoding="utf-8")
+        candidate = planned_session("i028-reviewer-a01-live-contract")
+        candidate["issue_id"] = None
+        candidate["github_issue_number"] = 28
+        candidate["stage_id"] = "STAGE-01"
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        frozen_issues = (self.state_dir / "issues.json").read_bytes()
+        authority = mock.Mock()
+        authority.issues = ()
+        repository = github_workflow.RepositorySnapshot(
+            github_workflow.RepositoryIdentity(
+                "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
+            ),
+            "main",
+            BASE_SHA,
+            "from-monorepo",
+        )
+        selected = github_workflow.IssueSnapshot(
+            legacy_id=None,
+            number=28,
+            database_id=128,
+            node_id="ISSUE28",
+            state="OPEN",
+            state_reason=None,
+            status="ready",
+            kind="workflow",
+            title="live contract",
+            labels=("kind:workflow", "status:ready"),
+            parent_number=1,
+            parent_database_id=101,
+            parent_node_id="ISSUE1",
+            parent_legacy_id="QPBT-053",
+            child_numbers=(),
+            child_legacy_ids=(),
+            dependency_numbers=(),
+            dependency_legacy_ids=(),
+        )
+        snapshot = github_workflow.PreflightSnapshot(
+            repository,
+            BASE_SHA,
+            (selected,),
+            (),
+        )
+        parser = workflow.build_parser()
+        arguments = parser.parse_args(
+            [
+                "--root",
+                str(self.root),
+                "dispatch",
+                "--capacity",
+                "1",
+                "--stage",
+                "STAGE-01",
+                "--session-id",
+                str(candidate["id"]),
+                "--github-config",
+                "workflow/github.json",
+            ]
+        )
+        with mock.patch.object(
+            github_workflow, "load_authority", return_value=authority
+        ), mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ) as preflight:
+            result = workflow.run_cli(arguments)
+
+        self.assertEqual("issued", result["status"])
+        self.assertEqual([28], result["github_preflight"]["selected_issue_numbers"])
+        preflight.assert_called_once_with(
+            config.resolve(),
+            issue_numbers=[28],
+            pull_request_expectations=[],
+        )
+        issued = self.store.validate()["sessions.json"]["issued"][-1]
+        self.assertIsNone(issued["issue_id"])
+        self.assertEqual(28, issued["github_issue_number"])
+        self.assertEqual("STAGE-01", issued["stage_id"])
+        self.assertEqual(frozen_issues, (self.state_dir / "issues.json").read_bytes())
 
     def test_dispatch_batch_issues_available_prefix_when_capacity_is_exhausted(self) -> None:
         first = collaboration_planned_session("i002-reviewer-a01-batch")
@@ -2306,6 +2622,30 @@ class ResearchReconciliationTests(unittest.TestCase):
         self.state["stages.json"]["stages"][0]["subagents_issued"] = 0
         with self.assertRaisesRegex(workflow.ValidationError, "subagents_issued: expected 1"):
             self.validate_metric()
+
+    def test_postcutover_metric_reconciles_canonical_github_identity(self) -> None:
+        session = self.state["sessions.json"]["issued"][0]
+        session["issue_id"] = None
+        session["github_issue_number"] = 1
+        session["github_pull_request_number"] = 26
+        session["stage_id"] = "STAGE-01"
+        metric = {
+            "session_id": session["id"],
+            "issue_id": None,
+            "github_issue_number": 1,
+            "github_pull_request_number": 26,
+            "stage_id": "STAGE-01",
+        }
+        path = self.root / "research" / "metrics" / "sessions.jsonl"
+        path.write_text(json.dumps(metric) + "\n", encoding="utf-8")
+        check_workflow.validate_research_ledgers(self.root, self.state)
+
+        metric["github_issue_number"] = 2
+        path.write_text(json.dumps(metric) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(
+            workflow.ValidationError, "github_issue_number: expected 1, got 2"
+        ):
+            check_workflow.validate_research_ledgers(self.root, self.state)
 
 
 class EventLogTests(unittest.TestCase):

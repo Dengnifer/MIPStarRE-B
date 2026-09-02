@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Validate and update the local issue, PR, session, and stage ledgers.
+"""Validate local workflow compatibility data and authoritative execution state.
 
-The JSON files are the durable source of truth.  A single advisory lock protects
-cooperating writers, each changed file is replaced atomically, and a JSONL event
-is appended after a successful mutation.  Unknown object fields are preserved
-so the workflow can evolve without requiring a lock-step CLI release.
+GitHub owns issue and pull-request state after ``workflow/github.json`` appears.
+The local session, stage, and protocol files remain authoritative for execution
+evidence, while the issue and PR JSON files become legacy or derived
+compatibility projections. A single advisory lock protects cooperating local
+writers, each changed file is replaced atomically, and a JSONL event is appended
+after a successful mutation. Unknown object fields are preserved so the
+workflow can evolve without requiring a lock-step CLI release.
 """
 
 from __future__ import annotations
@@ -25,6 +28,7 @@ from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 
 
 SCHEMA_VERSION = 1
+GITHUB_AUTHORITY_CONFIG = Path("workflow/github.json")
 STATE_FILES = {
     "issue": ("issues.json", "issues"),
     "pr": ("prs.json", "pull_requests"),
@@ -73,7 +77,10 @@ DISPATCH_IMMUTABLE_FIELDS = {
     "backend",
     "role",
     "issue_id",
+    "github_issue_number",
     "pr_id",
+    "github_pull_request_number",
+    "stage_id",
     "parent_session_id",
     "attempt",
     "read_only",
@@ -199,6 +206,19 @@ def parse_timestamp(value: Any, location: str, errors: list[str], *, nullable: b
 
 def _is_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_positive_int(value: Any) -> bool:
+    return _is_int(value) and value > 0
+
+
+def _session_issue_key(session: Mapping[str, Any]) -> tuple[str, Any]:
+    """Return the canonical scheduling identity available on a session row."""
+
+    github_number = session.get("github_issue_number")
+    if _is_positive_int(github_number):
+        return "github", github_number
+    return "legacy", session.get("issue_id")
 
 
 def _require_keys(record: Mapping[str, Any], required: Iterable[str], location: str, errors: list[str]) -> None:
@@ -838,7 +858,6 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
     planned_ids = _validate_unique_ids(planned, "sessions.json.planned", errors)
     issued_ids = _validate_unique_ids(issued, "sessions.json.issued", errors)
     stage_ids = _validate_unique_ids(stages, "stages.json.stages", errors)
-    del stage_ids
     overlap = planned_ids & issued_ids
     if overlap:
         errors.append(f"sessions.json: ids appear in both planned and issued: {', '.join(sorted(overlap))}")
@@ -1007,8 +1026,23 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
         _require_keys(session, planned_required, loc, errors)
         _nonempty_string(session.get("role"), f"{loc}.role", errors)
         issue_id = session.get("issue_id")
-        if issue_id not in issue_ids:
+        github_issue_number = session.get("github_issue_number")
+        if issue_id is None:
+            if not _is_positive_int(github_issue_number):
+                errors.append(
+                    f"{loc}.github_issue_number: required positive integer when issue_id is null"
+                )
+        elif not isinstance(issue_id, str) or issue_id not in issue_ids:
             errors.append(f"{loc}.issue_id: unknown issue {issue_id!r}")
+        if github_issue_number is not None and not _is_positive_int(github_issue_number):
+            errors.append(f"{loc}.github_issue_number: expected a positive integer")
+        session_stage_id = session.get("stage_id")
+        if issue_id is None and session_stage_id not in stage_ids:
+            errors.append(
+                f"{loc}.stage_id: a GitHub-only session requires a known explicit stage"
+            )
+        elif session_stage_id is not None and session_stage_id not in stage_ids:
+            errors.append(f"{loc}.stage_id: unknown stage {session_stage_id!r}")
         if "status" in session and session.get("status") != "planned":
             errors.append(f"{loc}.status: planned records may only use 'planned'")
         if "attempt" in session and (not _is_int(session.get("attempt")) or session["attempt"] < 1):
@@ -1068,11 +1102,31 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
         if not isinstance(session_status, str) or session_status not in SESSION_STATUSES:
             errors.append(f"{loc}.status: invalid session status {session_status!r}")
         session_issue_id = session.get("issue_id")
-        if not isinstance(session_issue_id, str) or session_issue_id not in issue_ids:
+        github_issue_number = session.get("github_issue_number")
+        if session_issue_id is None:
+            if not _is_positive_int(github_issue_number):
+                errors.append(
+                    f"{loc}.github_issue_number: required positive integer when issue_id is null"
+                )
+        elif not isinstance(session_issue_id, str) or session_issue_id not in issue_ids:
             errors.append(f"{loc}.issue_id: unknown issue {session_issue_id!r}")
+        if github_issue_number is not None and not _is_positive_int(github_issue_number):
+            errors.append(f"{loc}.github_issue_number: expected a positive integer")
+        session_stage_id = session.get("stage_id")
+        if session_issue_id is None and session_stage_id not in stage_ids:
+            errors.append(
+                f"{loc}.stage_id: a GitHub-only session requires a known explicit stage"
+            )
+        elif session_stage_id is not None and session_stage_id not in stage_ids:
+            errors.append(f"{loc}.stage_id: unknown stage {session_stage_id!r}")
         pr_id = session.get("pr_id")
         if pr_id is not None and (not isinstance(pr_id, str) or pr_id not in pr_ids):
             errors.append(f"{loc}.pr_id: unknown PR {pr_id!r}")
+        github_pr_number = session.get("github_pull_request_number")
+        if github_pr_number is not None and not _is_positive_int(github_pr_number):
+            errors.append(
+                f"{loc}.github_pull_request_number: expected a positive integer"
+            )
         parent = session.get("parent_session_id")
         if parent is not None and (not isinstance(parent, str) or parent not in all_session_ids):
             errors.append(f"{loc}.parent_session_id: unknown session {parent!r}")
@@ -1104,7 +1158,7 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
         if base_revision is None:
             _nonempty_string(session.get("base_revision_reason"), f"{loc}.base_revision_reason", errors)
             issue = issue_by_id.get(session_issue_id, {}) if isinstance(session_issue_id, str) else {}
-            if _issue_execution_category(issue) == "implementation":
+            if session_issue_id is None or _issue_execution_category(issue) == "implementation":
                 errors.append(f"{loc}.base_revision: implementation sessions require an immutable Git SHA")
         else:
             _validate_sha(base_revision, f"{loc}.base_revision", errors)
@@ -1580,10 +1634,22 @@ def _fsync_directory(path: Path) -> None:
 class WorkflowStore:
     """Concurrency-safe access to the local workflow ledgers."""
 
-    def __init__(self, state_dir: Path, runtime_dir: Path, events_path: Path):
+    def __init__(
+        self,
+        state_dir: Path,
+        runtime_dir: Path,
+        events_path: Path,
+        github_authority_config: Path | None = None,
+    ):
         self.state_dir = state_dir
         self.runtime_dir = runtime_dir
         self.events_path = events_path
+        adjacent_config = state_dir.parent / "github.json"
+        self.github_authority_config = (
+            github_authority_config
+            if github_authority_config is not None
+            else (adjacent_config if adjacent_config.is_file() else None)
+        )
 
     @contextmanager
     def _lock(self, *, exclusive: bool) -> Any:
@@ -1776,6 +1842,8 @@ class WorkflowStore:
         session_overrides: Mapping[str, Mapping[str, Any]] | None = None,
         launch_confirmations: Mapping[str, str] | None = None,
         dry_run: bool = False,
+        issue_projection: Mapping[str, Mapping[str, Any]] | None = None,
+        canonical_issue_projection: Mapping[int, Mapping[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Plan and atomically confirm the available launched-session prefix.
 
@@ -1791,6 +1859,12 @@ class WorkflowStore:
         lease and import the real external identity after the runner returns.
         """
 
+        if self.github_authority_config is not None and (
+            issue_projection is None or canonical_issue_projection is None
+        ):
+            raise WorkflowError(
+                "GitHub-canonical dispatch requires a live canonical issue projection"
+            )
         with self._lock(exclusive=True):
             documents = self.load()
             validate_documents(documents)
@@ -1807,12 +1881,32 @@ class WorkflowStore:
                 session_overrides,
                 confirmations,
             )
+            planning_documents = documents
+            if issue_projection is not None:
+                planning_documents = copy.deepcopy(documents)
+                issues_by_id = {
+                    item["id"]: item
+                    for item in planning_documents["issues.json"]["issues"]
+                }
+                for issue_id, fields in issue_projection.items():
+                    issue = issues_by_id.get(issue_id)
+                    if issue is None:
+                        raise WorkflowError(
+                            f"canonical projection names unknown legacy issue {issue_id!r}"
+                        )
+                    if set(fields) != {"status", "parent_id", "dependency_ids"}:
+                        raise WorkflowError(
+                            "canonical issue projection has an invalid field set"
+                        )
+                    issue.update(copy.deepcopy(dict(fields)))
+                validate_documents(planning_documents)
             plan = plan_dispatch(
-                documents,
+                planning_documents,
                 capacity=capacity,
                 stage_id=stage_id,
                 session_ids=session_ids,
                 session_overrides=effective_overrides,
+                canonical_issue_projection=canonical_issue_projection,
             )
             # A blocked candidate invalidates the requested batch.  Capacity-only
             # queueing is different: issue the deterministic available prefix as
@@ -2063,7 +2157,12 @@ def active_non_coordinator_count(
         if session.get("role") == COORDINATOR_ROLE:
             continue
         if stage_id is not None:
-            mapped_stages = membership.get(session.get("issue_id"), [])
+            explicit_stage = session.get("stage_id")
+            mapped_stages = (
+                [explicit_stage]
+                if session.get("issue_id") is None and isinstance(explicit_stage, str)
+                else membership.get(session.get("issue_id"), [])
+            )
             if len(mapped_stages) > 1:
                 raise WorkflowError(
                     f"active session {session.get('id')!r} has ambiguous stage mapping"
@@ -2087,20 +2186,20 @@ def _duplicate_orchestrator_ids(
 
     if candidate.get("role") != "orchestrator":
         return []
-    issue_id = candidate.get("issue_id")
+    issue_key = _session_issue_key(candidate)
     candidate_id = candidate.get("id")
     duplicates: list[str] = []
     for session in documents["sessions.json"]["planned"]:
         if (
             session.get("id") != candidate_id
-            and session.get("issue_id") == issue_id
+            and _session_issue_key(session) == issue_key
             and session.get("role") == "orchestrator"
         ):
             duplicates.append(str(session.get("id")))
     for session in documents["sessions.json"]["issued"]:
         if (
             session.get("id") != candidate_id
-            and session.get("issue_id") == issue_id
+            and _session_issue_key(session) == issue_key
             and session.get("role") == "orchestrator"
             and session.get("status") in ACTIVE_SESSION_STATUSES
         ):
@@ -2238,6 +2337,7 @@ def plan_dispatch(
     stage_id: str | None = None,
     session_ids: Sequence[str] | None = None,
     session_overrides: Mapping[str, Mapping[str, Any]] | None = None,
+    canonical_issue_projection: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Plan a deterministic, capacity-bounded dispatch without changing state.
 
@@ -2271,6 +2371,33 @@ def plan_dispatch(
     planned = {
         session["id"]: session for session in documents["sessions.json"]["planned"]
     }
+    canonical_issues: dict[int, Mapping[str, Any]] = {}
+    for number, value in (canonical_issue_projection or {}).items():
+        if not _is_positive_int(number):
+            raise WorkflowError(
+                "canonical issue projection keys must be positive GitHub issue numbers"
+            )
+        if not isinstance(value, Mapping) or set(value) != {
+            "status",
+            "dependency_numbers",
+            "incomplete_dependency_numbers",
+        }:
+            raise WorkflowError("canonical issue projection has an invalid field set")
+        dependencies = value.get("dependency_numbers")
+        incomplete = value.get("incomplete_dependency_numbers")
+        if (
+            not isinstance(dependencies, list)
+            or any(not _is_positive_int(item) for item in dependencies)
+            or len(dependencies) != len(set(dependencies))
+            or not isinstance(incomplete, list)
+            or any(not _is_positive_int(item) for item in incomplete)
+            or len(incomplete) != len(set(incomplete))
+            or not set(incomplete).issubset(dependencies)
+        ):
+            raise WorkflowError(
+                "canonical issue projection has invalid dependency numbers"
+            )
+        canonical_issues[number] = value
     overrides = dict(session_overrides or {})
     if any(not isinstance(key, str) or not key.strip() for key in overrides):
         raise WorkflowError("dispatch override keys must be non-empty session IDs")
@@ -2288,6 +2415,10 @@ def plan_dispatch(
             session_id
             for session_id, session in planned.items()
             if stage_id is None
+            or (
+                session.get("issue_id") is None
+                and session.get("stage_id") == stage_id
+            )
             or stage_id in membership.get(session.get("issue_id"), [])
         )
     else:
@@ -2313,11 +2444,31 @@ def plan_dispatch(
             blocked.append({"id": session_id, "reason": "unknown-planned-session"})
             continue
         issue_id = session.get("issue_id")
-        issue = issues.get(issue_id)
-        if issue is None:
-            blocked.append({"id": session_id, "reason": "unknown-issue"})
-            continue
-        stage_membership = membership.get(issue_id, [])
+        canonical_issue = None
+        if issue_id is None:
+            github_number = session.get("github_issue_number")
+            canonical_issue = canonical_issues.get(github_number)
+            if canonical_issue is None:
+                blocked.append(
+                    {
+                        "id": session_id,
+                        "reason": "unknown-canonical-github-issue",
+                        "github_issue_number": github_number,
+                    }
+                )
+                continue
+            issue_status = canonical_issue.get("status")
+            explicit_stage = session.get("stage_id")
+            stage_membership = (
+                [explicit_stage] if isinstance(explicit_stage, str) else []
+            )
+        else:
+            issue = issues.get(issue_id)
+            if issue is None:
+                blocked.append({"id": session_id, "reason": "unknown-issue"})
+                continue
+            issue_status = issue.get("status")
+            stage_membership = membership.get(issue_id, [])
         if len(stage_membership) > 1:
             blocked.append(
                 {
@@ -2332,20 +2483,23 @@ def plan_dispatch(
                 {"id": session_id, "reason": "issue-not-in-stage", "stage_id": stage_id}
             )
             continue
-        if issue.get("status") not in DISPATCHABLE_ISSUE_STATUSES:
+        if issue_status not in DISPATCHABLE_ISSUE_STATUSES:
             blocked.append(
                 {
                     "id": session_id,
                     "reason": "issue-not-dispatchable",
-                    "issue_status": issue.get("status"),
+                    "issue_status": issue_status,
                 }
             )
             continue
-        incomplete = sorted(
-            dependency
-            for dependency in issue.get("dependency_ids", [])
-            if issues[dependency].get("status") != "done"
-        )
+        if canonical_issue is None:
+            incomplete = sorted(
+                dependency
+                for dependency in issue.get("dependency_ids", [])
+                if issues[dependency].get("status") != "done"
+            )
+        else:
+            incomplete = sorted(canonical_issue["incomplete_dependency_numbers"])
         if incomplete:
             blocked.append(
                 {
@@ -2920,6 +3074,194 @@ def _resolve(root: Path, value: str) -> Path:
     return path if path.is_absolute() else root / path
 
 
+def _github_authority_config(root: Path) -> Path | None:
+    """Return the committed GitHub authority config when cutover is active."""
+
+    candidate = root / GITHUB_AUTHORITY_CONFIG
+    return candidate if candidate.is_file() else None
+
+
+def _reject_legacy_github_authority(arguments: argparse.Namespace, root: Path) -> None:
+    """Fail closed when a local command would compete with canonical GitHub."""
+
+    if _github_authority_config(root) is None:
+        return
+    command = arguments.command
+    kind = getattr(arguments, "kind", None)
+    if command in {"init", "ready"} or (
+        command in {"add", "update", "transition"} and kind in {"issue", "pr"}
+    ):
+        raise WorkflowError(
+            "GitHub Issues and pull requests in Dengnifer/MIPStarRE-B are canonical; "
+            "this legacy local issue/PR authority command is disabled"
+        )
+
+
+def _required_github_config(arguments: argparse.Namespace, root: Path) -> Path | None:
+    """Bind dispatch to the one committed config after GitHub cutover."""
+
+    expected = _github_authority_config(root)
+    if expected is None:
+        return None
+    supplied = getattr(arguments, "github_config", None)
+    if supplied is None:
+        raise WorkflowError(
+            "GitHub-canonical dispatch requires --github-config workflow/github.json"
+        )
+    actual = _resolve(root, supplied).resolve()
+    expected = expected.resolve()
+    if actual != expected:
+        raise WorkflowError(
+            "GitHub-canonical dispatch config must be exactly workflow/github.json"
+        )
+    return expected
+
+
+def _github_dispatch_preflight(
+    store: "WorkflowStore",
+    config_path: Path | None,
+    session_ids: Sequence[str] | None,
+) -> tuple[
+    dict[str, dict[str, Any]] | None,
+    dict[int, dict[str, Any]] | None,
+    dict[str, Any] | None,
+]:
+    """Read canonical issue state and derive an in-memory dispatch projection."""
+
+    if config_path is None:
+        return None, None, None
+    try:
+        import github_workflow
+
+        authority = github_workflow.load_authority(config_path)
+        documents = store.validate()
+        planned = {
+            row.get("id"): row
+            for row in documents["sessions.json"]["planned"]
+            if isinstance(row.get("id"), str)
+        }
+        selected_ids = sorted(planned) if session_ids is None else sorted(session_ids)
+        selected_rows: list[tuple[Mapping[str, Any], int]] = []
+        selected_numbers: list[int] = []
+        for session_id in selected_ids:
+            row = planned.get(session_id)
+            if row is None:
+                raise WorkflowError(
+                    f"GitHub dispatch preflight names unknown planned session {session_id!r}"
+                )
+            legacy_id = row.get("issue_id")
+            github_number = row.get("github_issue_number")
+            if isinstance(legacy_id, str):
+                binding = authority.issue_by_legacy_id(legacy_id)
+                if github_number is not None and github_number != binding.number:
+                    raise WorkflowError(
+                        f"planned session {session_id!r} GitHub issue binding mismatch"
+                    )
+                github_number = binding.number
+            elif not _is_positive_int(github_number):
+                raise WorkflowError(
+                    f"planned session {session_id!r} lacks a canonical GitHub issue number"
+                )
+            selected_rows.append((row, github_number))
+            selected_numbers.append(github_number)
+        if len(selected_numbers) != len(set(selected_numbers)):
+            # Multiple roles on one issue are valid, so query that object once.
+            selected_numbers = sorted(set(selected_numbers))
+        snapshot = github_workflow.live_preflight(
+            config_path,
+            issue_numbers=selected_numbers,
+            pull_request_expectations=[],
+        )
+    except WorkflowError:
+        raise
+    except Exception as error:
+        if error.__class__.__name__ == "GitHubWorkflowError":
+            raise WorkflowError(f"GitHub dispatch preflight failed: {error}") from None
+        raise
+
+    snapshots = {item.number: item for item in snapshot.issues}
+    for _row, number in selected_rows:
+        issue = snapshots.get(number)
+        if issue is None:
+            raise WorkflowError("GitHub dispatch preflight omitted a selected issue")
+        if issue.state != "OPEN" or issue.status not in {
+            "ready",
+            "in-progress",
+            "review",
+        }:
+            raise WorkflowError(
+                f"GitHub issue #{number} is not dispatchable from status {issue.status!r}"
+            )
+
+    local_issues = {
+        item["id"]: item for item in documents["issues.json"]["issues"]
+    }
+    migrated_ids = {item.legacy_id for item in authority.issues}
+    projection: dict[str, dict[str, Any]] = {}
+    status_map = {
+        "planned": "planned",
+        "ready": "ready",
+        "in-progress": "in_progress",
+        "review": "review",
+        "blocked": "blocked",
+        "done": "done",
+        "not-planned": "cancelled",
+    }
+    canonical_projection: dict[int, dict[str, Any]] = {}
+    for _row, number in selected_rows:
+        issue = snapshots[number]
+        incomplete = [
+            dependency_number
+            for dependency_number in issue.dependency_numbers
+            if (
+                snapshots[dependency_number].state != "CLOSED"
+                or snapshots[dependency_number].state_reason != "COMPLETED"
+            )
+        ]
+        canonical_projection[number] = {
+            "status": status_map[issue.status],
+            "dependency_numbers": list(issue.dependency_numbers),
+            "incomplete_dependency_numbers": sorted(incomplete),
+        }
+    for issue in snapshot.issues:
+        legacy_id = issue.legacy_id
+        if legacy_id is None:
+            continue
+        local = local_issues.get(legacy_id)
+        if local is None:
+            raise WorkflowError(
+                f"GitHub issue #{issue.number} lacks its frozen compatibility row"
+            )
+        if local.get("kind") != issue.kind:
+            raise WorkflowError(f"GitHub issue #{issue.number} kind projection mismatch")
+        archived_dependencies = [
+            dependency
+            for dependency in local.get("dependency_ids", [])
+            if dependency not in migrated_ids
+        ]
+        dependencies = sorted(
+            {*archived_dependencies, *issue.dependency_legacy_ids}
+        )
+        parent_id = issue.parent_legacy_id
+        if parent_id is None and local.get("parent_id") not in migrated_ids:
+            parent_id = local.get("parent_id")
+        projection[legacy_id] = {
+            "status": status_map[issue.status],
+            "parent_id": parent_id,
+            "dependency_ids": dependencies,
+        }
+    evidence = {
+        "repository": snapshot.repository.identity.full_name,
+        "base_ref": snapshot.repository.base_ref,
+        "base_sha": snapshot.repository.base_sha,
+        "selected_issue_numbers": selected_numbers,
+        "selected_statuses": {
+            str(number): snapshots[number].status for number in selected_numbers
+        },
+    }
+    return projection, canonical_projection, evidence
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=str(Path(__file__).resolve().parents[1]), help="repository root")
@@ -2971,6 +3313,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     issue_session.add_argument("--stage", help="optional stage scope for the dispatch")
     issue_session.add_argument(
+        "--github-config",
+        help="exact repository authority config required after GitHub cutover",
+    )
+    issue_session.add_argument(
         "--launched-external-id",
         help="immutable external thread ID returned by the already-successful backend launch",
     )
@@ -2988,6 +3334,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="explicit active non-coordinator session capacity (required)",
     )
     dispatch.add_argument("--stage", help="scope capacity and candidates to one stage")
+    dispatch.add_argument(
+        "--github-config",
+        help="exact repository authority config required after GitHub cutover",
+    )
     dispatch.add_argument(
         "--session-id",
         action="append",
@@ -3023,6 +3373,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run_cli(arguments: argparse.Namespace) -> Any:
     root = Path(arguments.root).resolve()
+    _reject_legacy_github_authority(arguments, root)
     store = WorkflowStore(
         _resolve(root, arguments.state_dir),
         _resolve(root, arguments.runtime_dir),
@@ -3137,6 +3488,14 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             transition_record,
         )
     if arguments.command == "issue-session":
+        github_config = _required_github_config(arguments, root)
+        (
+            issue_projection,
+            canonical_issue_projection,
+            github_evidence,
+        ) = _github_dispatch_preflight(
+            store, github_config, [arguments.id]
+        )
         additions = _load_json_argument(arguments.json, arguments.file)
         if not isinstance(additions, Mapping):
             raise WorkflowError("issue-session additions must be a JSON object")
@@ -3150,6 +3509,8 @@ def run_cli(arguments: argparse.Namespace) -> Any:
                 if arguments.launched_external_id is not None
                 else None
             ),
+            issue_projection=issue_projection,
+            canonical_issue_projection=canonical_issue_projection,
         )
         if result.get("status") != "issued":
             # Queue/block responses retain the planner envelope so callers can
@@ -3170,13 +3531,23 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             raise WorkflowError(
                 f"issued session {arguments.id!r} disappeared after dispatch"
             )
+        if github_evidence is not None:
+            issued_record["github_preflight"] = github_evidence
         return issued_record
     if arguments.command == "dispatch":
+        github_config = _required_github_config(arguments, root)
+        (
+            issue_projection,
+            canonical_issue_projection,
+            github_evidence,
+        ) = _github_dispatch_preflight(
+            store, github_config, arguments.session_ids
+        )
         overrides = _load_dispatch_overrides(
             arguments.overrides_json,
             arguments.overrides_file,
         )
-        return store.dispatch_sessions(
+        result = store.dispatch_sessions(
             capacity=arguments.capacity,
             stage_id=arguments.stage,
             session_ids=arguments.session_ids,
@@ -3185,7 +3556,12 @@ def run_cli(arguments: argparse.Namespace) -> Any:
                 arguments.confirm_launched
             ),
             dry_run=arguments.dry_run,
+            issue_projection=issue_projection,
+            canonical_issue_projection=canonical_issue_projection,
         )
+        if github_evidence is not None:
+            result["github_preflight"] = github_evidence
+        return result
     raise WorkflowError(f"unsupported command {arguments.command!r}")
 
 

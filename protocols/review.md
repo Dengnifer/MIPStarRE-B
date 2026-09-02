@@ -1,4 +1,4 @@
-# Local Review Protocol
+# Review Protocol
 
 ## Gate order
 
@@ -12,9 +12,24 @@ dispatch is currently disabled because read-only execution does not confine
 reads to authorized evidence. The deterministic offline path constructs a
 projected evidence repository and invokes only an injected non-`codex` test
 double; it does not establish a production isolation boundary. Reviewers may
-inspect paper sources,
-blueprint entries, definitions, callers, and build logs. They may not edit,
-commit, launch fix agents, change state, or approve their own work.
+inspect paper sources, blueprint entries, definitions, callers, and build logs.
+They may not edit,
+commit, launch fix agents, change state, push, or perform any GitHub mutation.
+They return a verdict and exact report to the root coordinator; they never
+submit a GitHub review themselves.
+
+Each review packet binds exactly `Dengnifer/MIPStarRE-B`, the canonical GitHub
+PR number, immutable base/head SHAs, the stable reviewer session name, and the
+immutable external reviewer identity. The root is the only GitHub writer. It
+runs the adapter preflight, posts the returned report byte-for-byte, and applies
+the matching `review:*` label. Every writing `gh` command includes
+`--repo Dengnifer/MIPStarRE-B`. The root account shown on the comment is only
+transport identity and must not replace, abbreviate, or impersonate the reviewer
+identity carried by the report.
+A `review:*` label is transport state only. Before integration, the adapter
+must GET and bind the exact posted comment ID, node ID, body SHA-256, reviewer
+session name, immutable external identity, verdict, and reviewed base/head; the
+root also verifies that identity is not an implementer or orchestrator.
 
 ## Execution bounds
 
@@ -159,7 +174,8 @@ and is never interpolated into reviewer authority.
 
 ## Code and mathematical review
 
-Review only the local PR delta, but inspect enough surrounding code to verify it.
+Review only the canonical GitHub PR delta at its immutable base/head SHAs, but
+inspect enough surrounding code to verify it.
 Priorities are:
 
 1. mathematical truth and exact paper-statement fidelity;
@@ -186,10 +202,18 @@ the formal encoding. A readable but inaccurate blueprint fails review.
 
 ## Findings ledger
 
-Each review round is tied to one head SHA. Findings have stable IDs, severity,
-path/line when available, body, status, and disposition. The implementer may
-mark `fixed` or `rejected` with evidence; only a fresh reviewer confirms
-`resolved`. A changed head invalidates approval.
+The canonical findings thread is the GitHub PR. Each posted review round is tied
+to one PR number and immutable base/head SHA pair and includes the exact stable
+reviewer session name and immutable external identity. The local session ledger
+and immutable report artifact retain execution and digest evidence; they do not
+replace the GitHub thread. The root never edits or deletes a posted report to
+make a later state appear earlier.
+
+Findings have stable IDs, severity, path/line when available, body, status, and
+disposition. The implementer may return `fixed` or `rejected` with evidence;
+the root transports that exact disposition to GitHub, and only a fresh reviewer
+confirms `resolved`. A changed head invalidates approval and requires
+`review:required` before another review round.
 
 Resolution evidence is permanent. Once a finding is resolved, its status,
 disposition, disposition evidence, and `resolved_by_review_id` are immutable.
@@ -200,22 +224,27 @@ resolution and every preceding confirmation, and names an existing formal
 review on the same PR whose read-only reviewer is independent and terminal.
 Review lists and per-finding confirmation lists are append-only.
 
-An `approved` or `merged` PR requires every finding to be resolved and requires
-either its original resolution review or an appended confirmation review to
-bind the exact current base/head. A later head therefore preserves all prior
-dispositions and confirmations but invalidates approval until another current
-approving review is appended where needed. A `request_changes` round may be the
-original resolution review for one finding while introducing another; it is not
-an approving reconfirmation.
+Approval or merge requires every finding to be resolved and requires either its
+original resolution review or an appended confirmation review to bind the exact
+current base/head. A later head therefore preserves all prior dispositions and
+confirmations but invalidates `review:approved` until another current approving
+review is appended where needed. A `request_changes` round may be the original
+resolution review for one finding while introducing another; it is not an
+approving reconfirmation.
 
 Verdicts are `approve`, `request_changes`, or `blocked`. Any blocker or
 unresolved correctness finding yields `request_changes`. Reviewer failure,
 timeout, or unavailable evidence yields `blocked`, never implicit approval.
+After adapter preflight, the root posts the exact report and maps `approve` to
+`review:approved`, `request_changes` to `review:changes-requested`, and
+`blocked` to `review:required`. Applying a label without the exact current report
+is forbidden. The root does not use its own GitHub review action to impersonate
+the independent reviewer.
 
 ## Completion audit
 
-A fresh read-only auditor inspects the issue gates, child reports, diff, git
-state, builds, reviews, source links, remaining TODO/proof debt, metrics, and
-protocol incidents. It returns one of: stop; one concrete next action; at most
-five bounded options; or a necessary user question. Its report does not mutate
-state.
+A fresh read-only auditor inspects the canonical GitHub issue and PR gates,
+child reports, diff, git state, builds, exact posted reviews, source links,
+remaining TODO/proof debt, metrics, and protocol incidents. It returns one of:
+stop; one concrete next action; at most five bounded options; or a necessary
+user question. Its report does not mutate local state or GitHub.

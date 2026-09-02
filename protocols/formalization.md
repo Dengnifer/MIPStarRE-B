@@ -69,6 +69,9 @@ closures for unintended proof debt.
 
 If the source omits a needed step, appears false, or differs from the intended
 Lean domain, create a self-contained note under `docs/paper-gaps/` and a linked
-issue. State the paper claim, exact formal obstruction, smallest faithful
-restricted result if any, and discharge/repair plan. A paper-gap note documents
-debt; it does not authorize advertising a conditional helper as the paper result.
+canonical GitHub issue in `Dengnifer/MIPStarRE-B`. A role agent prepares the
+exact issue payload; only the root coordinator runs the adapter preflight and
+performs the GitHub write. State the paper claim, exact formal obstruction,
+smallest faithful restricted result if any, and discharge/repair plan. A
+paper-gap note documents debt; it does not authorize advertising a conditional
+helper as the paper result.

@@ -1,5 +1,47 @@
 # Protocol Changelog
 
+## 0.2.0 candidate (GitHub #1 / QPBT-053) - 2026-09-02
+
+The user directly replaced local issue and PR authority with GitHub Issues and
+pull requests in exactly `Dengnifer/MIPStarRE-B`. Repository database ID
+`1352436168`, node ID `R_kgDOUJyJyA`, explicit integration base `main`, and
+cutover main `4a6683795a71712d6a5c52b7539c2f532fd39f71` are bound in a committed,
+credential-free adapter config and immutable migration manifest. The umbrella
+repository and every other repository remain outside write authority.
+
+Twenty-four still-open legacy issues plus the cutover issue are canonical
+GitHub issues. Twenty-nine completed legacy issues remain in the frozen local
+archive rather than receiving fabricated timestamps. The migration preserves
+stable QPBT/LPR provenance markers while making GitHub numbers canonical. It
+also migrates 21 native parent links and 13 native blocked-by links wherever
+both endpoints exist; prose links are not a parallel graph. Two exact legacy
+candidate branches and PRs are published with immutable base/head bindings.
+
+The repository adapter is dependency-free and GET-only. It validates exact
+repository IDs, configured `main` lineage, migration bindings, issue status and
+kind labels, native hierarchy/dependencies, PR base/head, and optional exact
+identity-bearing review comments. A review label is transport state, never
+approval authority by itself. Guarded integration binds the posted comment ID,
+node ID, body SHA-256, stable reviewer session name, immutable external
+identity, verdict, and reviewed base/head, while rejecting implementer or
+orchestrator identities supplied by the caller.
+
+Local `issues.json` and `prs.json` are frozen history or derived compatibility
+data. Once `workflow/github.json` exists, legacy init/readiness and issue/PR
+mutation commands fail closed. Dispatch requires that exact config and a live
+canonical preflight. Post-cutover local session evidence may carry a canonical
+GitHub issue/PR number without inventing a legacy issue row; historical rows
+remain compatible. Session, metrics, cache, and immutable review artifacts stay
+local, and the singleton hot-main build protocol is unchanged.
+
+The server default branch is still `from-monorepo` because the current token
+lacks repository-administration permission. This is nonblocking: every PR
+creation explicitly uses `--base main`, the adapter distinguishes configured
+integration base from server default, and the owner-only settings change is
+tracked plainly. Fresh immutable review, aggregate validation, one coherent
+commit, explicit-repository push, and GitHub PR integration are required before
+activation.
+
 ## 0.1.10 candidate (QPBT-045) - 2026-09-02
 
 INC-060 is the second occurrence of

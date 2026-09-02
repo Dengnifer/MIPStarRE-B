@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "repository": {
+    "owner": "Dengnifer",
+    "name": "MIPStarRE-B",
+    "database_id": 1352436168,
+    "node_id": "R_kgDOUJyJyA"
+  },
+  "base_ref": "main",
+  "cutover_manifest": "github-cutover.json"
+}
