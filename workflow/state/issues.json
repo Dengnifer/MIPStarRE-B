@@ -2834,6 +2834,52 @@
       "updated_at": "2026-09-02T20:44:20.471120Z",
       "blocked_reason": null,
       "unblock_condition": null
+    },
+    {
+      "id": "QPBT-055",
+      "title": "docs(blueprint): record CL structural proof defects",
+      "kind": "blueprint",
+      "execution_category": "preflight",
+      "status": "in_progress",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-035"
+      ],
+      "labels": [
+        "blueprint",
+        "paper-gap",
+        "conditionally-linear",
+        "f06",
+        "source-fidelity"
+      ],
+      "acceptance_gates": [
+        "Record that conditionally-linear.tex:126-129 assigns V_1 = V and V_{>1} = {0} with zero maps, so the displayed construction yields the zero function rather than embedding an arbitrary lower-level CL function",
+        "Record that conditionally-linear.tex:425-428 and 453-455 index an original-field linear map by a downsized prefix, and that the proof of the ell >= 0 downsize lemma omits ell = 0",
+        "Link reciprocal numbered paper-gap notes to F06-CL; use empty-head/full-tail level raising, source-prefix pullback in conjugation, and the existing zero certificate for ell = 0 without changing any frozen F06 public signature",
+        "Preserve the separate already-recorded V x V seed typo and do not alter F06A or F07 ownership",
+        "Regenerate blueprint outputs byte-idempotently and pass blueprint unit/default/pinned-source, reference, workflow, and diff-hygiene gates"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:122-130,409-455",
+        "workflow/reviews/qpbt-038-types-decomposition-a02.md",
+        "/tmp/i038-scout-a03-f06.md",
+        "/tmp/i038-scout-a03-downsize.md",
+        "workflow/reviews/qpbt-035-q014-contract-a04.md#F06-A04-SIGNATURES",
+        "blueprint/metadata/nodes.json#F06-CL"
+      ],
+      "owned_paths": [
+        "blueprint/metadata/gaps.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/generated/graph.json",
+        "blueprint/src/generated/gaps.tex",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "workflow/reviews/qpbt-055-level-raise-gap-a01.md"
+      ],
+      "created_at": "2026-09-02T21:01:19Z",
+      "updated_at": "2026-09-02T21:04:31.497511Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     }
   ]
 }

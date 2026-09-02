@@ -190,6 +190,26 @@
       "disposition": "Require concrete intrinsic FieldExponentProgram data at the faithful Lean executable boundary and define TIME_S(n) to charge both its execution and the sampler's valid queries. Do not fabricate or assert an arbitrary admissible-family-to-machine theorem.",
       "public_effect": "The executable boundary expands TIME_S(n) to charge intrinsic exponent computation; mathematical admissible-family statements are unchanged, and no arbitrary family-to-machine premise or theorem is exposed.",
       "issue": "QPBT-054"
+    },
+    {
+      "id": "G20",
+      "class": "incorrect-construction",
+      "source": "conditionally-linear.tex:126-129 [2288-2291]",
+      "affected_nodes": ["F06-CL"],
+      "paper_problem": "The level-raising remark sets V_1 = V and V_{>1} = {0} while making both the head and recursive-tail maps zero. Under the paper's recursive definition this constructs only the zero function, not an arbitrary lower-level conditionally-linear function.",
+      "disposition": "Prepend an empty head register with the zero head map and retain the full register and original function in the recursive tail. This increases the certificate level without changing the realized function.",
+      "public_effect": "Internal proof repair only; the source-faithful F06 definitions and theorem statements are unchanged.",
+      "issue": "QPBT-055"
+    },
+    {
+      "id": "G21",
+      "class": "index-typo-and-omitted-case",
+      "source": "conditionally-linear.tex:411-418,425-428,432-455 [2573-2580,2587-2590,2594-2617]",
+      "affected_nodes": ["F06-CL"],
+      "paper_problem": "The downsize statement and proof index an original-field linear map by the downsized prefix downsize(u), although its source-domain index is u. The lemma allows level zero, but its induction proof starts at level one and omits the zero case.",
+      "disposition": "Pull a downsized prefix back through the coordinate equivalence before selecting the original linear map, then conjugate that map. Discharge level zero directly with the unique zero certificate.",
+      "public_effect": "Internal typing and proof-completeness repairs only; the F06 map and sampler downsize statements are unchanged.",
+      "issue": "QPBT-055"
     }
   ]
 }

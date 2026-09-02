@@ -215,7 +215,8 @@
         "QPBT-050",
         "QPBT-051",
         "QPBT-052",
-        "QPBT-054"
+        "QPBT-054",
+        "QPBT-055"
       ],
       "started_at": "2026-08-30T19:45:39.120486Z",
       "ended_at": null,
@@ -226,14 +227,15 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 265,
+      "subagents_issued": 266,
       "max_concurrency": 4,
       "outputs": [
         "research/report.md",
         "workflow/reviews/qpbt-018-021-closure-evidence-a18.md",
         "workflow/reviews/qpbt-031-032-cache-warm-a01.md",
         "workflow/reviews/qpbt-037-fourier-scout-a14.md",
-        "workflow/reviews/qpbt-038-unblock-scout-a13.md"
+        "workflow/reviews/qpbt-038-unblock-scout-a13.md",
+        "workflow/reviews/qpbt-055-level-raise-gap-a01.md"
       ],
       "incident_ids": [
         "INC-021",

@@ -2185,9 +2185,12 @@
       "consumers": [
         "F06A-EXECUTABLE-CL"
       ],
-      "encoding": "The certificate is indexed by the current coordinate register, level, and realized function. Level zero certifies only the zero map; a successor partitions the register into disjoint complementary head/tail sets, applies a supported linear head map, and selects a recursively certified tail function by an element of the head-map range. Samplers map one uniform ambient vector to an explicit pair PMF. CLSampler.sample_directSum identifies the summed sampler with the independent product PMF after reindexing both left/right outputs by Fin.append.",
+      "encoding": "The certificate is indexed by the current coordinate register, level, and realized function. Level zero certifies only the zero map; a successor partitions the register into disjoint complementary head/tail sets, applies a supported linear head map, and selects a recursively certified tail function by an element of the head-map range. Level raising repairs G20 internally by prepending an empty zero head and retaining the original function on the full recursive tail. Downsize repairs G21 internally by pulling prefixes back through the coordinate equivalence before conjugating each source map and by handling level zero with the existing zero certificate. Samplers map one uniform ambient vector to an explicit pair PMF. CLSampler.sample_directSum identifies the summed sampler with the independent product PMF after reindexing both left/right outputs by Fin.append.",
       "fidelity": "faithful-boundary",
-      "gap_ids": [],
+      "gap_ids": [
+        "G20",
+        "G21"
+      ],
       "id": "F06-CL",
       "implementation_contract": {
         "allowed_minimal_sorries": [],
@@ -3928,7 +3931,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "145a38360b63feb7a6af2fab7385d32f4c2ce8620090b1b9d9c0290ab667f104",
+  "source_sha256": "eab1f9746d2c11693596bd6039e36d770662549610754985bdb1b219c98cf4a8",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
