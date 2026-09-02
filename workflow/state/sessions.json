@@ -1,6 +1,43 @@
 {
   "schema_version": 1,
-  "planned": [],
+  "planned": [
+    {
+      "id": "i057-orchestrator-a01-f06a",
+      "name": "i057-orchestrator-a01-f06a",
+      "role": "orchestrator",
+      "issue_id": "QPBT-057",
+      "attempt": 1,
+      "dispatch_condition": "QPBT-056 is done, exact main 20745fe passed the singleton 8,992-job cache warm, and QPBT-057 is dependency-ready.",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "20745fe45450276db3c2130d2631d863e8346ba3",
+      "base_revision_reason": "Exact proof-complete F06 integration commit with published recipe-v7 cache key 33332823.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-057-f06a-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-057-f06a-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, the QPBT-057 issue, exact F06A marker in workflow/reviews/qpbt-054-f06a-repair-a04.md, pinned paper ranges, blueprint node/gap, current Types.lean, and FinTM2 APIs before editing. Orchestrate bounded read-only/source/prover/simplifier subagents where independent and report their stable names/results to root; do not let them overlap writable files. Implement exactly the frozen 56 public declarations proof-completely with the four-import union, genuine executions/resources, exact maps/PMFs/dimension/codec/runtime theorem, and no sorry/admit/axiom/constant/public obligations. Use only the seeded private worktree cache. Iterate with scoped lake env lean; perform one full build only after stability. Run exact signature/import/debt/blueprint/source gates, write the owned report, commit coherent checkpoints, and return exact identity/metrics.",
+      "result_envelope_path": "workflow/reviews/qpbt-057-f06a-a01.md",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": null,
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null
+    }
+  ],
   "issued": [
     {
       "id": "i001-coordinator-a01-bootstrap",
@@ -26441,6 +26478,74 @@
         "read_only_exec_invocations": 8
       },
       "timing_note": "Canonical elapsed is registration-to-finish; the reviewer independently measured 87 seconds from authentication start through report completion."
+    },
+    {
+      "id": "i051-integrator-a02-pr034-bind",
+      "name": "i051-integrator-a02-pr034-bind",
+      "role": "integrator",
+      "issue_id": "QPBT-051",
+      "attempt": 2,
+      "dispatch_condition": "LPR-034 is draft with six passed candidate checks; bind one writable no-byte-change adoption session before immutable security review.",
+      "pr_id": "LPR-034",
+      "read_only": false,
+      "base_revision": "20745fe45450276db3c2130d2631d863e8346ba3",
+      "base_revision_reason": "Clean canonical merge checkpoint containing the approved and integrated F06 candidate plus the draft LPR-034 record.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-051-pr034-bind-a02",
+      "owned_paths": [
+        "workflow/reviews/qpbt-051-pr034-bind-a02.md"
+      ],
+      "validation_command": "Read AGENTS.md and protocols/review.md. Authenticate exact LPR-034 base/head/tree/sole parent, six changed paths and blobs/file hashes, binary patch SHA-256, 6/6 checks, writer report, issue review state, and clean candidate worktree. Pay attention to complete input preflight identity and prepare sequencing. Write and commit only workflow/reviews/qpbt-051-pr034-bind-a02.md; do not change candidate bytes and do not run Lean, Lake, build, cache, materialization, network, endpoint, GitHub, credentials, or nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-051-pr034-bind-a02.md",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "status": "archived",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i051_integrator_a02_pr034_bind",
+      "started_at": "2026-09-02T23:14:10.425175Z",
+      "ended_at": "2026-09-02T23:20:41.874483Z",
+      "elapsed_seconds": 391.449,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-051-pr034-bind-a02.md",
+      "run_outcome": "candidate-identity-bound-without-byte-change",
+      "report_sha256": "7d7b73ed95401f2da7d81afdf972a01986555602a4fa42a8f965ff0ba5bdf896",
+      "timing_quality": "runtime-measured",
+      "agent_measured_elapsed_seconds": 316.93921,
+      "checks": {
+        "binding_commit": "c1524aba344495dc69aabec6912d9fed94ae06ed",
+        "binding_tree": "d152a767d26189825edfa84d7f79e3b25b0996bf",
+        "binding_parent": "20745fe45450276db3c2130d2631d863e8346ba3",
+        "report_blob": "a06423d44182a994689bd400226cc8ca37811118",
+        "report_sha256": "7d7b73ed95401f2da7d81afdf972a01986555602a4fa42a8f965ff0ba5bdf896",
+        "candidate_base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+        "candidate_head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+        "candidate_tree": "f504453fa9da540e5a3953e4c1710c9c1e48760f",
+        "candidate_parent_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+        "candidate_patch_sha256": "c083e3a1389cf63dd39f19027f25ae7fd00ef43317e8b62f4d065b1827d5cada",
+        "path_manifest_sha256": "a69bde5df2ed20eaa1d904c72533ad6773895494634c5a14d4ae24638efac9b1",
+        "registered_checks": "6/6 passed",
+        "changed_paths": "6/6",
+        "candidate_byte_changes": 0,
+        "lean": 0,
+        "lake": 0,
+        "builds": 0,
+        "cache_actions": 0,
+        "materializations": 0,
+        "network": 0,
+        "endpoint": 0,
+        "github": 0,
+        "credentials": 0,
+        "nested_agents": 0,
+        "sandbox_denials": 1,
+        "successful_commits": 1
+      },
+      "timing_note": "Canonical elapsed is registration-to-finish. The agent independently measured 316.939210 seconds from dispatch through final inspection; token usage is unavailable and not estimated."
     }
   ]
 }

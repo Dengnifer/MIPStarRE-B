@@ -8388,7 +8388,7 @@
     {
       "id": "LPR-033",
       "title": "feat(QPBT/Game): implement mathematical CL maps and samplers",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-056"
       ],
@@ -8500,17 +8500,17 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "20745fe45450276db3c2130d2631d863e8346ba3",
+      "merged_at": "2026-09-02T23:19:55.632117Z",
       "created_at": "2026-09-02T22:23:16.245583Z",
-      "updated_at": "2026-09-02T23:01:30.100557Z",
+      "updated_at": "2026-09-02T23:19:55.632117Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Types.lean",
         "workflow/reviews/qpbt-056-f06-a01.md"
       ],
       "motivation": "Land the proof-complete mathematical conditionally-linear layer required by the QPBT game and its executable successor.",
       "description": "Implement recursive CL certificates and arbitrary maps, level raising, direct sums, binary coordinate downsizing with the documented G21 repairs, shared-seed samplers, and exact PMF direct-sum and downsize laws.",
-      "testing": "Scoped Lean, exact API probe, affected target, private full build, blueprint and pinned-source synchronization, reference verification, declaration/import/debt scans, workflow validation, and immutable candidate authentication passed.",
+      "testing": "Scoped Lean, exact API probe, affected target, candidate private full build, blueprint and pinned-source synchronization, reference verification, declaration/import/debt scans, immutable review, guarded merge authentication, and exact-main 8,992-job hot-cache build passed.",
       "addresses": "QPBT-056",
       "provenance_session_ids": [
         "i056-orchestrator-a01-f06",
@@ -8521,7 +8521,136 @@
         "i056-integrator-a02-pr033-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable review approved the exact candidate; guarded integration and post-integration verification remain."
+      "unexecuted_gate": "All LPR-033 gates passed; issue closure remains.",
+      "post_integration": {
+        "commit": "20745fe45450276db3c2130d2631d863e8346ba3",
+        "tree": "c8be3a058203b155491847bac50caface74a8fb0",
+        "status": "passed",
+        "completed_at": "2026-09-02T23:17:24.843148Z",
+        "result_path": "workflow/reviews/qpbt-056-postintegration-cache-a04.md",
+        "cache_key": "333328233009df561dab57c57c4b05d74e61d217c62c8d429bfef2130c8b37be",
+        "manifest_sha256": "1793994452f499eaa7e60803cfc7b95ab6fe26905e6f216cb147894234c7a867",
+        "build_jobs": 8992,
+        "wall_seconds": 766.973942
+      }
+    },
+    {
+      "id": "LPR-034",
+      "title": "feat(cache): add authenticated input preflight",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-051"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-051-preflight-a01",
+      "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+      "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+      "implementer_session_ids": [
+        "i051-integrator-a02-pr034-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-051-auth",
+          "name": "QPBT-051 immutable candidate authentication",
+          "command": "Authenticate exact commit, tree, sole parent, exact six-path diff, blobs, SHA-256 digests, binary patch, and clean worktree",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "completed_at": "2026-09-02T22:58:54.593050Z",
+          "result_path": "workflow/reviews/qpbt-051-input-preflight.md",
+          "result": "head 76760669, tree f504453f, sole parent e8b790a3, exact six paths, clean worktree, patch SHA-256 c083e3a1"
+        },
+        {
+          "id": "check-qpbt-051-compile",
+          "name": "QPBT-051 Python compilation",
+          "command": "python3 -m compileall -q scripts tests",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "completed_at": "2026-09-02T22:58:54.593050Z",
+          "result_path": "workflow/reviews/qpbt-051-input-preflight.md",
+          "result": "Python compilation passed"
+        },
+        {
+          "id": "check-qpbt-051-focused",
+          "name": "QPBT-051 focused hot-cache tests",
+          "command": "python3 -m unittest tests.test_hot_main_cache -v",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "completed_at": "2026-09-02T22:58:54.593050Z",
+          "result_path": "workflow/reviews/qpbt-051-input-preflight.md",
+          "result": "66/66 passed"
+        },
+        {
+          "id": "check-qpbt-051-workflow-tests",
+          "name": "QPBT-051 workflow checker and ledger tests",
+          "command": "python3 -m unittest tests.test_check_workflow tests.test_workflow -v",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "completed_at": "2026-09-02T22:58:54.593050Z",
+          "result_path": "workflow/reviews/qpbt-051-input-preflight.md",
+          "result": "3/3 checker tests and 77/77 workflow tests passed"
+        },
+        {
+          "id": "check-qpbt-051-aggregate",
+          "name": "QPBT-051 aggregate repository tests",
+          "command": "python3 -m unittest discover -s tests -v; rerun the exact two Unix-socket tests outside the sandbox",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "completed_at": "2026-09-02T22:58:54.593050Z",
+          "result_path": "workflow/reviews/qpbt-051-input-preflight.md",
+          "result": "361/363 passed in the sandbox; both sandbox-denied Unix-socket tests passed separately, for an effective 363/363"
+        },
+        {
+          "id": "check-qpbt-051-hygiene",
+          "name": "QPBT-051 scope, diff, and workflow hygiene",
+          "command": "git diff --check; python3 scripts/workflow.py validate",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "completed_at": "2026-09-02T22:58:54.593050Z",
+          "result_path": "workflow/reviews/qpbt-051-input-preflight.md",
+          "result": "Exact ownership, whitespace, and workflow validation gates passed"
+        },
+        {
+          "id": "check-qpbt-051-pr-bind",
+          "name": "LPR-034 PR-bound no-byte-change adoption",
+          "command": "Authenticate exact candidate identity, six-path manifest, six passed checks, writer report, and clean worktree; commit only the binding report",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
+          "completed_at": "2026-09-02T23:20:41.874483Z",
+          "result_path": "workflow/reviews/qpbt-051-pr034-bind-a02.md",
+          "result": "Exact candidate and 6/6 checks authenticated; report blob a06423d; zero candidate-byte changes"
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-02T23:07:18.585757Z",
+      "updated_at": "2026-09-02T23:21:20.444399Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/local-development.md",
+        "protocols/orchestration.md",
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "workflow/reviews/qpbt-051-input-preflight.md"
+      ],
+      "motivation": "Eliminate the third recurrence of cache work beginning without a complete authenticated local input tuple and provide a deterministic no-build preparation path for private issue worktrees.",
+      "description": "Preflight every canonical warm input before cache-hit handling or builder election, and add a prepare command that privately seeds, replacement-materializes, and verifies the pinned foundation while preserving authored QPBT bytes.",
+      "testing": "Immutable identity authentication, Python compilation, 66 focused cache tests, 80 workflow/checker tests, effective 363-test aggregate coverage, diff hygiene, and workflow validation passed.",
+      "addresses": "QPBT-051",
+      "provenance_session_ids": [
+        "i051-orchestrator-a01-preflight",
+        "i051-integrator-a02-pr034-bind"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": "One fresh immutable security review of the final candidate and guarded integration remain."
     }
   ]
 }

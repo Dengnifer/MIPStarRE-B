@@ -230,7 +230,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 276,
+      "subagents_issued": 277,
       "max_concurrency": 4,
       "outputs": [
         "research/report.md",
@@ -238,7 +238,8 @@
         "workflow/reviews/qpbt-031-032-cache-warm-a01.md",
         "workflow/reviews/qpbt-037-fourier-scout-a14.md",
         "workflow/reviews/qpbt-038-unblock-scout-a13.md",
-        "workflow/reviews/qpbt-055-level-raise-gap-a01.md"
+        "workflow/reviews/qpbt-055-level-raise-gap-a01.md",
+        "workflow/reviews/qpbt-056-postintegration-cache-a04.md"
       ],
       "incident_ids": [
         "INC-021",
