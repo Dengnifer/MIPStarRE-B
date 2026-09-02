@@ -518,7 +518,11 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertIn("1 <= level", node["integrity"]["lean_conclusion"])
         self.assertIn("RuntimeBigO", node["integrity"]["lean_conclusion"])
         self.assertIn("valid-query finite maximum", node["boundary_hypotheses"])
-        self.assertIn("ignored-tape semantics", node["boundary_hypotheses"])
+        self.assertIn("canonical blank normalization", node["boundary_hypotheses"])
+        self.assertIn("does not claim the paper's stronger arbitrary unused-payload invariance",
+                      node["boundary_hypotheses"])
+        self.assertIn("concrete FieldExponentProgram", node["boundary_hypotheses"])
+        self.assertIn("field-exponent execution", node["boundary_hypotheses"])
         self.assertIn("CLPrefix/CLFactorInput domains",
                       node["integrity"]["lean_assumptions"])
         self.assertIn("exact PMF.map pushforward", node["integrity"]["lean_conclusion"])
@@ -528,7 +532,12 @@ class BlueprintCheckTests(unittest.TestCase):
             ("encoding", "canonical field codec", "arbitrary caller codec"),
             ("encoding", "dependent valid u/y subtypes", "untyped strings"),
             ("boundary_hypotheses", "valid-query finite maximum", "upper-bound field"),
-            ("boundary_hypotheses", "ignored-tape semantics", "one-tape serialization"),
+            ("boundary_hypotheses", "canonical blank normalization",
+             "arbitrary raw-payload invariance"),
+            ("boundary_hypotheses", "concrete FieldExponentProgram",
+             "arbitrary exponent function"),
+            ("boundary_hypotheses", "field-exponent execution",
+             "uncharged metadata"),
             ("integrity.lean_conclusion", "RuntimeBigO", "IsBigO Filter.atTop"),
             ("integrity.lean_conclusion", "exact PMF.map pushforward", "asymptotic law"),
         )
@@ -551,8 +560,11 @@ class BlueprintCheckTests(unittest.TestCase):
         for name in (
             "MIPStarRE.QPBT.RuntimeBigO",
             "MIPStarRE.QPBT.CLQueryDecomposition",
-            "MIPStarRE.QPBT.CLSamplerQuery.tapes",
-            "MIPStarRE.QPBT.ExecutableCLSampler.time_eq_validQueryMax",
+            "MIPStarRE.QPBT.CLSamplerQuery.canonicalTapes",
+            "MIPStarRE.QPBT.FieldExponentProgram",
+            "MIPStarRE.QPBT.ExecutableCLSampler.fieldProgram",
+            "MIPStarRE.QPBT.ExecutableCLSampler.queryTime_eq_validQueryMax",
+            "MIPStarRE.QPBT.ExecutableCLSampler.time_eq_max",
             "MIPStarRE.QPBT.ExecutableCLSampler.sample_downsize",
         ):
             with self.subTest(name=name):
@@ -589,7 +601,11 @@ class BlueprintCheckTests(unittest.TestCase):
             "Turing.FinTM2",
             "Turing.TM2OutputsInTime",
             "execution.runInTime.toEvalsTo.steps",
+            "def CLSamplerQuery.canonicalTapes",
+            "structure FieldExponentProgram",
+            "fieldProgram : FieldExponentProgram Q",
             "(S.validQueries n hn).sup (S.executedSteps n hn)",
+            "Nat.max (S.queryTime n hn) (S.fieldProgram.steps n hn)",
         ):
             with self.subTest(missing=required):
                 self.assertIn(required, block)
@@ -601,6 +617,8 @@ class BlueprintCheckTests(unittest.TestCase):
             "validQueryFinset",
             "output : SixTapeInput -> List Bool",
             "run : SixTapeInput -> List Bool -> Nat -> Prop",
+            "def CLSamplerQuery.tapes",
+            "theorem ExecutableCLSampler.time_eq_validQueryMax",
             "axiom fabricatedRuntime : Prop",
         ):
             with self.subTest(forbidden=forbidden):
@@ -688,7 +706,7 @@ class BlueprintCheckTests(unittest.TestCase):
                    if node["id"] == "F06-CL")
         f06["boundary_hypotheses"] = f06["boundary_hypotheses"].replace(
             "F06A-EXECUTABLE-CL alone owns the binary-string representation, six-input "
-            "dimension/marginal/linear/factor query machine with explicit ignored tapes, "
+            "dimension/marginal/linear/factor query machine with canonical blank normalization, "
             "associated sampler distribution and step count, valid-query finite maximum "
             "and global positive-index RuntimeBigO, executable downsizing transformation, "
             "dimension s(n) * log q(n), associated downsized maps, and O(TIME_S(n) "
