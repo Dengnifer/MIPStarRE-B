@@ -24342,6 +24342,100 @@
         "nested_agents": 0,
         "read_only_shell_invocations": 8
       }
+    },
+    {
+      "id": "i037-scout-a14-fourier",
+      "name": "i037-scout-a14-fourier",
+      "backend": "codex-collaboration",
+      "role": "scout",
+      "status": "archived",
+      "issue_id": "QPBT-037",
+      "pr_id": null,
+      "parent_session_id": "i041-orchestrator-a12-f04-closeout",
+      "external_id": "/root/i037_scout_a14_fourier",
+      "attempt": 14,
+      "read_only": true,
+      "base_revision": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+      "base_revision_reason": "Read-only unblock audit reported against the current canonical checkpoint; it also inspected the preserved rejected A01 evidence and authenticated materialized APIs.",
+      "worktree": "/home/drx/MIPStarRE-auto",
+      "owned_paths": [],
+      "validation_command": "Read QPBT-037, its frozen F05/G09 contract, pinned pauli.tex:1-214, prior A01 report, Field.lean, and materialized Quantum/Mathlib APIs. Identify the smallest source-faithful projector/Fourier helper and exact future ownership/validation without editing, building, Git/network actions, or nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-037-fourier-scout-a14.md",
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-037-fourier-scout-a14.md",
+      "timing_quality": "bounded-by-parent-window",
+      "timing_bounds": {
+        "not_before": "2026-09-02T16:29:47.417461Z",
+        "not_after": "2026-09-02T17:58:01.822726Z"
+      },
+      "run_outcome": "unblocked-two-private-orthogonality-lemmas",
+      "report_sha256": "7f718ba48a3ceb67e39894842014c5ba0bf3b06d87b5ddd4eb260cbd0ab73649",
+      "checks": {
+        "findings": 3,
+        "read_only_shell_invocations": 57,
+        "files_opened": 28,
+        "repository_edits": 0,
+        "builds": 0,
+        "git_writes": 0,
+        "network": 0,
+        "nested_agents": 0
+      }
+    },
+    {
+      "id": "i038-scout-a13-unblock",
+      "name": "i038-scout-a13-unblock",
+      "backend": "codex-collaboration",
+      "role": "scout",
+      "status": "archived",
+      "issue_id": "QPBT-038",
+      "pr_id": null,
+      "parent_session_id": "i041-orchestrator-a12-f04-closeout",
+      "external_id": "/root/i038_scout_a13_unblock",
+      "attempt": 13,
+      "read_only": true,
+      "base_revision": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+      "base_revision_reason": "Read-only unblock audit reported against the current canonical checkpoint and separately authenticated the preserved rejected A01 worktree evidence.",
+      "worktree": "/home/drx/MIPStarRE-auto",
+      "owned_paths": [],
+      "validation_command": "Read QPBT-038/048 state, F06/F06A/F07 metadata and reports, pinned conditionally-linear/types sources, rejected Types.lean, Field.lean, and targeted Mathlib APIs. Distinguish paper gaps, contract drift, and implementation bugs; provide the smallest faithful repair without edits, builds, Git/network actions, or nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-038-unblock-scout-a13.md",
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-038-unblock-scout-a13.md",
+      "timing_quality": "bounded-by-parent-window",
+      "timing_bounds": {
+        "not_before": "2026-09-02T16:29:47.417461Z",
+        "not_after": "2026-09-02T17:59:10.610092Z"
+      },
+      "run_outcome": "blocked-invalid-f06a-contract-requires-numbered-repair",
+      "report_sha256": "8912755e768e2af9047476fa65721f7eac1fbf3152d4d689ef4b7088c698eff7",
+      "checks": {
+        "findings": 3,
+        "read_only_shell_invocations": 103,
+        "repository_edits": 0,
+        "builds": 0,
+        "cache_actions": 0,
+        "git_writes": 0,
+        "network": 0,
+        "nested_agents": 0
+      }
     }
   ]
 }

@@ -1932,7 +1932,7 @@
       "title": "feat(QPBT/Basic): implement Pauli algebra and projectors",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "ready",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -1949,13 +1949,19 @@
       "acceptance_gates": [
         "Implement only MIPStarRE/QPBT/Basic/Pauli.lean from the reviewed QPBT-035 F05/G09 contract",
         "Match exact matrix-entry, projector, Fourier, multiplication-order, and trace-phase signatures; do not replace twisted commutation by false arbitrary cross-basis commutation",
+        "Use authenticated materialization of the pinned MIPStarRE.Quantum foundation without vendoring or editing it; construct genuine X Fourier and Z computational rank-one measurements through Quantum.Measurement.ofSumEqOne",
+        "Prove private scalar and vector trace-character orthogonality helpers from AddChar.expect_eq_ite, ZMod.injective_stdAddChar, and FiniteField.trace_to_zmod_nondegenerate; add no caller-supplied cancellation assumption or public helper",
         "Use self-dual field data only at source sites that require it and honor the frozen F03/F10 boundary",
         "Introduce no sorry, axiom, constant, public obligation input, or incompatible LDT parameter import",
-        "Pass scoped Lean, target build, G09/debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
+        "Seed a private exact-main cache; pass scoped Lean, target build, G09/debt/import scan, blueprint declaration/source synchronization, one private full build, and a fresh immutable mathematical/API review"
       ],
-      "owner_session_id": "i037-orchestrator-a01-pauli",
+      "owner_session_id": null,
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#F05--Pauli",
+        "workflow/reviews/qpbt-035-q014-contract-a02.md#F05-Pauli",
+        "workflow/reviews/qpbt-037-pauli-a01.md",
+        "workflow/reviews/qpbt-037-fourier-scout-a14.md",
+        "workflow/reviews/qpbt-042-semantics-a01.md",
         "blueprint/metadata/nodes.json#F05-PAULI",
         "blueprint/metadata/gaps.json#G09",
         "references/2001.04383v3/sections/dependencies/pauli.tex:1-214"
@@ -1964,9 +1970,9 @@
         "MIPStarRE/QPBT/Basic/Pauli.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T22:32:30.635219Z",
-      "blocked_reason": "Tracked base lacks MIPStarRE.Quantum foundation and reviewed Fourier/projector helper required by faithful F05/G09 contract; provisional diagonal projector rejected.",
-      "unblock_condition": "Integrate a pinned, reviewed Quantum foundation and Fourier/projector helper contract, then retry QPBT-037 from a fresh immutable base."
+      "updated_at": "2026-09-02T18:05:42.483836Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-039",
@@ -2046,48 +2052,59 @@
     },
     {
       "id": "QPBT-038",
-      "title": "feat(QPBT/Game): implement conditionally-linear and typed interfaces",
+      "title": "feat(QPBT/Game): implement mathematical, executable, and typed CL interfaces",
       "kind": "formalization",
       "execution_category": "implementation",
       "status": "blocked",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
-        "QPBT-035"
+        "QPBT-035",
+        "QPBT-048",
+        "QPBT-054"
       ],
       "labels": [
         "lean",
         "minimal-skeleton",
         "conditionally-linear",
+        "executable-cl",
         "typed-game",
         "f06",
+        "f06a",
         "f07",
         "exact-ownership"
       ],
       "acceptance_gates": [
-        "Implement only MIPStarRE/QPBT/Game/Types.lean from the reviewed QPBT-035 F06-then-F07 contract",
-        "Encode the source recursive conditionally-linear certificate before typed wrappers; do not replace it with a caller-supplied generic Prop",
-        "Normalize sampler PMFs and preserve type-graph loops and orientation weights; F07 permits arbitrary dependent question and answer fibers without pointwise finiteness, while G02 alone supplies the finite consumer instances",
-        "Make no raw-string efficiency claim and introduce no sorry, axiom, constant, or public bridge assumption",
-        "Pass scoped Lean, target build, loop/codec/debt/import scan, blueprint declaration synchronization, and one private full build before immutable review"
+        "Implement only MIPStarRE/QPBT/Game/Types.lean in the reviewed order F06-CL, F06A-EXECUTABLE-CL, then F07-TYPED, from the corrected exact manifests produced by QPBT-054",
+        "Encode the source recursive conditionally-linear certificate and preserve arbitrary input maps under level raising, direct sum, and basis-mediated downsize; define the CL distribution from one shared uniform seed and prove exact product/pushforward laws",
+        "Implement the source-faithful F06A operational layer with six logical tapes, typed valid prefix/factor queries, canonical F01-derived codec boundary, actual Turing execution witnesses and exact step maximum, associated maps/distribution, executable downsize, dimension s(n) * Nat.log 2(q(n)), and global-positive RuntimeBigO compiler theorem",
+        "Preserve the finite ordered type graph with loops/orientation weights, bind edge-conditioned typed sampling to the corresponding CL distribution, downsize both typed families pointwise, and keep arbitrary dependent TypedQuestion/TypedDecider fibers without pointwise finiteness",
+        "Use exactly the corrected direct-import union frozen by F06/F06A/F07; no unbound raw-string efficiency claim, arbitrary output/steps/run relation, codec-coherence input, generic obligation, or reassignment to F07A/K03/K04 is permitted",
+        "Introduce no sorry, admit, axiom, constant, public bridge assumption, new certificate constructor, or second incompatible map/sampler representation",
+        "Seed a private exact-main cache; pass whole-file elaboration, affected target, exact tape/output/dimension/loop/codec/debt/import scans, blueprint declaration/source synchronization, one private full build, and a fresh immutable mathematical/API review"
       ],
-      "owner_session_id": "i038-orchestrator-a01-types",
+      "owner_session_id": null,
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#F06F07--Types",
-        "workflow/reviews/qpbt-035-q014-contract-a07.md#F06-CL",
-        "workflow/reviews/qpbt-035-q014-contract-a07.md#F07-TYPED",
+        "workflow/reviews/qpbt-035-q014-contract-a04.md#F06-A04-SIGNATURES",
+        "workflow/reviews/qpbt-035-q014-contract-a07.md#F07-A07-SIGNATURES",
+        "workflow/reviews/qpbt-038-types-a01.md",
+        "workflow/reviews/qpbt-038-unblock-scout-a13.md",
+        "workflow/reviews/qpbt-048-source-fidelity-repair-a04.md",
+        "workflow/reviews/qpbt-048-runtime-api-a05.md",
         "blueprint/metadata/nodes.json#F06-CL",
+        "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
         "blueprint/metadata/nodes.json#F07-TYPED",
-        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:1-715",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:1-552,553-626,628-660,662-712",
         "references/2001.04383v3/sections/dependencies/types.tex:57-195"
       ],
       "owned_paths": [
         "MIPStarRE/QPBT/Game/Types.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T23:24:32.600381Z",
-      "blocked_reason": "A01 exposed a source-fidelity blocker: directSum and downsize discard their input maps, while CLSampler.sample and TypedSampler.sample use degenerate zero outputs. Candidate 9070aa4 is rejected and will not be integrated.",
-      "unblock_condition": "Implement and review certificate-preserving direct-sum/downsize transports and source-faithful sampler distributions for arbitrary conditionally-linear maps, then retry from a fresh exact base."
+      "updated_at": "2026-09-02T18:05:27.661088Z",
+      "blocked_reason": "QPBT-054 must replace the non-elaborated and semantically drifted F06A manifest before a fresh Types writer is safe to dispatch; rejected A01 zero-map bodies remain non-integrable.",
+      "unblock_condition": "QPBT-054 is independently approved and done with a whole-block elaborated F06A contract; then dispatch one fresh sequential Types owner."
     },
     {
       "id": "QPBT-040",
@@ -2747,6 +2764,62 @@
       ],
       "created_at": "2026-09-02T16:27:52.017183Z",
       "updated_at": "2026-09-02T16:27:52.017183Z",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-054",
+      "title": "fix(blueprint): replace the non-elaborated F06A executable contract",
+      "kind": "blueprint",
+      "execution_category": "implementation",
+      "status": "ready",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-013",
+        "QPBT-035",
+        "QPBT-048"
+      ],
+      "labels": [
+        "blueprint",
+        "lean-contract",
+        "conditionally-linear",
+        "turing-machine",
+        "source-fidelity",
+        "f06a",
+        "correctness",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Replace the F06A signature manifest with a complete syntactically valid Lean declaration block: no prose subtypes, forward references, undeclared validQueryFinset, or naked Prop placeholders for the source decomposition laws",
+        "Use a genuine operational Turing.FinTM2/TM2OutputsInTime boundary with six logical tapes, explicit ignored-tape layouts, and exact executed-step extraction; arbitrary output/steps/run relation fields do not satisfy the source",
+        "Represent valid previous-marginal prefixes and factor-space inputs by explicit dependent carriers, and bind every decomposition field to the recursive F06 certificate without eliminating proof data into executable choices",
+        "Freeze a canonical F01-derived binary codec boundary and exact sampler, associated-map, downsize dimension, PMF pushforward, and global-positive RuntimeBigO theorem statements without adding codec, runtime, compiler, bridge, or generic obligation assumptions",
+        "Run a bounded whole-block Lean elaboration probe for every final public signature and direct import before changing the canonical manifest hash; record all paper ambiguities and statement-integrity rows",
+        "Update F06A metadata/checker mutations and deterministic generated consumers, then pass blueprint unit/default/pinned-source checks, reference authentication, workflow validation, and git diff --check",
+        "Obtain a fresh independent immutable mathematical/API review before QPBT-038 becomes ready; do not modify MIPStarRE/QPBT/Game/Types.lean in this contract issue"
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-038-unblock-scout-a13.md",
+        "workflow/reviews/qpbt-048-source-fidelity-repair-a04.md:64-194",
+        "workflow/reviews/qpbt-048-runtime-api-a05.md:18-217",
+        "workflow/reviews/qpbt-048-source-fidelity-review-a06.md",
+        "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-626,628-660,662-712",
+        "references/2001.04383v3/sections/top-level/preliminaries.tex:1-35",
+        "references/2001.04383v3/sections/dependencies/finite-fields.tex:234-263,283-307,350-411"
+      ],
+      "owned_paths": [
+        "blueprint/check.py",
+        "blueprint/tests/test_check.py",
+        "blueprint/metadata/nodes.json",
+        "blueprint/generated/graph.json",
+        "blueprint/generated/graph.dot",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "workflow/reviews/qpbt-054-f06a-contract-a01.md"
+      ],
+      "created_at": "2026-09-02T18:04:14.866664Z",
+      "updated_at": "2026-09-02T18:05:42.774508Z",
       "blocked_reason": null,
       "unblock_condition": null
     }
