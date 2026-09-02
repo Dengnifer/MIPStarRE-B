@@ -1,8 +1,8 @@
 # QPBT-054 executable exponent gap linkage (A07)
 
-Session: `i054-orchestrator-a07-gap-linkage`  
-Role: sole QPBT-054 gap-linkage writer  
-Base: `3a248eac86fa8b782134a4fae88169f514a0168d`  
+Session: `i054-orchestrator-a07-gap-linkage`
+Role: sole QPBT-054 gap-linkage writer
+Base: `3a248eac86fa8b782134a4fae88169f514a0168d`
 Issue / local PR: `QPBT-054` / `LPR-031`
 
 ## Verdict and finding disposition
@@ -74,7 +74,8 @@ alongside the valid sampler queries.
 | `workflow.py validate` | PASS | real 0.16 s |
 | `check_workflow.py --skip-tests` | PASS | real 0.16 s |
 | `py_compile blueprint/tests/test_check.py` | PASS | real 0.04 s |
-| `git diff --check` | PASS | real 0.01 s |
+| Pre-commit working-tree `git diff --check` | PASS, but did not inspect the subsequently committed delta | real 0.01 s |
+| `git diff-tree --check 3a248eac86fa8b782134a4fae88169f514a0168d HEAD` | PASS after this report-only follow-up | post-follow-up |
 
 Generated-output SHA-256 values after each of the two write passes were
 identical:
@@ -91,14 +92,23 @@ the documented pin root and was rejected before writing because
 `split-manifest.json` was absent there (real 0.12 s). The corrected two write
 passes above succeeded and were byte-idempotent.
 
+After commit `1c5f12b045683ca50f4ff321d4c55c527bbc54c0`, an independent root
+`git diff-tree --check` found Markdown hard-break spaces on report lines 3-5.
+This separate report-only follow-up removes those spaces. No Python, metadata,
+generated artifact, or Lean file changed, so the 34-test suite was not rerun;
+the authenticated 34/34 result above remains the A07 implementation result.
+
 ## Accounting
 
-- Manual patch operations: 4 (metadata/test change, this report, the
-  source-anchor refinement requested before freeze, and final report metrics).
+- Manual patch operations: 5 (metadata/test change, this report, the
+  source-anchor refinement requested before freeze, final report metrics, and
+  this root-found whitespace follow-up).
 - Generator attempts: 5 (4 passed across two idempotence pairs; 1
   path-configuration rejection before
   output generation).
 - Test invocations: 4 (2 focused and 2 full), all passed.
+- Independent root follow-up findings: 1 (report-only trailing whitespace),
+  reproduced locally and resolved in a separate commit.
 - Lean invocations, Lake invocations, target builds, full builds, cache warms,
   cache seeds, cache materializations, and shared build-output actions: 0.
 - Network calls, endpoint calls, GitHub operations, credential reads, source
