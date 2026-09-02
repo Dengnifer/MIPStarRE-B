@@ -2055,7 +2055,7 @@
       "title": "feat(QPBT/Game): implement mathematical, executable, and typed CL interfaces",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2083,7 +2083,7 @@
         "Introduce no sorry, admit, axiom, constant, public bridge assumption, new certificate constructor, or second incompatible map/sampler representation",
         "Seed a private exact-main cache; pass whole-file elaboration, affected target, exact tape/output/dimension/loop/codec/debt/import scans, blueprint declaration/source synchronization, one private full build, and a fresh immutable mathematical/API review"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i038-orchestrator-a03-types",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#F06F07--Types",
         "workflow/reviews/qpbt-035-q014-contract-a04.md#F06-A04-SIGNATURES",
@@ -2105,7 +2105,7 @@
         "MIPStarRE/QPBT/Game/Types.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-02T20:44:38.831813Z",
+      "updated_at": "2026-09-02T20:50:08.812873Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
