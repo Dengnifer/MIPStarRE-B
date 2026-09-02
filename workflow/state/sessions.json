@@ -24525,7 +24525,7 @@
       "name": "i054-probe-a01-turing-api",
       "role": "scout",
       "issue_id": "QPBT-054",
-      "status": "running",
+      "status": "archived",
       "attempt": 1,
       "parent_session_id": "i054-orchestrator-a01-f06a-contract",
       "priority": 1,
@@ -24541,17 +24541,29 @@
       "validation_command": "Read A04/A05/A13, relevant existing Lean/Mathlib APIs, and run temporary /tmp elaboration probes only for Turing.FinTM2, TM2OutputsInTime, EvalsToInTime step extraction, and injective six-tape packing. No repository writes, builds, state, metrics, network, GitHub, or credentials.",
       "result_envelope_path": "workflow/reviews/qpbt-054-turing-api-probe-a01.md",
       "started_at": "2026-09-02T18:18:43.500503Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-02T18:32:49.654316Z",
+      "elapsed_seconds": 846.154,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
-      "external_id": "/root/i054_orchestrator_a01_f06a_contract/i054_probe_a01_turing_api"
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-054-turing-api-probe-a01.md",
+      "external_id": "/root/i054_orchestrator_a01_f06a_contract/i054_probe_a01_turing_api",
+      "run_outcome": "compile-passed-dependent-carriers-and-turing-api",
+      "report_sha256": "42f0803bb26bd20af9204ae374621e5ebb18bca0af31ff5d44f4930dfdf82053",
+      "probe_sha256": "6b07a7070b6dac2983906ecb7284d68095631911d16a2492c18009569cca8c25",
+      "checks": {
+        "lean": "passed-3.04s",
+        "repository_edits": 0,
+        "git_writes": 0,
+        "network": 0,
+        "builds": 0,
+        "nested_agents": 0
+      },
+      "timing_quality": "runtime-measured"
     }
   ]
 }
