@@ -169,7 +169,7 @@
       "paper_problem": "The paper is unambiguous, but the frozen F04 contract replaced Fact 4.26's heterogeneous Alice/Bob consistency postprocessing by same-space measurement distance and omitted the normalized-state premise from Proposition 4.29.",
       "disposition": "Use POVMConsistencyBigO before and after the same MeasurementFamily.postprocess on Alice/Bob families, and quantify hpsi immediately after psi in both consistency-triangle signatures.",
       "public_effect": "Corrects two planned paper-labelled contracts before implementation; no paper theorem is weakened and no new assumption is exported to callers.",
-      "issue": "QPBT-032"
+      "issue": "QPBT-041"
     }
   ]
 }

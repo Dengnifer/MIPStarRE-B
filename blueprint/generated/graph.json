@@ -1376,7 +1376,10 @@
         "allowed_minimal_sorries": [],
         "imports": [
           "Mathlib.Analysis.Asymptotics.Defs",
+          "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics",
           "Mathlib.Probability.ProbabilityMassFunction.Constructions",
+          "MIPStarRE.LDT.Preliminaries.ComparisonCore",
+          "MIPStarRE.LDT.Preliminaries.Triangles.SimEq",
           "MIPStarRE.Quantum.Measurement",
           "MIPStarRE.Quantum.FiniteHilbert"
         ],
@@ -1481,7 +1484,10 @@
         "allowed_minimal_sorries": [],
         "imports": [
           "Mathlib.Analysis.Asymptotics.Defs",
+          "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics",
           "Mathlib.Probability.ProbabilityMassFunction.Constructions",
+          "MIPStarRE.LDT.Preliminaries.ComparisonCore",
+          "MIPStarRE.LDT.Preliminaries.Triangles.SimEq",
           "MIPStarRE.Quantum.Measurement",
           "MIPStarRE.Quantum.FiniteHilbert"
         ],
@@ -1595,7 +1601,10 @@
         "allowed_minimal_sorries": [],
         "imports": [
           "Mathlib.Analysis.Asymptotics.Defs",
+          "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics",
           "Mathlib.Probability.ProbabilityMassFunction.Constructions",
+          "MIPStarRE.LDT.Preliminaries.ComparisonCore",
+          "MIPStarRE.LDT.Preliminaries.Triangles.SimEq",
           "MIPStarRE.Quantum.Measurement",
           "MIPStarRE.Quantum.FiniteHilbert"
         ],
@@ -1715,7 +1724,10 @@
         "allowed_minimal_sorries": [],
         "imports": [
           "Mathlib.Analysis.Asymptotics.Defs",
+          "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics",
           "Mathlib.Probability.ProbabilityMassFunction.Constructions",
+          "MIPStarRE.LDT.Preliminaries.ComparisonCore",
+          "MIPStarRE.LDT.Preliminaries.Triangles.SimEq",
           "MIPStarRE.Quantum.Measurement",
           "MIPStarRE.Quantum.FiniteHilbert"
         ],
@@ -1830,7 +1842,10 @@
         "allowed_minimal_sorries": [],
         "imports": [
           "Mathlib.Analysis.Asymptotics.Defs",
+          "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics",
           "Mathlib.Probability.ProbabilityMassFunction.Constructions",
+          "MIPStarRE.LDT.Preliminaries.ComparisonCore",
+          "MIPStarRE.LDT.Preliminaries.Triangles.SimEq",
           "MIPStarRE.Quantum.Measurement",
           "MIPStarRE.Quantum.FiniteHilbert"
         ],
@@ -3812,7 +3827,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "55516fdb34d6866673bd871339bc061fdc88efc81eb632556bd9358435431bd9",
+  "source_sha256": "776d0b86b6164d680cac56781f12dc5e42ebe4c95ba5cd35a3b081511b5e7736",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",

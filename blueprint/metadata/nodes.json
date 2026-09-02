@@ -123,7 +123,7 @@
       "implementation_contract": {
         "writer_lane": "approximation",
         "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
-        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
+        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
         "signature_manifest": {
           "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
           "begin_marker": "<!-- BEGIN F03-SIGNATURES -->",
@@ -161,7 +161,7 @@
       "implementation_contract": {
         "writer_lane": "approximation",
         "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
-        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
+        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
         "signature_manifest": {
           "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
           "begin_marker": "<!-- BEGIN F04-FINITE-SIGNATURES -->",
@@ -198,7 +198,7 @@
       "implementation_contract": {
         "writer_lane": "approximation",
         "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
-        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
+        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
         "signature_manifest": {
           "path": "workflow/reviews/qpbt-023-leaf-contract-a04.md",
           "begin_marker": "<!-- BEGIN F04-ASYMPTOTIC-SIGNATURES -->",
@@ -235,7 +235,7 @@
       "implementation_contract": {
         "writer_lane": "approximation",
         "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
-        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
+        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
         "signature_manifest": {
           "path": "workflow/reviews/qpbt-032-f04-contract-correction-a01.md",
           "begin_marker": "<!-- BEGIN F04-CONSISTENCY-CORRECTED-SIGNATURES -->",
@@ -293,7 +293,7 @@
       "implementation_contract": {
         "writer_lane": "approximation",
         "owned_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
-        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
+        "imports": ["Mathlib.Analysis.Asymptotics.Defs", "Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics", "Mathlib.Probability.ProbabilityMassFunction.Constructions", "MIPStarRE.LDT.Preliminaries.ComparisonCore", "MIPStarRE.LDT.Preliminaries.Triangles.SimEq", "MIPStarRE.Quantum.Measurement", "MIPStarRE.Quantum.FiniteHilbert"],
         "signature_manifest": {
           "path": "workflow/reviews/qpbt-032-f04-contract-correction-a01.md",
           "begin_marker": "<!-- BEGIN F04-DISTANCE-LAWS-CORRECTED-SIGNATURES -->",
