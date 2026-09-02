@@ -27,7 +27,7 @@ digraph QPBT {
   "F04-ASYMPTOTIC" [label="F04-ASYMPTOTIC\nIndexed asymptotic state, operator, measurement, and strategy distance", style=filled, fillcolor="#cfe2f3"];
   "F04-CONSISTENCY" [label="F04-CONSISTENCY\nExact and asymptotic POVM consistency", style=filled, fillcolor="#cfe2f3"];
   "F04-DISTANCE" [label="F04-DISTANCE\nFinite strategies, local isometries, and distance values", style=filled, fillcolor="#cfe2f3"];
-  "F04-DISTANCE-LAWS" [label="F04-DISTANCE-LAWS\nState-dependent distance triangle and postprocessing laws", style=filled, fillcolor="#d9ead3"];
+  "F04-DISTANCE-LAWS" [label="F04-DISTANCE-LAWS\nState-dependent distance triangle and consistency postprocessing laws", style=filled, fillcolor="#d9ead3"];
   "F04A-GAME-SEMANTICS" [label="F04A-GAME-SEMANTICS\nFinite two-player game and quantum strategy semantics", style=filled, fillcolor="#cfe2f3"];
   "F05-PAULI" [label="F05-PAULI\nGeneralized Pauli and Fourier algebra", style=filled, fillcolor="#fce5cd"];
   "F06-CL" [label="F06-CL\nConditionally-linear maps and samplers", style=filled, fillcolor="#cfe2f3"];
@@ -96,8 +96,7 @@ digraph QPBT {
   "F03-MEASUREMENT" -> "F04-CONSISTENCY";
   "F04-ASYMPTOTIC" -> "F04-CONSISTENCY";
   "F03-MEASUREMENT" -> "F04-DISTANCE";
-  "F03-MEASUREMENT" -> "F04-DISTANCE-LAWS";
-  "F04-ASYMPTOTIC" -> "F04-DISTANCE-LAWS";
+  "F04-CONSISTENCY" -> "F04-DISTANCE-LAWS";
   "F04-CONSISTENCY" -> "F04A-GAME-SEMANTICS";
   "F01-FIELD" -> "F05-PAULI";
   "F03-MEASUREMENT" -> "F05-PAULI";

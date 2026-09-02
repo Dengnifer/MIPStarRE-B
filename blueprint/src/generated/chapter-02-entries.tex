@@ -59,13 +59,13 @@
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Approximation}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.MeasurementFamily},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.ProjectiveMeasurementFamily},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.MeasurementFamily.postprocess},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.MeasurementFamily.postprocess\_effect},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.MeasurementFamily.postprocess\_effect\_eq\_zero\_of\_not\_mem\_range},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.BinaryObservable},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.observableOfMeasurement},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.observableOfMeasurement\_val}}
 \BlueprintField{Transitive definitions}{\seqsplit{none}}
 \BlueprintField{Prerequisites}{\seqsplit{none}}
-\BlueprintField{Consumers}{\seqsplit{E02-MAGIC-SQUARE, F04-CONSISTENCY, F04-DISTANCE, F04-DISTANCE-LAWS, F05-PAULI, F08-MAGIC-GAME, F09-LDT-GAME}}
+\BlueprintField{Consumers}{\seqsplit{E02-MAGIC-SQUARE, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F08-MAGIC-GAME, F09-LDT-GAME}}
 \BlueprintField{Encoding}{Use MIPStarRE.Quantum.Measurement for arbitrary POVMs and define projectivity as a separate predicate. Keep this namespace qualified and do not open or inherit the incompatible LDT measurement hierarchy.}
 \BlueprintField{Boundary hypotheses}{Declare universe uOutcome uCoord and require [Fintype Outcome] [DecidableEq Outcome] [Fintype Coord] [DecidableEq Coord]; the Hilbert scalar is Complex and no infinite-dimensional completion is hidden.}
 \BlueprintField{Status}{not-started; faithful-boundary; gaps none}
 \BlueprintField{Writer lane}{approximation}
 \BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Basic/Approximation.lean}}
-\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Asymptotics.Defs, Mathlib.Probability.ProbabilityMassFunction.Constructions, MIPStarRE.Quantum.Measurement, MIPStarRE.Quantum.FiniteHilbert}}
+\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Asymptotics.Defs, Mathlib.Probability.ProbabilityMassFunction.Constructions, MIPStarRE.LDT.Preliminaries.ComparisonCore, MIPStarRE.LDT.Preliminaries.Triangles.SimEq, MIPStarRE.Quantum.Measurement, MIPStarRE.Quantum.FiniteHilbert}}
 \BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-023-leaf-contract-a04.md [8de7983b66b2cce523b45bb3b14a788ac34b0315be91644610cf455b5306b065]}}
 \BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Basic/Approximation.lean}}
 \BlueprintField{Allowed minimal sorries}{none}
@@ -92,7 +92,7 @@
 \BlueprintField{Status}{not-started; faithful-boundary; gaps none}
 \BlueprintField{Writer lane}{approximation}
 \BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Basic/Approximation.lean}}
-\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Asymptotics.Defs, Mathlib.Probability.ProbabilityMassFunction.Constructions, MIPStarRE.Quantum.Measurement, MIPStarRE.Quantum.FiniteHilbert}}
+\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Asymptotics.Defs, Mathlib.Probability.ProbabilityMassFunction.Constructions, MIPStarRE.LDT.Preliminaries.ComparisonCore, MIPStarRE.LDT.Preliminaries.Triangles.SimEq, MIPStarRE.Quantum.Measurement, MIPStarRE.Quantum.FiniteHilbert}}
 \BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-023-leaf-contract-a04.md [2231ffa4cbce94fb124c51b197d0048363116cfa6d633e96401c20f29d8474e4]}}
 \BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Basic/Approximation.lean}}
 \BlueprintField{Allowed minimal sorries}{none}
@@ -108,26 +108,26 @@
 \begin{BlueprintNode}{F04-ASYMPTOTIC}{Indexed asymptotic state, operator, measurement, and strategy distance}
 \begingroup\fontsize{8}{8.5}\selectfont\setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{0pt}\setlength{\partopsep}{0pt}
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/strategies-distance.tex:213-224 [original 3096-3107], label def:state-distance}}
-\BlueprintField{Additional sources}{\seqsplit{references/2001.04383v3/sections/dependencies/strategies-distance.tex:252-282 [original 3135-3165], label def:povm-distance; references/2001.04383v3/sections/qpbt/appendix-preliminaries.tex:49-53 [original 13134-13138], label none}}
-\BlueprintField{Statement}{Define [0,1]-valued Nat-indexed error profiles and atTop Big-O relations for state families, raw-operator families, POVM families, and strategy families. Strategy comparison consumes explicit marginals of the joint game PMF and an explicit choice of the first or second strategy state.}
-\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Approximation}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.ErrorProfile},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.IsBigOAtTop},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.StateFamiliesBigO},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.OperatorFamiliesBigO},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.MeasurementFamiliesBigO},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.aliceQuestionMarginal},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.bobQuestionMarginal},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.StrategyStateChoice},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.strategyComparisonState},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.StrategyFamiliesBigO}}
+\BlueprintField{Additional sources}{\seqsplit{references/2001.04383v3/sections/dependencies/strategies-distance.tex:252-282 [original 3135-3165], label def:povm-distance; references/2001.04383v3/sections/qpbt/appendix-preliminaries.tex:49-53 [original 13134-13138], label none; references/2001.04383v3/sections/top-level/preliminaries.tex:6-6 [original 903-903], label none; references/2001.04383v3/sections/top-level/preliminaries.tex:19-25 [original 916-922], label none}}
+\BlueprintField{Statement}{Define [0,1]-valued Nat-indexed error profiles; the paper's global positive-index Big-O predicate; an auxiliary atTop predicate with a public one-way bridge from the paper predicate; and global distance relations for state, raw-operator, POVM, and strategy families. The strategy comparison helper consumes explicit joint-PMF marginals and a first/second state choice; the paper-facing strategy relation existentially chooses one branch.}
+\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Approximation}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.ErrorProfile},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.IsBigOAtTop},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.PaperBigO},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.PaperBigO.isBigOAtTop},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.StateFamiliesBigO},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.OperatorFamiliesBigO},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.MeasurementFamiliesBigO},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.aliceQuestionMarginal},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.bobQuestionMarginal},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.StrategyStateChoice},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.strategyComparisonState},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.StrategyFamiliesBigO}}
 \BlueprintField{Transitive definitions}{\seqsplit{F03-MEASUREMENT, F04-DISTANCE}}
 \BlueprintField{Prerequisites}{\seqsplit{F04-DISTANCE}}
-\BlueprintField{Consumers}{\seqsplit{A02-PRELIMINARIES, E03-LINEARITY, E04-TENSOR-CODE, F04-CONSISTENCY, F04-DISTANCE-LAWS}}
-\BlueprintField{Encoding}{Use Asymptotics.IsBigO Filter.atTop. ErrorProfile is Nat -> Set.Icc 0 1, while derived law scales may be arbitrary Nat -> Real. PMF.map Prod.fst/Prod.snd supplies the two question marginals, and StrategyStateChoice makes the paper's either-state clause explicit.}
-\BlueprintField{Boundary hypotheses}{Finite question/outcome/coordinate types only at PMF sums, normalized states through PureStrategy, and explicit Nat-indexed data. No universal Big-O constant is replaced by an exact bound.}
-\BlueprintField{Status}{not-started; faithful-boundary; gaps none}
+\BlueprintField{Consumers}{\seqsplit{A02-PRELIMINARIES, E03-LINEARITY, E04-TENSOR-CODE, F04-CONSISTENCY}}
+\BlueprintField{Encoding}{ErrorProfile is Nat -> Set.Icc 0 1, while derived law scales may be arbitrary Nat -> Real. PaperBigO follows the explicit top-level convention: one C > 0 bounds norms at every 0 < n; Lean's index zero is unconstrained. IsBigOAtTop remains an auxiliary Asymptotics.IsBigO Filter.atTop relation, and PaperBigO.isBigOAtTop exposes only the valid global-to-eventual direction. PMF.map Prod.fst/Prod.snd supplies the question marginals. StrategyStateChoice indexes the two comparison-state branches; a paper-facing strategy-distance proposition must existentially quantify that helper choice.}
+\BlueprintField{Boundary hypotheses}{Finite question/outcome/coordinate types only at PMF sums, normalized states through PureStrategy, and explicit Nat-indexed data. Every paper-facing asymptotic relation uses one positive Real constant uniformly for all positive indices; no condition is imposed at zero. StrategyFamiliesBigO is a choice-indexed helper, not by itself the paper's existential either-state relation. No eventual bound is promoted back to a global bound, and no derived real scale is clamped to [0,1].}
+\BlueprintField{Status}{not-started; faithful-boundary; gaps G18}
 \BlueprintField{Writer lane}{approximation}
 \BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Basic/Approximation.lean}}
-\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Asymptotics.Defs, Mathlib.Probability.ProbabilityMassFunction.Constructions, MIPStarRE.Quantum.Measurement, MIPStarRE.Quantum.FiniteHilbert}}
-\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-023-leaf-contract-a04.md [c6ba3861dbe261c7f6d1b23d36673521521921dbf6cec150bb923f8e64561c47]}}
+\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Asymptotics.Defs, Mathlib.Probability.ProbabilityMassFunction.Constructions, MIPStarRE.LDT.Preliminaries.ComparisonCore, MIPStarRE.LDT.Preliminaries.Triangles.SimEq, MIPStarRE.Quantum.Measurement, MIPStarRE.Quantum.FiniteHilbert}}
+\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-032-f04-contract-correction-a01.md [cb40edd761efd6b50b35bd1a24cb8651f9dc07c12c1fbf60662eecda3f0f0587]}}
 \BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Basic/Approximation.lean}}
 \BlueprintField{Allowed minimal sorries}{none}
 \BlueprintField{Proof-complete sorries}{0}
-\BlueprintField{Paper assumptions}{Nat-indexed normalized states/strategies, delta : Nat -> [0,1], finite distributions, and state-dependent POVM/operator families.}
-\BlueprintField{Lean assumptions}{The same indexed data over explicit finite coordinate carriers, PMFs, the joint PMF marginals, and a first/second comparison-state choice.}
-\BlueprintField{Paper conclusion}{Squared state norm, averaged operator/POVM distance, and both-player strategy distance are O(delta) as n tends to infinity.}
-\BlueprintField{Lean conclusion}{Asymptotics.IsBigO Filter.atTop states the same relations without conflating them with finite exact bounds.}
+\BlueprintField{Paper assumptions}{Positive-integer-indexed normalized states/strategies, delta : N -> [0,1], finite distributions, and state-dependent POVM/operator families; strategy distance permits either the first or second strategy state. The global preliminaries quantify one bound over every positive index, while the consistency footnote says n tends to infinity.}
+\BlueprintField{Lean assumptions}{The same data over Lean Nat with 0 < n guards, explicit finite coordinate carriers, PMFs, and joint-PMF marginals; StrategyFamiliesBigO additionally takes the first/second comparison-state choice as a helper parameter. IsBigOAtTop is auxiliary only.}
+\BlueprintField{Paper conclusion}{Squared state norm and averaged operator/POVM distance satisfy the paper's global O(delta) convention, while strategy distance holds for an existential choice of either strategy state.}
+\BlueprintField{Lean conclusion}{PaperBigO states the global positive-index component relations and has a public one-way bridge to Asymptotics.IsBigO Filter.atTop; existential quantification over StrategyStateChoice is required when forming the paper-facing strategy-distance proposition.}
 \BlueprintField{Integrity verdict}{faithful boundary}
 \endgroup
 \end{BlueprintNode}
@@ -135,26 +135,26 @@
 \begin{BlueprintNode}{F04-CONSISTENCY}{Exact and asymptotic POVM consistency}
 \begingroup\fontsize{8}{8.5}\selectfont\setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{0pt}\setlength{\partopsep}{0pt}
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/strategies-distance.tex:226-250 [original 3109-3133], label def:consistency}}
-\BlueprintField{Additional sources}{\seqsplit{references/2001.04383v3/sections/dependencies/strategies-distance.tex:138-150 [original 3021-3033], label def:consistent-measurement; references/2001.04383v3/sections/dependencies/strategies-distance.tex:383-388 [original 3266-3271], label fact:triangle-for-simeq}}
-\BlueprintField{Statement}{Define exact same-measurement consistency by equality of Alice/Bob local actions; define the finite off-diagonal mismatch value and exact bound; lift it to indexed Big-O consistency; and state the three-premise consistency-triangle contract with scale epsilon + 2*sqrt(delta+gamma).}
+\BlueprintField{Additional sources}{\seqsplit{references/2001.04383v3/sections/dependencies/strategies-distance.tex:138-150 [original 3021-3033], label def:consistent-measurement; references/2001.04383v3/sections/dependencies/strategies-distance.tex:383-388 [original 3266-3271], label fact:triangle-for-simeq; references/2001.04383v3/sections/top-level/preliminaries.tex:6-6 [original 903-903], label none; references/2001.04383v3/sections/top-level/preliminaries.tex:19-25 [original 916-922], label none}}
+\BlueprintField{Statement}{Define exact same-measurement consistency by equality of Alice/Bob local actions; define the finite off-diagonal mismatch value and exact bound; lift it to the paper's global positive-index Big-O consistency; and state the normalized-state three-premise global consistency-triangle contract with scale epsilon + 2*sqrt(delta+gamma).}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Approximation}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.MeasurementConsistentOn},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.povmConsistencyValue},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.POVMConsistencyBoundedBy},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.POVMConsistencyBigO},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.POVMConsistencyBigOTriangleLaw},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.povmConsistencyBigO\_triangle}}
 \BlueprintField{Transitive definitions}{\seqsplit{F03-MEASUREMENT, F04-ASYMPTOTIC, F04-DISTANCE}}
 \BlueprintField{Prerequisites}{\seqsplit{F03-MEASUREMENT, F04-ASYMPTOTIC}}
-\BlueprintField{Consumers}{\seqsplit{E01-ORTHO, E02-MAGIC-SQUARE, F04A-GAME-SEMANTICS}}
-\BlueprintField{Encoding}{The finite value is the PMF-weighted off-diagonal sum of real inner products after explicit Alice/Bob local lifts. The paper-facing relation uses IsBigOAtTop; its derived triangle scale is Nat -> Real and is not clamped back to [0,1]. The named Law declaration freezes the theorem statement; its proof is a later node obligation, not a new assumption.}
-\BlueprintField{Boundary hypotheses}{Finite question/outcome/local coordinate types, normalized bipartite state at paper call sites, and explicit indexed PMFs/states/families. The law accepts exactly the paper's three consistency premises.}
-\BlueprintField{Status}{not-started; faithful-boundary; gaps none}
+\BlueprintField{Consumers}{\seqsplit{E01-ORTHO, E02-MAGIC-SQUARE, F04-DISTANCE-LAWS, F04A-GAME-SEMANTICS}}
+\BlueprintField{Encoding}{The finite value is the PMF-weighted off-diagonal sum of real inner products after explicit Alice/Bob local lifts. MeasurementConsistentOn intentionally expresses the action equality for any POVM; the paper's exact-consistency definition additionally requires that M be projective. The paper-facing consistency relation and triangle conclusion use PaperBigO with one constant over every positive index; IsBigOAtTop is available only through the one-way bridge. The derived triangle scale is Nat -> Real and is not clamped back to [0,1]. The named Law declaration freezes the theorem statement; its proof is a later node obligation, not a new assumption.}
+\BlueprintField{Boundary hypotheses}{Finite question/outcome/local coordinate types and explicit indexed PMFs/states/families. Every paper-facing consistency bound is global over all 0 < n and imposes no condition at zero. The triangle Law and theorem take hpsi : forall n, norm (psi n) = 1 immediately after psi, then exactly the paper's three consistency premises. Paper uses of MeasurementConsistentOn must separately supply projectivity of M.}
+\BlueprintField{Status}{not-started; faithful-boundary; gaps G17, G18}
 \BlueprintField{Writer lane}{approximation}
 \BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Basic/Approximation.lean}}
-\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Asymptotics.Defs, Mathlib.Probability.ProbabilityMassFunction.Constructions, MIPStarRE.Quantum.Measurement, MIPStarRE.Quantum.FiniteHilbert}}
-\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-023-leaf-contract-a04.md [2a45a657d818312e370707a04f206eaf4a7f139ab724fde096c880fc94d75730]}}
+\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Asymptotics.Defs, Mathlib.Probability.ProbabilityMassFunction.Constructions, MIPStarRE.LDT.Preliminaries.ComparisonCore, MIPStarRE.LDT.Preliminaries.Triangles.SimEq, MIPStarRE.Quantum.Measurement, MIPStarRE.Quantum.FiniteHilbert}}
+\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-032-f04-contract-correction-a01.md [c013337a66ae81ac4016cbd6b62d18cb82e49631237ce4ce629c0b9160706b06]}}
 \BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Basic/Approximation.lean}}
 \BlueprintField{Allowed minimal sorries}{none}
 \BlueprintField{Proof-complete sorries}{0}
-\BlueprintField{Paper assumptions}{Two finite POVM families on a bipartite state and distribution; for Proposition 4.29, three displayed consistency premises.}
-\BlueprintField{Lean assumptions}{Explicit PMF, finite carriers, local tensor lifts, Nat-indexed families, and [0,1]-valued input profiles; the derived scale is real-valued.}
-\BlueprintField{Paper conclusion}{Off-diagonal outcomes have O(delta) mass, and the three-premise consistency triangle has scale epsilon + 2*sqrt(delta+gamma).}
-\BlueprintField{Lean conclusion}{The same finite value, indexed Big-O relation, and exact law statement with no hidden state or distribution.}
+\BlueprintField{Paper assumptions}{A projective measurement M for exact same-measurement consistency; positive-integer-indexed finite POVM families on a normalized bipartite state and distribution; for Proposition 4.29, the normalized state followed by the three displayed global consistency premises. The local n-to-infinity footnote conflicts with the explicit global Big-O convention.}
+\BlueprintField{Lean assumptions}{MeasurementConsistentOn generalizes the action equality to an arbitrary finite POVM, with paper call sites separately requiring projectivity. The indexed triangle has explicit PMF and finite carriers, hpsi : forall n, norm (psi n) = 1, local tensor lifts, [0,1]-valued profiles, and PaperBigO premises quantified over every 0 < n; the derived scale is real-valued.}
+\BlueprintField{Paper conclusion}{A projective M has equal Alice/Bob local actions exactly when consistent; off-diagonal outcomes satisfy the global O(delta) convention; and the three-premise consistency triangle has global scale epsilon + 2*sqrt(delta+gamma).}
+\BlueprintField{Lean conclusion}{The reusable action-equality generalization, the same finite value, global positive-index consistency relation, and normalized-state global triangle Law/theorem with exact premise order and scale.}
 \BlueprintField{Integrity verdict}{faithful boundary}
 \endgroup
 \end{BlueprintNode}
@@ -179,28 +179,29 @@
 \endgroup
 \end{BlueprintNode}
 
-\begin{BlueprintNode}{F04-DISTANCE-LAWS}{State-dependent distance triangle and postprocessing laws}
+\begin{BlueprintNode}{F04-DISTANCE-LAWS}{State-dependent distance triangle and consistency postprocessing laws}
 \begingroup\fontsize{8}{8.5}\selectfont\setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{0pt}\setlength{\partopsep}{0pt}
-\BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/strategies-distance.tex:377-395 [original 3260-3278], label fact:triangle}}
-\BlueprintField{Statement}{Prove the finite squared-distance triangle bound with explicit factor 2, the indexed Big-O measurement triangle law where the constant is absorbed, and the indexed postprocess/data-processing law for the same explicit outcome map on both families.}
-\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Approximation}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.FiniteMeasurementTriangleLaw},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.MeasurementFamiliesBigOTriangleLaw},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.MeasurementFamiliesPostprocessLaw},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.finiteMeasurement\_triangle},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.measurementFamiliesBigO\_triangle},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.measurementFamiliesBigO\_postprocess}}
-\BlueprintField{Transitive definitions}{\seqsplit{F03-MEASUREMENT, F04-ASYMPTOTIC, F04-DISTANCE}}
-\BlueprintField{Prerequisites}{\seqsplit{F03-MEASUREMENT, F04-ASYMPTOTIC}}
+\BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/strategies-distance.tex:377-381 [original 3260-3264], label fact:triangle}}
+\BlueprintField{Additional sources}{\seqsplit{references/2001.04383v3/sections/dependencies/strategies-distance.tex:391-395 [original 3274-3278], label fact:data-processing; references/2001.04383v3/sections/top-level/preliminaries.tex:6-6 [original 903-903], label none; references/2001.04383v3/sections/top-level/preliminaries.tex:19-25 [original 916-922], label none}}
+\BlueprintField{Statement}{Prove the finite squared-distance triangle bound with explicit factor 2, the global positive-index Big-O measurement triangle law where the constant is absorbed, and Fact 4.26 as global heterogeneous Alice/Bob POVM-consistency data processing under the same explicit outcome postprocess on both families.}
+\BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Basic.Approximation}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.FiniteMeasurementTriangleLaw},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.MeasurementFamiliesBigOTriangleLaw},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.POVMConsistencyBigOPostprocessLaw},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.finiteMeasurement\_triangle},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.measurementFamiliesBigO\_triangle},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.povmConsistencyBigO\_postprocess}}
+\BlueprintField{Transitive definitions}{\seqsplit{F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE}}
+\BlueprintField{Prerequisites}{\seqsplit{F04-CONSISTENCY}}
 \BlueprintField{Consumers}{\seqsplit{A04-WIN-OBS}}
-\BlueprintField{Encoding}{Each planned Law declaration is the exact elaborated implication contract. The finite helper exposes factor 2 for squared norms; IsBigO absorbs that universal factor; data processing calls MeasurementFamily.postprocess explicitly.}
-\BlueprintField{Boundary hypotheses}{Finite PMF and measurement types, explicit normalized state at paper-labelled call sites, two input error profiles for triangle, and one shared outcome map for postprocessing.}
-\BlueprintField{Status}{not-started; exact; gaps none}
+\BlueprintField{Encoding}{Each planned Law declaration is the exact elaborated implication contract. The finite helper exposes factor 2 for squared norms; PaperBigO absorbs that universal factor while preserving one global constant over every positive index. Fact 4.26 is represented only by global POVMConsistencyBigO before and after applying the same MeasurementFamily.postprocess to heterogeneous Alice/Bob families; no same-space distance law retains that paper label. IsBigOAtTop is an auxiliary consequence, not a paper-facing conclusion.}
+\BlueprintField{Boundary hypotheses}{Finite PMF, measurement, outcome, and local coordinate types; two input error profiles for the distance triangle; and one shared outcome map for heterogeneous Alice/Bob consistency postprocessing. Every paper-facing asymptotic premise and conclusion is global over all 0 < n with index zero unconstrained. Paper-labelled calls supply normalized states where the source's quantum-state convention requires them.}
+\BlueprintField{Status}{not-started; exact; gaps G17, G18}
 \BlueprintField{Writer lane}{approximation}
 \BlueprintField{Owned Lean file}{\seqsplit{MIPStarRE/QPBT/Basic/Approximation.lean}}
-\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Asymptotics.Defs, Mathlib.Probability.ProbabilityMassFunction.Constructions, MIPStarRE.Quantum.Measurement, MIPStarRE.Quantum.FiniteHilbert}}
-\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-023-leaf-contract-a04.md [f6682466e2dc3508c2aa0d4790526714b3483996659167c860af32149eecaf23]}}
+\BlueprintField{Exact imports}{\seqsplit{Mathlib.Analysis.Asymptotics.Defs, Mathlib.Probability.ProbabilityMassFunction.Constructions, MIPStarRE.LDT.Preliminaries.ComparisonCore, MIPStarRE.LDT.Preliminaries.Triangles.SimEq, MIPStarRE.Quantum.Measurement, MIPStarRE.Quantum.FiniteHilbert}}
+\BlueprintField{Signature manifest}{\seqsplit{workflow/reviews/qpbt-032-f04-contract-correction-a01.md [3caa7d20803ce7fb5ec07a63ae783e4cc03fdad79eeb35bc7091d78d19358b97]}}
 \BlueprintField{Scoped validation}{\seqsplit{lake env lean MIPStarRE/QPBT/Basic/Approximation.lean}}
 \BlueprintField{Allowed minimal sorries}{none}
 \BlueprintField{Proof-complete sorries}{0}
-\BlueprintField{Paper assumptions}{Two consecutive state-dependent closeness relations for triangle, respectively one relation and one outcome map for data processing.}
-\BlueprintField{Lean assumptions}{The same finite PMF/state/families; the finite squared-norm helper exposes factor 2 and the paper-facing relation is indexed atTop Big-O.}
-\BlueprintField{Paper conclusion}{Triangle has scale delta+epsilon up to Big-O constants, and applying the same postprocess preserves closeness.}
-\BlueprintField{Lean conclusion}{The exact finite factor and the same two indexed Big-O implication contracts.}
+\BlueprintField{Paper assumptions}{For Fact 4.28, two consecutive global same-space state-dependent closeness relations. For Fact 4.26, heterogeneous Alice/Bob POVM families on a bipartite state, one global cross-player consistency relation, and one shared outcome map. The top-level global Big-O definition controls the local n-to-infinity ambiguity.}
+\BlueprintField{Lean assumptions}{The same finite PMF and family data over explicit carriers. The finite distance helper exposes factor 2 and its paper-facing triangle uses PaperBigO over every 0 < n; data processing starts from global POVMConsistencyBigO for distinct Alice/Bob coordinate types and applies the same MeasurementFamily.postprocess map on both sides.}
+\BlueprintField{Paper conclusion}{The global distance triangle has scale delta+epsilon up to one universal constant, and global cross-player POVM consistency is preserved by common postprocessing at the same error profile.}
+\BlueprintField{Lean conclusion}{The exact finite distance factor, the global positive-index distance-triangle implication, and the global heterogeneous POVMConsistencyBigO postprocess implication. No same-space MeasurementFamiliesBigO postprocess theorem is attributed to Fact 4.26.}
 \BlueprintField{Integrity verdict}{exact}
 \endgroup
 \end{BlueprintNode}
