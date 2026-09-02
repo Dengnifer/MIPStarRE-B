@@ -3,7 +3,7 @@
 Lean 4 formalization of the quantum Pauli basis test (QPBT) used in
 `MIP* = RE` (arXiv:2001.04383v3).
 
-This repository follows the local analogue of the workflow evolved in
+This repository continues the workflow evolved in
 [LionSR/MIPStarRE](https://github.com/LionSR/MIPStarRE). The mathematical
 source, blueprint, and Lean implementation have a strict source-of-truth order:
 
@@ -11,8 +11,12 @@ source, blueprint, and Lean implementation have a strict source-of-truth order:
 2. `blueprint/` contains the dependency-tracked formalization design.
 3. `MIPStarRE/` contains the Lean declarations and proofs.
 
-GitHub issues, pull requests, CI caches, and review bots are replaced by local,
-versioned state and fresh Codex sessions. See [protocols/README.md](protocols/README.md)
+GitHub Issues and pull requests in
+[Dengnifer/MIPStarRE-B](https://github.com/Dengnifer/MIPStarRE-B) are canonical
+for planning, status, integration, and review. Local state remains authoritative
+for agent sessions, metrics, build-cache evidence, and fresh independent
+reviewer identities; the old local issue and PR JSON files are retained only as
+legacy or derived compatibility data. See [protocols/README.md](protocols/README.md)
 and [workflow/README.md](workflow/README.md).
 
 ## Project stages
@@ -21,14 +25,18 @@ and [workflow/README.md](workflow/README.md).
 2. Split the QPBT reference source into one TeX file per chapter or section.
 3. Build a paper-traceable Lean blueprint.
 4. Implement a minimal theorem skeleton, the complete declaration skeleton,
-   and then all proofs through dependency-ordered local issues.
+   and then all proofs through dependency-ordered GitHub issues.
 
 Every implementation issue has one orchestrator. Provers, scouts, reviewers,
 and simplifiers are bounded child sessions. A fresh read-only reviewer must
-approve a local PR after its validation gate passes.
+return an approving verdict for each immutable GitHub PR head after its
+validation gate passes. The reviewer never writes GitHub; the root coordinator
+posts the exact report and status while preserving the reviewer's immutable
+identity.
 
 ## Current status
 
-Canonical machine-readable status lives in `workflow/state/`; research
-measurements live in `research/metrics/`. Stage boundaries and commits are
-recorded there rather than duplicated in this overview.
+Canonical issue and PR status lives on GitHub in `Dengnifer/MIPStarRE-B`.
+Authoritative local session state lives in `workflow/state/`, and research
+measurements live in `research/metrics/`. Stage and execution evidence is not
+duplicated in this overview.

@@ -2,9 +2,11 @@
 
 ## Worktree isolation
 
-Each writable implementation issue uses a dedicated branch and worktree. The
-issue orchestrator is its only integration owner. Read-only scouts may inspect
-any tree. A prover may edit only delegated paths. Reviewers never edit.
+Each writable GitHub implementation issue uses a dedicated branch and worktree.
+The issue orchestrator is its only local implementation owner; the root
+coordinator alone performs GitHub pushes and integration mutations. Read-only
+scouts may inspect any tree. A prover may edit only delegated paths. Reviewers
+never edit or write GitHub.
 
 Before dispatch, record the exact base SHA and confirm a clean worktree. After
 delivery, inspect `git diff --check`, changed paths, scoped type-checks, and the
@@ -103,24 +105,29 @@ During proof work:
 
 Before review:
 
-1. verify the local PR base/head and clean generated state;
+1. verify the canonical GitHub PR number and frozen base/head SHAs against the
+   adapter preflight, and verify clean generated state;
 2. run all scoped checks recorded by the issue;
 3. run `lake build` using the issue worktree's private cache;
 4. build/lint the blueprint when it changed;
-5. validate local issue/PR/session state; and
-6. save command, exit status, duration, and log paths in the PR record.
+5. validate authoritative local session state and the freshness of any legacy
+   issue/PR compatibility projection; and
+6. save command, exit status, duration, and log paths in local evidence. The
+   root coordinator posts the exact validation report and matching PR status to
+   GitHub without exposing private log contents or credentials.
 
 A registered validation command is evidence only after that exact command has
 run successfully. A similar-looking command or an agent-reported paraphrase is
 not interchangeable.
 
-After integration, warm the new main cache once. Main cache builds are never
-cancelled merely because another agent is waiting. Issue-level builds may be
-cancelled and retried when their head changes.
+After root-coordinated GitHub integration, warm the new main cache once. Main
+cache builds are never cancelled merely because another agent is waiting.
+Issue-level builds may be cancelled and retried when their head changes.
 
 ## Fixed-point bounds
 
-Automated fix/review loops are serialized per PR and stop after five consecutive
-agent-authored fix attempts. A repeated identical failure is not retried without
-a changed hypothesis, source, or protocol. On the third recurrence, record a
-workflow incident and evaluate a root-cause protocol change.
+Automated fix/review loops are serialized per canonical GitHub PR and stop after
+five consecutive agent-authored fix attempts. A repeated identical failure is
+not retried without a changed hypothesis, source, or protocol. On the third
+recurrence, record a workflow incident and evaluate a root-cause protocol
+change.

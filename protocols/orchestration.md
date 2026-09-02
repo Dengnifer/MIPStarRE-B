@@ -1,16 +1,34 @@
-# Local Orchestration
+# Orchestration
 
-## Issue lifecycle
+## Canonical GitHub issue lifecycle
 
-Issue IDs are stable (`QPBT-NNN`). Statuses are `planned`, `ready`,
-`in_progress`, `review`, `blocked`, `done`, and `cancelled`.
+GitHub issue numbers in `Dengnifer/MIPStarRE-B` are the canonical issue IDs.
+Migrated issue bodies retain their stable `QPBT-NNN` marker and carry
+`migration:local-v1`, but that marker is compatibility provenance rather than
+an identifier for new work. Only manifest-bound migration may add that marker
+or label; post-cutover issue creation uses only the GitHub number.
 
-An issue may enter `ready` only when all dependency issues are `done`. It may
-enter `in_progress` only after an orchestrator session is issued. `blocked`
-requires a concrete blocker and unblock condition. `done` requires every
-acceptance gate and linked local PR to be complete. A tracker closes leaf-up
-only if it has at least one child and every child is `done`; cancellation does
-not count as completion.
+Every open issue has exactly one status label: `status:planned`, `status:ready`,
+`status:in-progress`, `status:review`, or `status:blocked`, plus its
+`kind:<legacy kind>` label. An issue may enter `status:ready` only when every
+separately listed dependency issue is closed as completed. It may enter
+`status:in-progress` only after an orchestrator session is issued.
+`status:blocked` requires a concrete blocker and unblock condition.
+
+Completion requires every acceptance gate and linked GitHub PR to be complete.
+The root coordinator then removes the active status label and closes the issue
+with the completed reason. Cancellation closes with the not-planned reason and
+does not count as completion. A tracker closes leaf-up only if it has at least
+one child and every child was closed as completed. Parent/sub-issue
+relationships describe grouping; explicit dependency references describe
+ordering. Never infer one from the other.
+
+GitHub's native parent/sub-issue and blocked-by relationships are the canonical
+machine-readable graph whenever both objects exist. Migrated prose links are
+human-readable provenance, not a second graph. When a completed pre-cutover
+parent or dependency was intentionally retained only in the frozen archive,
+the issue body names that archive reference and no replacement GitHub object is
+invented.
 
 Issue creation has a high bar. One genuine follow-up remains flat. Two or more
 coherent follow-ups may receive a tracking parent. A new issue must name the
@@ -24,41 +42,100 @@ mathematical or operational result, not merely "cleanup", "phase", or
 - statement-integrity expectations; and
 - exact validation and acceptance gates.
 
-Run `python3 scripts/workflow.py ready` to compute dispatchable work rather than
-inferring readiness from list order.
+Only the root coordinator creates, edits, labels, comments on, reopens, or
+closes issues. Before each mutation, it runs the repository adapter's read-only
+preflight against the canonical GitHub object and expected transition. The
+adapter commands are:
+
+```bash
+python3 scripts/github_workflow.py --config workflow/github.json validate
+python3 scripts/github_workflow.py --config workflow/github.json preflight
+```
+
+`validate` is offline; `preflight` is a live GET-only check. The committed
+`workflow/github.json` binds the exact repository identity, explicit
+base ref, and immutable migration manifest; it contains no credential. The optional
+`preflight --repository-only` check is insufficient for an object mutation.
+Every writing `gh` command explicitly includes
+`--repo Dengnifer/MIPStarRE-B`. Issue bodies and comments must not contain
+credentials or unredacted runtime transcripts.
+
+`workflow/state/issues.json` is retained only as legacy history or a derived
+compatibility projection. Before dispatch, the root preflights the canonical
+GitHub issue, its exact status label, its parent and dependency references, and
+dependency completion. A stale or disagreeing projection fails closed and must
+be refreshed; `workflow.py ready` and hand edits to local issue JSON do not
+authorize work.
+
+Post-cutover session evidence carries the positive canonical
+`github_issue_number` and optional `github_pull_request_number`. Migrated work
+may also retain its legacy `issue_id` for compatibility. Work created only on
+GitHub uses `issue_id: null` and an explicit known local `stage_id`; no shadow
+issue row is created. Dispatch plans these rows from a live, in-memory
+canonical-number projection and never persists that projection as issue state.
+Repository visibility is not workflow authority: the repository may be public,
+but exact repository IDs, the explicit `main` base, and scoped root-only writes
+remain mandatory.
+
+The root creates post-cutover planned rows only through
+`python3 scripts/workflow.py add planned-session --json ...`. That guarded
+transaction holds the workflow lock, loads the exact adjacent config and
+immutable cutover manifest, materializes the canonical number for migrated
+work, rejects GitHub-only shadows of migrated issues or PRs, binds every
+PR-bound session to exact base/head refs and SHAs, rejects records that cannot
+materialize as issued sessions and duplicate orchestrators, validates the
+complete state, and rolls back exact session/event bytes on any publication
+failure.
+Planning does not perform a live status check and grants no launch authority;
+the dispatch gate performs that check immediately before admission. The
+cutover manifest is irreversible: a missing config fails closed, and canonical
+state may be addressed only through its real, non-aliased `workflow/state`
+path.
+
+Each mutating dispatch performs its final live GitHub issue and selected-PR
+reads while holding the same exclusive lock used for local publication. The
+resulting projection binds issue status, dependencies, kind, and execution
+category, plus each selected PR's open state and exact base/head identity.
+Every non-orchestrator
+formalization delegate, including read-only scouts and reviewers, is admitted
+only after exactly one active writable orchestrator is bound to the same
+canonical issue; the orchestrator itself must be dispatched first.
 
 For `codex-collaboration` session admission, use the following spawn-first,
 confirm-at-dispatch sequence. The workflow CLI has no collaboration-tool access
 and must never pretend that it launched or independently verified an external
 thread.
 
-1. Run `python3 scripts/workflow.py dispatch --dry-run --capacity N` with an
-   exact stage and `--session-id`. For collaboration work, preflight exactly one
-   session at a time. The result is a deterministic eligibility and local-slot
-   check; it writes neither session state nor events.
+1. After the GitHub adapter preflight succeeds, run
+   `python3 scripts/workflow.py dispatch --github-config workflow/github.json
+   --dry-run --capacity N` with an exact stage and `--session-id`. For
+   collaboration work, preflight exactly one
+   session at a time. The result is a deterministic local-session eligibility,
+   ownership, and slot check; it writes neither session state nor events and
+   cannot change or supersede the GitHub issue.
 2. Ask the collaboration backend to create that one thread with a bootstrap-only
    prompt. The bootstrap may acknowledge and become idle, but it must not read
    project files, run tools, or receive the task packet yet. If backend creation
    is rejected, do not run the confirmation command. The planned row and exact
-   canonical state/event bytes consequently remain unchanged; retry the same
-   preflight after a live slot is released.
+   authoritative local session/event bytes consequently remain unchanged;
+   retry the same preflight after a live slot is released.
 3. Copy the immutable thread identity returned by that successful backend call
    exactly into `dispatch --confirm-launched SESSION_ID=EXTERNAL_ID`, repeating
-   the same capacity, stage, ID, and materialization authority. Collaboration
+   the same GitHub config, capacity, stage, ID, and materialization authority. Collaboration
    callers of the legacy single-session wrapper use
    `--launched-external-id EXTERNAL_ID`. A generic `external_id` override is not
    launch confirmation. The coordinator attests
    that the value came from the just-completed backend call; the CLI validates
    shape, uniqueness, admission, and immutability but cannot prove backend
    existence. Never invent an ID.
-4. The confirmation transaction rechecks dependencies, stage membership,
-   active non-coordinator sessions, writable ownership, and the sorted capacity
-   prefix under the workflow lock. It atomically moves the planned row to
-   `issued` and appends identity-bound events. If capacity or authority drifted,
-   it writes nothing; immediately interrupt and retire the still-bootstrap-only
-   external thread, then retry from step 1.
-5. Only after canonical confirmation may the coordinator deliver the full task
-   packet and move the session through the launch lease to `running`.
+4. The confirmation transaction rechecks the derived dependency snapshot,
+   stage membership, active non-coordinator sessions, writable ownership, and
+   the sorted capacity prefix under the workflow lock. It atomically moves the
+   planned row to `issued` and appends identity-bound events. If capacity or
+   authority drifted, it writes nothing; immediately interrupt and retire the
+   still-bootstrap-only external thread, then retry from step 1.
+5. Only after local launch confirmation may the coordinator deliver the full
+   task packet and move the session through the launch lease to `running`.
 
 Every collaboration session newly issued through the dispatcher requires a
 confirmed, non-empty immutable external thread identity. Active collaboration
@@ -105,12 +182,13 @@ still waits for the one elected builder for a cache key.
 
 ## One orchestrator per issue
 
-The coordinator dispatches exactly one orchestrator for each implementation
-issue. Admission rejects a second planned or active orchestrator for the same
-issue, including while the issue is still `planned`; terminal attempts remain
-retry provenance. The initial prompt contains the full issue record, protocol revision,
-base SHA, worktree, owned paths, source anchors, acceptance gates, cache key,
-prior attempts, and expected result-envelope path.
+The coordinator dispatches exactly one orchestrator for each canonical GitHub
+implementation issue. Admission rejects a second planned or active orchestrator
+for the same GitHub issue number, including while the issue is still
+`status:planned`; terminal attempts remain retry provenance. The initial prompt
+contains the repository name, GitHub issue number and frozen body/label
+snapshot, protocol revision, base SHA, worktree, owned paths, source anchors,
+acceptance gates, cache key, prior attempts, and expected result-envelope path.
 
 The orchestrator may delegate:
 
@@ -166,11 +244,14 @@ Use `i<issue-number>-<role>-a<two-digit-attempt>-<slug>`, for example
 `i005-prover-a02-pauli-linearity`. The stable name, external Codex thread ID,
 and parent session ID are separate fields.
 
-1. **Plan:** add an expected role to `sessions.json:planned`. No agent exists.
+1. **Plan:** add an expected role to `sessions.json:planned`. After GitHub
+   cutover, use only the guarded `workflow.py add planned-session` command; do
+   not hand-edit the ledger. No agent exists and no work is authorized.
 2. **Issue:** create the immutable issued-attempt record and launch the agent.
 3. **Run:** write raw JSONL and outputs to `.workflow-runtime/runs/<name>/`.
 4. **Inspect:** verify owned paths, diff, commands, result, metrics, and handoff.
-5. **Finish:** import a compact record into canonical state/research metrics.
+5. **Finish:** import a compact record into authoritative local session state
+   and research metrics.
 6. **Archive:** run `codex archive <external-id>` when the backend provides a
    persistent Codex session, then mark the local record archived. Collaboration
    backends without a CLI session are retired locally with the limitation noted.
@@ -181,27 +262,56 @@ The exact registered validation command must be executed; a paraphrase or a
 nearby test command is not completion evidence. Issued authority fields are
 immutable, and lifecycle events must reconcile with the issued record.
 
-## Local PR lifecycle
+## Canonical GitHub PR lifecycle
 
-Local PR IDs are stable (`LPR-NNN`). One record names issue IDs, base branch and
-SHA, head branch and SHA, changed paths, motivation, precise description,
-validation, review rounds, findings, dispositions, and final integration SHA.
+GitHub PR numbers in `Dengnifer/MIPStarRE-B` are canonical. A migrated PR body
+retains its stable `LPR-NNN` marker and carries `migration:local-v1`; new PRs use
+only their GitHub number and never receive migration metadata. Native
+draft/open/closed/merged state is canonical, and every open PR has exactly one
+of `review:required`, `review:approved`, or `review:changes-requested`.
+A review label records transported workflow state; it is never sufficient
+approval evidence without the exact identity-bearing report comment bound by
+the integration preflight.
 
-Statuses are `draft`, `ready`, `changes_requested`, `approved`, `merged`, and
-`closed`.
+Only the root coordinator pushes to GitHub or creates, edits, labels, comments
+on, closes, reopens, or merges a PR. It runs the repository adapter's
+read-only preflight before every mutation. Every writing `gh` command includes
+`--repo Dengnifer/MIPStarRE-B`. Until the default branch is fixed, every PR
+creation also includes explicit `--base main`; an ambient default is never
+accepted, and adapter preflight rejects a PR whose base is not `main`.
+Before every push, the root verifies that its explicit destination is exactly
+`Dengnifer/MIPStarRE-B`; `LionSR/MIPStarRE`, umbrella repositories, and every
+other repository are read-only and out of scope. Credentials and raw private
+runtime logs never enter a commit, PR body, comment, or command output.
 
-1. Create a branch/worktree from verified main and open a draft record.
-2. Implement only the linked issue scope.
-3. Record scoped checks; warm/seed the cache through the cache protocol.
-4. Freeze the head SHA and run the full local gate.
-5. If the gate passes, dispatch fresh code and blueprint reviewers.
-6. On findings, record dispositions, change the head, invalidate approval, and
-   run a new review round.
-7. Integrate only an approved, unchanged head. Run the main build after merge.
-8. Reconcile issue status and genuine follow-ups, then archive sessions.
+1. Create a branch and issue worktree from a verified `main` SHA. The root opens
+   the draft GitHub PR against explicit base `main` and applies
+   `review:required` after a coherent checkpoint is committed and pushed.
+2. Implement only the linked canonical issue scope. The PR body records the
+   exact base/head SHAs, changed paths, motivation, description, validation, and
+   `Closes #NNN` or a non-closing issue link.
+3. Record scoped checks and warm/seed the cache through the cache protocol.
+4. Freeze the head SHA and run the full local gate. A changed head immediately
+   returns the PR to `review:required` and invalidates prior approval.
+5. If the gate passes, the root moves the linked issue to `status:review` after
+   adapter preflight, then dispatches fresh code and blueprint reviewers. Each
+   round binds the PR number, base SHA, head SHA, stable reviewer session name,
+   and immutable external reviewer identity.
+6. Reviewers remain read-only and perform no GitHub action. The root posts each
+   returned report byte-for-byte, without paraphrase or identity substitution,
+   and applies the matching `review:approved` or
+   `review:changes-requested` label. The root's GitHub account is transport
+   identity, not reviewer identity.
+7. On findings, preserve their exact report and disposition history, change the
+   head, run the full gate, and dispatch a fresh review round. Never reuse an
+   approval across head SHAs.
+8. The root integrates only a `review:approved`, unchanged head. Run the main
+   build after merge, reconcile the linked GitHub issue, post exact terminal
+   status, and archive local sessions.
 
-PR titles use `type(scope): description`. The record body contains Motivation,
-Description, Testing, and `Addresses QPBT-NNN` or `Closes QPBT-NNN`.
+PR titles use `type(scope): description`. `workflow/state/prs.json` is legacy
+history or a derived compatibility projection only and never authorizes review
+or merge.
 
 ## Local Mathlib hot-cache input
 

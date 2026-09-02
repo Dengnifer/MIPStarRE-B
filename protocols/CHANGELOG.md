@@ -1,5 +1,103 @@
 # Protocol Changelog
 
+## 0.2.0 candidate (GitHub #1 / QPBT-053) - 2026-09-02
+
+The user directly replaced local issue and PR authority with GitHub Issues and
+pull requests in exactly `Dengnifer/MIPStarRE-B`. Repository database ID
+`1352436168`, node ID `R_kgDOUJyJyA`, explicit integration base `main`, and
+cutover main `4a6683795a71712d6a5c52b7539c2f532fd39f71` are bound in a committed,
+credential-free adapter config and immutable migration manifest. The umbrella
+repository and every other repository remain outside write authority.
+
+Twenty-four still-open legacy issues plus the cutover issue are canonical
+GitHub issues. Twenty-nine completed legacy issues remain in the frozen local
+archive rather than receiving fabricated timestamps. The migration preserves
+stable QPBT/LPR provenance markers while making GitHub numbers canonical. It
+also migrates 21 native parent links and 13 native blocked-by links wherever
+both endpoints exist; prose links are not a parallel graph. Two exact legacy
+candidate branches and PRs are published with immutable base/head bindings.
+
+The repository adapter is dependency-free and GET-only. It validates exact
+repository IDs, configured `main` lineage, migration bindings, issue status and
+kind labels, native hierarchy/dependencies, PR base/head, and optional exact
+identity-bearing review comments. A review label is transport state, never
+approval authority by itself. Guarded integration binds the posted comment ID,
+node ID, body SHA-256, stable reviewer session name, immutable external
+identity, verdict, and reviewed base/head, while rejecting implementer or
+orchestrator identities supplied by the caller.
+
+Local `issues.json` and `prs.json` are frozen history or derived compatibility
+data. Once `workflow/github.json` exists, legacy init/readiness and issue/PR
+mutation commands fail closed. Dispatch requires that exact config and a live
+canonical preflight. Post-cutover local session evidence may carry a canonical
+GitHub issue/PR number without inventing a legacy issue row; historical rows
+remain compatible. Session, metrics, cache, and immutable review artifacts stay
+local, and the singleton hot-main build protocol is unchanged.
+
+The provisional adversarial cutover review then found six admission and replay
+gaps. The repair adds a dedicated manifest-bound planned-session enqueue while
+keeping generic session mutation closed; derives authority from the real state
+path and treats the retained manifest as an irreversible cutover marker; moves
+the final live GET under the publication lock; binds live issue kind/category
+so every non-orchestrator formalization delegate requires its active writable
+orchestrator; checks
+both halves of migrated launch identity against the exact manifest through
+publication; and recreates or verifies the exact terminal artifact on an
+otherwise idempotent import. Focused race and byte-rollback regressions cover
+each boundary. Repository visibility is now public for CI quota availability,
+but visibility does not relax exact repository identity, explicit `main`,
+review identity, credential, or root-only write controls.
+
+The next admission review found immutable planned-row and PR-authority dead
+ends. The enqueue now rejects records that cannot materialize as issued rows
+and duplicate orchestrators. Migrated PR pairs and exact base/head fields are
+manifest-bound; GitHub-only PR work supplies the same immutable tuple. Dispatch
+re-audits current PR bindings and performs both the outer and lock-held live PR
+GET, while claim rechecks the stored tuple through publication. The focused
+precommit review approved the four-file repair manifest after workflow
+`117/117`, local-agent `77/77`, and adapter `31/31` tests passed. A fresh
+committed whole-candidate review remains required before activation.
+
+The server default branch is still `from-monorepo` because the current token
+lacks repository-administration permission. This is nonblocking: every PR
+creation explicitly uses `--base main`, the adapter distinguishes configured
+integration base from server default, and the owner-only settings change is
+tracked plainly. Fresh immutable review, aggregate validation, one coherent
+commit, explicit-repository push, and GitHub PR integration are required before
+activation.
+
+The immutable PR-029 repair review (issue #31, head
+`1356fc25110770adcd10f5056767f3803630e76f`) found three authority defects. The
+repair binds post-cutover session planning and dispatch to the exact adjacent
+`workflow/events.jsonl` path and rejects aliases, symlinks, and missing logs
+without recreating history; it also retains sticky cutover observation and
+durable GitHub-number session evidence so authority-file loss fails closed for
+existing stores and rows. The adapter CLI now accepts a strict structured
+integration-review JSON file, binds every entry one-to-one to an exact PR
+base/head expectation, and validates comment identity, digest, reviewer
+identity, verdict, and nonempty implementer/orchestrator exclusions through the
+existing GET-only path. Workflow `124/124` (including a fresh-store fixture
+with zero positive GitHub issue/PR session IDs) and adapter `35/35`, scoped
+compileall, and diff hygiene passed. A brand-new store with both authority files
+and all GitHub-bound session evidence removed now fails closed using the tracked
+`workflow/github-cutover-indicator.json` marker (SHA-256
+`7dda9f6bb7a244ec953d39e1a6f13d172b3a719fd95836f94dd347dbe9b6e7a1`). The
+indicator has exact schema `{schema_version:1, kind:"github-cutover-irreversible",
+repository:{owner:"Dengnifer", name:"MIPStarRE-B", database_id:1352436168,
+node_id:"R_kgDOUJyJyA"}, base_ref:"main", cutover_main_sha:<40 lowercase hex}`;
+malformed, duplicate-key, extra-field, symlinked, or metadata-mismatched markers
+fail closed. Only simultaneous removal of the indicator, both authority files,
+and all durable session evidence remains outside the current schema's inference
+boundary.
+
+The first 455-test aggregate exposed one stale local-agent fixture: its
+GitHub-only governed-exec case supplied unbound issue `#28` without activating
+cutover authority. Adding exactly `self.activate_cutover()` preserves `#28` as
+unbound under the fixture manifest while exercising the genuine post-cutover
+path. The focused case passed `1/1`, local-agent tests passed `77/77`, and the
+final `python3 scripts/check_workflow.py --root .` rerun passed `455/455` in
+280.787 seconds with exit status 0.
+
 ## 0.1.10 candidate (QPBT-045) - 2026-09-02
 
 INC-060 is the second occurrence of

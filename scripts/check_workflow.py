@@ -111,12 +111,31 @@ def validate_research_ledgers(root: Path, documents: dict[str, Any]) -> None:
                 errors.append(
                     f"sessions metric[{index}].issue_id: expected {issued_issue!r}, got {metric_issue!r}"
                 )
+            metric_github_issue = metric.get("github_issue_number")
+            issued_github_issue = session.get("github_issue_number")
+            if metric_github_issue != issued_github_issue:
+                errors.append(
+                    f"sessions metric[{index}].github_issue_number: expected "
+                    f"{issued_github_issue!r}, got {metric_github_issue!r}"
+                )
+            metric_github_pr = metric.get("github_pull_request_number")
+            issued_github_pr = session.get("github_pull_request_number")
+            if metric_github_pr != issued_github_pr:
+                errors.append(
+                    f"sessions metric[{index}].github_pull_request_number: expected "
+                    f"{issued_github_pr!r}, got {metric_github_pr!r}"
+                )
             metric_stage = metric.get("stage_id")
             if not isinstance(metric_stage, str) or metric_stage not in stage_ids:
                 errors.append(
                     f"sessions metric[{index}].stage_id: unknown stage {metric_stage!r}"
                 )
-            expected_stages = issue_stages.get(issued_issue, [])
+            explicit_stage = session.get("stage_id")
+            expected_stages = (
+                [explicit_stage]
+                if issued_issue is None and isinstance(explicit_stage, str)
+                else issue_stages.get(issued_issue, [])
+            )
             if len(expected_stages) == 1 and metric_stage != expected_stages[0]:
                 errors.append(
                     f"sessions metric[{index}].stage_id: expected {expected_stages[0]!r} "
@@ -132,7 +151,14 @@ def validate_research_ledgers(root: Path, documents: dict[str, Any]) -> None:
             actual = sum(
                 1
                 for session in issued.values()
-                if session.get("issue_id") in issue_ids and session.get("role") != "coordinator"
+                if (
+                    session.get("issue_id") in issue_ids
+                    or (
+                        session.get("issue_id") is None
+                        and session.get("stage_id") == stage.get("id")
+                    )
+                )
+                and session.get("role") != "coordinator"
             )
             recorded = stage.get("subagents_issued")
             if recorded != actual:

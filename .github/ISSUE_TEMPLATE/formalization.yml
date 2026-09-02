@@ -1,0 +1,128 @@
+name: QPBT formalization
+description: Propose one paper-traceable Lean formalization deliverable.
+title: "feat(QPBT): "
+labels:
+  - "kind:formalization"
+  - "status:planned"
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        GitHub issue numbers in `Dengnifer/MIPStarRE-B` are canonical. Keep parent and dependency relationships separate. Only the root coordinator submits this form or mutates issue status.
+
+  - type: textarea
+    id: paper-source
+    attributes:
+      label: Paper source and claim
+      description: Give the pinned source path, section, line or label, and a precise paraphrase of the claim.
+      placeholder: |
+        references/2001.04383v3/sections/...:line
+        Paper label:
+        Precise claim:
+    validations:
+      required: true
+
+  - type: textarea
+    id: blueprint-anchor
+    attributes:
+      label: Blueprint anchor
+      description: Give the blueprint path and label, current dependency edges, and current Lean-link status.
+      placeholder: |
+        blueprint/src/chapter/...:
+        Label:
+        Prerequisites:
+        Current Lean link:
+    validations:
+      required: true
+
+  - type: textarea
+    id: lean-surface
+    attributes:
+      label: Intended Lean surface
+      description: Name the declarations, files, owned paths, and downstream consumers in scope.
+      placeholder: |
+        Declarations:
+        Files and owned paths:
+        Consumers:
+    validations:
+      required: true
+
+  - type: input
+    id: parent
+    attributes:
+      label: Tracking parent
+      description: Enter one GitHub issue number for grouping, or None. This is not a dependency.
+      placeholder: "#123 or None"
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: List each blocking GitHub issue number and why it must complete first, or None.
+      placeholder: |
+        #123 - required declaration
+        #124 - source gap resolution
+    validations:
+      required: true
+
+  - type: textarea
+    id: blockers
+    attributes:
+      label: Known blockers and paper gaps
+      description: State concrete blockers, ambiguous paper steps, and unblock conditions. Use None when there are none.
+    validations:
+      required: true
+
+  - type: textarea
+    id: statement-integrity
+    attributes:
+      label: Statement-integrity expectation
+      description: Compare expected paper and Lean assumptions, conclusions, quantifier order, domains, constants, and error dependence.
+      placeholder: |
+        Paper assumptions:
+        Expected Lean assumptions:
+        Paper conclusion:
+        Expected Lean conclusion:
+        Expected verdict: exact | faithful boundary | documented mismatch
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-gates
+    attributes:
+      label: Acceptance gates
+      description: Give a finite checklist of mathematical, Lean, blueprint, review, and integration outcomes.
+      placeholder: |
+        - [ ] Source-faithful declaration exists
+        - [ ] Owned file type-checks
+        - [ ] Full build passes
+        - [ ] Blueprint synchronization passes
+        - [ ] Independent immutable-head review approves
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Exact validation commands
+      description: List exact commands. Similar-looking substitute commands do not count.
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: fidelity
+    attributes:
+      label: Fidelity checks
+      options:
+        - label: I read the pinned paper source before deriving this statement.
+          required: true
+        - label: Parent and dependency relationships above have distinct meanings.
+          required: true
+        - label: The proposed theorem does not move missing proof content into a public assumption.
+          required: true
+        - label: Any known paper gap has a concrete note and discharge plan.
+          required: true

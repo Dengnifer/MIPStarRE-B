@@ -28,6 +28,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from urllib.parse import urlsplit
 
 import bootstrap_manifest
+import github_workflow
 import workflow as workflow_state
 
 
@@ -215,71 +216,134 @@ def _session_store(workflow_root: Path) -> workflow_state.WorkflowStore:
 
 def _session_transaction(
     workflow_root: Path, session_id: str, operation: Any,
-    *, artifact_factory: Any = None,
+    *, artifact_factory: Any = None, publication_guard: Any = None,
 ) -> dict[str, Any]:
     """Apply one lifecycle mutation with exact state/event/artifact rollback.
 
-    ``artifact_factory`` is used by interruption recovery to prepare a
-    deterministic terminal envelope while the WorkflowStore lock is held.
+    ``artifact_factory`` is used by terminal import and interruption recovery
+    to prepare a deterministic envelope while the WorkflowStore lock is held.
     The artifact is restored together with the state and event log if any
     write or validation raises, including a ``BaseException`` such as
     ``KeyboardInterrupt``.
     """
     store = _session_store(workflow_root)
     with store._lock(exclusive=True):
-        documents = store.load()
-        workflow_state.validate_documents(documents)
-        workflow_state.validate_event_log(store.events_path, documents)
-        record = next(
-            (item for item in documents["sessions.json"]["issued"] if item.get("id") == session_id),
-            None,
-        )
-        if record is None:
-            raise AgentError(f"unknown issued session {session_id!r}")
-        changed, event, payload = operation(record)
-        if not changed:
-            return dict(record)
-        artifact_spec = artifact_factory(record) if artifact_factory is not None else None
-        workflow_state.validate_documents(documents)
-        sessions_path = store.state_dir / "sessions.json"
-        sessions_bytes = sessions_path.read_bytes()
-        events_existed = store.events_path.exists()
-        events_bytes = store.events_path.read_bytes() if events_existed else None
-        artifact_path: Path | None = None
-        artifact_bytes: bytes | None = None
-        artifact_existed = False
-        prior_artifact: bytes | None = None
-        if artifact_spec is not None:
-            artifact_path, artifact_bytes = artifact_spec
-            if not artifact_path.is_absolute():
-                raise AgentError("transaction artifact path must be absolute")
-            artifact_path = artifact_path.resolve(strict=False)
-            artifact_existed = artifact_path.exists()
-            if artifact_existed:
-                if not artifact_path.is_file():
-                    raise AgentError("transaction artifact path is not a regular file")
-                prior_artifact = artifact_path.read_bytes()
+        event_binding: workflow_state._BoundEventLog | None = None
+        if store._refresh_github_authority() is not None:
+            event_binding = store._open_cutover_event_log()
         try:
-            if artifact_path is not None and artifact_bytes is not None:
-                _write_exact_artifact(artifact_path, artifact_bytes)
-            workflow_state.atomic_write_json(sessions_path, documents["sessions.json"])
-            store.append_event(event, payload, lock_held=True)
-            workflow_state.validate_event_log(store.events_path, documents)
-        except BaseException:
-            _restore_session_transaction(
-                events_path=store.events_path,
-                sessions_path=sessions_path, sessions_bytes=sessions_bytes,
-                events_existed=events_existed,
-                events_bytes=events_bytes,
+            documents = store.load()
+            workflow_state.validate_documents(documents)
+            if event_binding is not None:
+                event_binding.validate(documents)
+            else:
+                workflow_state.validate_event_log(store.events_path, documents)
+            record = next(
+                (
+                    item
+                    for item in documents["sessions.json"]["issued"]
+                    if item.get("id") == session_id
+                ),
+                None,
             )
-            if artifact_path is not None:
-                _restore_artifact(
-                    artifact_path,
-                    existed=artifact_existed,
-                    prior_bytes=prior_artifact,
+            if record is None:
+                raise AgentError(f"unknown issued session {session_id!r}")
+            changed, event, payload = operation(record)
+            artifact_spec = (
+                artifact_factory(record) if artifact_factory is not None else None
+            )
+            if not changed:
+                if artifact_spec is not None:
+                    artifact_path, artifact_bytes = artifact_spec
+                    if not artifact_path.is_absolute():
+                        raise AgentError("transaction artifact path must be absolute")
+                    _write_exact_artifact(
+                        artifact_path.resolve(strict=False), artifact_bytes
+                    )
+                return dict(record)
+            workflow_state.validate_documents(documents)
+            sessions_path = store.state_dir / "sessions.json"
+            sessions_bytes = sessions_path.read_bytes()
+            if event_binding is not None:
+                events_existed = True
+                events_offset = len(event_binding.snapshot)
+                events_bytes = event_binding.snapshot
+            else:
+                events_existed = store.events_path.exists()
+                events_offset = (
+                    store.events_path.stat().st_size if events_existed else 0
                 )
-            raise
-        return dict(record)
+                events_bytes = (
+                    store.events_path.read_bytes() if events_existed else None
+                )
+            artifact_path: Path | None = None
+            artifact_bytes: bytes | None = None
+            artifact_existed = False
+            prior_artifact: bytes | None = None
+            if artifact_spec is not None:
+                artifact_path, artifact_bytes = artifact_spec
+                if not artifact_path.is_absolute():
+                    raise AgentError("transaction artifact path must be absolute")
+                artifact_path = artifact_path.resolve(strict=False)
+                artifact_existed = artifact_path.exists()
+                if artifact_existed:
+                    if not artifact_path.is_file():
+                        raise AgentError("transaction artifact path is not a regular file")
+                    prior_artifact = artifact_path.read_bytes()
+            try:
+                if publication_guard is not None:
+                    publication_guard()
+                if artifact_path is not None and artifact_bytes is not None:
+                    _write_exact_artifact(artifact_path, artifact_bytes)
+                workflow_state.atomic_write_json(
+                    sessions_path, documents["sessions.json"]
+                )
+                if publication_guard is not None:
+                    publication_guard()
+                store.append_event(
+                    event,
+                    payload,
+                    lock_held=True,
+                    _write_token=store._workflow_write_token,
+                    _event_binding=event_binding,
+                )
+                if publication_guard is not None:
+                    publication_guard()
+                if event_binding is not None:
+                    event_binding.validate(documents)
+                else:
+                    workflow_state.validate_event_log(store.events_path, documents)
+            except BaseException:
+                rollback_error: BaseException | None = None
+                try:
+                    _restore_session_transaction(
+                        store=store,
+                        event_binding=event_binding,
+                        sessions_path=sessions_path,
+                        sessions_bytes=sessions_bytes,
+                        events_existed=events_existed,
+                        events_offset=events_offset,
+                        events_bytes=events_bytes,
+                    )
+                except BaseException as error:
+                    rollback_error = error
+                if artifact_path is not None:
+                    try:
+                        _restore_artifact(
+                            artifact_path,
+                            existed=artifact_existed,
+                            prior_bytes=prior_artifact,
+                        )
+                    except BaseException as error:
+                        if rollback_error is None:
+                            rollback_error = error
+                if rollback_error is not None:
+                    raise AgentError("session transaction rollback failed") from rollback_error
+                raise
+            return dict(record)
+        finally:
+            if event_binding is not None:
+                event_binding.close()
 
 
 def _write_exact_artifact(path: Path, data: bytes) -> None:
@@ -309,10 +373,12 @@ def _restore_artifact(path: Path, *, existed: bool, prior_bytes: bytes | None) -
 
 def _restore_session_transaction(
     *,
-    events_path: Path,
+    store: workflow_state.WorkflowStore,
+    event_binding: workflow_state._BoundEventLog | None,
     sessions_path: Path,
     sessions_bytes: bytes,
     events_existed: bool,
+    events_offset: int,
     events_bytes: bytes | None,
 ) -> None:
     """Restore lifecycle files without re-entering a potentially failing writer."""
@@ -320,15 +386,23 @@ def _restore_session_transaction(
     # Replacing the snapshots directly keeps rollback independent of the
     # injected writer that raised (including a one-shot KeyboardInterrupt).
     _atomic_write_bytes(sessions_path, sessions_bytes)
+    if event_binding is not None:
+        store._restore_event_log(
+            events_existed=events_existed,
+            events_offset=events_offset,
+            events_bytes=events_bytes,
+            event_binding=event_binding,
+        )
+        return
     if not events_existed:
         try:
-            events_path.unlink()
+            store.events_path.unlink()
         except FileNotFoundError:
             pass
         return
     if events_bytes is None:
         raise AgentError("event snapshot disappeared during transaction rollback")
-    _atomic_write_bytes(events_path, events_bytes)
+    _atomic_write_bytes(store.events_path, events_bytes)
 
 
 def _recovery_envelope(
@@ -351,22 +425,205 @@ def _recovery_envelope(
     }
 
 
+def _cutover_claim_authority(
+    workflow_root: Path,
+) -> tuple[
+    github_workflow.GitHubAuthority, Path, str, Path, str
+] | None:
+    """Load the exact adjacent cutover authority without accepting path aliases."""
+
+    root = workflow_root.resolve()
+    config_path = root / "workflow" / "github.json"
+    manifest_path = root / "workflow" / "github-cutover.json"
+    try:
+        config_exists = workflow_state._regular_nonsymlink(
+            config_path, "GitHub authority config"
+        )
+        manifest_exists = workflow_state._regular_nonsymlink(
+            manifest_path, "GitHub cutover manifest"
+        )
+        if not config_exists and not manifest_exists:
+            return None
+        if not config_exists or not manifest_exists:
+            raise AgentError(
+                "GitHub claim authority is incomplete: exact config and cutover manifest are required"
+            )
+        config_digest = workflow_state._regular_file_digest(
+            config_path, "GitHub authority config"
+        )
+        manifest_digest = workflow_state._regular_file_digest(
+            manifest_path, "GitHub cutover manifest"
+        )
+        authority = github_workflow.load_authority(config_path)
+        loaded_manifest = workflow_state._authority_manifest_path(
+            config_path, authority
+        )
+        if loaded_manifest != workflow_state._lexical_absolute(manifest_path):
+            raise AgentError(
+                "GitHub claim authority did not load exact workflow/github-cutover.json"
+            )
+        if config_digest != workflow_state._regular_file_digest(
+            config_path, "GitHub authority config"
+        ) or manifest_digest != workflow_state._regular_file_digest(
+            manifest_path, "GitHub cutover manifest"
+        ):
+            raise AgentError("GitHub claim authority changed while it was being loaded")
+        return authority, config_path, config_digest, manifest_path, manifest_digest
+    except AgentError:
+        raise
+    except (github_workflow.GitHubWorkflowError, workflow_state.WorkflowError) as error:
+        raise AgentError(f"invalid GitHub claim authority: {error}") from error
+
+
+def _verify_cutover_claim_authority(
+    proof: tuple[github_workflow.GitHubAuthority, Path, str, Path, str]
+) -> None:
+    """Recheck the exact authority bytes bound during claim admission."""
+
+    _, config_path, config_digest, manifest_path, manifest_digest = proof
+    try:
+        if config_digest != workflow_state._regular_file_digest(
+            config_path, "GitHub authority config"
+        ) or manifest_digest != workflow_state._regular_file_digest(
+            manifest_path, "GitHub cutover manifest"
+        ):
+            raise AgentError("GitHub claim authority changed during publication")
+    except AgentError:
+        raise
+    except workflow_state.WorkflowError as error:
+        raise AgentError(f"invalid GitHub claim authority: {error}") from error
+
+
+def _authenticate_stored_pull_request_identity(
+    record: Mapping[str, Any], authority: github_workflow.GitHubAuthority
+) -> None:
+    """Authenticate a stored PR identity against the cutover manifest."""
+
+    stored_pr_id = record.get("pr_id")
+    stored_number = record.get("github_pull_request_number")
+    stored_fields = workflow_state._pull_request_identity_fields(record)
+    if stored_pr_id is not None:
+        try:
+            binding = authority.pull_request_by_legacy_id(stored_pr_id)
+        except github_workflow.GitHubWorkflowError as error:
+            raise AgentError(
+                "stored legacy pull-request identity is absent from the exact cutover manifest"
+            ) from error
+        if stored_number is not None and stored_number != binding.number:
+            raise AgentError(
+                "stored pull-request identities conflict with the exact cutover manifest"
+            )
+        if stored_fields != workflow_state._pull_request_identity_fields(binding):
+            raise AgentError(
+                "stored pull-request immutable identity conflicts with the exact cutover manifest"
+            )
+    elif stored_number is not None:
+        try:
+            binding = authority.optional_pull_request_by_number(stored_number)
+        except github_workflow.GitHubWorkflowError as error:
+            raise AgentError("stored GitHub pull-request identity is ambiguous") from error
+        if binding is not None:
+            raise AgentError(
+                "stored migrated GitHub pull-request identity is missing its legacy binding"
+            )
+        try:
+            workflow_state._validate_pull_request_identity_fields(
+                stored_fields, expected_base_ref=authority.base_ref
+            )
+        except workflow_state.WorkflowError as error:
+            raise AgentError(
+                "stored GitHub-only pull-request immutable identity is invalid"
+            ) from error
+
+
+def _claim_identity_matches(
+    *,
+    workflow_root: Path,
+    record: Mapping[str, Any],
+    issue_id: str | None,
+    github_issue_number: int | None,
+) -> tuple[
+    bool,
+    tuple[github_workflow.GitHubAuthority, Path, str, Path, str] | None,
+]:
+    """Authenticate the stored pair and compare either caller projection."""
+
+    stored_issue_id = record.get("issue_id")
+    stored_number = record.get("github_issue_number")
+    canonical_issue_id = stored_issue_id
+    canonical_number = stored_number
+    proof = _cutover_claim_authority(workflow_root)
+    if proof is not None:
+        authority = proof[0]
+        if stored_issue_id is not None:
+            try:
+                binding = authority.issue_by_legacy_id(stored_issue_id)
+            except github_workflow.GitHubWorkflowError as error:
+                raise AgentError(
+                    "stored legacy issue identity is absent from the exact cutover manifest"
+                ) from error
+            canonical_number = binding.number
+            if stored_number is not None and stored_number != binding.number:
+                raise AgentError(
+                    "stored issue identities conflict with the exact cutover manifest"
+                )
+        elif stored_number is not None:
+            binding = authority.optional_issue_by_number(stored_number)
+            if binding is not None:
+                raise AgentError(
+                    "stored migrated GitHub issue identity is missing its legacy binding"
+                )
+        _authenticate_stored_pull_request_identity(record, authority)
+
+    return (
+        (
+            (issue_id is None or canonical_issue_id == issue_id)
+            and (
+                github_issue_number is None
+                or canonical_number == github_issue_number
+            )
+        ),
+        proof,
+    )
+
+
 def claim_issued_session(
     *, session_id: str, workflow_root: Path, alias: str, cwd: Path,
     base_revision: str | None, owned_paths: Sequence[str], read_only: bool,
-    role: str, issue_id: str, parent_session_id: str | None,
+    role: str, issue_id: str | None = None,
+    github_issue_number: int | None = None,
+    parent_session_id: str | None = None,
 ) -> dict[str, Any]:
     """Atomically validate authority and transition one issued session to running."""
     requested_paths = list(owned_paths)
+    if issue_id is None and github_issue_number is None:
+        raise AgentError("launch requires a legacy issue id or canonical GitHub issue number")
+    if github_issue_number is not None and (
+        not isinstance(github_issue_number, int)
+        or isinstance(github_issue_number, bool)
+        or github_issue_number < 1
+    ):
+        raise AgentError("canonical GitHub issue number must be a positive integer")
+    authority_proof: tuple[
+        github_workflow.GitHubAuthority, Path, str, Path, str
+    ] | None = None
 
     def mutate(record: dict[str, Any]) -> tuple[bool, str, dict[str, Any]]:
+        nonlocal authority_proof
         if record.get("status") != "issued":
             raise AgentError(f"session {session_id!r} is not issued (status={record.get('status')!r})")
+        identity_matches, authority_proof = _claim_identity_matches(
+            workflow_root=workflow_root,
+            record=record,
+            issue_id=issue_id,
+            github_issue_number=github_issue_number,
+        )
         expected = {
-            "name": alias, "role": role, "issue_id": issue_id,
+            "name": alias,
+            "role": role,
             "parent_session_id": parent_session_id,
         }
-        if any(record.get(key) != value for key, value in expected.items()):
+        if not identity_matches or any(record.get(key) != value for key, value in expected.items()):
             raise AgentError("launch identity does not match issued authority")
         if Path(record["worktree"]).resolve() != cwd.resolve():
             raise AgentError("launch cwd does not match issued worktree")
@@ -386,7 +643,21 @@ def claim_issued_session(
             "worktree_tree": identity["tree"],
             "result_envelope_path": result_path,
         }
-    return _session_transaction(workflow_root, session_id, mutate)
+
+    def publication_guard() -> None:
+        if authority_proof is not None:
+            _verify_cutover_claim_authority(authority_proof)
+
+    try:
+        return _session_transaction(
+            workflow_root, session_id, mutate, publication_guard=publication_guard
+        )
+    except TypeError as error:
+        # Keep lightweight injected transaction doubles source-compatible;
+        # the real store always accepts and enforces the publication guard.
+        if "publication_guard" not in str(error):
+            raise
+        return _session_transaction(workflow_root, session_id, mutate)
 
 
 def import_session_result(
@@ -1013,7 +1284,8 @@ def load_persona(repo_root: Path, role: str, persona_file: Path | None = None) -
 def build_prompt(
     *,
     alias: str,
-    issue_id: str,
+    issue_id: str | None,
+    github_issue_number: int | None = None,
     role: str,
     assignment: str,
     cwd: Path,
@@ -1031,6 +1303,7 @@ def build_prompt(
     identity = {
         "local_session_name": alias,
         "issue_id": issue_id,
+        "github_issue_number": github_issue_number,
         "role": role,
         "parent_session_id": parent_session_id,
         "working_directory": str(cwd),
@@ -1094,7 +1367,8 @@ def build_prompt(
 def build_review_request(
     *,
     alias: str,
-    issue_id: str,
+    issue_id: str | None,
+    github_issue_number: int | None = None,
     assignment: str,
     cwd: Path,
     context: Sequence[tuple[str, str]] = (),
@@ -1108,6 +1382,7 @@ def build_review_request(
     value = {
         "local_session_name": alias,
         "issue_id": issue_id,
+        "github_issue_number": github_issue_number,
         "role": "reviewer",
         "parent_session_id": parent_session_id,
         "source_working_directory": ".",
@@ -2959,6 +3234,7 @@ def run_exec(
     session_id: str | None = None, workflow_root: Path | None = None,
     base_revision: str | None = None, owned_paths: Sequence[str] = (),
     role: str | None = None, issue_id: str | None = None,
+    github_issue_number: int | None = None,
     parent_session_id: str | None = None,
 ) -> dict[str, Any]:
     """Run Codex, optionally under an issued-session lease."""
@@ -2969,14 +3245,17 @@ def run_exec(
     )
     if session_id is None or dry_run:
         return _run_exec_unbound(**arguments)
-    if workflow_root is None or role is None or issue_id is None:
+    if workflow_root is None or role is None or (
+        issue_id is None and github_issue_number is None
+    ):
         raise AgentError("bound launch requires workflow root, role, and issue authority")
     claimed_worktree = cwd.resolve()
     claimed = claim_issued_session(
         session_id=session_id, workflow_root=workflow_root, alias=alias, cwd=cwd,
         base_revision=base_revision, owned_paths=owned_paths,
         read_only=sandbox == "read-only",
-        role=role, issue_id=issue_id, parent_session_id=parent_session_id,
+        role=role, issue_id=issue_id, github_issue_number=github_issue_number,
+        parent_session_id=parent_session_id,
     )
     try:
         _revalidate_claimed_worktree(cwd, base_revision, claimed_worktree)
@@ -3077,6 +3356,7 @@ def run_review(
     offline_test_mode: bool = False,
     session_id: str | None = None, workflow_root: Path | None = None,
     owned_paths: Sequence[str] = (), issue_id: str | None = None,
+    github_issue_number: int | None = None,
     parent_session_id: str | None = None,
 ) -> dict[str, Any]:
     arguments = dict(
@@ -3099,7 +3379,7 @@ def run_review(
         )
     if session_id is None or dry_run:
         return _run_review_unbound(**arguments)
-    if workflow_root is None or issue_id is None:
+    if workflow_root is None or (issue_id is None and github_issue_number is None):
         raise AgentError("bound review requires workflow root and issue authority")
     claimed_worktree = cwd.resolve()
     transport_profile = validate_review_transport_profile(
@@ -3118,7 +3398,8 @@ def run_review(
     claimed = claim_issued_session(
         session_id=session_id, workflow_root=workflow_root, alias=alias, cwd=cwd,
         base_revision=base_sha, owned_paths=owned_paths, read_only=True,
-        role="reviewer", issue_id=issue_id, parent_session_id=parent_session_id,
+        role="reviewer", issue_id=issue_id, github_issue_number=github_issue_number,
+        parent_session_id=parent_session_id,
     )
     try:
         _revalidate_claimed_worktree(cwd, base_sha, claimed_worktree)
@@ -3673,7 +3954,9 @@ def _resolve(root: Path, value: str) -> Path:
 
 
 def _add_packet_arguments(parser: argparse.ArgumentParser, *, reviewer: bool = False) -> None:
-    parser.add_argument("--issue", required=True)
+    authority = parser.add_mutually_exclusive_group(required=True)
+    authority.add_argument("--issue")
+    authority.add_argument("--github-issue-number", type=int)
     if not reviewer:
         parser.add_argument("--role", required=True)
     parser.add_argument("--attempt", required=True, type=int)
@@ -3703,7 +3986,9 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
 
     alias = commands.add_parser("alias", help="print a stable local session alias")
-    alias.add_argument("--issue", required=True)
+    alias_authority = alias.add_mutually_exclusive_group(required=True)
+    alias_authority.add_argument("--issue")
+    alias_authority.add_argument("--github-issue-number", type=int)
     alias.add_argument("--role", required=True)
     alias.add_argument("--attempt", required=True, type=int)
     alias.add_argument("--slug", required=True)
@@ -3761,7 +4046,17 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _packet_from_arguments(arguments: argparse.Namespace, repo_root: Path, *, reviewer: bool = False) -> tuple[str, str, Path]:
     role = "reviewer" if reviewer else arguments.role
-    alias = make_alias(arguments.issue, role, arguments.attempt, arguments.slug)
+    authority_issue_id = arguments.issue
+    if authority_issue_id is None:
+        number = arguments.github_issue_number
+        if (
+            not isinstance(number, int)
+            or isinstance(number, bool)
+            or number < 1
+        ):
+            raise AgentError("canonical GitHub issue number must be a positive integer")
+        authority_issue_id = f"QPBT-{number:03d}"
+    alias = make_alias(authority_issue_id, role, arguments.attempt, arguments.slug)
     cwd = _resolve(repo_root, arguments.cwd).resolve()
     if not cwd.is_dir():
         raise AgentError(f"working directory does not exist: {cwd}")
@@ -3781,6 +4076,7 @@ def _packet_from_arguments(arguments: argparse.Namespace, repo_root: Path, *, re
         prompt = build_review_request(
             alias=alias,
             issue_id=arguments.issue,
+            github_issue_number=arguments.github_issue_number,
             assignment=assignment,
             cwd=cwd,
             context=context,
@@ -3795,6 +4091,7 @@ def _packet_from_arguments(arguments: argparse.Namespace, repo_root: Path, *, re
         prompt = build_prompt(
             alias=alias,
             issue_id=arguments.issue,
+            github_issue_number=arguments.github_issue_number,
             role=role,
             assignment=assignment,
             cwd=cwd,
@@ -3814,7 +4111,17 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
     repo_root = Path(arguments.repo_root).resolve()
     runtime_dir = _resolve(repo_root, arguments.runtime_dir).resolve()
     if arguments.command == "alias":
-        return {"alias": make_alias(arguments.issue, arguments.role, arguments.attempt, arguments.slug)}
+        issue_id = arguments.issue
+        if issue_id is None:
+            number = arguments.github_issue_number
+            if (
+                not isinstance(number, int)
+                or isinstance(number, bool)
+                or number < 1
+            ):
+                raise AgentError("canonical GitHub issue number must be a positive integer")
+            issue_id = f"QPBT-{number:03d}"
+        return {"alias": make_alias(issue_id, arguments.role, arguments.attempt, arguments.slug)}
     if arguments.command in {"prompt", "run"}:
         alias, prompt, cwd = _packet_from_arguments(arguments, repo_root)
         if arguments.command == "prompt":
@@ -3835,6 +4142,7 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
             owned_paths=arguments.owned_path,
             role=arguments.role,
             issue_id=arguments.issue,
+            github_issue_number=arguments.github_issue_number,
             parent_session_id=arguments.parent_session_id,
         )
     if arguments.command == "review":
