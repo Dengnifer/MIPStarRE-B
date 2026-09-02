@@ -7962,7 +7962,7 @@
     {
       "id": "LPR-031",
       "title": "fix(blueprint): elaborate executable CL contract",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-054"
       ],
@@ -8214,10 +8214,10 @@
           "required_change": "Freeze a new manifest with the exact 40-character blob ed9f21e6797dcaebf088236c829f7c27ea432bb5 and obtain fresh immutable authentication; no candidate byte change is required."
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "66a876158cafe5022030e43dc8200002ee7bdfc4",
+      "merged_at": "2026-09-02T20:44:14.102645Z",
       "created_at": "2026-09-02T18:46:52.097261Z",
-      "updated_at": "2026-09-02T20:40:48.727664Z",
+      "updated_at": "2026-09-02T20:44:14.102645Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.json",
@@ -8248,7 +8248,7 @@
         "i054-reviewer-a10-manifest-auth"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Guarded local no-ff merge of exact approved head f425986 into the current canonical main, preserving the ten authenticated candidate blobs and recording exact merge parents."
+      "unexecuted_gate": "Completed: exact approved head f4259860776f85e65cbe78718b58734d7be31a80 was integrated as second parent of 66a876158cafe5022030e43dc8200002ee7bdfc4; all ten authenticated candidate blobs match, 34/34 tests and pinned blueprint/source/workflow gates pass."
     },
     {
       "id": "LPR-032",

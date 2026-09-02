@@ -2055,7 +2055,7 @@
       "title": "feat(QPBT/Game): implement mathematical, executable, and typed CL interfaces",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "planned",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2096,15 +2096,18 @@
         "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
         "blueprint/metadata/nodes.json#F07-TYPED",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:1-552,553-626,628-660,662-712",
-        "references/2001.04383v3/sections/dependencies/types.tex:57-195"
+        "references/2001.04383v3/sections/dependencies/types.tex:57-195",
+        "workflow/reviews/qpbt-038-types-decomposition-a02.md",
+        "workflow/reviews/qpbt-054-review-a10.md",
+        "blueprint/metadata/gaps.json#G19"
       ],
       "owned_paths": [
         "MIPStarRE/QPBT/Game/Types.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-02T18:05:27.661088Z",
-      "blocked_reason": "QPBT-054 must replace the non-elaborated and semantically drifted F06A manifest before a fresh Types writer is safe to dispatch; rejected A01 zero-map bodies remain non-integrable.",
-      "unblock_condition": "QPBT-054 is independently approved and done with a whole-block elaborated F06A contract; then dispatch one fresh sequential Types owner."
+      "updated_at": "2026-09-02T20:44:38.831813Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-040",
@@ -2772,7 +2775,7 @@
       "title": "fix(blueprint): replace the non-elaborated F06A executable contract",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2828,7 +2831,7 @@
         "workflow/reviews/qpbt-054-gap-linkage-a07.md"
       ],
       "created_at": "2026-09-02T18:04:14.866664Z",
-      "updated_at": "2026-09-02T20:18:15.175437Z",
+      "updated_at": "2026-09-02T20:44:20.471120Z",
       "blocked_reason": null,
       "unblock_condition": null
     }

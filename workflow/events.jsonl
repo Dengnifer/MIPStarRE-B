@@ -3726,3 +3726,8 @@
 {"schema_version":1,"timestamp":"2026-09-02T20:40:25.850020Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-031","fields":["reviews","findings","provenance_session_ids","unexecuted_gate"]}}
 {"schema_version":1,"timestamp":"2026-09-02T20:40:42.332768Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-031","fields":["findings"]}}
 {"schema_version":1,"timestamp":"2026-09-02T20:40:48.799740Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"approved","id":"LPR-031"}}
+{"schema_version":1,"timestamp":"2026-09-02T20:44:13.850200Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-031","fields":["integration_sha","unexecuted_gate"]}}
+{"schema_version":1,"timestamp":"2026-09-02T20:44:14.173550Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"merged","id":"LPR-031"}}
+{"schema_version":1,"timestamp":"2026-09-02T20:44:20.532315Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"done","id":"QPBT-054"}}
+{"schema_version":1,"timestamp":"2026-09-02T20:44:38.598140Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-038","fields":["blocked_reason","unblock_condition","source_refs"]}}
+{"schema_version":1,"timestamp":"2026-09-02T20:44:38.890276Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"planned","id":"QPBT-038"}}
