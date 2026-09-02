@@ -2292,6 +2292,195 @@ class WorkflowStoreTests(unittest.TestCase):
             workflow.run_cli(transition)
         self.store.validate()
 
+    def test_marked_full_store_requires_nonempty_terminal_identity(self) -> None:
+        marker = workflow.COLLABORATION_RELEASE_CONTRACT
+        for status, terminal_event in (
+            ("finished", "session.finished"),
+            ("failed", "session.failed"),
+            ("archived", "session.finished"),
+        ):
+            for issuance_identity in ("missing", "null"):
+                with self.subTest(status=status, issuance_identity=issuance_identity):
+                    state = documents()
+                    session = issued_session(
+                        f"i052-collab-a07-{status}-{issuance_identity}",
+                        status=status,
+                    )
+                    session["backend"] = "codex-collaboration"
+                    session["external_id"] = None
+                    state["sessions.json"]["issued"] = [session]
+                    (self.state_dir / "sessions.json").write_text(
+                        json.dumps(state["sessions.json"]), encoding="utf-8"
+                    )
+                    issuance_payload: dict[str, object] = {
+                        "session_id": session["id"],
+                        "release_contract": marker,
+                    }
+                    if issuance_identity == "null":
+                        issuance_payload["external_id"] = None
+                    events = [
+                        EventLogTests.event(NOW, "session.issued", issuance_payload),
+                        EventLogTests.event(
+                            REVIEW_STARTED,
+                            terminal_event,
+                            {"session_id": session["id"]},
+                        ),
+                    ]
+                    if status == "archived":
+                        events.append(
+                            EventLogTests.event(
+                                REVIEW_ENDED,
+                                "session.archived",
+                                {"session_id": session["id"]},
+                            )
+                        )
+                    self.events.write_text("\n".join(events) + "\n", encoding="utf-8")
+                    with self.assertRaises(workflow.ValidationError) as caught:
+                        self.store.validate()
+                    self.assertIn(
+                        "marked collaboration session external_id must be a non-empty string",
+                        str(caught.exception),
+                    )
+                    self.assertIn(
+                        "marked issuance external_id must be a non-empty string",
+                        str(caught.exception),
+                    )
+
+    def test_marked_full_store_null_identity_cannot_bypass_release_order(self) -> None:
+        marker = workflow.COLLABORATION_RELEASE_CONTRACT
+        cases = [
+            (
+                "finished ordinary time",
+                "finished",
+                "session.finished",
+                CHECKED,
+                None,
+                REVIEW_STARTED,
+                "terminal event precedes session release",
+            ),
+            (
+                "failed equal time",
+                "failed",
+                "session.failed",
+                CHECKED,
+                None,
+                CHECKED,
+                "terminal event precedes session release",
+            ),
+            (
+                "archived ordinary time",
+                "archived",
+                "session.finished",
+                CHECKED,
+                REVIEW_STARTED,
+                REVIEW_ENDED,
+                "archive event precedes session release",
+            ),
+            (
+                "archived equal time",
+                "archived",
+                "session.finished",
+                CHECKED,
+                CHECKED,
+                CHECKED,
+                "archive event precedes session release",
+            ),
+        ]
+        for (
+            name,
+            status,
+            terminal_event,
+            terminal_time,
+            archive_time,
+            release_time,
+            order_error,
+        ) in cases:
+            with self.subTest(name=name):
+                state = documents()
+                session = issued_session(
+                    f"i052-collab-a07-{status}-late",
+                    status=status,
+                )
+                session["backend"] = "codex-collaboration"
+                session["external_id"] = None
+                state["sessions.json"]["issued"] = [session]
+                (self.state_dir / "sessions.json").write_text(
+                    json.dumps(state["sessions.json"]), encoding="utf-8"
+                )
+                events = [
+                    EventLogTests.event(
+                        NOW,
+                        "session.issued",
+                        {
+                            "session_id": session["id"],
+                            "external_id": None,
+                            "release_contract": marker,
+                        },
+                    ),
+                    EventLogTests.event(
+                        terminal_time,
+                        terminal_event,
+                        {"session_id": session["id"]},
+                    ),
+                ]
+                if status == "archived":
+                    events.append(
+                        EventLogTests.event(
+                            archive_time,
+                            "session.archived",
+                            {"session_id": session["id"]},
+                        )
+                    )
+                events.append(
+                    EventLogTests.event(
+                        release_time,
+                        "session.released",
+                        {"session_id": session["id"], "external_id": None},
+                    )
+                )
+                self.events.write_text("\n".join(events) + "\n", encoding="utf-8")
+                with self.assertRaises(workflow.ValidationError) as caught:
+                    self.store.validate()
+                self.assertIn(
+                    "marked collaboration session external_id must be a non-empty string",
+                    str(caught.exception),
+                )
+                self.assertIn(order_error, str(caught.exception))
+
+    def test_markerless_full_store_null_identity_legacy_history_remains_valid(self) -> None:
+        state = documents()
+        session = issued_session("i052-collab-a07-legacy-null", status="archived")
+        session["backend"] = "codex-collaboration"
+        session["external_id"] = None
+        state["sessions.json"]["issued"] = [session]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        self.events.write_text(
+            "\n".join(
+                [
+                    EventLogTests.event(
+                        NOW,
+                        "session.issued",
+                        {"session_id": session["id"]},
+                    ),
+                    EventLogTests.event(
+                        REVIEW_STARTED,
+                        "session.finished",
+                        {"session_id": session["id"]},
+                    ),
+                    EventLogTests.event(
+                        REVIEW_ENDED,
+                        "session.archived",
+                        {"session_id": session["id"]},
+                    ),
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self.store.validate()
+
 
 class ResearchReconciliationTests(unittest.TestCase):
     def setUp(self) -> None:

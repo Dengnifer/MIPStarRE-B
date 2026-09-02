@@ -1538,7 +1538,24 @@ def validate_event_log(
                         f"{location}: issuance release contract is only valid for "
                         "codex-collaboration sessions"
                     )
-                if issuance_payload.get("external_id") != session.get("external_id"):
+                session_external_id = session.get("external_id")
+                if (
+                    not isinstance(session_external_id, str)
+                    or not session_external_id.strip()
+                ):
+                    errors.append(
+                        f"{location}: marked collaboration session external_id "
+                        "must be a non-empty string"
+                    )
+                issuance_external_id = issuance_payload.get("external_id")
+                if (
+                    not isinstance(issuance_external_id, str)
+                    or not issuance_external_id.strip()
+                ):
+                    errors.append(
+                        f"{location}: marked issuance external_id must be a non-empty string"
+                    )
+                if issuance_external_id != session_external_id:
                     errors.append(
                         f"{location}: issuance external_id does not match issued session"
                     )
@@ -1553,13 +1570,13 @@ def validate_event_log(
             # carry the explicit marker below and require one release event.
             release_required = (
                 session.get("backend") == "codex-collaboration"
-                and session.get("external_id")
                 and any(
                     payload.get("release_contract") == COLLABORATION_RELEASE_CONTRACT
                     for payload in marked_issuance_payloads
                 )
+                and bool(running or terminal or archived)
             )
-            if release_required and (running or terminal or archived) and not released:
+            if release_required and not released:
                 errors.append(f"{location}: collaboration session requires post-confirmation release")
             if running and released and running[0][1:] < released[0][1:]:
                 errors.append(f"{location}: running transition precedes session release")
