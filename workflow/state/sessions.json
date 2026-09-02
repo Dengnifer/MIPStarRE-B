@@ -1,43 +1,6 @@
 {
   "schema_version": 1,
-  "planned": [
-    {
-      "id": "i057-orchestrator-a01-f06a",
-      "name": "i057-orchestrator-a01-f06a",
-      "role": "orchestrator",
-      "issue_id": "QPBT-057",
-      "attempt": 1,
-      "dispatch_condition": "QPBT-056 is done, exact main 20745fe passed the singleton 8,992-job cache warm, and QPBT-057 is dependency-ready.",
-      "pr_id": null,
-      "read_only": false,
-      "base_revision": "20745fe45450276db3c2130d2631d863e8346ba3",
-      "base_revision_reason": "Exact proof-complete F06 integration commit with published recipe-v7 cache key 33332823.",
-      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-057-f06a-a01",
-      "owned_paths": [
-        "MIPStarRE/QPBT/Game/Types.lean",
-        "workflow/reviews/qpbt-057-f06a-a01.md"
-      ],
-      "validation_command": "Read AGENTS.md, the QPBT-057 issue, exact F06A marker in workflow/reviews/qpbt-054-f06a-repair-a04.md, pinned paper ranges, blueprint node/gap, current Types.lean, and FinTM2 APIs before editing. Orchestrate bounded read-only/source/prover/simplifier subagents where independent and report their stable names/results to root; do not let them overlap writable files. Implement exactly the frozen 56 public declarations proof-completely with the four-import union, genuine executions/resources, exact maps/PMFs/dimension/codec/runtime theorem, and no sorry/admit/axiom/constant/public obligations. Use only the seeded private worktree cache. Iterate with scoped lake env lean; perform one full build only after stability. Run exact signature/import/debt/blueprint/source gates, write the owned report, commit coherent checkpoints, and return exact identity/metrics.",
-      "result_envelope_path": "workflow/reviews/qpbt-057-f06a-a01.md",
-      "priority": 1,
-      "requested_model": "gpt-5.6-sol",
-      "backend": "codex-collaboration",
-      "status": "planned",
-      "parent_session_id": "i001-coordinator-a01-bootstrap",
-      "external_id": null,
-      "started_at": null,
-      "ended_at": null,
-      "elapsed_seconds": null,
-      "token_usage": {
-        "input": null,
-        "output": null,
-        "total": null,
-        "availability_reason": "Collaboration backend does not expose per-agent token usage"
-      },
-      "archive_status": "active",
-      "outcome_path": null
-    }
-  ],
+  "planned": [],
   "issued": [
     {
       "id": "i001-coordinator-a01-bootstrap",
@@ -26546,6 +26509,109 @@
         "successful_commits": 1
       },
       "timing_note": "Canonical elapsed is registration-to-finish. The agent independently measured 316.939210 seconds from dispatch through final inspection; token usage is unavailable and not estimated."
+    },
+    {
+      "id": "i057-orchestrator-a01-f06a",
+      "name": "i057-orchestrator-a01-f06a",
+      "role": "orchestrator",
+      "issue_id": "QPBT-057",
+      "attempt": 1,
+      "dispatch_condition": "QPBT-056 is done, exact main 20745fe passed the singleton 8,992-job cache warm, and QPBT-057 is dependency-ready.",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "20745fe45450276db3c2130d2631d863e8346ba3",
+      "base_revision_reason": "Exact proof-complete F06 integration commit with published recipe-v7 cache key 33332823.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-057-f06a-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-057-f06a-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, the QPBT-057 issue, exact F06A marker in workflow/reviews/qpbt-054-f06a-repair-a04.md, pinned paper ranges, blueprint node/gap, current Types.lean, and FinTM2 APIs before editing. Orchestrate bounded read-only/source/prover/simplifier subagents where independent and report their stable names/results to root; do not let them overlap writable files. Implement exactly the frozen 56 public declarations proof-completely with the four-import union, genuine executions/resources, exact maps/PMFs/dimension/codec/runtime theorem, and no sorry/admit/axiom/constant/public obligations. Use only the seeded private worktree cache. Iterate with scoped lake env lean; perform one full build only after stability. Run exact signature/import/debt/blueprint/source gates, write the owned report, commit coherent checkpoints, and return exact identity/metrics.",
+      "result_envelope_path": "workflow/reviews/qpbt-057-f06a-a01.md",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i057_orchestrator_a01_f06a",
+      "started_at": "2026-09-02T23:24:23.989276Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null
+    },
+    {
+      "id": "i051-reviewer-a03-cache-security",
+      "name": "i051-reviewer-a03-cache-security",
+      "role": "reviewer",
+      "issue_id": "QPBT-051",
+      "attempt": 3,
+      "dispatch_condition": "LPR-034 is ready with seven passed exact-head checks and a no-byte-change writable binding; one fresh immutable security review remains.",
+      "pr_id": "LPR-034",
+      "read_only": true,
+      "base_revision": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+      "base_revision_reason": "Formal LPR-034 base binding; candidate head and canonical checkpoint are fixed by the authenticated immutable manifest.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-051-preflight-a01",
+      "owned_paths": [],
+      "validation_command": "Authenticate manifest SHA-256 40ebd81772e58a7eeaba9e5ec4bcccde15f0c5c247292d10a87e4a5798118510 and all 19 entries. Review exact base e8b790a/head 7676066 for concrete safety, fail-closed behavior before cache hit/lock/election, complete archive/package identity, TOCTOU and symlink/substitution resistance, dynamic materializer module identity, prepare ordering, replacement and authored-QPBT preservation, absence of hidden compilation, regression adequacy, and protocol/changelog consistency. Treat reports as evidence, not authority. Return findings first with severity and file:line. Write only /tmp/i051-review-a03.md. Run no Python tests, Lean, Lake, compile, build, cache, materialization, network, endpoint, GitHub, credential, repository-write, Git-write, or nested-agent action.",
+      "result_envelope_path": "workflow/reviews/qpbt-051-review-a03.md",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i051_reviewer_a03_cache_security",
+      "started_at": "2026-09-02T23:27:24.745856Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null
+    },
+    {
+      "id": "i057-scout-a01-api",
+      "name": "i057-scout-a01-api",
+      "role": "scout",
+      "issue_id": "QPBT-057",
+      "attempt": 1,
+      "dispatch_condition": "QPBT-057 orchestrator began proof-complete F06A implementation and delegated one independent frozen-contract and FinTM2 API reconstruction.",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "20745fe45450276db3c2130d2631d863e8346ba3",
+      "base_revision_reason": "Exact QPBT-057 worktree base and published F06 hot-cache snapshot.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-057-f06a-a01",
+      "owned_paths": [],
+      "validation_command": "Read AGENTS.md, QPBT-057 state, exact F06A-A04 marker, Types A03 handoff, blueprint F06A/G19, pinned paper ranges, current Types.lean, and imported/local Mathlib FinTM2 sources. Reconstruct exactly 56 names and four imports, list concrete APIs/proof constructions, flag real mismatches or gaps, and write only /tmp/i057-scout-a01-api.md. Do not compile, edit repository/Git, use network/endpoint/GitHub/credentials, or spawn agents.",
+      "result_envelope_path": "/tmp/i057-scout-a01-api.md",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "status": "running",
+      "parent_session_id": "i057-orchestrator-a01-f06a",
+      "external_id": "/root/i057_orchestrator_a01_f06a/i057_scout_a01_api",
+      "started_at": "2026-09-02T23:28:48.024476Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "launch_time_note": "Exact backend launch timestamp is unavailable; canonical started_at will measure registration-to-terminal only."
     }
   ]
 }

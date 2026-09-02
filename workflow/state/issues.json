@@ -2936,7 +2936,7 @@
       "title": "feat(QPBT/Game): implement executable CL compiler and sampler",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "ready",
+      "status": "in_progress",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-056"
@@ -2956,7 +2956,7 @@
         "Do not use Mathlib proof_wanted declarations, fabricate run relations, weaken a frozen public signature, introduce sorry/admit/axiom/constant, or move F06A obligations to F07, F07A, K03, or K04",
         "Use the QPBT-056 private-cache lineage; pass whole-file elaboration, affected target, exact signature/tape/output/dimension/codec/import/debt scans, blueprint synchronization, one private full build after scoped stability, and fresh immutable compiler/resource and source-fidelity reviews"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i057-orchestrator-a01-f06a",
       "source_refs": [
         "workflow/reviews/qpbt-054-f06a-repair-a04.md#F06A-A04-SIGNATURES",
         "workflow/reviews/qpbt-038-types-a03.md#Exact-blocker-and-discharge-plan",
@@ -2971,7 +2971,7 @@
         "workflow/reviews/qpbt-057-f06a-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-02T23:21:46.150272Z",
+      "updated_at": "2026-09-02T23:24:24.664798Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
