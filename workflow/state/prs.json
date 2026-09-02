@@ -7838,7 +7838,7 @@
     {
       "id": "LPR-030",
       "title": "feat(QPBT/Game): define finite game semantics",
-      "status": "ready",
+      "status": "approved",
       "issue_ids": [
         "QPBT-042"
       ],
@@ -7921,12 +7921,29 @@
           "result": "18 declarations, zero proof debt or forbidden assumptions, exact four imports, clean one-path diff"
         }
       ],
-      "reviews": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-042-pr030-a03-semantics",
+          "reviewer_session_id": "i042-reviewer-a03-semantics",
+          "verdict": "approve",
+          "base_sha": "c1d6271394fa9aba6eefb27955618a4540469c2f",
+          "head_sha": "16a41327abd1a3fd749c8872c2773f013046d762",
+          "started_at": "2026-09-02T17:41:41.754842Z",
+          "completed_at": "2026-09-02T17:43:57.798237Z",
+          "result_path": "workflow/reviews/qpbt-042-review-a03.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "0c14665ae94a86cdb77b8a201b4250090f9aed717ae2cd7e29f52e61201d8249",
+          "manifest_sha256": "0a28a4640b05bf3994a6c6e85242f71110c75876daabd0c0482d80687e1897c0",
+          "patch_sha256": "edcaa0c2eb344754b2811774bebc53fca3d33ddf132b2aa959171a98b0e08246",
+          "integration_gate": "review approved on exact immutable head; guarded integration remains"
+        }
+      ],
       "findings": [],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T17:28:37.879133Z",
-      "updated_at": "2026-09-02T17:37:56.197052Z",
+      "updated_at": "2026-09-02T17:47:42.462717Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Semantics.lean"
       ],
@@ -7936,10 +7953,11 @@
       "addresses": "QPBT-042",
       "provenance_session_ids": [
         "i042-orchestrator-a01-semantics",
-        "i042-integrator-a02-pr030-bind"
+        "i042-integrator-a02-pr030-bind",
+        "i042-reviewer-a03-semantics"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable mathematical/API review and guarded integration remain; candidate bytes are adopted unchanged."
+      "unexecuted_gate": "Fresh immutable mathematical/API review approved with no findings; guarded integration remains."
     }
   ]
 }

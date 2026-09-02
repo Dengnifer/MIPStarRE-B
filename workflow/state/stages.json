@@ -291,11 +291,12 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate stage tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 2,
+      "subagents_issued": 3,
       "max_concurrency": 1,
       "outputs": [
         "workflow/reviews/qpbt-042-semantics-a01.md",
-        "workflow/reviews/qpbt-042-pr030-bind-a02.md"
+        "workflow/reviews/qpbt-042-pr030-bind-a02.md",
+        "workflow/reviews/qpbt-042-review-a03.md"
       ],
       "incident_ids": []
     },
