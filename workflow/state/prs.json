@@ -8122,7 +8122,7 @@
     {
       "id": "LPR-032",
       "title": "feat(QPBT/Basic): implement Pauli observables",
-      "status": "ready",
+      "status": "approved",
       "issue_ids": [
         "QPBT-037"
       ],
@@ -8215,12 +8215,29 @@
           "result": "candidate bytes unchanged; exact head, tree, parent, one path, blob, file hash, patch, and 6/6 checks authenticated"
         }
       ],
-      "reviews": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-037-pr032-a18-pauli",
+          "reviewer_session_id": "i037-reviewer-a18-pauli",
+          "verdict": "approve",
+          "base_sha": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+          "head_sha": "cdb83f4017cfc182eb2611be0fbc5cd3635fbf64",
+          "started_at": "2026-09-02T19:12:26.982104Z",
+          "completed_at": "2026-09-02T19:18:16.174488Z",
+          "result_path": "workflow/reviews/qpbt-037-review-a18.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "5e3704296b44bb31729156046bae48268452d30f1c40107fd624cdd649bed818",
+          "manifest_sha256": "01046acaa7b108cf7e6c63fa85f04dcc1102ae0d564eee56849587dab4f62226",
+          "patch_sha256": "0292bed4a9457185b82b27db060091a766aa3f4b0719553da50eacd3d152d08d",
+          "integration_gate": "approved for exact guarded integration"
+        }
+      ],
       "findings": [],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T18:59:54.107Z",
-      "updated_at": "2026-09-02T19:08:58.359977Z",
+      "updated_at": "2026-09-02T19:21:22.968143Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Basic/Pauli.lean"
       ],
@@ -8231,10 +8248,11 @@
       "provenance_session_ids": [
         "i037-orchestrator-a15-pauli",
         "i037-prover-a16-tensor",
-        "i037-integrator-a17-pr032-bind"
+        "i037-integrator-a17-pr032-bind",
+        "i037-reviewer-a18-pauli"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Obtain one fresh immutable mathematical/API review of exact head cdb83f40, then guardedly integrate."
+      "unexecuted_gate": "Guardedly integrate exact approved head cdb83f4017cfc182eb2611be0fbc5cd3635fbf64 and verify the authenticated Pauli blob and file SHA-256 are preserved."
     }
   ]
 }

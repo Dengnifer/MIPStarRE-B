@@ -2772,7 +2772,7 @@
       "title": "fix(blueprint): replace the non-elaborated F06A executable contract",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2798,7 +2798,7 @@
         "Update F06A metadata/checker mutations and deterministic generated consumers, then pass blueprint unit/default/pinned-source checks, reference authentication, workflow validation, and git diff --check",
         "Obtain a fresh independent immutable mathematical/API review before QPBT-038 becomes ready; do not modify MIPStarRE/QPBT/Game/Types.lean in this contract issue"
       ],
-      "owner_session_id": "i054-orchestrator-a01-f06a-contract",
+      "owner_session_id": "i054-orchestrator-a04-f06a-repair",
       "source_refs": [
         "workflow/reviews/qpbt-038-unblock-scout-a13.md",
         "workflow/reviews/qpbt-048-source-fidelity-repair-a04.md:64-194",
@@ -2819,7 +2819,7 @@
         "workflow/reviews/qpbt-054-f06a-contract-a01.md"
       ],
       "created_at": "2026-09-02T18:04:14.866664Z",
-      "updated_at": "2026-09-02T18:47:08.859910Z",
+      "updated_at": "2026-09-02T19:17:42.305637Z",
       "blocked_reason": null,
       "unblock_condition": null
     }
