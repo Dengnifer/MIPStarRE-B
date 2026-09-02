@@ -276,24 +276,26 @@
     {
       "id": "STAGE-04B",
       "name": "Complete declaration skeleton",
-      "status": "planned",
+      "status": "in_progress",
       "issue_ids": [
         "QPBT-006",
         "QPBT-042",
         "QPBT-043"
       ],
-      "started_at": null,
+      "started_at": "2026-09-02T17:11:14.508830Z",
       "ended_at": null,
       "elapsed_seconds": null,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
-        "availability_reason": "Stage not started"
+        "availability_reason": "Root and collaboration backends do not expose aggregate stage tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 0,
-      "max_concurrency": 0,
-      "outputs": [],
+      "subagents_issued": 1,
+      "max_concurrency": 1,
+      "outputs": [
+        "workflow/reviews/qpbt-042-semantics-a01.md"
+      ],
       "incident_ids": []
     },
     {

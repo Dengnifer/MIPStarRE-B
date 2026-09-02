@@ -24175,6 +24175,39 @@
         "credentials": 0,
         "nested_agents": 0
       }
+    },
+    {
+      "id": "i042-orchestrator-a01-semantics",
+      "name": "i042-orchestrator-a01-semantics",
+      "backend": "codex-collaboration",
+      "role": "orchestrator",
+      "status": "running",
+      "issue_id": "QPBT-042",
+      "pr_id": null,
+      "parent_session_id": "i041-orchestrator-a12-f04-closeout",
+      "external_id": "/root/i042_orchestrator_a01_semantics",
+      "attempt": 1,
+      "read_only": false,
+      "base_revision": "c1d6271394fa9aba6eefb27955618a4540469c2f",
+      "base_revision_reason": "Exact clean hot-main base after F04 integration and proof closeout.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-042-semantics-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Semantics.lean"
+      ],
+      "validation_command": "Implement the exact 18-callable F04A-GAME-SEMANTICS contract from the pinned paper and reviewed QPBT-035 API, using inherited F04 declarations. Type-check the scoped file; after cache seed, run the affected target and one private full build; run blueprint/source synchronization and exact proof-debt/import/diff gates. Return immutable candidate identity, statement-integrity evidence, timings, and findings.",
+      "result_envelope_path": "workflow/reviews/qpbt-042-semantics-a01.md",
+      "started_at": "2026-09-02T17:12:12.026103Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "requested_model": "gpt-5.6-sol"
     }
   ]
 }

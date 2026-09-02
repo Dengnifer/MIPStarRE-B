@@ -2230,7 +2230,7 @@
       "title": "feat(QPBT/Game): implement finite game and strategy semantics",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-035",
@@ -2252,7 +2252,7 @@
         "Seed a private exact-main cache, pass scoped Lean, affected target, declaration/source synchronization, owned-scope debt/import scans, and one private full build; obtain a fresh immutable mathematical/API review",
         "Record the F04A statement-integrity table, exact three source ranges, all 18 callable signatures, cache/build metrics, and reviewer dispositions"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i042-orchestrator-a01-semantics",
       "source_refs": [
         "blueprint/metadata/nodes.json#F04A-GAME-SEMANTICS",
         "workflow/reviews/qpbt-035-game-semantics-api-a08.md",
@@ -2263,9 +2263,9 @@
         "MIPStarRE/QPBT/Game/Semantics.lean"
       ],
       "created_at": "2026-09-01T15:48:30Z",
-      "updated_at": "2026-09-01T15:53:52.732085Z",
-      "blocked_reason": "QPBT-035 must be reviewed and integrated, and QPBT-041 must implement the inherited F04 foundation.",
-      "unblock_condition": "QPBT-035 and QPBT-041 done."
+      "updated_at": "2026-09-02T17:12:23.128878Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-043",
