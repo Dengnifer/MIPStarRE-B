@@ -1932,7 +1932,7 @@
       "title": "feat(QPBT/Basic): implement Pauli algebra and projectors",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "ready",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -1955,7 +1955,7 @@
         "Introduce no sorry, axiom, constant, public obligation input, or incompatible LDT parameter import",
         "Seed a private exact-main cache; pass scoped Lean, target build, G09/debt/import scan, blueprint declaration/source synchronization, one private full build, and a fresh immutable mathematical/API review"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i037-orchestrator-a15-pauli",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#F05--Pauli",
         "workflow/reviews/qpbt-035-q014-contract-a02.md#F05-Pauli",
@@ -1970,7 +1970,7 @@
         "MIPStarRE/QPBT/Basic/Pauli.lean"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-02T18:05:42.483836Z",
+      "updated_at": "2026-09-02T18:14:52.602704Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -2682,7 +2682,7 @@
       "title": "Repair release lifecycle compatibility and transaction ordering",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-049",
       "dependency_ids": [
         "QPBT-034"
@@ -2723,7 +2723,7 @@
         "workflow/reviews/qpbt-052-release-contract-repair-a03.md"
       ],
       "created_at": "2026-09-01T20:47:03Z",
-      "updated_at": "2026-09-02T00:43:02.442918Z",
+      "updated_at": "2026-09-02T18:18:05.052370Z",
       "blocked_reason": null,
       "unblock_condition": "Repair A06-001 and the null-identity residual of A04-001/A04-002 on a changed head, then obtain a fresh immutable review before guarded integration.",
       "repair_round": 5
@@ -2772,7 +2772,7 @@
       "title": "fix(blueprint): replace the non-elaborated F06A executable contract",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "ready",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2798,7 +2798,7 @@
         "Update F06A metadata/checker mutations and deterministic generated consumers, then pass blueprint unit/default/pinned-source checks, reference authentication, workflow validation, and git diff --check",
         "Obtain a fresh independent immutable mathematical/API review before QPBT-038 becomes ready; do not modify MIPStarRE/QPBT/Game/Types.lean in this contract issue"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i054-orchestrator-a01-f06a-contract",
       "source_refs": [
         "workflow/reviews/qpbt-038-unblock-scout-a13.md",
         "workflow/reviews/qpbt-048-source-fidelity-repair-a04.md:64-194",
@@ -2819,7 +2819,7 @@
         "workflow/reviews/qpbt-054-f06a-contract-a01.md"
       ],
       "created_at": "2026-09-02T18:04:14.866664Z",
-      "updated_at": "2026-09-02T18:05:42.774508Z",
+      "updated_at": "2026-09-02T18:14:51.930946Z",
       "blocked_reason": null,
       "unblock_condition": null
     }
