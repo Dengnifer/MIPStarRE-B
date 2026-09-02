@@ -25913,6 +25913,72 @@
         "bytes": 10097592576,
         "writable_private_copy": true
       }
+    },
+    {
+      "id": "i056-prover-a01-directsum",
+      "name": "i056-prover-a01-directsum",
+      "backend": "codex-collaboration",
+      "role": "prover",
+      "status": "running",
+      "issue_id": "QPBT-056",
+      "pr_id": null,
+      "parent_session_id": "i056-orchestrator-a01-f06",
+      "external_id": "/root/i056_orchestrator_a01_f06/i056_prover_a01_directsum",
+      "attempt": 1,
+      "priority": 1,
+      "read_only": true,
+      "base_revision": "4cc1762f85da1bd46599311b77c4647d5f3c30b4",
+      "base_revision_reason": "Exact QPBT-056 writer base; bounded read-only direct-sum proof lane.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-056-f06-a01",
+      "owned_paths": [],
+      "validation_command": "Read exact F06 marker and pinned CL source. Develop /tmp-only Lean proof probes and report for restrictVector, raiseLevel, arbitrary-map directSum, shared-seed sample, and sample_directSum. No repository edits, Git writes, full build, cache, network, GitHub, credentials, or nested agents.",
+      "result_envelope_path": "/tmp/i056-directsum-a01.md",
+      "dispatch_condition": "QPBT-056 orchestrator is active and requested an independent read-only direct-sum lane.",
+      "started_at": "2026-09-02T21:43:22.577304Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "requested_model": "gpt-5.6-sol"
+    },
+    {
+      "id": "i056-prover-a01-downsize",
+      "name": "i056-prover-a01-downsize",
+      "backend": "codex-collaboration",
+      "role": "prover",
+      "status": "running",
+      "issue_id": "QPBT-056",
+      "pr_id": null,
+      "parent_session_id": "i056-orchestrator-a01-f06",
+      "external_id": "/root/i056_orchestrator_a01_f06/i056_prover_a01_downsize",
+      "attempt": 1,
+      "priority": 1,
+      "read_only": true,
+      "base_revision": "4cc1762f85da1bd46599311b77c4647d5f3c30b4",
+      "base_revision_reason": "Exact QPBT-056 writer base; bounded read-only mathematical-downsize proof lane.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-056-f06-a01",
+      "owned_paths": [],
+      "validation_command": "Read exact F06 marker, G21, pinned CL/finite-field source, and Field.lean. Develop /tmp-only Lean proof probes and report for downsizeVector, recursive certificate/map downsize with inverse-prefix and level-zero handling, and sample_downsize PMF transport. No repository edits, Git writes, full build, cache, network, GitHub, credentials, or nested agents.",
+      "result_envelope_path": "/tmp/i056-downsize-a01.md",
+      "dispatch_condition": "QPBT-056 orchestrator is active and requested an independent read-only downsize lane.",
+      "started_at": "2026-09-02T21:43:22.950322Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "requested_model": "gpt-5.6-sol"
     }
   ]
 }
