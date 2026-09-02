@@ -7834,6 +7834,109 @@
       ],
       "requested_external_review": true,
       "unexecuted_gate": "Post-closeout exact-main cache warm remains; no candidate gate remains."
+    },
+    {
+      "id": "LPR-030",
+      "title": "feat(QPBT/Game): define finite game semantics",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-042"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-042-semantics-a01",
+      "base_sha": "c1d6271394fa9aba6eefb27955618a4540469c2f",
+      "head_sha": "16a41327abd1a3fd749c8872c2773f013046d762",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-042-auth",
+          "name": "QPBT-042 immutable candidate authentication",
+          "command": "Authenticate exact base/head/tree/parent, one-path diff, Lean blob/file SHA-256, binary patch SHA-256, and clean worktree",
+          "status": "passed",
+          "base_sha": "c1d6271394fa9aba6eefb27955618a4540469c2f",
+          "head_sha": "16a41327abd1a3fd749c8872c2773f013046d762",
+          "completed_at": "2026-09-02T17:28:37.879133Z",
+          "result_path": "workflow/reviews/qpbt-042-semantics-a01.md",
+          "result": "exact identities and sole changed path authenticated"
+        },
+        {
+          "id": "check-qpbt-042-scoped",
+          "name": "QPBT-042 scoped Lean elaboration",
+          "command": "lake env lean MIPStarRE/QPBT/Game/Semantics.lean",
+          "status": "passed",
+          "base_sha": "c1d6271394fa9aba6eefb27955618a4540469c2f",
+          "head_sha": "16a41327abd1a3fd749c8872c2773f013046d762",
+          "completed_at": "2026-09-02T17:27:41.226274Z",
+          "result_path": "workflow/reviews/qpbt-042-semantics-a01.md",
+          "result": "passed",
+          "wall_seconds": 5.13
+        },
+        {
+          "id": "check-qpbt-042-target",
+          "name": "QPBT-042 affected target build",
+          "command": "lake build MIPStarRE.QPBT.Game.Semantics",
+          "status": "passed",
+          "base_sha": "c1d6271394fa9aba6eefb27955618a4540469c2f",
+          "head_sha": "16a41327abd1a3fd749c8872c2773f013046d762",
+          "completed_at": "2026-09-02T17:27:41.226274Z",
+          "result_path": "workflow/reviews/qpbt-042-semantics-a01.md",
+          "result": "8,693 jobs passed; inherited warning only",
+          "wall_seconds": 24.49
+        },
+        {
+          "id": "check-qpbt-042-full",
+          "name": "QPBT-042 private full build",
+          "command": "lake build",
+          "status": "passed",
+          "base_sha": "c1d6271394fa9aba6eefb27955618a4540469c2f",
+          "head_sha": "16a41327abd1a3fd749c8872c2773f013046d762",
+          "completed_at": "2026-09-02T17:27:41.226274Z",
+          "result_path": "workflow/reviews/qpbt-042-semantics-a01.md",
+          "result": "8,992 jobs passed exactly once",
+          "wall_seconds": 7.37
+        },
+        {
+          "id": "check-qpbt-042-blueprint",
+          "name": "QPBT-042 blueprint and pinned-source synchronization",
+          "command": "python3 blueprint/check.py --check --source-root /home/drx/MIPStarRE-auto/references/2001.04383v3",
+          "status": "passed",
+          "base_sha": "c1d6271394fa9aba6eefb27955618a4540469c2f",
+          "head_sha": "16a41327abd1a3fd749c8872c2773f013046d762",
+          "completed_at": "2026-09-02T17:27:41.226274Z",
+          "result_path": "workflow/reviews/qpbt-042-semantics-a01.md",
+          "result": "54 nodes and 12 chapters passed",
+          "wall_seconds": 0.12
+        },
+        {
+          "id": "check-qpbt-042-hygiene",
+          "name": "QPBT-042 declaration, debt, import, path, and diff gates",
+          "command": "exact owned-file declaration/debt/forbidden-assumption/executable-content/import/path scans and git diff --check",
+          "status": "passed",
+          "base_sha": "c1d6271394fa9aba6eefb27955618a4540469c2f",
+          "head_sha": "16a41327abd1a3fd749c8872c2773f013046d762",
+          "completed_at": "2026-09-02T17:28:37.879133Z",
+          "result_path": "workflow/reviews/qpbt-042-semantics-a01.md",
+          "result": "18 declarations, zero proof debt or forbidden assumptions, exact four imports, clean one-path diff"
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-02T17:28:37.879133Z",
+      "updated_at": "2026-09-02T17:28:37.879133Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Game/Semantics.lean"
+      ],
+      "motivation": "Land the source-faithful finite game and quantum-strategy semantics needed by the QPBT dependency graph.",
+      "description": "Define finite games, the reviewed game-indexed strategy wrapper, exact fixed and supremal values, projective/symmetric/commuting/consistent/PCC/SPCC predicates, Schmidt rank, and entanglement requirement.",
+      "testing": "Scoped Lean, affected target, one private full build, pinned-source blueprint check, exact declaration/debt/import/path scans, and immutable identity authentication passed.",
+      "addresses": "QPBT-042",
+      "provenance_session_ids": [
+        "i042-orchestrator-a01-semantics"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": "Fresh immutable mathematical/API review and guarded integration remain."
     }
   ]
 }

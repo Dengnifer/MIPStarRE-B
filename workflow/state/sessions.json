@@ -24181,7 +24181,7 @@
       "name": "i042-orchestrator-a01-semantics",
       "backend": "codex-collaboration",
       "role": "orchestrator",
-      "status": "running",
+      "status": "archived",
       "issue_id": "QPBT-042",
       "pr_id": null,
       "parent_session_id": "i041-orchestrator-a12-f04-closeout",
@@ -24197,6 +24197,43 @@
       "validation_command": "Implement the exact 18-callable F04A-GAME-SEMANTICS contract from the pinned paper and reviewed QPBT-035 API, using inherited F04 declarations. Type-check the scoped file; after cache seed, run the affected target and one private full build; run blueprint/source synchronization and exact proof-debt/import/diff gates. Return immutable candidate identity, statement-integrity evidence, timings, and findings.",
       "result_envelope_path": "workflow/reviews/qpbt-042-semantics-a01.md",
       "started_at": "2026-09-02T17:12:12.026103Z",
+      "ended_at": "2026-09-02T17:27:41.226274Z",
+      "elapsed_seconds": 929.2,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-042-semantics-a01.md",
+      "requested_model": "gpt-5.6-sol",
+      "timing_quality": "runtime-exact",
+      "run_outcome": "candidate-committed-awaiting-fresh-review"
+    },
+    {
+      "id": "i042-integrator-a02-pr030-bind",
+      "name": "i042-integrator-a02-pr030-bind",
+      "backend": "codex-collaboration",
+      "role": "integrator",
+      "status": "issued",
+      "issue_id": "QPBT-042",
+      "pr_id": "LPR-030",
+      "parent_session_id": "i041-orchestrator-a12-f04-closeout",
+      "external_id": "/root/i042_integrator_a02_pr030_bind",
+      "attempt": 2,
+      "priority": 1,
+      "read_only": false,
+      "base_revision": "5179936dd4c9acfbef40525381e59d01feb123e1",
+      "base_revision_reason": "Current clean canonical main used only to record no-byte-change adoption of the exact LPR-030 candidate.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-042-pr030-bind-a02",
+      "owned_paths": [
+        "workflow/reviews/qpbt-042-pr030-bind-a02.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-042, LPR-030, the A01 report, the frozen A08 signature contract, and the exact candidate. Authenticate base/head/tree/parent, one-path diff, blob/file/patch hashes, 6/6 registered checks, source/API hashes, and clean candidate worktree. Write only the binding report and commit it; do not alter candidate bytes or run Lean, Lake, build, cache, network, GitHub, credential, or nested-agent actions.",
+      "result_envelope_path": "workflow/reviews/qpbt-042-pr030-bind-a02.md",
+      "dispatch_condition": "Exact QPBT-042 candidate and all pre-review checks exist; bind one writable post-PR session before immutable review.",
+      "started_at": null,
       "ended_at": null,
       "elapsed_seconds": null,
       "token_usage": {
@@ -24205,9 +24242,8 @@
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "active",
-      "outcome_path": null,
-      "requested_model": "gpt-5.6-sol"
+      "archive_status": "not_requested",
+      "outcome_path": null
     }
   ]
 }
