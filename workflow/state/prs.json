@@ -7958,6 +7958,101 @@
       ],
       "requested_external_review": true,
       "unexecuted_gate": "Completed: exact approved head 16a41327abd1a3fd749c8872c2773f013046d762 was integrated as the second parent of bfcbfe5d2fb444cbb9542d8c123f2e5ba48ad97e; integrated blob and file SHA-256 match the immutable review."
+    },
+    {
+      "id": "LPR-031",
+      "title": "fix(blueprint): elaborate executable CL contract",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-054"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-054-f06a-contract-a01",
+      "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+      "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-054-auth",
+          "name": "QPBT-054 immutable candidate authentication",
+          "command": "Authenticate exact base/head/tree/parent, six changed paths, blobs, report and binary patch SHA-256, and clean worktree",
+          "status": "passed",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+          "completed_at": "2026-09-02T18:46:52.097261Z",
+          "result_path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
+          "result": "head 83062f78, tree 5e946206, sole parent 639c883, six changed paths, clean worktree, patch b3fca84e"
+        },
+        {
+          "id": "check-qpbt-054-lean-probe",
+          "name": "QPBT-054 whole-block Lean signature elaboration",
+          "command": "lake env lean /tmp/qpbt054_f06a_probe.lean in a prepared pinned worktree",
+          "status": "passed",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+          "completed_at": "2026-09-02T18:46:52.097261Z",
+          "result_path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
+          "result": "exact probe SHA-256 46ce9624 passed with only intentional temporary body warnings",
+          "wall_seconds": 4.63
+        },
+        {
+          "id": "check-qpbt-054-blueprint",
+          "name": "QPBT-054 blueprint checks and regressions",
+          "command": "blueprint default and pinned checks; blueprint test_check.py suite",
+          "status": "passed",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+          "completed_at": "2026-09-02T18:46:52.097261Z",
+          "result_path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
+          "result": "54 nodes, 12 chapters, deterministic outputs; 33/33 tests passed"
+        },
+        {
+          "id": "check-qpbt-054-source",
+          "name": "QPBT-054 source and workflow authentication",
+          "command": "reference_source.py verify; workflow.py validate; check_workflow.py --skip-tests",
+          "status": "passed",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+          "completed_at": "2026-09-02T18:46:52.097261Z",
+          "result_path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
+          "result": "39 files, 646 labels; workflow ledgers valid"
+        },
+        {
+          "id": "check-qpbt-054-hygiene",
+          "name": "QPBT-054 contract debt, generated output, and diff hygiene",
+          "command": "signature manifest hash and required/forbidden contract scans; idempotent generation; git diff-tree --check",
+          "status": "passed",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+          "completed_at": "2026-09-02T18:46:52.097261Z",
+          "result_path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
+          "result": "signature 0e376f75; graph.dot correctly unchanged; no repository proof debt; clean diff"
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-02T18:46:52.097261Z",
+      "updated_at": "2026-09-02T18:46:52.097261Z",
+      "changed_paths": [
+        "blueprint/check.py",
+        "blueprint/generated/graph.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/tests/test_check.py",
+        "workflow/reviews/qpbt-054-f06a-contract-a01.md"
+      ],
+      "motivation": "Replace the stale non-elaborated F06A pseudo-signatures before reopening the executable Types implementation.",
+      "description": "Freeze a source-faithful, whole-block-elaborated executable conditionally-linear sampler contract with typed prefix/factor carriers, real FinTM2 execution witnesses, exact step maxima, and downsizing/runtime statements.",
+      "testing": "Whole-block Lean elaboration, blueprint default/pinned checks, 33 regression tests, pinned reference verification, workflow validation, deterministic generation, immutable identity and diff hygiene passed.",
+      "addresses": "QPBT-054",
+      "provenance_session_ids": [
+        "i054-orchestrator-a01-f06a-contract",
+        "i054-probe-a01-turing-api"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": "Bind one writable adoption session, obtain fresh independent immutable mathematical/API review of exact head 83062f78, then guardedly integrate and update QPBT-038 readiness."
     }
   ]
 }
