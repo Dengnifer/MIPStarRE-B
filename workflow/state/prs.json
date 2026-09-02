@@ -8388,7 +8388,7 @@
     {
       "id": "LPR-033",
       "title": "feat(QPBT/Game): implement mathematical CL maps and samplers",
-      "status": "ready",
+      "status": "approved",
       "issue_ids": [
         "QPBT-056"
       ],
@@ -8481,12 +8481,29 @@
           "result": "Exact candidate and 6/6 checks authenticated; binding report adopted at 71be5c6; zero candidate-byte changes"
         }
       ],
-      "reviews": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-056-pr033-a03-f06",
+          "reviewer_session_id": "i056-reviewer-a03-f06",
+          "verdict": "approve",
+          "base_sha": "4cc1762f85da1bd46599311b77c4647d5f3c30b4",
+          "head_sha": "c1bfd95226e0c068f7d818689f56ab41088ff545",
+          "started_at": "2026-09-02T22:55:29.898012Z",
+          "completed_at": "2026-09-02T22:59:41.064981Z",
+          "result_path": "workflow/reviews/qpbt-056-review-a03.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "c13dcf8a677ba28a01342455bad6f96ad8184e6edd2ad4dc099efd7073336067",
+          "manifest_sha256": "3aca933b01ae463de91e103acbe98f5fdcd0e981c7e4cf19e6866fa292b0db21",
+          "patch_sha256": "5b59f3045a5835b22800f588ae7d8e38e7e73be067b6cc3f156365d6f3501464",
+          "integration_gate": "approved for exact guarded integration"
+        }
+      ],
       "findings": [],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T22:23:16.245583Z",
-      "updated_at": "2026-09-02T22:42:09.950727Z",
+      "updated_at": "2026-09-02T23:01:30.100557Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Types.lean",
         "workflow/reviews/qpbt-056-f06-a01.md"
@@ -8504,7 +8521,7 @@
         "i056-integrator-a02-pr033-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "One fresh immutable mathematical/API review of the final commit and guarded integration remain."
+      "unexecuted_gate": "Fresh immutable review approved the exact candidate; guarded integration and post-integration verification remain."
     }
   ]
 }
