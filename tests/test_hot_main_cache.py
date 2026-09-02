@@ -16,6 +16,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import types
 import unittest
 from unittest import mock
 
@@ -1576,6 +1577,122 @@ class HotMainCacheTests(unittest.TestCase):
                         manager.warm()
             self.assertEqual([], list(self.runtime.rglob("READY")))
 
+    def test_complete_input_preflight_requires_all_three_bindings_before_lock(self) -> None:
+        manager = self.manager()
+        manager._requires_mathlib_source = mock.Mock(return_value=True)
+        manager._preflight_mathlib_input = mock.Mock()
+        with mock.patch.dict(
+            os.environ,
+            {cache_module.MIPSTARRE_ARCHIVE_ENV: "", cache_module.LAKE_PACKAGE_ARCHIVES_ENV: ""},
+            clear=True,
+        ), mock.patch.object(
+            cache_module.ExclusiveLock, "__enter__", side_effect=AssertionError("lock acquired")
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "MIPSTARRE_ARCHIVE"):
+                manager.warm()
+            os.environ[cache_module.MIPSTARRE_ARCHIVE_ENV] = str(self.base / "missing.tar.gz")
+            with self.assertRaisesRegex(cache_module.CacheError, "LAKE_PACKAGE_ARCHIVES"):
+                manager.warm()
+        self.assertFalse(manager.snapshot_dir.exists())
+        self.assertEqual([], list(self.runtime.rglob("READY")))
+
+    def test_complete_input_preflight_authenticates_archive_tuple(self) -> None:
+        manager = self.manager()
+        manager._requires_mathlib_source = mock.Mock(return_value=True)
+        manager._preflight_mathlib_input = mock.Mock()
+        mip = self.base / "mip.tar.gz"
+        mip.write_bytes(b"mip")
+        packages = self.base / "packages"
+        packages.mkdir()
+        package = packages / ("dep-" + "1" * 40 + ".tar.gz")
+        package.write_bytes(b"package")
+        mip_module = types.SimpleNamespace(
+            load_pin=lambda _path: {"archive": {"bytes": 3, "sha256": hashlib.sha256(b"mip").hexdigest()}},
+            validate_project_pins=lambda _root, _pin: None,
+        )
+        package_module = types.SimpleNamespace(
+            load_pin=lambda _path: {"packages": [{
+                "name": "dep", "revision": "1" * 40,
+                "archive": {"bytes": 7, "sha256": hashlib.sha256(b"package").hexdigest()},
+            }]},
+            validate_manifests=lambda _root, _pin: None,
+        )
+        manager._load_identity_module = mock.Mock(side_effect=[mip_module, package_module])
+        with mock.patch.dict(os.environ, {
+            cache_module.MATHLIB_ARCHIVE_ENV: str(self.base / "mathlib.tar.gz"),
+            cache_module.MIPSTARRE_ARCHIVE_ENV: str(mip),
+            cache_module.LAKE_PACKAGE_ARCHIVES_ENV: str(packages),
+        }, clear=True):
+            result = manager._preflight_authenticated_inputs()
+        self.assertTrue(result["required"])
+        self.assertEqual(1, result["lake_package_count"])
+
+        package.unlink()
+        package.symlink_to(mip)
+        with mock.patch.dict(os.environ, {
+            cache_module.MIPSTARRE_ARCHIVE_ENV: str(mip),
+            cache_module.LAKE_PACKAGE_ARCHIVES_ENV: str(packages),
+        }, clear=True):
+            manager._load_identity_module = mock.Mock(side_effect=[mip_module, package_module])
+            with self.assertRaisesRegex(cache_module.CacheError, "symlink|Too many levels"):
+                manager._preflight_authenticated_inputs()
+
+    def test_prepare_sequences_seed_replace_materialize_verify_and_preserves_authored(self) -> None:
+        manager = self.manager()
+        target = self.issue_worktree("prepare-worktree")
+        archive = self.base / "foundation.tar.gz"
+        archive.write_bytes(b"authenticated")
+        calls: list[object] = []
+        fake_module = types.SimpleNamespace(
+            load_pin=lambda _path: {"source": {"commit": "1" * 40}},
+            validate_project_pins=lambda _root, _pin: calls.append("pins"),
+            materialize=lambda _root, _pin_path, _archive, *, replace_existing: (
+                calls.append(("materialize", replace_existing)) or {"status": "published"}
+            ),
+            verify_materialized=lambda _root, _pin: calls.append("verify") or {"status": "verified"},
+        )
+        loader = types.SimpleNamespace(exec_module=lambda module: module.__dict__.update(fake_module.__dict__))
+        spec = types.SimpleNamespace(loader=loader)
+        with mock.patch.dict(os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True), \
+             mock.patch.object(manager, "_preflight_authenticated_inputs", return_value={"required": True}), \
+             mock.patch.object(manager, "seed", side_effect=lambda *_args, **_kwargs: calls.append("seed") or {"result": "seeded"}), \
+             mock.patch.object(cache_module.importlib.util, "spec_from_file_location", return_value=spec), \
+             mock.patch.object(cache_module.importlib.util, "module_from_spec", return_value=types.SimpleNamespace()):
+            result = manager.prepare(target)
+        self.assertEqual(["seed", "pins", ("materialize", True), "verify"], calls)
+        self.assertEqual("prepared", result["result"])
+        self.assertEqual(cache_module.authored_tree_facts_on_disk(target), result["authored_qpbt"])
+
+    def test_prepare_rejects_authored_drift_before_foundation_verification(self) -> None:
+        manager = self.manager()
+        target = self.issue_worktree("prepare-drift-worktree")
+        archive = self.base / "foundation-drift.tar.gz"
+        archive.write_bytes(b"authenticated")
+        verified = mock.Mock()
+
+        def drift(root: Path, *_args: object, **_kwargs: object) -> dict[str, str]:
+            authored = root / "MIPStarRE" / "QPBT"
+            authored.mkdir(parents=True)
+            (authored / "Drift.lean").write_text("def drift := true\n", encoding="ascii")
+            return {"status": "published"}
+
+        fake_module = types.SimpleNamespace(
+            load_pin=lambda _path: {},
+            validate_project_pins=lambda _root, _pin: None,
+            materialize=drift,
+            verify_materialized=verified,
+        )
+        loader = types.SimpleNamespace(exec_module=lambda module: module.__dict__.update(fake_module.__dict__))
+        spec = types.SimpleNamespace(loader=loader)
+        with mock.patch.dict(os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True), \
+             mock.patch.object(manager, "_preflight_authenticated_inputs", return_value={"required": True}), \
+             mock.patch.object(manager, "seed", return_value={"result": "seeded"}), \
+             mock.patch.object(cache_module.importlib.util, "spec_from_file_location", return_value=spec), \
+             mock.patch.object(cache_module.importlib.util, "module_from_spec", return_value=types.SimpleNamespace()):
+            with self.assertRaisesRegex(cache_module.CacheError, "authored QPBT inventory changed"):
+                manager.prepare(target)
+        verified.assert_not_called()
+
     def test_mathlib_source_rejects_symlinked_git_internals_before_object_reads(self) -> None:
         source, commit, tree = self.mathlib_fixture()
         with mock.patch.multiple(
@@ -1903,7 +2020,8 @@ class HotMainCacheTests(unittest.TestCase):
                     "LAKE_PKG_URL_MAP": "",
                 },
                 clear=False,
-            ), mock.patch.object(manager, "_run_logged", side_effect=fake_run):
+            ), mock.patch.object(manager, "_run_logged", side_effect=fake_run), \
+                 mock.patch.object(manager, "_preflight_authenticated_inputs", side_effect=lambda: manager._preflight_mathlib_input()):
                 os.environ.pop(cache_module.MATHLIB_ARCHIVE_ENV, None)
                 built = manager.warm()
                 self.assertEqual("built", built["result"])
@@ -1926,6 +2044,9 @@ class HotMainCacheTests(unittest.TestCase):
                     os.environ,
                     {cache_module.MATHLIB_SOURCE_ENV: str(alternate)},
                     clear=False,
+                ), mock.patch.object(
+                    alternate_manager, "_preflight_authenticated_inputs",
+                    side_effect=lambda: alternate_manager._preflight_mathlib_input(),
                 ):
                     hit = alternate_manager.warm()
                 self.assertEqual("hit", hit["result"])
@@ -1983,7 +2104,8 @@ class HotMainCacheTests(unittest.TestCase):
                     "LAKE_PKG_URL_MAP": "",
                 },
                 clear=False,
-            ), mock.patch.object(manager, "_run_logged", side_effect=fake_run):
+            ), mock.patch.object(manager, "_run_logged", side_effect=fake_run), \
+                 mock.patch.object(manager, "_preflight_authenticated_inputs", side_effect=lambda: manager._preflight_mathlib_input()):
                 os.environ.pop(cache_module.MATHLIB_SOURCE_ENV, None)
                 built = manager.warm()
             self.assertEqual("built", built["result"])
@@ -2030,7 +2152,8 @@ class HotMainCacheTests(unittest.TestCase):
                     "LAKE_PKG_URL_MAP": "",
                 },
                 clear=False,
-            ), mock.patch.object(manager, "_run_logged", side_effect=fail_reservoir):
+            ), mock.patch.object(manager, "_run_logged", side_effect=fail_reservoir), \
+                 mock.patch.object(manager, "_preflight_authenticated_inputs", side_effect=lambda: manager._preflight_mathlib_input()):
                 os.environ.pop(cache_module.MATHLIB_ARCHIVE_ENV, None)
                 with self.assertRaisesRegex(
                     cache_module.CacheError, "dependency cache command failed"

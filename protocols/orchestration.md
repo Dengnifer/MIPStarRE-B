@@ -192,7 +192,8 @@ Statuses are `draft`, `ready`, `changes_requested`, `approved`, `merged`, and
 
 1. Create a branch/worktree from verified main and open a draft record.
 2. Implement only the linked issue scope.
-3. Record scoped checks; warm/seed the cache through the cache protocol.
+3. Record scoped checks; warm the cache or run the combined authenticated
+   `hot_main_cache.py prepare --worktree PATH` gate through the cache protocol.
 4. Freeze the head SHA and run the full local gate.
 5. If the gate passes, dispatch fresh code and blueprint reviewers.
 6. On findings, record dispositions, change the head, invalidate approval, and
@@ -214,6 +215,13 @@ of these absolute paths:
 MATHLIB_SOURCE=/absolute/path/to/mathlib
 MATHLIB_ARCHIVE=/absolute/path/to/mathlib-81a5d257-shallow-repo.tar.gz
 ```
+
+It must also receive absolute authenticated `MIPSTARRE_ARCHIVE` and
+`LAKE_PACKAGE_ARCHIVES` bindings. Writer dispatches use `prepare`, which
+deep-seeds private `.lake`, mandates `--replace-existing` foundation
+materialization, and verifies source before any target or full build. A bare
+`seed` is not a build-readiness gate because it intentionally copies only
+`.lake`.
 
 `MATHLIB_SOURCE` must name a standalone, clean, non-bare Git worktree. The
 cache checks `HEAD`, the root tree, local `git fsck --full`, the shallow

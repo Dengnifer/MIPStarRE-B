@@ -1,5 +1,16 @@
 # Protocol Changelog
 
+## 0.1.11 candidate (QPBT-051) - 2026-09-03
+
+INC-065 is the third `hot-cache-input-preflight-omission`. INC-070 records a
+seeded writer worktree that still lacked ignored foundation sources, and
+INC-071 is the third manual omission of the materializer preservation flag.
+Canonical warm now authenticates the complete Mathlib, MIPStarRE, and eight
+Lake-package input tuple before a hit or builder election without changing the
+cache key. The new `prepare` path combines deep private seed with mandatory
+replacement-mode foundation materialization, authored-QPBT preservation, and
+final verification without invoking Lean or Lake.
+
 ## 0.1.10 candidate (QPBT-045) - 2026-09-02
 
 INC-060 is the second occurrence of

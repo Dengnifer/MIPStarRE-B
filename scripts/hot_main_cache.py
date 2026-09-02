@@ -69,6 +69,8 @@ LAKE_OVERRIDE_ARGUMENT = "--packages=.lake/package-overrides.json"
 # changing their Git identity.
 MATHLIB_SOURCE_ENV = "MATHLIB_SOURCE"
 MATHLIB_ARCHIVE_ENV = "MATHLIB_ARCHIVE"
+MIPSTARRE_ARCHIVE_ENV = "MIPSTARRE_ARCHIVE"
+LAKE_PACKAGE_ARCHIVES_ENV = "LAKE_PACKAGE_ARCHIVES"
 MATHLIB_PACKAGE_NAME = "mathlib"
 MATHLIB_REPOSITORY_URL = "https://github.com/leanprover-community/mathlib4"
 MATHLIB_COMMIT = "81a5d257c8e410db227a6665ed08f64fea08e997"
@@ -2154,6 +2156,80 @@ class HotMainCache:
             archive = _absolute_local_path(archive_value or "", MATHLIB_ARCHIVE_ENV)
             self._validate_mathlib_archive_input(archive)
 
+    def _load_identity_module(self, relative_path: str, name: str) -> Any:
+        path = self.project_dir / relative_path
+        spec = importlib.util.spec_from_file_location(name, path)
+        if spec is None or spec.loader is None:
+            raise CacheError(f"could not load identity-bound input verifier {relative_path}")
+        module = importlib.util.module_from_spec(spec)
+        try:
+            spec.loader.exec_module(module)
+        except Exception as error:
+            raise CacheError(f"could not load identity-bound input verifier {relative_path}: {error}") from error
+        return module
+
+    @staticmethod
+    def _authenticate_pinned_file(path: Path, expected_bytes: int, expected_sha256: str, label: str) -> None:
+        payload = _read_bounded_regular_file(path, expected_bytes, label)
+        if len(payload) != expected_bytes:
+            raise CacheError(f"{label} size differs: expected {expected_bytes}, got {len(payload)}")
+        if hashlib.sha256(payload).hexdigest() != expected_sha256:
+            raise CacheError(f"{label} checksum differs from the pinned digest")
+
+    def _preflight_authenticated_inputs(self) -> dict[str, Any]:
+        """Authenticate the complete canonical local-input tuple before election."""
+
+        self._preflight_mathlib_input()
+        if not self._requires_mathlib_source():
+            return {"required": False}
+        mip_value = os.environ.get(MIPSTARRE_ARCHIVE_ENV)
+        packages_value = os.environ.get(LAKE_PACKAGE_ARCHIVES_ENV)
+        if not mip_value:
+            raise CacheError(f"{MIPSTARRE_ARCHIVE_ENV} is unset or empty")
+        if not packages_value:
+            raise CacheError(f"{LAKE_PACKAGE_ARCHIVES_ENV} is unset or empty")
+        mip_archive = _absolute_local_path(mip_value, MIPSTARRE_ARCHIVE_ENV)
+        package_directory = _absolute_local_path(packages_value, LAKE_PACKAGE_ARCHIVES_ENV)
+        try:
+            metadata = package_directory.stat(follow_symlinks=False)
+        except OSError as error:
+            raise CacheError(f"could not inspect {LAKE_PACKAGE_ARCHIVES_ENV}: {error}") from error
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
+            raise CacheError(f"{LAKE_PACKAGE_ARCHIVES_ENV} must name a real directory")
+
+        try:
+            mip_module = self._load_identity_module(
+                "scripts/materialize_mipstarre.py", "_hot_cache_input_mipstarre"
+            )
+            mip_pin = mip_module.load_pin(self.project_dir / "references/mipstarre-upstream.json")
+            mip_module.validate_project_pins(self.project_dir, mip_pin)
+            self._authenticate_pinned_file(
+                mip_archive, mip_pin["archive"]["bytes"], mip_pin["archive"]["sha256"],
+                "MIPStarRE archive",
+            )
+            package_module = self._load_identity_module(
+                "scripts/materialize_lake_packages.py", "_hot_cache_input_packages"
+            )
+            package_pin = package_module.load_pin(self.project_dir / "references/lake-packages.json")
+            package_module.validate_manifests(self.project_dir, package_pin)
+            for package in package_pin["packages"]:
+                archive = package_directory / f"{package['name']}-{package['revision']}.tar.gz"
+                self._authenticate_pinned_file(
+                    archive, package["archive"]["bytes"], package["archive"]["sha256"],
+                    f"Lake package archive {package['name']}",
+                )
+        except CacheError:
+            raise
+        except Exception as error:
+            raise CacheError(f"authenticated local-input preflight failed: {error}") from error
+        return {
+            "required": True,
+            "mathlib_selector": MATHLIB_SOURCE_ENV if os.environ.get(MATHLIB_SOURCE_ENV) else MATHLIB_ARCHIVE_ENV,
+            "mipstarre_archive": str(mip_archive),
+            "lake_package_archives": str(package_directory),
+            "lake_package_count": len(package_pin["packages"]),
+        }
+
     @staticmethod
     def _verify_mathlib_source(binding: MathlibSourceBinding) -> None:
         expected = binding.evidence
@@ -2429,7 +2505,7 @@ class HotMainCache:
             }
         # Validate the runtime source before either hit path.  This keeps a
         # stale or missing local binding from silently masquerading as a hit.
-        self._preflight_mathlib_input()
+        self._preflight_authenticated_inputs()
         started = time.monotonic()
         if self.is_ready():
             result = {
@@ -2449,7 +2525,7 @@ class HotMainCache:
             return result
 
         with ExclusiveLock(self.lock_path) as cache_lock:
-            self._preflight_mathlib_input()
+            self._preflight_authenticated_inputs()
             if self.is_ready():
                 result = {
                     **self.status(),
@@ -2886,6 +2962,48 @@ class HotMainCache:
                     make_owner_writable(staging_root)
                     shutil.rmtree(staging_root)
 
+    def prepare(self, target_project: Path, *, replace_seed: bool = False, dry_run: bool = False) -> dict[str, Any]:
+        """Seed and verify a build-ready issue worktree without compiling it."""
+
+        target_project, _ = self._eligible_seed_target(target_project)
+        if dry_run:
+            return {
+                **self.seed(target_project, replace=replace_seed, dry_run=True),
+                "action": "prepare",
+                "foundation_replace_existing": True,
+                "foundation_verify": True,
+            }
+        inputs = self._preflight_authenticated_inputs()
+        authored_before = authored_tree_facts_on_disk(target_project)
+        seeded = self.seed(target_project, replace=replace_seed)
+        try:
+            module_path = target_project / "scripts" / "materialize_mipstarre.py"
+            spec = importlib.util.spec_from_file_location("_hot_cache_prepare_mipstarre", module_path)
+            if spec is None or spec.loader is None:
+                raise CacheError("could not load issue-worktree foundation materializer")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            pin_path = target_project / "references" / "mipstarre-upstream.json"
+            pin = module.load_pin(pin_path)
+            module.validate_project_pins(target_project, pin)
+            materialized = module.materialize(
+                target_project, pin_path, Path(os.environ[MIPSTARRE_ARCHIVE_ENV]),
+                replace_existing=True,
+            )
+            authored_after = authored_tree_facts_on_disk(target_project)
+            if authored_after != authored_before:
+                raise CacheError("authored QPBT inventory changed during issue-worktree preparation")
+            verified = module.verify_materialized(target_project, pin)
+        except CacheError:
+            raise
+        except Exception as error:
+            raise CacheError(f"issue-worktree foundation preparation failed: {error}") from error
+        return {
+            "action": "prepare", "result": "prepared", "inputs": inputs,
+            "seed": seeded, "foundation": materialized, "verification": verified,
+            "authored_qpbt": authored_after,
+        }
+
 
 def _resolve(root: Path, value: str) -> Path:
     path = Path(value)
@@ -2915,6 +3033,12 @@ def build_parser() -> argparse.ArgumentParser:
     seed.add_argument("--worktree", required=True, help="target issue worktree / Lake project root")
     seed.add_argument("--replace", action="store_true")
     seed.add_argument("--dry-run", action="store_true")
+    prepare = commands.add_parser(
+        "prepare", help="seed and materialize a verified build-ready issue worktree"
+    )
+    prepare.add_argument("--worktree", required=True, help="target issue worktree / Lake project root")
+    prepare.add_argument("--replace", action="store_true", help="replace an existing private .lake")
+    prepare.add_argument("--dry-run", action="store_true")
     return parser
 
 
@@ -2950,6 +3074,12 @@ def run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         return cache.seed(
             _resolve(repo_root, arguments.worktree),
             replace=arguments.replace,
+            dry_run=arguments.dry_run,
+        )
+    if arguments.command == "prepare":
+        return cache.prepare(
+            _resolve(repo_root, arguments.worktree),
+            replace_seed=arguments.replace,
             dry_run=arguments.dry_run,
         )
     raise CacheError(f"unsupported command {arguments.command!r}")
