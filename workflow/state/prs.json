@@ -7530,7 +7530,7 @@
     {
       "id": "LPR-028",
       "title": "feat(QPBT/Game): define admissible parameters",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-039"
       ],
@@ -7624,15 +7624,16 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T23:48:12.813862Z",
-      "updated_at": "2026-09-02T00:23:56.035115Z",
+      "updated_at": "2026-09-02T00:33:41.566024Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Parameters.lean",
         "workflow/reviews/qpbt-039-parameters-a01.md",
-        "workflow/reviews/qpbt-039-review-a02.md"
+        "workflow/reviews/qpbt-039-review-a02.md",
+        "workflow/reviews/qpbt-039-pr028-bind-a03.md"
       ],
       "motivation": "Land the source-faithful G01 admissible-parameter boundary.",
       "description": "Add the project-owned natural parameter tuple and exact odd-exponent, power-of-two, and natural-divisibility admissibility predicate.",
-      "testing": "Scoped Lean, affected target, private full build, pinned-source blueprint synchronization, proof-debt/import scan, exact diff gate, and fresh independent review passed; elected cache behavior is recorded in the writer report.",
+      "testing": "Scoped Lean, affected target, private full build, pinned-source blueprint synchronization, debt/import scan, exact diff gate, fresh review, and PR-bound no-byte-change adoption passed.",
       "addresses": "QPBT-039",
       "provenance_session_ids": [
         "i039-orchestrator-a01-parameters",
@@ -7640,7 +7641,18 @@
         "i039-integrator-a03-pr028-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Bind a writable PR adoption/integrator session, authenticate the approved exact head, then guarded-integrate onto current main with post-integration gates."
+      "unexecuted_gate": "Guarded-integrate exact approved head f6b19fc onto current main, then run post-integration scoped, target/full-build, source/blueprint, debt, and diff gates.",
+      "adoption": {
+        "session_id": "i039-integrator-a03-pr028-bind",
+        "verdict": "pass",
+        "base_sha": "874dc07433936e26d62c42cdd779dde42386f99d",
+        "head_sha": "f6b19fc9fb87e0616b8367749ff971539bc1b45f",
+        "tree": "19df34c6a5687eff9bf64611c8880e45b3ea4339",
+        "manifest_sha256": "4a26a5faf9611c9e689ef03e253f5a4fbfe164d92ac86288eed3aac2422df539",
+        "result_path": "workflow/reviews/qpbt-039-pr028-bind-a03.md",
+        "report_sha256": "83ba28b9e524c0db3bc43a749ee66d41f1a82db63c44dff80bad08a9cc878668",
+        "completed_at": "2026-09-02T00:31:52.763476Z"
+      }
     }
   ]
 }
