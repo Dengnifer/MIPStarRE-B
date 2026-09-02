@@ -1,6 +1,57 @@
 {
   "schema_version": 1,
-  "planned": [],
+  "planned": [
+    {
+      "id": "i056-orchestrator-a01-f06",
+      "name": "i056-orchestrator-a01-f06",
+      "backend": "codex-collaboration",
+      "role": "orchestrator",
+      "status": "planned",
+      "issue_id": "QPBT-056",
+      "pr_id": null,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": null,
+      "attempt": 1,
+      "priority": 1,
+      "read_only": false,
+      "base_revision": "4cc1762f85da1bd46599311b77c4647d5f3c30b4",
+      "base_revision_reason": "Validated QPBT-055 repair checkpoint; Lean inputs and pins are compatible with authenticated hot-main cache 93555a48.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-056-f06-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-056-f06-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-056, the exact F06 marker, pinned conditionally-linear.tex:1-552 and finite-fields anchors, G21, QPBT-055 repair/reviews, A03 handoff, Field.lean, and pinned PMF/linear APIs. Implement exactly the 14 frozen F06 declarations with only the two frozen imports, faithful recursive certificates, exact level raising, arbitrary-map direct sum, coordinate-conjugated downsize, one-shared-seed sampling, and exact PMF laws. No sorry/admit/axiom/constant/public obligation/degenerate replacement. Spawn bounded read-only proof scouts as useful. Use only the seeded private cache; iterate with lake env lean MIPStarRE/QPBT/Game/Types.lean, then run exact name/import/debt scans, affected target, blueprint/source sync, and exactly one private full lake build after scoped stability. Commit only owned paths and write exact statement-integrity, cache, build, topology, timing, and token-null evidence.",
+      "result_envelope_path": "workflow/reviews/qpbt-056-f06-a01.md",
+      "dispatch_condition": "QPBT-055 is done after fresh immutable approval; QPBT-056 dependencies are done; isolated worktree is at 4cc1762 with cache key 93555a48 seeded as a hit in 72.931946 seconds and zero builds/lock wait.",
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "requested_model": "gpt-5.6-sol",
+      "cache_seed": {
+        "cache_key": "93555a48b1efbf80003411ec9d39de51baeeccbc0e2c310cbab2157225e05ab3",
+        "main_commit": "cc9194ad4a38aaf4971db871bdae34f10b447230",
+        "result": "seeded",
+        "cache_hit": 1,
+        "cache_miss": 0,
+        "lock_wait_seconds": 0,
+        "builds": 0,
+        "build_seconds": 0,
+        "elapsed_seconds": 72.931946,
+        "files": 124925,
+        "bytes": 10097592576,
+        "writable_private_copy": true
+      }
+    }
+  ],
   "issued": [
     {
       "id": "i001-coordinator-a01-bootstrap",
@@ -25793,6 +25844,39 @@
         "nested_agents": 0
       },
       "timing_note": "Elapsed is the canonical registration-to-finish window; the report independently records a 305-second observed review interval."
+    },
+    {
+      "id": "i055-reviewer-a02-g20-repair",
+      "name": "i055-reviewer-a02-g20-repair",
+      "backend": "codex-collaboration",
+      "role": "reviewer",
+      "status": "running",
+      "issue_id": "QPBT-055",
+      "pr_id": null,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i055_reviewer_a02_g20_repair",
+      "attempt": 2,
+      "priority": 1,
+      "read_only": true,
+      "base_revision": "4cc1762f85da1bd46599311b77c4647d5f3c30b4",
+      "base_revision_reason": "Exact committed QPBT-055 repair after accepting the A01 G20 source-fidelity finding.",
+      "worktree": "/home/drx/MIPStarRE-auto",
+      "owned_paths": [],
+      "validation_command": "Authenticate immutable manifest SHA-256 71e8b43c2ce4f3c1f7abd185cc41e47c347a3aa736dd45a2616cc994a0c65b7f and all 18 entries. Confirm G20 is fully removed as a paper defect; the paper level inclusion is correctly described as a valid zero-to-one base plus recursive structural promotion; empty-head/full-tail is only an exact Lean implementation alternative; G21, the separate seed typo, and frozen F06 signatures/imports/hypotheses/conclusions remain correct. Check the QPBT-038 report-only blocker and sequential QPBT-056/057/058 workflow linkage. Run no Lean/Lake/build/cache/materialization/network/GitHub/credential/write/nested-agent action. Return findings first and write only /tmp/qpbt-055-review-a02.md.",
+      "result_envelope_path": "/tmp/qpbt-055-review-a02.md",
+      "dispatch_condition": "QPBT-055 repair 4cc1762 is committed, all local acceptance checks pass, and an exact 18-entry immutable manifest is frozen.",
+      "started_at": "2026-09-02T21:28:08.407610Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "requested_model": "gpt-5.6-sol"
     }
   ]
 }
