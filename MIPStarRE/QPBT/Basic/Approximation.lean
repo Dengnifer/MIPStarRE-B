@@ -1,5 +1,4 @@
 import Mathlib.Analysis.Asymptotics.Defs
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import Mathlib.Probability.ProbabilityMassFunction.Constructions
 import MIPStarRE.LDT.Preliminaries.ComparisonCore
 import MIPStarRE.LDT.Preliminaries.Triangles.SimEq
@@ -94,8 +93,8 @@ end MIPStarRE.QPBT
 The declarations below formalize the finite expressions, indexed asymptotic
 relations, consistency relation, and distance laws used in the paper's
 Definitions 3.2, 4.7, and 4.8, Facts 4.26 and 4.28, and Proposition 4.29. Finite values and
-exact `NNReal` bounds remain separate from the paper-facing `atTop` Big-O
-relations.
+exact `NNReal` bounds remain separate from the paper's global positive-index
+Big-O relations.
 
 Blueprint nodes: `F04-DISTANCE`, `F04-ASYMPTOTIC`, `F04-CONSISTENCY`, and
 `F04-DISTANCE-LAWS`.
@@ -636,16 +635,34 @@ def MeasurementFamilyDistanceBoundedBy
 /-- A natural-number-indexed error profile taking values in `[0, 1]`. -/
 abbrev ErrorProfile := Nat → Set.Icc (0 : Real) 1
 
-/-- Real-valued Big-O at `Filter.atTop`. -/
+/-- Auxiliary real-valued Big-O at `Filter.atTop`. -/
 def IsBigOAtTop (value scale : Nat → Real) : Prop :=
   Asymptotics.IsBigO Filter.atTop value scale
+
+/-- The paper's Big-O convention: one constant bounds every positive index.
+
+Paper source: Section 2, `Asymptotics`.
+-/
+def PaperBigO (value scale : Nat → Real) : Prop :=
+  ∃ C : Real, 0 < C ∧
+    ∀ n, 0 < n → ‖value n‖ ≤ C * ‖scale n‖
+
+/-- A global positive-index bound implies the usual eventual Big-O relation. -/
+theorem PaperBigO.isBigOAtTop
+    {value scale : Nat → Real} (h : PaperBigO value scale) :
+    IsBigOAtTop value scale := by
+  rcases h with ⟨C, _, hC⟩
+  unfold IsBigOAtTop
+  apply Asymptotics.IsBigO.of_bound C
+  filter_upwards [Filter.eventually_ge_atTop (1 : Nat)] with n hn
+  exact hC n (Nat.zero_lt_of_lt hn)
 
 /-- Indexed squared state distance is Big-O of the error profile. -/
 def StateFamiliesBigO
     {Coord : Type uCoord} [Fintype Coord]
     (psi phi : Nat → EuclideanSpace Complex Coord)
     (delta : ErrorProfile) : Prop :=
-  IsBigOAtTop (fun n => ‖psi n - phi n‖ ^ 2)
+  PaperBigO (fun n => ‖psi n - phi n‖ ^ 2)
     (fun n => (delta n : Real))
 
 /-- Indexed raw operator-family distance is Big-O of the error profile. -/
@@ -657,7 +674,7 @@ def OperatorFamiliesBigO
     (psi : Nat → EuclideanSpace Complex Coord)
     (A B : Nat → Question → MIPStarRE.Quantum.Op Coord)
     (delta : ErrorProfile) : Prop :=
-  IsBigOAtTop
+  PaperBigO
     (fun n => operatorFamilyDistanceValue (mu n) (psi n) (A n) (B n))
     (fun n => (delta n : Real))
 
@@ -672,7 +689,7 @@ def MeasurementFamiliesBigO
     (psi : Nat → EuclideanSpace Complex Coord)
     (A B : Nat → MeasurementFamily Question Outcome Coord)
     (delta : ErrorProfile) : Prop :=
-  IsBigOAtTop
+  PaperBigO
     (fun n => measurementFamilyDistanceValue (mu n) (psi n) (A n) (B n))
     (fun n => (delta n : Real))
 
@@ -729,7 +746,7 @@ def StrategyFamiliesBigO
     (choice : StrategyStateChoice)
     (delta : ErrorProfile) : Prop :=
   StateFamiliesBigO (fun n => (S n).state) (fun n => (T n).state) delta ∧
-  IsBigOAtTop (fun n =>
+  PaperBigO (fun n =>
     operatorOutcomeFamilyDistanceValue (aliceQuestionMarginal (mu n))
       (strategyComparisonState choice (S n) (T n))
       (fun x a => aliceLocal (Alice := Alice) (Bob := Bob)
@@ -737,7 +754,7 @@ def StrategyFamiliesBigO
       (fun x a => aliceLocal (Alice := Alice) (Bob := Bob)
         (((T n).alice x).effect a)))
     (fun n => (delta n : Real)) ∧
-  IsBigOAtTop (fun n =>
+  PaperBigO (fun n =>
     operatorOutcomeFamilyDistanceValue (bobQuestionMarginal (mu n))
       (strategyComparisonState choice (S n) (T n))
       (fun y b => bobLocal (Alice := Alice) (Bob := Bob)
@@ -1064,7 +1081,7 @@ def POVMConsistencyBigO
     (A : Nat → MeasurementFamily Question Outcome Alice)
     (B : Nat → MeasurementFamily Question Outcome Bob)
     (delta : ErrorProfile) : Prop :=
-  IsBigOAtTop
+  PaperBigO
     (fun n => povmConsistencyValue (mu n) (psi n) (A n) (B n))
     (fun n => (delta n : Real))
 
@@ -1085,7 +1102,7 @@ def POVMConsistencyBigOTriangleLaw
   POVMConsistencyBigO mu psi A B epsilon →
   POVMConsistencyBigO mu psi C B delta →
   POVMConsistencyBigO mu psi C D gamma →
-  IsBigOAtTop
+  PaperBigO
     (fun n => povmConsistencyValue (mu n) (psi n) (A n) (D n))
     (fun n => (epsilon n : Real) +
       2 * Real.sqrt ((delta n : Real) + (gamma n : Real)))
@@ -1111,61 +1128,95 @@ theorem povmConsistencyBigO_triangle
       mu psi hpsi A C B D epsilon delta gamma := by
   unfold POVMConsistencyBigOTriangleLaw
   intro hAB hCB hCD
-  unfold POVMConsistencyBigO IsBigOAtTop at hAB hCB hCD
-  unfold IsBigOAtTop
-  have hCB_CD :
-      Asymptotics.IsBigO Filter.atTop
-        (fun n =>
-          povmConsistencyValue (mu n) (psi n) (C n) (B n) +
-          povmConsistencyValue (mu n) (psi n) (C n) (D n))
-        (fun n => (delta n : Real) + (gamma n : Real)) := by
-    have h := hCB.add_add hCD
-    have hscale :
-        (fun n => ‖(delta n : Real)‖ + ‖(gamma n : Real)‖) =
-          (fun n => (delta n : Real) + (gamma n : Real)) := by
-      funext n
-      rw [Real.norm_of_nonneg (delta n).property.1,
-        Real.norm_of_nonneg (gamma n).property.1]
-    rw [hscale] at h
-    exact h
-  have hsqrt := hCB_CD.sqrt <|
-    Filter.Eventually.of_forall fun n =>
-      add_nonneg (delta n).property.1 (gamma n).property.1
-  have htwoSqrt :
-      Asymptotics.IsBigO Filter.atTop
-        (fun n => 2 * Real.sqrt
+  unfold POVMConsistencyBigO at hAB hCB hCD
+  unfold PaperBigO at hAB hCB hCD ⊢
+  rcases hAB with ⟨CAB, hCAB, hAB⟩
+  rcases hCB with ⟨CCB, hCCB, hCB⟩
+  rcases hCD with ⟨CCD, hCCD, hCD⟩
+  let K : Real := CAB + CCB + CCD + 1
+  have hK : 0 < K := by
+    dsimp [K]
+    positivity
+  refine ⟨K, hK, ?_⟩
+  intro n hn
+  have hABn := hAB n hn
+  have hCBn := hCB n hn
+  have hCDn := hCD n hn
+  rw [Real.norm_of_nonneg
+      (povmConsistencyValue_nonneg (mu n) (psi n) (A n) (B n)),
+    Real.norm_of_nonneg (epsilon n).property.1] at hABn
+  rw [Real.norm_of_nonneg
+      (povmConsistencyValue_nonneg (mu n) (psi n) (C n) (B n)),
+    Real.norm_of_nonneg (delta n).property.1] at hCBn
+  rw [Real.norm_of_nonneg
+      (povmConsistencyValue_nonneg (mu n) (psi n) (C n) (D n)),
+    Real.norm_of_nonneg (gamma n).property.1] at hCDn
+  have hscale : 0 ≤ (delta n : Real) + (gamma n : Real) :=
+    add_nonneg (delta n).property.1 (gamma n).property.1
+  have hsum :
+      povmConsistencyValue (mu n) (psi n) (C n) (B n) +
+          povmConsistencyValue (mu n) (psi n) (C n) (D n) ≤
+        (CCB + CCD) * ((delta n : Real) + (gamma n : Real)) := by
+    have hcross₁ : 0 ≤ CCB * (gamma n : Real) :=
+      mul_nonneg (le_of_lt hCCB) (gamma n).property.1
+    have hcross₂ : 0 ≤ CCD * (delta n : Real) :=
+      mul_nonneg (le_of_lt hCCD) (delta n).property.1
+    nlinarith
+  have hcoeff : CCB + CCD ≤ K ^ 2 := by
+    have hK_one : 1 ≤ K := by
+      dsimp [K]
+      linarith
+    have hsum_nonneg : 0 ≤ CCB + CCD := by positivity
+    have hsum_le_K : CCB + CCD ≤ K := by
+      dsimp [K]
+      linarith
+    nlinarith
+  have hsqrt :
+      Real.sqrt
           (povmConsistencyValue (mu n) (psi n) (C n) (B n) +
-            povmConsistencyValue (mu n) (psi n) (C n) (D n)))
-        (fun n => 2 * Real.sqrt
+            povmConsistencyValue (mu n) (psi n) (C n) (D n)) ≤
+        K * Real.sqrt ((delta n : Real) + (gamma n : Real)) := by
+    calc
+      Real.sqrt
+          (povmConsistencyValue (mu n) (psi n) (C n) (B n) +
+            povmConsistencyValue (mu n) (psi n) (C n) (D n)) ≤
+          Real.sqrt ((CCB + CCD) *
+            ((delta n : Real) + (gamma n : Real))) :=
+        Real.sqrt_le_sqrt hsum
+      _ ≤ Real.sqrt (K ^ 2 *
           ((delta n : Real) + (gamma n : Real))) := by
-    exact (hsqrt.const_mul_left (2 : Real)).const_mul_right (by norm_num)
-  have hcombined := hAB.add_add htwoSqrt
-  have hcombinedScale :
-      (fun n =>
-        ‖(epsilon n : Real)‖ +
-          ‖2 * Real.sqrt ((delta n : Real) + (gamma n : Real))‖) =
-        (fun n =>
-          (epsilon n : Real) +
-            2 * Real.sqrt ((delta n : Real) + (gamma n : Real))) := by
-    funext n
-    rw [Real.norm_of_nonneg (epsilon n).property.1,
-      Real.norm_of_nonneg
-        (mul_nonneg (by norm_num) (Real.sqrt_nonneg _))]
-  rw [hcombinedScale] at hcombined
-  refine Asymptotics.IsBigO.trans ?_ hcombined
-  apply Asymptotics.IsBigO.of_bound 1
-  exact Filter.Eventually.of_forall fun n => by
-    rw [Real.norm_of_nonneg
-      (povmConsistencyValue_nonneg
-        (mu n) (psi n) (A n) (D n))]
-    rw [Real.norm_of_nonneg <| add_nonneg
-      (povmConsistencyValue_nonneg
-        (mu n) (psi n) (A n) (B n))
-      (mul_nonneg (by norm_num) (Real.sqrt_nonneg _))]
-    simpa only [one_mul] using
+        apply Real.sqrt_le_sqrt
+        exact mul_le_mul_of_nonneg_right hcoeff hscale
+      _ = Real.sqrt (K ^ 2) *
+          Real.sqrt ((delta n : Real) + (gamma n : Real)) := by
+        rw [Real.sqrt_mul (sq_nonneg K)]
+      _ = K * Real.sqrt ((delta n : Real) + (gamma n : Real)) := by
+        rw [Real.sqrt_sq (le_of_lt hK)]
+  rw [Real.norm_of_nonneg
+      (povmConsistencyValue_nonneg (mu n) (psi n) (A n) (D n)),
+    Real.norm_of_nonneg <| add_nonneg (epsilon n).property.1
+      (mul_nonneg (by positivity) (Real.sqrt_nonneg _))]
+  calc
+    povmConsistencyValue (mu n) (psi n) (A n) (D n) ≤
+        povmConsistencyValue (mu n) (psi n) (A n) (B n) +
+          2 * Real.sqrt
+            (povmConsistencyValue (mu n) (psi n) (C n) (B n) +
+              povmConsistencyValue (mu n) (psi n) (C n) (D n)) :=
       povmConsistencyValue_triangle_bound
-        (mu n) (psi n) (hpsi n)
-        (A n) (C n) (B n) (D n)
+        (mu n) (psi n) (hpsi n) (A n) (C n) (B n) (D n)
+    _ ≤ CAB * (epsilon n : Real) +
+        2 * (K * Real.sqrt ((delta n : Real) + (gamma n : Real))) := by
+      gcongr
+    _ ≤ K * (epsilon n : Real) +
+        2 * (K * Real.sqrt ((delta n : Real) + (gamma n : Real))) := by
+      have hCAB_le : CAB ≤ K := by
+        dsimp [K]
+        linarith
+      exact add_le_add
+        (mul_le_mul_of_nonneg_right hCAB_le (epsilon n).property.1) le_rfl
+    _ = K * ((epsilon n : Real) +
+        2 * Real.sqrt ((delta n : Real) + (gamma n : Real))) := by
+      ring
 
 /-! ## Distance laws -/
 
@@ -1200,7 +1251,7 @@ def MeasurementFamiliesBigOTriangleLaw
     (delta epsilon : ErrorProfile) : Prop :=
   MeasurementFamiliesBigO mu psi A B delta →
   MeasurementFamiliesBigO mu psi B C epsilon →
-  IsBigOAtTop
+  PaperBigO
     (fun n => measurementFamilyDistanceValue (mu n) (psi n) (A n) (C n))
     (fun n => (delta n : Real) + (epsilon n : Real))
 
@@ -1263,26 +1314,40 @@ theorem measurementFamiliesBigO_triangle
     (delta epsilon : ErrorProfile) :
     MeasurementFamiliesBigOTriangleLaw mu psi A B C delta epsilon := by
   intro hAB hBC
-  unfold MeasurementFamiliesBigO IsBigOAtTop at hAB hBC
-  unfold IsBigOAtTop
-  have hsum := hAB.add_add hBC
-  have hscale :
-      (fun n => ‖(delta n : Real)‖ + ‖(epsilon n : Real)‖) =
-        (fun n => (delta n : Real) + (epsilon n : Real)) := by
-    funext n
-    rw [Real.norm_of_nonneg (delta n).property.1,
-      Real.norm_of_nonneg (epsilon n).property.1]
-  rw [hscale] at hsum
-  refine Asymptotics.IsBigO.trans ?_ hsum
-  apply Asymptotics.IsBigO.of_bound 2
-  exact Filter.Eventually.of_forall fun n => by
-    rw [Real.norm_of_nonneg
-      (measurementFamilyDistanceValue_nonneg (mu n) (psi n) (A n) (C n))]
-    rw [Real.norm_of_nonneg (add_nonneg
-      (measurementFamilyDistanceValue_nonneg (mu n) (psi n) (A n) (B n))
-      (measurementFamilyDistanceValue_nonneg (mu n) (psi n) (B n) (C n)))]
-    exact measurementFamilyDistanceValue_triangle_bound
-      (mu n) (psi n) (A n) (B n) (C n)
+  unfold MeasurementFamiliesBigO at hAB hBC
+  unfold PaperBigO at hAB hBC ⊢
+  rcases hAB with ⟨CAB, hCAB, hAB⟩
+  rcases hBC with ⟨CBC, hCBC, hBC⟩
+  refine ⟨2 * (CAB + CBC), by positivity, ?_⟩
+  intro n hn
+  rw [Real.norm_of_nonneg
+      (measurementFamilyDistanceValue_nonneg (mu n) (psi n) (A n) (C n)),
+    Real.norm_of_nonneg
+      (add_nonneg (delta n).property.1 (epsilon n).property.1)]
+  have hABn := hAB n hn
+  have hBCn := hBC n hn
+  rw [Real.norm_of_nonneg
+      (measurementFamilyDistanceValue_nonneg (mu n) (psi n) (A n) (B n)),
+    Real.norm_of_nonneg (delta n).property.1] at hABn
+  rw [Real.norm_of_nonneg
+      (measurementFamilyDistanceValue_nonneg (mu n) (psi n) (B n) (C n)),
+    Real.norm_of_nonneg (epsilon n).property.1] at hBCn
+  calc
+    measurementFamilyDistanceValue (mu n) (psi n) (A n) (C n) ≤
+        2 * (measurementFamilyDistanceValue (mu n) (psi n) (A n) (B n) +
+          measurementFamilyDistanceValue (mu n) (psi n) (B n) (C n)) :=
+      measurementFamilyDistanceValue_triangle_bound
+        (mu n) (psi n) (A n) (B n) (C n)
+    _ ≤ 2 * (CAB * (delta n : Real) + CBC * (epsilon n : Real)) := by
+      gcongr
+    _ ≤ 2 * ((CAB + CBC) * ((delta n : Real) + (epsilon n : Real))) := by
+      have hcross₁ : 0 ≤ CAB * (epsilon n : Real) :=
+        mul_nonneg (le_of_lt hCAB) (epsilon n).property.1
+      have hcross₂ : 0 ≤ CBC * (delta n : Real) :=
+        mul_nonneg (le_of_lt hCBC) (delta n).property.1
+      nlinarith
+    _ = (2 * (CAB + CBC)) * ((delta n : Real) + (epsilon n : Real)) := by
+      ring
 
 /-- Heterogeneous POVM consistency is preserved by common postprocessing. -/
 theorem povmConsistencyBigO_postprocess
@@ -1302,20 +1367,28 @@ theorem povmConsistencyBigO_postprocess
     POVMConsistencyBigOPostprocessLaw mu psi A B f delta := by
   unfold POVMConsistencyBigOPostprocessLaw
   intro hAB
-  unfold POVMConsistencyBigO IsBigOAtTop at hAB ⊢
-  refine Asymptotics.IsBigO.trans ?_ hAB
-  apply Asymptotics.IsBigO.of_bound 1
-  exact Filter.Eventually.of_forall fun n => by
-    rw [Real.norm_of_nonneg
+  unfold POVMConsistencyBigO PaperBigO at hAB ⊢
+  rcases hAB with ⟨C, hC, hAB⟩
+  refine ⟨C, hC, ?_⟩
+  intro n hn
+  rw [Real.norm_of_nonneg
       (povmConsistencyValue_nonneg
         (mu n) (psi n)
         (MeasurementFamily.postprocess (A n) f)
-        (MeasurementFamily.postprocess (B n) f))]
-    rw [Real.norm_of_nonneg
-      (povmConsistencyValue_nonneg
-        (mu n) (psi n) (A n) (B n))]
-    simpa only [one_mul] using
-      povmConsistencyValue_postprocess_le
-        (mu n) (psi n) (A n) (B n) f
+        (MeasurementFamily.postprocess (B n) f)),
+    Real.norm_of_nonneg (delta n).property.1]
+  calc
+    povmConsistencyValue (mu n) (psi n)
+        (MeasurementFamily.postprocess (A n) f)
+        (MeasurementFamily.postprocess (B n) f) ≤
+      povmConsistencyValue (mu n) (psi n) (A n) (B n) :=
+        povmConsistencyValue_postprocess_le
+          (mu n) (psi n) (A n) (B n) f
+    _ = ‖povmConsistencyValue (mu n) (psi n) (A n) (B n)‖ :=
+      (Real.norm_of_nonneg
+        (povmConsistencyValue_nonneg (mu n) (psi n) (A n) (B n))).symm
+    _ ≤ C * ‖(delta n : Real)‖ := hAB n hn
+    _ = C * (delta n : Real) := by
+      rw [Real.norm_of_nonneg (delta n).property.1]
 
 end MIPStarRE.QPBT
