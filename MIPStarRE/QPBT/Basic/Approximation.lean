@@ -728,9 +728,8 @@ def strategyComparisonState
   | .first => S.state
   | .second => T.state
 
-/-- Indexed strategy distance, using the joint question PMF's marginals and an
-explicit choice of comparison state. -/
-def StrategyFamiliesBigO
+/-- The fixed-state-choice components of indexed strategy distance. -/
+def StrategyFamiliesBigOWithChoice
     {QuestionA : Type uQuestionA} {QuestionB : Type uQuestionB}
     {OutcomeA : Type uOutcomeA} {OutcomeB : Type uOutcomeB}
     {Alice : Type uAlice} {Bob : Type uBob}
@@ -762,6 +761,28 @@ def StrategyFamiliesBigO
       (fun y b => bobLocal (Alice := Alice) (Bob := Bob)
         (((T n).bob y).effect b)))
     (fun n => (delta n : Real))
+
+/-- Indexed strategy distance, existentially choosing one of the two strategy
+states for both measurement-family comparisons.
+
+Paper source: Definition `def:strategy-distance`.
+-/
+def StrategyFamiliesBigO
+    {QuestionA : Type uQuestionA} {QuestionB : Type uQuestionB}
+    {OutcomeA : Type uOutcomeA} {OutcomeB : Type uOutcomeB}
+    {Alice : Type uAlice} {Bob : Type uBob}
+    [Fintype QuestionA] [DecidableEq QuestionA]
+    [Fintype QuestionB] [DecidableEq QuestionB]
+    [Fintype OutcomeA] [DecidableEq OutcomeA]
+    [Fintype OutcomeB] [DecidableEq OutcomeB]
+    [Fintype Alice] [DecidableEq Alice]
+    [Fintype Bob] [DecidableEq Bob]
+    (mu : Nat → PMF (QuestionA × QuestionB))
+    (S T : Nat →
+      PureStrategy QuestionA QuestionB OutcomeA OutcomeB Alice Bob)
+    (delta : ErrorProfile) : Prop :=
+  ∃ choice : StrategyStateChoice,
+    StrategyFamiliesBigOWithChoice mu S T choice delta
 
 /-! ## Exact and asymptotic consistency -/
 
