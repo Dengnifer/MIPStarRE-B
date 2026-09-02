@@ -3,7 +3,6 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 import Mathlib.Probability.ProbabilityMassFunction.Constructions
 import MIPStarRE.LDT.Preliminaries.ComparisonCore
 import MIPStarRE.LDT.Preliminaries.Triangles.SimEq
-import MIPStarRE.LDT.Test.StrategyRole.Algebra
 import MIPStarRE.Quantum.Measurement
 import MIPStarRE.Quantum.FiniteHilbert
 
@@ -94,7 +93,7 @@ end MIPStarRE.QPBT
 
 The declarations below formalize the finite expressions, indexed asymptotic
 relations, consistency relation, and distance laws used in the paper's
-Definitions 3.2, 4.7, and 4.8 and Facts 4.26, 4.28, and 4.29.  Finite values and
+Definitions 3.2, 4.7, and 4.8, Facts 4.26 and 4.28, and Proposition 4.29. Finite values and
 exact `NNReal` bounds remain separate from the paper-facing `atTop` Big-O
 relations.
 
@@ -749,9 +748,10 @@ def StrategyFamiliesBigO
 
 /-! ## Exact and asymptotic consistency -/
 
-/-- Exact consistency of one projective measurement on a bipartite state.
+/-- Equality of the two local actions of one POVM on a bipartite state.
 
 Paper source: Definition `def:consistent-measurement`.
+Paper-labelled uses must separately require the measurement to be projective.
 -/
 def MeasurementConsistentOn
     {Outcome : Type uOutcome} {Coord : Type uCoord}
@@ -801,6 +801,47 @@ private theorem consistencyInner_eq_ev
   rw [← MIPStarRE.LDT.leftTensor_mul_rightTensor_eq_opTensor]
   rfl
 
+private theorem qBipartiteConsDefect_measurements_eq_sub
+    {Outcome : Type uOutcome} {Alice : Type uAlice} {Bob : Type uBob}
+    [Fintype Outcome]
+    [Fintype Alice] [DecidableEq Alice]
+    [Fintype Bob] [DecidableEq Bob]
+    (psi : MIPStarRE.LDT.QuantumState (Alice × Bob))
+    (A : MIPStarRE.LDT.Measurement Outcome Alice)
+    (B : MIPStarRE.LDT.Measurement Outcome Bob) :
+    MIPStarRE.LDT.qBipartiteConsDefect psi A.toSubMeas B.toSubMeas =
+      MIPStarRE.LDT.ev psi (1 : MIPStarRE.Quantum.Op (Alice × Bob)) -
+        MIPStarRE.LDT.qBipartiteMatchMass psi A.toSubMeas B.toSubMeas := by
+  have hmatch_le :
+      MIPStarRE.LDT.qBipartiteMatchMass psi A.toSubMeas B.toSubMeas ≤
+        MIPStarRE.LDT.ev psi (1 : MIPStarRE.Quantum.Op (Alice × Bob)) := by
+    calc
+      MIPStarRE.LDT.qBipartiteMatchMass psi A.toSubMeas B.toSubMeas =
+          ∑ a : Outcome, MIPStarRE.LDT.ev psi
+            (MIPStarRE.LDT.opTensor (A.outcome a) (B.outcome a)) := by
+              rfl
+      _ ≤ ∑ a : Outcome, MIPStarRE.LDT.ev psi
+          (MIPStarRE.LDT.leftTensor (ι₂ := Bob) (A.outcome a)) := by
+            refine Finset.sum_le_sum ?_
+            intro a _
+            exact MIPStarRE.LDT.ev_mono psi _ _ <|
+              MIPStarRE.LDT.opTensor_le_leftTensor (ι₂ := Bob)
+                (A.outcome_pos a) (MIPStarRE.LDT.Measurement.outcome_le_one B a)
+      _ = MIPStarRE.LDT.ev psi
+          (MIPStarRE.LDT.leftTensor (ι₂ := Bob) A.total) := by
+            rw [← MIPStarRE.LDT.ev_sum psi
+              (fun a : Outcome => MIPStarRE.LDT.leftTensor (ι₂ := Bob) (A.outcome a))]
+            rw [MIPStarRE.LDT.leftTensor_finset_sum (ι₂ := Bob)
+              Finset.univ A.outcome, A.sum_eq_total]
+      _ = MIPStarRE.LDT.ev psi (1 : MIPStarRE.Quantum.Op (Alice × Bob)) := by
+            simp [A.total_eq_one, MIPStarRE.LDT.leftTensor]
+  unfold MIPStarRE.LDT.qBipartiteConsDefect
+  rw [show MIPStarRE.LDT.ev psi
+      (MIPStarRE.LDT.opTensor A.toSubMeas.total B.toSubMeas.total) =
+        MIPStarRE.LDT.ev psi (1 : MIPStarRE.Quantum.Op (Alice × Bob)) by
+    simp [A.total_eq_one, B.total_eq_one, MIPStarRE.LDT.opTensor]]
+  rw [max_eq_right (sub_nonneg.mpr hmatch_le)]
+
 private theorem consistencyOffDiagonal_eq_qBipartiteConsDefect
     {Outcome : Type uOutcome} {Alice : Type uAlice} {Bob : Type uBob}
     [Fintype Outcome] [DecidableEq Outcome]
@@ -817,7 +858,7 @@ private theorem consistencyOffDiagonal_eq_qBipartiteConsDefect
       MIPStarRE.LDT.qBipartiteConsDefect (vectorQuantumState psi)
         (measurementToLDT A).toSubMeas (measurementToLDT B).toSubMeas := by
   classical
-  rw [MIPStarRE.LDT.qBipartiteConsDefect_of_measurements]
+  rw [qBipartiteConsDefect_measurements_eq_sub]
   unfold MIPStarRE.LDT.qBipartiteMatchMass
   simp_rw [consistencyInner_eq_ev]
   simp_rw [Finset.sum_erase_eq_sub (Finset.mem_univ _)]
