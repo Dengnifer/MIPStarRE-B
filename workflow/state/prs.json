@@ -7970,7 +7970,9 @@
       "head": "issue/qpbt-054-f06a-contract-a01",
       "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
       "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
-      "implementer_session_ids": [],
+      "implementer_session_ids": [
+        "i054-integrator-a02-pr031-bind"
+      ],
       "checks": [
         {
           "id": "check-qpbt-054-auth",
@@ -8034,7 +8036,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T18:46:52.097261Z",
-      "updated_at": "2026-09-02T18:46:52.097261Z",
+      "updated_at": "2026-09-02T18:50:20.844803Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.json",
@@ -8049,7 +8051,8 @@
       "addresses": "QPBT-054",
       "provenance_session_ids": [
         "i054-orchestrator-a01-f06a-contract",
-        "i054-probe-a01-turing-api"
+        "i054-probe-a01-turing-api",
+        "i054-integrator-a02-pr031-bind"
       ],
       "requested_external_review": true,
       "unexecuted_gate": "Bind one writable adoption session, obtain fresh independent immutable mathematical/API review of exact head 83062f78, then guardedly integrate and update QPBT-038 readiness."
