@@ -2829,7 +2829,7 @@
       "title": "docs(blueprint): record CL proof strategy and downsize defects",
       "kind": "blueprint",
       "execution_category": "preflight",
-      "status": "in_progress",
+      "status": "done",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-035"
@@ -2856,7 +2856,8 @@
         "/tmp/i038-scout-a03-downsize.md",
         "workflow/reviews/qpbt-035-q014-contract-a04.md#F06-A04-SIGNATURES",
         "blueprint/metadata/nodes.json#F06-CL",
-        "workflow/reviews/qpbt-055-review-a01.md"
+        "workflow/reviews/qpbt-055-review-a01.md",
+        "workflow/reviews/qpbt-055-review-a02.md"
       ],
       "owned_paths": [
         "blueprint/metadata/gaps.json",
@@ -2865,19 +2866,23 @@
         "blueprint/src/generated/gaps.tex",
         "blueprint/src/generated/chapter-02-entries.tex",
         "workflow/reviews/qpbt-055-level-raise-gap-a01.md",
-        "workflow/reviews/qpbt-055-review-a01.md"
+        "workflow/reviews/qpbt-055-review-a01.md",
+        "workflow/reviews/qpbt-055-review-a02.md"
       ],
       "created_at": "2026-09-02T21:01:19Z",
-      "updated_at": "2026-09-02T21:20:19.693095Z",
+      "updated_at": "2026-09-02T21:40:45.954495Z",
       "blocked_reason": null,
-      "unblock_condition": null
+      "unblock_condition": null,
+      "review_outcome": "approved-no-findings-after-resolving-a01-high",
+      "review_manifest_sha256": "71e8b43c2ce4f3c1f7abd185cc41e47c347a3aa736dd45a2616cc994a0c65b7f",
+      "review_report_sha256": "8ed64b82ce67bf53b5aa31984bc6b99c58afdbbadbf8d76b740f6826d7479a7a"
     },
     {
       "id": "QPBT-056",
       "title": "feat(QPBT/Game): implement mathematical CL maps and samplers",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-013",
@@ -2900,7 +2905,7 @@
         "Preserve every frozen public hypothesis, conclusion, quantifier, and name; introduce no sorry, admit, axiom, constant, public obligation, degenerate zero replacement, or incompatible second representation",
         "Seed a private exact-main cache; pass whole-file Lean elaboration, the affected target, exact name/import/debt scans, blueprint declaration/source synchronization, one private full build after scoped stability, and fresh immutable mathematical/API review"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i056-orchestrator-a01-f06",
       "source_refs": [
         "workflow/reviews/qpbt-035-q014-contract-a04.md#F06-A04-SIGNATURES",
         "workflow/reviews/qpbt-038-types-a03.md#Mathematical-handoff",
@@ -2915,7 +2920,7 @@
         "workflow/reviews/qpbt-056-f06-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-02T21:20:20.324192Z",
+      "updated_at": "2026-09-02T21:41:33.456811Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
