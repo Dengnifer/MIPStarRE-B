@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "kind": "github-cutover-irreversible",
+  "repository": {
+    "owner": "Dengnifer",
+    "name": "MIPStarRE-B",
+    "database_id": 1352436168,
+    "node_id": "R_kgDOUJyJyA"
+  },
+  "base_ref": "main",
+  "cutover_main_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71"
+}

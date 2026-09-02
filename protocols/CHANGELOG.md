@@ -66,6 +66,38 @@ tracked plainly. Fresh immutable review, aggregate validation, one coherent
 commit, explicit-repository push, and GitHub PR integration are required before
 activation.
 
+The immutable PR-029 repair review (issue #31, head
+`1356fc25110770adcd10f5056767f3803630e76f`) found three authority defects. The
+repair binds post-cutover session planning and dispatch to the exact adjacent
+`workflow/events.jsonl` path and rejects aliases, symlinks, and missing logs
+without recreating history; it also retains sticky cutover observation and
+durable GitHub-number session evidence so authority-file loss fails closed for
+existing stores and rows. The adapter CLI now accepts a strict structured
+integration-review JSON file, binds every entry one-to-one to an exact PR
+base/head expectation, and validates comment identity, digest, reviewer
+identity, verdict, and nonempty implementer/orchestrator exclusions through the
+existing GET-only path. Workflow `124/124` (including a fresh-store fixture
+with zero positive GitHub issue/PR session IDs) and adapter `35/35`, scoped
+compileall, and diff hygiene passed. A brand-new store with both authority files
+and all GitHub-bound session evidence removed now fails closed using the tracked
+`workflow/github-cutover-indicator.json` marker (SHA-256
+`7dda9f6bb7a244ec953d39e1a6f13d172b3a719fd95836f94dd347dbe9b6e7a1`). The
+indicator has exact schema `{schema_version:1, kind:"github-cutover-irreversible",
+repository:{owner:"Dengnifer", name:"MIPStarRE-B", database_id:1352436168,
+node_id:"R_kgDOUJyJyA"}, base_ref:"main", cutover_main_sha:<40 lowercase hex}`;
+malformed, duplicate-key, extra-field, symlinked, or metadata-mismatched markers
+fail closed. Only simultaneous removal of the indicator, both authority files,
+and all durable session evidence remains outside the current schema's inference
+boundary.
+
+The first 455-test aggregate exposed one stale local-agent fixture: its
+GitHub-only governed-exec case supplied unbound issue `#28` without activating
+cutover authority. Adding exactly `self.activate_cutover()` preserves `#28` as
+unbound under the fixture manifest while exercising the genuine post-cutover
+path. The focused case passed `1/1`, local-agent tests passed `77/77`, and the
+final `python3 scripts/check_workflow.py --root .` rerun passed `455/455` in
+280.787 seconds with exit status 0.
+
 ## 0.1.10 candidate (QPBT-045) - 2026-09-02
 
 INC-060 is the second occurrence of

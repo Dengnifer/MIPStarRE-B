@@ -2018,7 +2018,7 @@ class WorkflowStoreTests(unittest.TestCase):
 
         with self.assertRaisesRegex(
             workflow.WorkflowError,
-            "authority config is missing while the irreversible cutover manifest remains",
+            "authority config is missing while irreversible cutover evidence remains",
         ):
             store.plan_session(planned_session("i002-reviewer-a04-missing-config"))
 
@@ -2026,6 +2026,288 @@ class WorkflowStoreTests(unittest.TestCase):
             sessions_before, (self.state_dir / "sessions.json").read_bytes()
         )
         self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_durable_session_evidence_survives_authority_loss(self) -> None:
+        config = self.activate_github_cutover()
+        manifest = self.root / "workflow" / "github-cutover.json"
+        state = documents()
+        candidate = planned_session("i002-reviewer-a11-durable-cutover")
+        candidate["github_issue_number"] = 2
+        state["sessions.json"]["planned"] = [candidate]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        config.unlink()
+        manifest.unlink()
+        store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
+        state_before = {
+            path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())
+        }
+        events_before = self.events.read_bytes()
+
+        operations = (
+            lambda: store.mutate(
+                "issues.json",
+                "record.updated",
+                {"kind": "issue"},
+                lambda document: document.update({"tampered": True}),
+            ),
+            lambda: store.mutate(
+                "prs.json",
+                "record.updated",
+                {"kind": "pr"},
+                lambda document: document.update({"tampered": True}),
+            ),
+            lambda: store.mutate(
+                "sessions.json",
+                "record.updated",
+                {"kind": "issued-session"},
+                lambda document: document.update({"tampered": True}),
+            ),
+            lambda: store.append_event("record.updated", {"kind": "stage"}),
+        )
+        for operation in operations:
+            with self.subTest(operation=operation), self.assertRaisesRegex(
+                workflow.WorkflowError,
+                "authority config is missing while irreversible cutover evidence remains",
+            ):
+                operation()
+
+        self.assertEqual(
+            state_before,
+            {path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())},
+        )
+        self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_indicator_blocks_fresh_store_after_authority_loss(self) -> None:
+        config = self.activate_github_cutover()
+        manifest = self.root / "workflow" / "github-cutover.json"
+        indicator = self.root / "workflow" / "github-cutover-indicator.json"
+        indicator.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "kind": "github-cutover-irreversible",
+                    "repository": {
+                        "owner": "Dengnifer",
+                        "name": "MIPStarRE-B",
+                        "database_id": 1352436168,
+                        "node_id": "R_kgDOUJyJyA",
+                    },
+                    "base_ref": "main",
+                    "cutover_main_sha": BASE_SHA,
+                }
+            ),
+            encoding="utf-8",
+        )
+        config.unlink()
+        manifest.unlink()
+        store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
+        session_document = json.loads(
+            (self.state_dir / "sessions.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(
+            all(
+                not isinstance(row, dict)
+                or (
+                    not isinstance(row.get("github_issue_number"), int)
+                    or row.get("github_issue_number") <= 0
+                )
+                and (
+                    not isinstance(row.get("github_pull_request_number"), int)
+                    or row.get("github_pull_request_number") <= 0
+                )
+                for bucket in ("planned", "issued")
+                for row in session_document[bucket]
+            )
+        )
+        state_before = {
+            path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())
+        }
+        events_before = self.events.read_bytes()
+
+        operations = (
+            ("issues.json", "issue"),
+            ("prs.json", "pr"),
+            ("sessions.json", "issued-session"),
+        )
+        for filename, kind in operations:
+            with self.subTest(filename=filename), self.assertRaisesRegex(
+                workflow.WorkflowError,
+                "authority config is missing while irreversible cutover evidence remains",
+            ):
+                store.mutate(
+                    filename,
+                    "record.updated",
+                    {"kind": kind},
+                    lambda document: document.update({"tampered": True}),
+                )
+        with self.assertRaisesRegex(
+            workflow.WorkflowError,
+            "authority config is missing while irreversible cutover evidence remains",
+        ):
+            store.append_event("record.updated", {"kind": "stage"})
+
+        self.assertEqual(
+            state_before,
+            {path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())},
+        )
+        self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_indicator_rejects_extra_fields_and_symlinks(self) -> None:
+        self.activate_github_cutover()
+        indicator = self.root / "workflow" / "github-cutover-indicator.json"
+        valid = {
+            "schema_version": 1,
+            "kind": "github-cutover-irreversible",
+            "repository": {
+                "owner": "Dengnifer",
+                "name": "MIPStarRE-B",
+                "database_id": 1352436168,
+                "node_id": "R_kgDOUJyJyA",
+            },
+            "base_ref": "main",
+            "cutover_main_sha": BASE_SHA,
+        }
+        indicator.write_text(json.dumps({**valid, "unexpected": True}), encoding="utf-8")
+        store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "GitHub cutover indicator is malformed"
+        ):
+            store.validate()
+
+        indicator.unlink()
+        target = self.root / "indicator-target.json"
+        target.write_text(json.dumps(valid), encoding="utf-8")
+        indicator.symlink_to(target)
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "GitHub cutover indicator must be a regular"
+        ):
+            store.validate()
+
+    def test_github_cutover_observation_survives_both_markers_disappearing(self) -> None:
+        store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
+        config = self.activate_github_cutover()
+        manifest = self.root / "workflow" / "github-cutover.json"
+        store.validate()
+        config.unlink()
+        manifest.unlink()
+        state_before = {
+            path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())
+        }
+        events_before = self.events.read_bytes()
+
+        operations = (
+            ("issues.json", "issue"),
+            ("prs.json", "pr"),
+            ("sessions.json", "issued-session"),
+        )
+        for filename, kind in operations:
+            with self.subTest(filename=filename), self.assertRaisesRegex(
+                workflow.WorkflowError,
+                "authority config is missing while irreversible cutover evidence remains",
+            ):
+                store.mutate(
+                    filename,
+                    "record.updated",
+                    {"kind": kind},
+                    lambda document: document.update({"tampered": True}),
+                )
+
+        self.assertEqual(
+            state_before,
+            {path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())},
+        )
+        self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_missing_event_log_fails_without_recreation(self) -> None:
+        self.activate_github_cutover()
+        removed_events = self.events.read_bytes()
+        self.events.unlink()
+        state_before = {
+            path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())
+        }
+        store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
+
+        operations = (
+            lambda: store.plan_session(
+                planned_session("i002-reviewer-a14-missing-events")
+            ),
+            lambda: store.append_event("record.updated", {"kind": "stage"}),
+        )
+        for operation in operations:
+            with self.subTest(operation=operation), self.assertRaisesRegex(
+                workflow.WorkflowError,
+                "workflow event log is unavailable",
+            ):
+                operation()
+
+        self.assertNotEqual(b"", removed_events)
+        self.assertFalse(self.events.exists())
+        self.assertEqual(
+            state_before,
+            {path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())},
+        )
+
+    def test_github_cutover_rejects_alternate_or_aliased_event_log_on_plan(self) -> None:
+        self.activate_github_cutover()
+        alternate = self.root / "alternate-events.jsonl"
+        alternate.write_bytes(self.events.read_bytes())
+        alias = self.root / "events-alias.jsonl"
+        alias.symlink_to(self.events)
+        lexical_alias = self.state_dir / ".." / "events.jsonl"
+        sessions_before = (self.state_dir / "sessions.json").read_bytes()
+        canonical_events_before = self.events.read_bytes()
+
+        for event_path in (alternate, alias, lexical_alias):
+            with self.subTest(event_path=event_path):
+                event_bytes = event_path.read_bytes()
+                store = workflow.WorkflowStore(self.state_dir, self.runtime, event_path)
+                with self.assertRaisesRegex(
+                    workflow.WorkflowError,
+                    "event log must be exactly workflow/events.jsonl",
+                ):
+                    store.plan_session(
+                        planned_session("i002-reviewer-a12-noncanonical-events")
+                    )
+                self.assertEqual(event_bytes, event_path.read_bytes())
+
+        self.assertEqual(sessions_before, (self.state_dir / "sessions.json").read_bytes())
+        self.assertEqual(canonical_events_before, self.events.read_bytes())
+
+    def test_github_cutover_rejects_alternate_or_aliased_event_log_on_dispatch(self) -> None:
+        self.activate_github_cutover()
+        candidate = planned_session("i002-reviewer-a13-dispatch-events")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        alternate = self.root / "alternate-dispatch-events.jsonl"
+        alternate.write_bytes(self.events.read_bytes())
+        alias = self.root / "dispatch-events-alias.jsonl"
+        alias.symlink_to(self.events)
+        lexical_alias = self.state_dir / ".." / "events.jsonl"
+        sessions_before = sessions_path.read_bytes()
+        canonical_events_before = self.events.read_bytes()
+        alternate_before = alternate.read_bytes()
+
+        for event_path in (alternate, alias, lexical_alias):
+            with self.subTest(event_path=event_path):
+                event_bytes = event_path.read_bytes()
+                store = workflow.WorkflowStore(self.state_dir, self.runtime, event_path)
+                with self.assertRaisesRegex(
+                    workflow.WorkflowError,
+                    "event log must be exactly workflow/events.jsonl",
+                ):
+                    store.dispatch_sessions(
+                        capacity=1,
+                        session_ids=[candidate["id"]],
+                        dry_run=True,
+                    )
+                self.assertEqual(event_bytes, event_path.read_bytes())
+
+        self.assertEqual(sessions_before, sessions_path.read_bytes())
+        self.assertEqual(canonical_events_before, self.events.read_bytes())
+        self.assertEqual(alternate_before, alternate.read_bytes())
 
     def test_long_lived_store_rechecks_cutover_marker_before_dispatch(self) -> None:
         candidate = planned_session("i002-reviewer-a01-late-cutover")

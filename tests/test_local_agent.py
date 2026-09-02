@@ -760,6 +760,7 @@ class RuntimeTests(unittest.TestCase):
         record.update(
             {"issue_id": None, "github_issue_number": 28, "stage_id": "STAGE-01"}
         )
+        self.activate_cutover()
         runner = FakeRunner(codex_events("github-only proof complete"))
         envelope = local_agent.run_exec(
             alias=session_id,

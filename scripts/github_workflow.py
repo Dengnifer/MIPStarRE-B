@@ -1755,6 +1755,129 @@ def _pr_expectation_argument(value: str) -> PullRequestExpectation:
     return PullRequestExpectation(number, parts[1], parts[2], parts[3], parts[4])
 
 
+def _load_integration_review_expectations(
+    path: Path,
+) -> tuple[tuple[int, ReviewCommentExpectation], ...]:
+    """Load exact review-comment authority for integration preflight."""
+
+    document = _object(
+        _read_json(path, "integration review expectations"),
+        "integration review expectations",
+    )
+    _exact_keys(
+        document,
+        {"schema_version", "pull_requests"},
+        "integration review expectations",
+    )
+    _schema(
+        document["schema_version"],
+        "integration review expectations",
+    )
+    entries = _list(
+        document["pull_requests"],
+        "integration review expectations.pull_requests",
+    )
+    if not entries:
+        raise GitHubWorkflowError(
+            "integration review expectations must name at least one pull request"
+        )
+
+    result: list[tuple[int, ReviewCommentExpectation]] = []
+    for index, raw_entry in enumerate(entries):
+        entry_label = f"integration review expectations.pull_requests[{index}]"
+        entry = _object(raw_entry, entry_label)
+        _exact_keys(entry, {"number", "review_comment"}, entry_label)
+        number = _positive_int(entry["number"], f"{entry_label}.number")
+        review_label = f"{entry_label}.review_comment"
+        review = _object(entry["review_comment"], review_label)
+        _exact_keys(
+            review,
+            {
+                "comment_database_id",
+                "comment_node_id",
+                "body_sha256",
+                "reviewer_session_name",
+                "reviewer_external_id",
+                "verdict",
+                "disallowed_session_names",
+                "disallowed_external_ids",
+            },
+            review_label,
+        )
+        result.append(
+            (
+                number,
+                _validated_review_expectation(
+                    ReviewCommentExpectation(
+                        comment_database_id=review["comment_database_id"],
+                        comment_node_id=review["comment_node_id"],
+                        body_sha256=review["body_sha256"],
+                        reviewer_session_name=review["reviewer_session_name"],
+                        reviewer_external_id=review["reviewer_external_id"],
+                        verdict=review["verdict"],
+                        disallowed_session_names=tuple(
+                            _list(
+                                review["disallowed_session_names"],
+                                f"{review_label}.disallowed_session_names",
+                            )
+                        ),
+                        disallowed_external_ids=tuple(
+                            _list(
+                                review["disallowed_external_ids"],
+                                f"{review_label}.disallowed_external_ids",
+                            )
+                        ),
+                    )
+                ),
+            )
+        )
+    _require_unique(
+        [number for number, _review in result],
+        "integration review pull-request number",
+    )
+    return tuple(result)
+
+
+def _bind_integration_review_expectations(
+    authority: GitHubAuthority,
+    pull_request_expectations: Sequence[PullRequestExpectation] | None,
+    review_expectations: Sequence[tuple[int, ReviewCommentExpectation]],
+) -> list[PullRequestExpectation]:
+    """Attach each integration review to exactly one base/head expectation."""
+
+    if not pull_request_expectations:
+        raise GitHubWorkflowError(
+            "integration review expectations require pull-request expectations"
+        )
+    expectations = [
+        _validated_pr_expectation(authority, item)
+        for item in pull_request_expectations
+    ]
+    numbers = [item.number for item in expectations]
+    if len(numbers) != len(set(numbers)):
+        raise GitHubWorkflowError(
+            "integration review mapping is ambiguous for a pull-request expectation"
+        )
+    review_numbers = [number for number, _review in review_expectations]
+    if len(review_numbers) != len(set(review_numbers)):
+        raise GitHubWorkflowError(
+            "integration review mapping is ambiguous for a review expectation"
+        )
+    reviews_by_number = dict(review_expectations)
+    if set(numbers) != set(reviews_by_number):
+        raise GitHubWorkflowError(
+            "integration reviews do not exactly match pull-request expectations"
+        )
+    if any(item.review_comment is not None for item in expectations):
+        raise GitHubWorkflowError(
+            "pull-request expectation already has review-comment authority"
+        )
+    return [
+        replace(item, review_comment=reviews_by_number[item.number])
+        for item in expectations
+    ]
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
@@ -1770,6 +1893,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="append",
         metavar="NUMBER:BASE_REF:BASE_SHA:HEAD_REF:HEAD_SHA",
     )
+    preflight.add_argument(
+        "--integration-review-expectations-file",
+        type=Path,
+        metavar="JSON_FILE",
+        help=(
+            "bind exact reviewer comment and exclusion identities to every "
+            "pull-request expectation"
+        ),
+    )
     arguments = parser.parse_args(argv)
     try:
         authority = load_authority(arguments.config)
@@ -1783,13 +1915,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "status": "valid",
             }
         else:
+            pull_request_expectations = arguments.pull_request_expectation
+            if arguments.integration_review_expectations_file is not None:
+                pull_request_expectations = _bind_integration_review_expectations(
+                    authority,
+                    pull_request_expectations,
+                    _load_integration_review_expectations(
+                        arguments.integration_review_expectations_file
+                    ),
+                )
             result = _summary(
                 live_preflight(
                     arguments.config,
                     repository_only=arguments.repository_only,
                     expected_base_sha=arguments.expected_base_sha,
                     issue_numbers=arguments.issue_number,
-                    pull_request_expectations=arguments.pull_request_expectation,
+                    pull_request_expectations=pull_request_expectations,
                 )
             )
     except GitHubWorkflowError as error:

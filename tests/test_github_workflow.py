@@ -12,6 +12,7 @@ import sys
 import tempfile
 import traceback
 import unittest
+from unittest import mock
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -283,6 +284,34 @@ def review_comment_contract(
         "body": body,
     }
     return bound, comment, body
+
+
+def integration_review_document(
+    expectation: github.PullRequestExpectation,
+) -> dict[str, object]:
+    review = expectation.review_comment
+    if review is None:
+        raise AssertionError("test expectation must carry review-comment authority")
+    return {
+        "schema_version": 1,
+        "pull_requests": [
+            {
+                "number": expectation.number,
+                "review_comment": {
+                    "comment_database_id": review.comment_database_id,
+                    "comment_node_id": review.comment_node_id,
+                    "body_sha256": review.body_sha256,
+                    "reviewer_session_name": review.reviewer_session_name,
+                    "reviewer_external_id": review.reviewer_external_id,
+                    "verdict": review.verdict,
+                    "disallowed_session_names": list(
+                        review.disallowed_session_names
+                    ),
+                    "disallowed_external_ids": list(review.disallowed_external_ids),
+                },
+            }
+        ],
+    }
 
 
 class FakeRunner:
@@ -1156,6 +1185,276 @@ class GitHubWorkflowTests(unittest.TestCase):
         )
         self.assertNotIn(secret, rendered)
         self.assertIsNone(captured.exception.__cause__)
+
+    def test_cli_integration_review_file_binds_and_live_validates_comment(self) -> None:
+        fixture, expectation = canonical_pull_request_fixture()
+        fixture["pull_request"]["labels"] = label_names("review:approved")
+        bound, comment, _body = review_comment_contract(expectation)
+        integration_path = self.root / "integration-reviews.json"
+        integration_path.write_text(
+            json.dumps(integration_review_document(bound), indent=2) + "\n",
+            encoding="utf-8",
+        )
+        responses = self.live_responses()
+        responses[
+            github._api_command(f"repos/{github.EXPECTED_FULL_NAME}/pulls/32")
+        ] = fixture["pull_request"]
+        comment_command = github._api_command(
+            f"repos/{github.EXPECTED_FULL_NAME}/issues/comments/401"
+        )
+        responses[comment_command] = comment
+        runner = FakeRunner(responses)
+        expectation_argument = ":".join(
+            (
+                str(expectation.number),
+                expectation.base_ref,
+                expectation.base_sha,
+                expectation.head_ref,
+                expectation.head_sha,
+            )
+        )
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with mock.patch.object(github, "_default_runner", runner), redirect_stdout(
+            stdout
+        ), redirect_stderr(stderr):
+            result = github.main(
+                [
+                    "--config",
+                    str(self.config_path),
+                    "preflight",
+                    "--pull-request-expectation",
+                    expectation_argument,
+                    "--integration-review-expectations-file",
+                    str(integration_path),
+                ]
+            )
+        self.assertEqual(0, result)
+        self.assertEqual("", stderr.getvalue())
+        summary = json.loads(stdout.getvalue())
+        review = summary["pull_requests"][0]["review_comment"]
+        self.assertEqual(401, review["comment_database_id"])
+        self.assertEqual(
+            bound.review_comment.reviewer_session_name,
+            review["reviewer_session_name"],
+        )
+        self.assertEqual(
+            bound.review_comment.reviewer_external_id,
+            review["reviewer_external_id"],
+        )
+        self.assertIn(comment_command, runner.calls)
+
+    def test_cli_integration_review_file_rejects_invalid_authority_before_live_reads(
+        self,
+    ) -> None:
+        _fixture, expectation = canonical_pull_request_fixture()
+        bound, _comment, _body = review_comment_contract(expectation)
+        valid = integration_review_document(bound)
+        expectation_argument = ":".join(
+            (
+                str(expectation.number),
+                expectation.base_ref,
+                expectation.base_sha,
+                expectation.head_ref,
+                expectation.head_sha,
+            )
+        )
+
+        wrong_schema = copy.deepcopy(valid)
+        wrong_schema["schema_version"] = True
+        wrong_number_type = copy.deepcopy(valid)
+        wrong_number_type["pull_requests"][0]["number"] = "32"
+        wrong_database_id_type = copy.deepcopy(valid)
+        wrong_database_id_type["pull_requests"][0]["review_comment"][
+            "comment_database_id"
+        ] = True
+        wrong_digest = copy.deepcopy(valid)
+        wrong_digest["pull_requests"][0]["review_comment"]["body_sha256"] = "f" * 63
+        wrong_verdict = copy.deepcopy(valid)
+        wrong_verdict["pull_requests"][0]["review_comment"]["verdict"] = "approved"
+        wrong_exclusion_type = copy.deepcopy(valid)
+        wrong_exclusion_type["pull_requests"][0]["review_comment"][
+            "disallowed_session_names"
+        ] = "not-an-array"
+        missing_session_exclusions = copy.deepcopy(valid)
+        missing_session_exclusions["pull_requests"][0]["review_comment"][
+            "disallowed_session_names"
+        ] = []
+        missing_external_exclusions = copy.deepcopy(valid)
+        missing_external_exclusions["pull_requests"][0]["review_comment"][
+            "disallowed_external_ids"
+        ] = []
+        overlapping_reviewer = copy.deepcopy(valid)
+        review = overlapping_reviewer["pull_requests"][0]["review_comment"]
+        review["disallowed_external_ids"] = [review["reviewer_external_id"]]
+        duplicate_pr = copy.deepcopy(valid)
+        duplicate_pr["pull_requests"].append(
+            copy.deepcopy(duplicate_pr["pull_requests"][0])
+        )
+        unexpected_field = copy.deepcopy(valid)
+        unexpected_field["pull_requests"][0]["mutable"] = True
+        cases = (
+            ("schema", wrong_schema, "schema mismatch"),
+            ("number-type", wrong_number_type, "positive integer"),
+            ("database-id-type", wrong_database_id_type, "positive integer"),
+            ("digest", wrong_digest, "SHA-256 digest"),
+            ("verdict", wrong_verdict, "verdict is not recognized"),
+            ("exclusion-type", wrong_exclusion_type, "must be an array"),
+            (
+                "missing-session-exclusions",
+                missing_session_exclusions,
+                "exclusion identities",
+            ),
+            (
+                "missing-external-exclusions",
+                missing_external_exclusions,
+                "exclusion identities",
+            ),
+            (
+                "reviewer-overlap",
+                overlapping_reviewer,
+                "implementer or orchestrator",
+            ),
+            ("duplicate-pr", duplicate_pr, "duplicate integration review"),
+            ("unexpected-field", unexpected_field, "unexpected field set"),
+        )
+        for name, document, expected_error in cases:
+            with self.subTest(name=name):
+                integration_path = self.root / f"integration-{name}.json"
+                integration_path.write_text(
+                    json.dumps(document) + "\n", encoding="utf-8"
+                )
+                runner = FakeRunner({})
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                with mock.patch.object(
+                    github, "_default_runner", runner
+                ), redirect_stdout(stdout), redirect_stderr(stderr):
+                    result = github.main(
+                        [
+                            "--config",
+                            str(self.config_path),
+                            "preflight",
+                            "--pull-request-expectation",
+                            expectation_argument,
+                            "--integration-review-expectations-file",
+                            str(integration_path),
+                        ]
+                    )
+                self.assertEqual(2, result)
+                self.assertEqual("", stdout.getvalue())
+                self.assertIn(expected_error, stderr.getvalue())
+                self.assertEqual([], runner.calls)
+
+    def test_cli_integration_review_file_requires_one_to_one_pr_mapping(self) -> None:
+        _fixture, expectation = canonical_pull_request_fixture()
+        bound, _comment, _body = review_comment_contract(expectation)
+        integration_path = self.root / "integration-mapping.json"
+        integration_path.write_text(
+            json.dumps(integration_review_document(bound)) + "\n",
+            encoding="utf-8",
+        )
+        exact_argument = ":".join(
+            (
+                str(expectation.number),
+                expectation.base_ref,
+                expectation.base_sha,
+                expectation.head_ref,
+                expectation.head_sha,
+            )
+        )
+        mismatched_argument = exact_argument.replace("32:", "21:", 1)
+        cases = (
+            ("missing", [], "require pull-request expectations"),
+            (
+                "mismatched",
+                ["--pull-request-expectation", mismatched_argument],
+                "do not exactly match",
+            ),
+            (
+                "ambiguous",
+                [
+                    "--pull-request-expectation",
+                    exact_argument,
+                    "--pull-request-expectation",
+                    exact_argument,
+                ],
+                "mapping is ambiguous",
+            ),
+        )
+        for name, expectation_arguments, expected_error in cases:
+            with self.subTest(name=name):
+                runner = FakeRunner({})
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                with mock.patch.object(
+                    github, "_default_runner", runner
+                ), redirect_stdout(stdout), redirect_stderr(stderr):
+                    result = github.main(
+                        [
+                            "--config",
+                            str(self.config_path),
+                            "preflight",
+                            *expectation_arguments,
+                            "--integration-review-expectations-file",
+                            str(integration_path),
+                        ]
+                    )
+                self.assertEqual(2, result)
+                self.assertEqual("", stdout.getvalue())
+                self.assertIn(expected_error, stderr.getvalue())
+                self.assertEqual([], runner.calls)
+
+    def test_cli_integration_review_file_rejects_live_comment_digest_mismatch(
+        self,
+    ) -> None:
+        fixture, expectation = canonical_pull_request_fixture()
+        fixture["pull_request"]["labels"] = label_names("review:approved")
+        bound, comment, _body = review_comment_contract(expectation)
+        integration_path = self.root / "integration-live-mismatch.json"
+        integration_path.write_text(
+            json.dumps(integration_review_document(bound)) + "\n",
+            encoding="utf-8",
+        )
+        comment["body"] = str(comment["body"]) + " "
+        responses = self.live_responses()
+        responses[
+            github._api_command(f"repos/{github.EXPECTED_FULL_NAME}/pulls/32")
+        ] = fixture["pull_request"]
+        comment_command = github._api_command(
+            f"repos/{github.EXPECTED_FULL_NAME}/issues/comments/401"
+        )
+        responses[comment_command] = comment
+        runner = FakeRunner(responses)
+        expectation_argument = ":".join(
+            (
+                str(expectation.number),
+                expectation.base_ref,
+                expectation.base_sha,
+                expectation.head_ref,
+                expectation.head_sha,
+            )
+        )
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with mock.patch.object(github, "_default_runner", runner), redirect_stdout(
+            stdout
+        ), redirect_stderr(stderr):
+            result = github.main(
+                [
+                    "--config",
+                    str(self.config_path),
+                    "preflight",
+                    "--pull-request-expectation",
+                    expectation_argument,
+                    "--integration-review-expectations-file",
+                    str(integration_path),
+                ]
+            )
+        self.assertEqual(2, result)
+        self.assertEqual("", stdout.getvalue())
+        self.assertIn("body digest mismatch", stderr.getvalue())
+        self.assertIn(comment_command, runner.calls)
 
     def test_cli_offline_validation_outputs_only_nonsecret_authority_summary(self) -> None:
         stdout = io.StringIO()

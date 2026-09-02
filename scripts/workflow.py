@@ -33,6 +33,7 @@ from types import MappingProxyType
 
 SCHEMA_VERSION = 1
 GITHUB_AUTHORITY_CONFIG = Path("workflow/github.json")
+GITHUB_CUTOVER_INDICATOR = Path("workflow/github-cutover-indicator.json")
 STATE_FILES = {
     "issue": ("issues.json", "issues"),
     "pr": ("prs.json", "pull_requests"),
@@ -1936,6 +1937,7 @@ class WorkflowStore:
         self.runtime_dir = runtime_dir
         self.events_path = events_path
         self._state_dir_real = state_dir.resolve(strict=False)
+        self._events_path_real = events_path.resolve(strict=False)
         self._workflow_root = _workflow_root_for_state_dir(state_dir)
         self._state_dir_is_alias = (
             _lexical_absolute(state_dir) != self._state_dir_real
@@ -1958,8 +1960,68 @@ class WorkflowStore:
         )
         self._github_dispatch_store_token = object()
         self._workflow_write_token = object()
+        self._durable_github_cutover_seen = False
 
-    def _refresh_github_authority(self) -> Path | None:
+    def _durable_github_cutover(self) -> bool:
+        """Detect cutover evidence retained in authoritative session history."""
+
+        if self._durable_github_cutover_seen:
+            return True
+        sessions_path = self._state_dir_real / "sessions.json"
+        if not _regular_nonsymlink(sessions_path, "workflow sessions state"):
+            return False
+        try:
+            with sessions_path.open("r", encoding="utf-8") as stream:
+                document = json.load(stream)
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise WorkflowError(
+                "workflow sessions state cannot be inspected for durable cutover evidence"
+            ) from error
+        if not isinstance(document, Mapping):
+            raise WorkflowError(
+                "workflow sessions state cannot be inspected for durable cutover evidence"
+            )
+        rows: list[Any] = []
+        for bucket in ("planned", "issued"):
+            value = document.get(bucket)
+            if not isinstance(value, list):
+                raise WorkflowError(
+                    "workflow sessions state cannot be inspected for durable cutover evidence"
+                )
+            rows.extend(value)
+        self._durable_github_cutover_seen = any(
+            isinstance(row, Mapping)
+            and (
+                _is_positive_int(row.get("github_issue_number"))
+                or _is_positive_int(row.get("github_pull_request_number"))
+            )
+            for row in rows
+        )
+        return self._durable_github_cutover_seen
+
+    def _validate_cutover_paths(self, *, allow_missing_events: bool = False) -> None:
+        """Bind canonical state to its exact adjacent event log after cutover."""
+
+        expected_events = self._state_dir_real.parent / "events.jsonl"
+        if (
+            ".." in self.events_path.parts
+            or _lexical_absolute(self.events_path) != expected_events
+            or self.events_path.resolve(strict=False) != self._events_path_real
+            or self._events_path_real != expected_events
+        ):
+            raise WorkflowError(
+                "GitHub-canonical workflow event log must be exactly workflow/events.jsonl "
+                "without a symlink or lexical alias"
+            )
+        events_available = _regular_nonsymlink(
+            self.events_path, "workflow event log"
+        )
+        if not events_available and not allow_missing_events:
+            raise WorkflowError("GitHub-canonical workflow event log is unavailable")
+
+    def _refresh_github_authority(
+        self, *, allow_missing_events: bool = False
+    ) -> Path | None:
         """Reconcile the cutover marker for long-lived store instances."""
 
         if self.state_dir.resolve(strict=False) != self._state_dir_real:
@@ -1968,16 +2030,34 @@ class WorkflowStore:
             )
         detected = _github_authority_config(self._workflow_root)
         manifest = _github_cutover_manifest(self._workflow_root)
+        indicator = _github_cutover_indicator(
+            self._workflow_root, authority_config=detected, manifest_path=manifest
+        )
+        if detected is not None or manifest is not None or indicator is not None:
+            self._durable_github_cutover_seen = True
+        durable_cutover = self._durable_github_cutover()
         configured = self.github_authority_config
-        if (detected is not None or manifest is not None) and self._state_dir_is_alias:
+        cutover_evidence = (
+            detected is not None
+            or manifest is not None
+            or indicator is not None
+            or durable_cutover
+        )
+        if cutover_evidence and self._state_dir_is_alias:
             raise WorkflowError(
                 "GitHub-canonical workflow state directory must not use a symlink "
                 "or lexical alias"
             )
-        if detected is None and manifest is not None:
+        if cutover_evidence:
+            self._validate_cutover_paths(
+                allow_missing_events=allow_missing_events
+            )
+        if detected is None and (
+            manifest is not None or indicator is not None or durable_cutover
+        ):
             raise WorkflowError(
-                "GitHub authority config is missing while the irreversible cutover "
-                "manifest remains"
+                "GitHub authority config is missing while irreversible cutover "
+                "evidence remains"
             )
         if configured is None:
             if detected is not None:
@@ -2025,6 +2105,7 @@ class WorkflowStore:
 
     def validate(self, *, include_events: bool = True) -> dict[str, Any]:
         with self._lock(exclusive=False):
+            self._refresh_github_authority()
             documents = self.load()
             validate_documents(documents)
             if include_events:
@@ -2034,7 +2115,7 @@ class WorkflowStore:
     def initialize(self, *, missing_only: bool = False) -> list[str]:
         created: list[str] = []
         with self._lock(exclusive=True):
-            if self._refresh_github_authority() is not None:
+            if self._refresh_github_authority(allow_missing_events=True) is not None:
                 raise WorkflowError(
                     "GitHub-canonical workflow state cannot be initialized through "
                     "the generic local API"
@@ -2052,13 +2133,13 @@ class WorkflowStore:
                     path = self.state_dir / filename
                     if path.exists():
                         continue
-                    if self._refresh_github_authority() is not None:
+                    if self._refresh_github_authority(allow_missing_events=True) is not None:
                         raise WorkflowError(
                             "GitHub authority appeared during workflow initialization; retry"
                         )
                     created.append(filename)
                     atomic_write_json(path, copy.deepcopy(document))
-                    if self._refresh_github_authority() is not None:
+                    if self._refresh_github_authority(allow_missing_events=True) is not None:
                         raise WorkflowError(
                             "GitHub authority appeared during workflow initialization; retry"
                         )
@@ -2068,7 +2149,7 @@ class WorkflowStore:
                     lock_held=True,
                     _write_token=self._workflow_write_token,
                 )
-                if self._refresh_github_authority() is not None:
+                if self._refresh_github_authority(allow_missing_events=True) is not None:
                     raise WorkflowError(
                         "GitHub authority appeared during workflow initialization; retry"
                     )
@@ -4258,6 +4339,79 @@ def _github_authority_config(root: Path) -> Path | None:
     if not _regular_nonsymlink(candidate, "GitHub authority config"):
         return None
     return candidate
+
+
+def _github_cutover_indicator(
+    root: Path,
+    *,
+    authority_config: Path | None = None,
+    manifest_path: Path | None = None,
+) -> Path | None:
+    """Return a valid committed indicator for irreversible GitHub cutover."""
+
+    candidate = root / GITHUB_CUTOVER_INDICATOR
+    if not _regular_nonsymlink(candidate, "GitHub cutover indicator"):
+        return None
+    try:
+        with candidate.open("r", encoding="utf-8") as stream:
+            document = json.load(stream, object_pairs_hook=_reject_duplicate_json_keys)
+    except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as error:
+        raise WorkflowError("GitHub cutover indicator is malformed") from error
+    repository = {
+        "owner": "Dengnifer",
+        "name": "MIPStarRE-B",
+        "database_id": 1352436168,
+        "node_id": "R_kgDOUJyJyA",
+    }
+    if (
+        not isinstance(document, Mapping)
+        or set(document) != {
+            "schema_version",
+            "kind",
+            "repository",
+            "base_ref",
+            "cutover_main_sha",
+        }
+        or document.get("schema_version") != 1
+        or document.get("kind") != "github-cutover-irreversible"
+        or not isinstance(document.get("repository"), Mapping)
+        or set(document["repository"]) != {"owner", "name", "database_id", "node_id"}
+        or document.get("repository") != repository
+        or document.get("base_ref") != "main"
+        or not isinstance(document.get("cutover_main_sha"), str)
+        or re.fullmatch(r"[0-9a-f]{40}", document["cutover_main_sha"]) is None
+    ):
+        raise WorkflowError("GitHub cutover indicator is malformed")
+    if authority_config is not None and manifest_path is not None:
+        try:
+            with authority_config.open("r", encoding="utf-8") as stream:
+                config = json.load(stream, object_pairs_hook=_reject_duplicate_json_keys)
+            with manifest_path.open("r", encoding="utf-8") as stream:
+                manifest = json.load(stream, object_pairs_hook=_reject_duplicate_json_keys)
+        except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as error:
+            raise WorkflowError("GitHub cutover authority metadata is malformed") from error
+        if (
+            not isinstance(config, Mapping)
+            or config.get("repository") != repository
+            or config.get("base_ref") != document["base_ref"]
+            or not isinstance(manifest, Mapping)
+            or manifest.get("repository") != repository
+            or manifest.get("base_ref") != document["base_ref"]
+            or manifest.get("cutover_main_sha") != document["cutover_main_sha"]
+        ):
+            raise WorkflowError("GitHub cutover indicator does not match authority metadata")
+    return candidate
+
+
+def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject duplicate object keys instead of silently accepting the last value."""
+
+    document: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in document:
+            raise ValueError(f"duplicate JSON key: {key}")
+        document[key] = value
+    return document
 
 
 def _github_cutover_manifest(root: Path) -> Path | None:
