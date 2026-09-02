@@ -95,13 +95,13 @@ predicate is reusable, but a paper-labelled use must pair it with a separate
 projectivity hypothesis; the generalization alone is not the paper definition.
 
 The paper's strategy-distance definition says that measurement comparisons
-hold on either the first or the second strategy state. The current
-`StrategyStateChoice` and `StrategyFamiliesBigO` API exposes that choice as a
-helper parameter. A paper-facing strategy-distance proposition must
-existentially quantify one shared choice. The source's singular description of
-"the approximations" favors a shared choice, but it does not explicitly discuss
-whether Alice and Bob may choose different states; this remains documented
-boundary ambiguity rather than being silently decided here.
+hold on either the first or the second strategy state.
+`StrategyFamiliesBigOWithChoice` exposes that choice as a helper parameter,
+while the paper-facing `StrategyFamiliesBigO` existentially quantifies one
+shared choice. The source's singular description of "the approximations"
+favors this shared-choice reading, but it does not explicitly discuss whether
+Alice and Bob may choose different states; that residual boundary ambiguity is
+documented rather than hidden in the helper API.
 
 ## Disposition
 

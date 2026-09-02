@@ -2,15 +2,16 @@
 
 ## Current verdict and supersession
 
-This report corrects two source-fidelity defects in the frozen F04 contract and
-resolves one source-internal asymptotic ambiguity before the affected Lean laws
-are integrated. The global signature blocks below supersede the historical
+This report corrects three source-fidelity defects in the frozen F04 contract,
+resolves one source-internal asymptotic ambiguity, and synchronizes the
+completed F04 Lean surface. The global signature blocks below supersede the
+historical
 `F04-ASYMPTOTIC-SIGNATURES`, `F04-CONSISTENCY-SIGNATURES`, and
 `F04-DISTANCE-LAWS-SIGNATURES` blocks in
 `workflow/reviews/qpbt-023-leaf-contract-a04.md`, as well as this report's prior
 atTop-only consistency and distance-law blocks at commit `8077ca1`. Historical
 GitHub-era issue and session data below are retained as provenance; the active
-local issue for both corrections is `QPBT-041`.
+local issue for these corrections is `QPBT-041`.
 
 - GitHub issue: `#32`, `fix(blueprint/F04): restore source-faithful consistency laws`.
 - Session: `i032-orchestrator-a01-f04-contract-correction`.
@@ -24,7 +25,8 @@ local issue for both corrections is `QPBT-041`.
 - Deterministically generated scope: `blueprint/generated/graph.json`,
   `blueprint/src/generated/chapter-02-entries.tex`, and
   `blueprint/src/generated/gaps.tex`.
-- Lean files are not changed and no proof is claimed.
+- Lean files are not changed; the four F04 nodes record the proof-complete
+  status of their exact implementation surface.
 
 ## Authenticated source evidence
 
@@ -171,7 +173,7 @@ def strategyComparisonState
   | .first => S.state
   | .second => T.state
 
-def StrategyFamiliesBigO
+def StrategyFamiliesBigOWithChoice
     {QuestionA : Type uQuestionA} {QuestionB : Type uQuestionB}
     {OutcomeA : Type uOutcomeA} {OutcomeB : Type uOutcomeB}
     {Alice : Type uAlice} {Bob : Type uBob}
@@ -203,6 +205,23 @@ def StrategyFamiliesBigO
       (fun y b => bobLocal (Alice := Alice) (Bob := Bob)
         (((T n).bob y).effect b)))
     (fun n => (delta n : Real))
+
+def StrategyFamiliesBigO
+    {QuestionA : Type uQuestionA} {QuestionB : Type uQuestionB}
+    {OutcomeA : Type uOutcomeA} {OutcomeB : Type uOutcomeB}
+    {Alice : Type uAlice} {Bob : Type uBob}
+    [Fintype QuestionA] [DecidableEq QuestionA]
+    [Fintype QuestionB] [DecidableEq QuestionB]
+    [Fintype OutcomeA] [DecidableEq OutcomeA]
+    [Fintype OutcomeB] [DecidableEq OutcomeB]
+    [Fintype Alice] [DecidableEq Alice]
+    [Fintype Bob] [DecidableEq Bob]
+    (mu : Nat -> PMF (QuestionA × QuestionB))
+    (S T : Nat ->
+      PureStrategy QuestionA QuestionB OutcomeA OutcomeB Alice Bob)
+    (delta : ErrorProfile) : Prop :=
+  ∃ choice : StrategyStateChoice,
+    StrategyFamiliesBigOWithChoice mu S T choice delta
 
 end MIPStarRE.QPBT
 ```
@@ -434,19 +453,20 @@ this paper-labelled block would obscure the corrected source contract.
 | Declaration | Paper assumptions | Lean assumptions | Paper conclusion | Lean conclusion | Verdict |
 | --- | --- | --- | --- | --- | --- |
 | `PaperBigO` / `PaperBigO.isBigOAtTop` | One `C > 0` bounds every positive integer index; the local consistency footnote also says `n -> infinity` | A global predicate over every Lean `n` with `0 < n`, plus an auxiliary eventual relation | The paper's explicit global Big-O convention | The global convention and its one-way implication to Mathlib Big-O atTop; no reverse implication | exact with documented source ambiguity |
+| `StrategyFamiliesBigOWithChoice` / `StrategyFamiliesBigO` | Same-space strategy states are globally close, and both players' measurement comparisons hold under the game distribution on either strategy state | The helper fixes one `StrategyStateChoice` shared by both player comparisons; the paper-facing relation existentially quantifies it | The two strategies are globally close with operator comparisons evaluated on either state | The same state and operator relations under one existentially selected shared branch | faithful boundary |
 | `MeasurementConsistentOn` | A projective measurement `M` on a bipartite state with equal local actions | A qualified finite POVM and explicit same coordinate type; projectivity is separate | Exact consistency of projective `M` | Reusable action equality, with paper call sites required to add projectivity | faithful boundary |
 | `POVMConsistencyBigOTriangleLaw` / `povmConsistencyBigO_triangle` | Normalized bipartite state; global `AB` at `epsilon`, `CB` at `delta`, `CD` at `gamma` | Indexed PMF/state/families over explicit finite Alice/Bob carriers; `hpsi : forall n, norm (psi n) = 1` immediately after `psi`; all relations use `PaperBigO` | Global `AD` consistency at `epsilon + 2*sqrt(delta+gamma)` | The same premise order, positive-index quantification, and exact real-valued scale under explicit normalization | faithful boundary |
 | `FiniteMeasurementTriangleLaw` / `finiteMeasurement_triangle` | Consecutive state-dependent-distance bounds | Explicit finite PMF, state, common coordinate space, and NNReal bounds | Triangle bound up to a universal constant | Exact squared-norm bound with factor `2` | exact |
 | `MeasurementFamiliesBigOTriangleLaw` / `measurementFamiliesBigO_triangle` | Consecutive global indexed distance relations | The same data with `[0,1]` input profiles and a real-valued derived scale under `PaperBigO` | Global `O(delta + epsilon)` distance | The same global positive-index implication, absorbing the finite factor | exact |
 | `POVMConsistencyBigOPostprocessLaw` / `povmConsistencyBigO_postprocess` | Heterogeneous Alice/Bob POVMs, bipartite state, global cross-player consistency, shared outcome map | Distinct finite Alice/Bob coordinate types, indexed PMF/state/families, global `POVMConsistencyBigO`, and one explicit `f` on both sides | Common postprocessing preserves global consistency at the same error | The same heterogeneous global implication before and after `MeasurementFamily.postprocess` | exact |
 
-The current `StrategyStateChoice` API is also intentionally described more
-precisely in metadata. `StrategyFamiliesBigO ... choice` is a choice-indexed
-helper whose three component relations use `PaperBigO`; the paper's "either
-state" strategy-distance clause existentially chooses a shared branch. The
-source does not explicitly settle separate
-Alice/Bob choices, so this report records the singular shared-choice reading
-without adding a new declaration in this correction.
+The `StrategyStateChoice` API is intentionally split into a helper and the
+paper-facing relation. `StrategyFamiliesBigOWithChoice ... choice` is the
+choice-indexed helper whose three component relations use `PaperBigO`;
+`StrategyFamiliesBigO ... delta` existentially chooses one shared branch, as
+required by the paper's "either state" clause. The source does not explicitly
+settle separate Alice/Bob choices, so the public relation records the singular
+shared-choice reading.
 
 ## Dependency and gap disposition
 
@@ -459,18 +479,19 @@ links `F04-ASYMPTOTIC`, `F04-CONSISTENCY`, and `F04-DISTANCE-LAWS` to the same
 note and records the global-versus-eventual source ambiguity and controlling
 global interpretation.
 
-This is a corrected plan, not a public assumption or a completed theorem. The
-Law definitions remain statement contracts whose named theorems must later be
-proved without added obligations.
+These corrected contracts are not public assumptions. Their named theorems are
+proof-complete in the implementation, and the four F04 nodes therefore carry
+the repository's `proved` status without adding obligations.
 
 ## G18 amendment validation
 
 The implementation comparison target is Lean commit
-`1c46b42d3d6a69d8e8ecb66dc018ad974e4ebca8`, tree
+`1c46b42ca12e4fa99f8516019888ee39a60f6a56`, tree
 `a297752d79f3a0734060dc0cf34a2b9ad2c43336`. Its public `PaperBigO` and
-`PaperBigO.isBigOAtTop` signatures, all paper-facing F04 uses of `PaperBigO`,
-and the normalization-binder position match the three global signature blocks
-above. All five nodes owned by `MIPStarRE/QPBT/Basic/Approximation.lean` record
+`PaperBigO.isBigOAtTop` signatures, paper-facing uses of `PaperBigO`, and the
+normalization-binder position match their declarations above. The existential
+strategy-distance wrapper is the present contract repair. All five nodes owned
+by `MIPStarRE/QPBT/Basic/Approximation.lean` record
 its exact six direct imports; the superseded
 `Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics` import is absent.
 
@@ -484,9 +505,9 @@ its exact six direct imports; the superseded
 | `git diff --check` | pass | under 0.1 s |
 
 The deterministic generated hashes are
-`2bab77f56c599ae0b308682e7f26ea18f19b514fcd3e1f4260f27f9fc4fece4e`
+`d6d766fa93aff33513d7a4e47b706a255053db752cc8e8a3b11e01e2f5f4da3a`
 for `blueprint/generated/graph.json`,
-`79e570282869e25bf24bc19fc5584ab37642cd10324282afed3951ffbd5d058d`
+`e89ba7db9d0e9955f3acae2474d7263377f126550b3efa3dc2fec7f3b0561bde`
 for `blueprint/src/generated/chapter-02-entries.tex`, and
 `52ddda8f4d68c6a579adf1ca5ecae2d663d27bc2fdd1337089a7efe658b0b147`
 for `blueprint/src/generated/gaps.tex`.
@@ -568,8 +589,9 @@ serial dependency.
 
 The one remaining source ambiguity is whether the paper's "either state"
 strategy-distance clause permits different choices for the two players. The
-singular phrasing favors one shared existential choice; this report documents
-that reading but does not alter the choice-indexed helper API. The broader
+singular phrasing favors one shared existential choice; the corrected
+`StrategyFamiliesBigO` relation now exposes that reading while retaining
+`StrategyFamiliesBigOWithChoice` as its helper. The broader
 `MeasurementConsistentOn` domain is not ambiguous: the paper requires
 projectivity, while the Lean predicate is deliberately reusable and must be
 paired with projectivity at paper-labelled call sites.

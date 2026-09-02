@@ -1491,7 +1491,7 @@
           "path": "references/2001.04383v3/sections/top-level/preliminaries.tex"
         }
       ],
-      "boundary_hypotheses": "Finite question/outcome/coordinate types only at PMF sums, normalized states through PureStrategy, and explicit Nat-indexed data. Every paper-facing asymptotic relation uses one positive Real constant uniformly for all positive indices; no condition is imposed at zero. StrategyFamiliesBigO is a choice-indexed helper, not by itself the paper's existential either-state relation. No eventual bound is promoted back to a global bound, and no derived real scale is clamped to [0,1].",
+      "boundary_hypotheses": "Finite question/outcome/coordinate types only at PMF sums, normalized states through PureStrategy, and explicit Nat-indexed data. Every paper-facing asymptotic relation uses one positive Real constant uniformly for all positive indices; no condition is imposed at zero. StrategyFamiliesBigO existentially chooses one shared state branch through StrategyFamiliesBigOWithChoice; the paper does not explicitly say whether Alice and Bob could choose different branches. No eventual bound is promoted back to a global bound, and no derived real scale is clamped to [0,1].",
       "chapter": "02",
       "consumers": [
         "A02-PRELIMINARIES",
@@ -1499,7 +1499,7 @@
         "E04-TENSOR-CODE",
         "F04-CONSISTENCY"
       ],
-      "encoding": "ErrorProfile is Nat -> Set.Icc 0 1, while derived law scales may be arbitrary Nat -> Real. PaperBigO follows the explicit top-level convention: one C > 0 bounds norms at every 0 < n; Lean's index zero is unconstrained. IsBigOAtTop remains an auxiliary Asymptotics.IsBigO Filter.atTop relation, and PaperBigO.isBigOAtTop exposes only the valid global-to-eventual direction. PMF.map Prod.fst/Prod.snd supplies the question marginals. StrategyStateChoice indexes the two comparison-state branches; a paper-facing strategy-distance proposition must existentially quantify that helper choice.",
+      "encoding": "ErrorProfile is Nat -> Set.Icc 0 1, while derived law scales may be arbitrary Nat -> Real. PaperBigO follows the explicit top-level convention: one C > 0 bounds norms at every 0 < n; Lean's index zero is unconstrained. IsBigOAtTop remains an auxiliary Asymptotics.IsBigO Filter.atTop relation, and PaperBigO.isBigOAtTop exposes only the valid global-to-eventual direction. PMF.map Prod.fst/Prod.snd supplies the question marginals. StrategyStateChoice indexes the two comparison-state branches; StrategyFamiliesBigOWithChoice fixes one branch for both player comparisons, and the paper-facing StrategyFamiliesBigO existentially chooses that shared branch.",
       "fidelity": "faithful-boundary",
       "gap_ids": [
         "G18"
@@ -1527,7 +1527,7 @@
           "begin_marker": "<!-- BEGIN F04-ASYMPTOTIC-GLOBAL-SIGNATURES -->",
           "end_marker": "<!-- END F04-ASYMPTOTIC-GLOBAL-SIGNATURES -->",
           "path": "workflow/reviews/qpbt-032-f04-contract-correction-a01.md",
-          "sha256": "cb40edd761efd6b50b35bd1a24cb8651f9dc07c12c1fbf60662eecda3f0f0587"
+          "sha256": "fe5db22d362700530cc0de13713aed86326a2c029946bc971adbc7a640066075"
         },
         "validation_commands": [
           "lake env lean MIPStarRE/QPBT/Basic/Approximation.lean"
@@ -1535,8 +1535,8 @@
         "writer_lane": "approximation"
       },
       "integrity": {
-        "lean_assumptions": "The same data over Lean Nat with 0 < n guards, explicit finite coordinate carriers, PMFs, and joint-PMF marginals; StrategyFamiliesBigO additionally takes the first/second comparison-state choice as a helper parameter. IsBigOAtTop is auxiliary only.",
-        "lean_conclusion": "PaperBigO states the global positive-index component relations and has a public one-way bridge to Asymptotics.IsBigO Filter.atTop; existential quantification over StrategyStateChoice is required when forming the paper-facing strategy-distance proposition.",
+        "lean_assumptions": "The same data over Lean Nat with 0 < n guards, explicit finite coordinate carriers, PMFs, and joint-PMF marginals; StrategyFamiliesBigOWithChoice takes one first/second comparison-state choice shared by the two player comparisons, and StrategyFamiliesBigO existentially quantifies it. IsBigOAtTop is auxiliary only.",
+        "lean_conclusion": "PaperBigO states the global positive-index component relations; PaperBigO.isBigOAtTop exposes their eventual consequence; and StrategyFamiliesBigO existentially chooses the shared StrategyStateChoice used by its helper.",
         "paper_assumptions": "Positive-integer-indexed normalized states/strategies, delta : N -> [0,1], finite distributions, and state-dependent POVM/operator families; strategy distance permits either the first or second strategy state. The global preliminaries quantify one bound over every positive index, while the consistency footnote says n tends to infinity.",
         "paper_conclusion": "Squared state norm and averaged operator/POVM distance satisfy the paper's global O(delta) convention, while strategy distance holds for an existential choice of either strategy state.",
         "verdict": "faithful boundary"
@@ -1556,6 +1556,7 @@
           "MIPStarRE.QPBT.bobQuestionMarginal",
           "MIPStarRE.QPBT.StrategyStateChoice",
           "MIPStarRE.QPBT.strategyComparisonState",
+          "MIPStarRE.QPBT.StrategyFamiliesBigOWithChoice",
           "MIPStarRE.QPBT.StrategyFamiliesBigO"
         ]
       },
@@ -1576,7 +1577,7 @@
         "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
       },
       "statement": "Define [0,1]-valued Nat-indexed error profiles; the paper's global positive-index Big-O predicate; an auxiliary atTop predicate with a public one-way bridge from the paper predicate; and global distance relations for state, raw-operator, POVM, and strategy families. The strategy comparison helper consumes explicit joint-PMF marginals and a first/second state choice; the paper-facing strategy relation existentially chooses one branch.",
-      "status": "not-started",
+      "status": "proved",
       "title": "Indexed asymptotic state, operator, measurement, and strategy distance",
       "transitive_definitions": [
         "F03-MEASUREMENT",
@@ -1642,7 +1643,7 @@
         "F04-DISTANCE-LAWS",
         "F04A-GAME-SEMANTICS"
       ],
-      "encoding": "The finite value is the PMF-weighted off-diagonal sum of real inner products after explicit Alice/Bob local lifts. MeasurementConsistentOn intentionally expresses the action equality for any POVM; the paper's exact-consistency definition additionally requires that M be projective. The paper-facing consistency relation and triangle conclusion use PaperBigO with one constant over every positive index; IsBigOAtTop is available only through the one-way bridge. The derived triangle scale is Nat -> Real and is not clamped back to [0,1]. The named Law declaration freezes the theorem statement; its proof is a later node obligation, not a new assumption.",
+      "encoding": "The finite value is the PMF-weighted off-diagonal sum of real inner products after explicit Alice/Bob local lifts. MeasurementConsistentOn intentionally expresses the action equality for any POVM; the paper's exact-consistency definition additionally requires that M be projective. The paper-facing consistency relation and triangle conclusion use PaperBigO with one constant over every positive index; IsBigOAtTop is available only through the one-way bridge. The derived triangle scale is Nat -> Real and is not clamped back to [0,1]. The named Law declaration freezes the theorem statement, and its named theorem is proof-complete rather than a new assumption.",
       "fidelity": "faithful-boundary",
       "gap_ids": [
         "G17",
@@ -1715,7 +1716,7 @@
         "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
       },
       "statement": "Define exact same-measurement consistency by equality of Alice/Bob local actions; define the finite off-diagonal mismatch value and exact bound; lift it to the paper's global positive-index Big-O consistency; and state the normalized-state three-premise global consistency-triangle contract with scale epsilon + 2*sqrt(delta+gamma).",
-      "status": "not-started",
+      "status": "proved",
       "title": "Exact and asymptotic POVM consistency",
       "transitive_definitions": [
         "F03-MEASUREMENT",
@@ -1857,7 +1858,7 @@
         "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
       },
       "statement": "Define normalized finite bipartite pure strategies; Alice/Bob local lifts; transparent side-specific rectangular isometry conjugation; certified tensor isometry and state action; junk/ideal reindexing; and separate finite numeric values and exact NNReal bounds for raw-operator and POVM-family state-dependent distance.",
-      "status": "not-started",
+      "status": "proved",
       "title": "Finite strategies, local isometries, and distance values",
       "transitive_definitions": [
         "F03-MEASUREMENT"
@@ -1979,7 +1980,7 @@
         "path": "references/2001.04383v3/sections/dependencies/strategies-distance.tex"
       },
       "statement": "Prove the finite squared-distance triangle bound with explicit factor 2, the global positive-index Big-O measurement triangle law where the constant is absorbed, and Fact 4.26 as global heterogeneous Alice/Bob POVM-consistency data processing under the same explicit outcome postprocess on both families.",
-      "status": "not-started",
+      "status": "proved",
       "title": "State-dependent distance triangle and consistency postprocessing laws",
       "transitive_definitions": [
         "F03-MEASUREMENT",
@@ -3903,7 +3904,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "8bb45fed68692e8813ea0b29a9fd88404c19e1fcf713c750350b6ba322d72fb9",
+  "source_sha256": "6a377d11d31585151e2e01528147f239ed71f1fe1b638fbb2865757841826f32",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
