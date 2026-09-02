@@ -24564,6 +24564,39 @@
         "nested_agents": 0
       },
       "timing_quality": "runtime-measured"
+    },
+    {
+      "id": "i037-prover-a16-tensor",
+      "name": "i037-prover-a16-tensor",
+      "role": "prover",
+      "issue_id": "QPBT-037",
+      "status": "running",
+      "attempt": 16,
+      "parent_session_id": "i037-orchestrator-a15-pauli",
+      "priority": 1,
+      "dispatch_condition": "QPBT-037 scalar layer is probe-clean; one free slot is assigned to the independent remaining tensor character/projector proof search.",
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "c5f4b277c17c54f2bfff3eb02c1101d4f1e85b60",
+      "base_revision_reason": "Exact QPBT-042-integrated Pauli implementation base shared read-only with the parent writer.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-037-pauli-a02",
+      "owned_paths": [],
+      "validation_command": "Read the exact F05 tensor signatures, pinned pauli.tex, parent temporary scalar proof, and Mathlib APIs. Develop only temporary no-write proofs for vector character nontriviality, tensor rank-one projector sum, observable Fourier expansion/inversion, and twisted commutation. No repository edits, full builds, state/metrics, network, GitHub, or credentials.",
+      "result_envelope_path": "workflow/reviews/qpbt-037-tensor-prover-a16.md",
+      "started_at": "2026-09-02T18:34:53.574860Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "external_id": "/root/i037_orchestrator_a15_pauli/i037_prover_a16_tensor"
     }
   ]
 }
