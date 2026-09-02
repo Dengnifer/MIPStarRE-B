@@ -231,27 +231,36 @@ EXECUTABLE_CL_LEAN_NAMES = [
     "MIPStarRE.QPBT.binaryFieldFamily",
     "MIPStarRE.QPBT.RuntimeBigO",
     "MIPStarRE.QPBT.SixTapeInput",
-    "MIPStarRE.QPBT.CLQueryDecomposition",
-    "MIPStarRE.QPBT.CLSamplerSide",
-    "MIPStarRE.QPBT.CLSampler.side",
+    "MIPStarRE.QPBT.SixTapeInput.ofLists",
     "MIPStarRE.QPBT.CLStage.pred",
     "MIPStarRE.QPBT.CLStage.castLE",
     "MIPStarRE.QPBT.CLStage.last",
+    "MIPStarRE.QPBT.CLSamplerSide",
+    "MIPStarRE.QPBT.CLSamplerSide.bits",
+    "MIPStarRE.QPBT.CLSampler.side",
+    "MIPStarRE.QPBT.CLPrefix",
+    "MIPStarRE.QPBT.CLFactorInput",
+    "MIPStarRE.QPBT.CLQueryDecomposition",
     "MIPStarRE.QPBT.CLSamplerQuery",
+    "MIPStarRE.QPBT.CLSamplerQuery.instFintype",
     "MIPStarRE.QPBT.CLSamplerQuery.index",
     "MIPStarRE.QPBT.CLSamplerQuery.tapes",
     "MIPStarRE.QPBT.CLSamplerQuery.expectedOutput",
     "MIPStarRE.QPBT.packSixTapes",
     "MIPStarRE.QPBT.packSixTapes_injective",
     "MIPStarRE.QPBT.IndexedSixInputBitMachine",
-    "MIPStarRE.QPBT.IndexedSixInputBitMachine.output",
-    "MIPStarRE.QPBT.IndexedSixInputBitMachine.steps",
-    "MIPStarRE.QPBT.IndexedSixInputBitMachine.run_in_time",
+    "MIPStarRE.QPBT.IndexedSixInputBitMachine.outputsInTime",
+    "MIPStarRE.QPBT.IndexedSixInputBitMachine.Execution",
+    "MIPStarRE.QPBT.IndexedSixInputBitMachine.Execution.runInTime",
+    "MIPStarRE.QPBT.IndexedSixInputBitMachine.Execution.steps",
     "MIPStarRE.QPBT.ExecutableCLSampler",
     "MIPStarRE.QPBT.ExecutableCLSampler.associated",
     "MIPStarRE.QPBT.ExecutableCLSampler.decomposition",
     "MIPStarRE.QPBT.ExecutableCLSampler.machine",
+    "MIPStarRE.QPBT.ExecutableCLSampler.execution",
     "MIPStarRE.QPBT.ExecutableCLSampler.correct",
+    "MIPStarRE.QPBT.ExecutableCLSampler.executedSteps",
+    "MIPStarRE.QPBT.ExecutableCLSampler.validQueries",
     "MIPStarRE.QPBT.ExecutableCLSampler.time",
     "MIPStarRE.QPBT.ExecutableCLSampler.time_eq_validQueryMax",
     "MIPStarRE.QPBT.ExecutableCLSampler.sample",
@@ -273,14 +282,18 @@ EXECUTABLE_CL_IMPLEMENTATION_CONTRACT = {
         "MIPStarRE.QPBT.Basic.Field",
     ],
     "signature_manifest": {
-        "path": "workflow/reviews/qpbt-048-source-fidelity-repair-a04.md",
-        "begin_marker": "<!-- BEGIN F06A-A04-SIGNATURES -->",
-        "end_marker": "<!-- END F06A-A04-SIGNATURES -->",
-        "sha256": "39edc25942ba55981a952685cf65695e3734631ac7abaa683179383603331bcd",
+        "path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
+        "begin_marker": "<!-- BEGIN F06A-A01-SIGNATURES -->",
+        "end_marker": "<!-- END F06A-A01-SIGNATURES -->",
+        "sha256": "0e376f7539828c204b37ea88ad8f7330ad699a57c216ebe4d02397c5753b5948",
     },
     "reused_api": [
         "Computability.Encoding",
         "Computability.encodeNat",
+        "Computability.encodingNatBool",
+        "Encodable.encode",
+        "List.ofFn",
+        "Finset.sup",
         "Nat.log",
         "StateTransition.EvalsToInTime",
         "Turing.FinTM2",
@@ -294,6 +307,58 @@ EXECUTABLE_CL_IMPLEMENTATION_CONTRACT = {
     "allowed_minimal_sorries": [],
     "proof_complete_sorry_count": 0,
 }
+EXECUTABLE_CL_SIGNATURE_REQUIRED_TERMS = (
+    "(hn : 0 < n)",
+    "abbrev CLPrefix",
+    "abbrev CLFactorInput",
+    "factor_cover : forall",
+    "factor_disjoint : forall",
+    "linear_supported : forall",
+    "linear_depends : forall",
+    "marginal_sum : forall",
+    "| dimension",
+    "| marginal",
+    "| linear",
+    "| factor",
+    "Turing.FinTM2",
+    "Turing.TM2OutputsInTime",
+    "execution.runInTime.toEvalsTo.steps",
+    "Computability.encodingNatBool.encode (Encodable.encode (List.ofFn input))",
+    "Finset.univ",
+    "(S.validQueries n hn).sup (S.executedSteps n hn)",
+    "s n * Q.exponent n",
+    "s n * Nat.log 2 (Q.fieldSize n)",
+    "RuntimeBigO S.downsize.time",
+)
+EXECUTABLE_CL_SIGNATURE_FORBIDDEN_PATTERNS = (
+    r"\bin previous marginal range\b",
+    r"\bin factor space for\b",
+    r"\bvalidQueryFinset\b",
+    r"\bfactor_(?:cover|disjoint)\s*:\s*Prop\b",
+    r"\blinear_(?:supported|depends)\s*:\s*Prop\b",
+    r"\bmarginal_sum\s*:\s*Prop\b",
+    r"\boutput\s*:\s*SixTapeInput\s*->\s*List Bool\b",
+    r"\bsteps\s*:\s*SixTapeInput\s*->\s*Nat\b",
+    r"\brun\s*:\s*SixTapeInput\s*->\s*List Bool\s*->\s*Nat\s*->\s*Prop\b",
+    r"\b(?:sorry|axiom|constant|opaque)\b",
+)
+
+
+def executable_cl_signature_errors(signature_block: str) -> list[str]:
+    """Reject the concrete F06A contract defects found by QPBT-054."""
+    errors = [
+        f"executable CL signature omits required term: {term}"
+        for term in EXECUTABLE_CL_SIGNATURE_REQUIRED_TERMS
+        if term not in signature_block
+    ]
+    errors.extend(
+        f"executable CL signature contains forbidden pattern: {pattern}"
+        for pattern in EXECUTABLE_CL_SIGNATURE_FORBIDDEN_PATTERNS
+        if re.search(pattern, signature_block, flags=re.IGNORECASE)
+    )
+    return errors
+
+
 EXECUTABLE_CL_CONTRACT = {
     "statement": (
         "Define an admissible positive-index field family and its canonical "
@@ -312,13 +377,16 @@ EXECUTABLE_CL_CONTRACT = {
         "the F01-selected basis/table representation, with fixed coordinate order; "
         "no caller-supplied codec or coherence premise is accepted. SixTapeInput is "
         "Fin 6 -> List Bool. CLSamplerQuery has exactly four constructors and its "
+        "positive-index proof supplies the canonical codec to every query. Its "
         "tapes expose the paper layouts: dimension reads tapes 0-1 and ignores 2-5; "
         "marginal and factor read 0-4 and ignore tape 5; linear reads all 0-5. "
-        "stage.val encodes paper j = stage.val + 1. packSixTapes is an injective "
-        "administrative encoding only. CLQueryDecomposition carries selected "
+        "stage.val encodes paper j = stage.val + 1. packSixTapes first fixes tape "
+        "order with List.ofFn and is an injective administrative encoding only. "
+        "CLQueryDecomposition carries selected "
         "marginals, prefix-range-indexed factors, factor-space linear maps, and the "
-        "lem:cl-kth realization proofs as data. Valid linear u and y are dependent "
-        "subtypes; malformed encodings and index zero are outside the paper contract. "
+        "lem:cl-kth realization equations, partition, support, and dependency laws as "
+        "data. CLPrefix and CLFactorInput are the dependent valid u/y subtypes; "
+        "malformed encodings and index zero are outside the paper contract. "
         "The sampler PMF is exactly CLSampler.sample from one shared uniform seed."
     ),
     "boundary_hypotheses": (
@@ -326,11 +394,14 @@ EXECUTABLE_CL_CONTRACT = {
         "intrinsic semantic correctness data; no theorem asserts that every mathematical "
         "CLSampler has an executable realization. Its associated maps and decomposition "
         "choices are data-valued and include the exact F06 lem:cl-kth laws. The machine "
-        "has six logical input tapes with explicit ignored-tape semantics; any FinTM2 "
+        "has six logical input tapes with explicit ignored-tape semantics; its "
+        "execution field contains a genuine TM2OutputsInTime witness and its exact "
+        "step count is runInTime.toEvalsTo.steps. Any FinTM2 "
         "packing is injective administration and cannot replace the six-tape boundary. "
         "Every paper-labelled pointwise claim carries 0 < n, and downsizing carries "
         "1 <= level. TIME_S(n) is the exact valid-query finite maximum of per-input "
-        "operational steps over the valid query subtype, not an arbitrary upper-bound field. "
+        "operational steps over Finset.univ of the valid query subtype; time is a "
+        "definition, not an arbitrary upper-bound field. "
         "RuntimeBigO is global over positive indices. The source's omitted linear u/y "
         "quantifiers and the prefix/downsize index typos are preserved as explicit "
         "paper-gap notes A02-004/A02-006 and repaired only at the dependent Lean "
@@ -355,8 +426,9 @@ EXECUTABLE_CL_CONTRACT = {
         "An exponent family with Odd (exponent n) guarded by 0 < n, the canonical F01 "
         "source-coherent coordinate codec, an explicit Fin 6 binary query boundary "
         "with ignored tapes, data-valued nonunique CLQueryDecomposition records whose "
-        "dependent u/y domains satisfy the F06 laws, an operational six-input machine, "
-        "exact per-input step witnesses, and a proved finite valid-query maximum; no "
+        "CLPrefix/CLFactorInput domains satisfy the F06 laws, an operational six-input "
+        "machine, genuine TM2OutputsInTime witnesses, exact extracted execution steps, "
+        "and a constructed finite valid-query maximum; no "
         "executable-realization, codec-coherence, runtime, bridge, or arbitrary "
         "obligation premise is added to a paper theorem."
     ),
@@ -370,7 +442,8 @@ EXECUTABLE_CL_CONTRACT = {
         "The exact four encoded query results compute through six-tape operational run "
         "witnesses, with ignored tapes and dependent valid-query domains; associated, "
         "sample, and time_eq_validQueryMax are callable. Downsize has the canonical "
-        "binary codec, dimension s(n)*Nat.log 2(Q.fieldSize n), exact pointwise map "
+        "binary codec, an internal s(n)*exponent(n) representation width proved equal "
+        "to dimension s(n)*Nat.log 2(Q.fieldSize n), exact pointwise map "
         "correspondence for every 0 < n, exact PMF.map pushforward from one shared "
         "sampler law, and a proved global-positive RuntimeBigO compiler-cost theorem "
         "under 1 <= level. The G16/K03A representation-coherence obligation remains "
@@ -697,6 +770,11 @@ def _implementation_contract_errors(node: dict[str, Any],
             short_name = name.rsplit(".", 1)[-1]
             if not re.search(rf"\b{re.escape(short_name)}\b", signature_block):
                 errors.append(f"{node_id}: signature manifest omits planned declaration {name}")
+        if node_id == EXECUTABLE_CL_OWNER_ID:
+            errors.extend(
+                f"{node_id}: {error}"
+                for error in executable_cl_signature_errors(signature_block)
+            )
     validation_commands = contract["validation_commands"]
     if isinstance(validation_commands, list) and isinstance(owned_file, str):
         scoped_command = f"lake env lean {owned_file}"

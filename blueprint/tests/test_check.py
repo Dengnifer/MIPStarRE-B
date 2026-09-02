@@ -496,7 +496,8 @@ class BlueprintCheckTests(unittest.TestCase):
                     )
                 elif mutation == "fabricated_machine":
                     node["encoding"] = node["encoding"].replace(
-                        "packSixTapes is an injective administrative encoding only.",
+                        "packSixTapes first fixes tape order with List.ofFn and is an "
+                        "injective administrative encoding only.",
                         "an axiomatized one-tape machine.",
                     )
                 else:
@@ -518,13 +519,14 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertIn("RuntimeBigO", node["integrity"]["lean_conclusion"])
         self.assertIn("valid-query finite maximum", node["boundary_hypotheses"])
         self.assertIn("ignored-tape semantics", node["boundary_hypotheses"])
-        self.assertIn("dependent u/y domains", node["integrity"]["lean_assumptions"])
+        self.assertIn("CLPrefix/CLFactorInput domains",
+                      node["integrity"]["lean_assumptions"])
         self.assertIn("exact PMF.map pushforward", node["integrity"]["lean_conclusion"])
 
         mutations = (
             ("statement", "positive-index", "all-index"),
             ("encoding", "canonical field codec", "arbitrary caller codec"),
-            ("encoding", "dependent subtypes", "untyped strings"),
+            ("encoding", "dependent valid u/y subtypes", "untyped strings"),
             ("boundary_hypotheses", "valid-query finite maximum", "upper-bound field"),
             ("boundary_hypotheses", "ignored-tape semantics", "one-tape serialization"),
             ("integrity.lean_conclusion", "RuntimeBigO", "IsBigO Filter.atTop"),
@@ -571,6 +573,40 @@ class BlueprintCheckTests(unittest.TestCase):
             "implementation contract must remain exact" in error
             for error in self.errors(nodes=no_asymptotics)
         ))
+
+    def test_executable_cl_signature_rejects_concrete_a04_defects(self) -> None:
+        node = next(item for item in self.nodes["nodes"]
+                    if item["id"] == check.EXECUTABLE_CL_OWNER_ID)
+        manifest = node["implementation_contract"]["signature_manifest"]
+        text = (ROOT.parent / manifest["path"]).read_text(encoding="utf-8")
+        block = text.split(manifest["begin_marker"], 1)[1].split(
+            manifest["end_marker"], 1
+        )[0].strip()
+        self.assertEqual([], check.executable_cl_signature_errors(block))
+
+        for required in (
+            "abbrev CLPrefix",
+            "Turing.FinTM2",
+            "Turing.TM2OutputsInTime",
+            "execution.runInTime.toEvalsTo.steps",
+            "(S.validQueries n hn).sup (S.executedSteps n hn)",
+        ):
+            with self.subTest(missing=required):
+                self.assertIn(required, block)
+                mutated = block.replace(required, "REMOVED_CONTRACT_TERM")
+                self.assertTrue(check.executable_cl_signature_errors(mutated))
+
+        for forbidden in (
+            "factor_cover : Prop",
+            "validQueryFinset",
+            "output : SixTapeInput -> List Bool",
+            "run : SixTapeInput -> List Bool -> Nat -> Prop",
+            "axiom fabricatedRuntime : Prop",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertTrue(check.executable_cl_signature_errors(
+                    f"{block}\n{forbidden}"
+                ))
 
     def test_typed_finiteness_and_executable_ownership_wording_is_adversarial(self) -> None:
         finiteness_mutations = (
