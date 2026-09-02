@@ -7437,7 +7437,7 @@
     {
       "id": "LPR-027",
       "title": "feat(QPBT/Basic): implement low-degree polynomial encoding",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-036"
       ],
@@ -7528,10 +7528,10 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "4e003ec80d6bd772530fef854b68dd4ee787906f",
+      "merged_at": "2026-09-02T17:15:06.383856Z",
       "created_at": "2026-09-01T23:08:47.942383Z",
-      "updated_at": "2026-09-02T00:27:34.431747Z",
+      "updated_at": "2026-09-02T17:15:06.383856Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Basic/Polynomial.lean",
         "workflow/reviews/qpbt-036-polynomial-a01.md",
@@ -7548,7 +7548,7 @@
         "i036-integrator-a03-pr027-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Guarded-integrate exact approved head 8467454 onto current main, then run post-integration scoped, target/full-build, source/blueprint, debt, and diff gates.",
+      "unexecuted_gate": "Completed: exact approved head was integrated as the second parent of 4e003ec80d6bd772530fef854b68dd4ee787906f; later exact-main full builds passed.",
       "adoption": {
         "session_id": "i036-integrator-a03-pr027-bind",
         "verdict": "pass",
@@ -7564,7 +7564,7 @@
     {
       "id": "LPR-028",
       "title": "feat(QPBT/Game): define admissible parameters",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-039"
       ],
@@ -7655,10 +7655,10 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "4a6683795a71712d6a5c52b7539c2f532fd39f71",
+      "merged_at": "2026-09-02T17:15:13.509327Z",
       "created_at": "2026-09-01T23:48:12.813862Z",
-      "updated_at": "2026-09-02T00:33:41.566024Z",
+      "updated_at": "2026-09-02T17:15:13.509327Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Parameters.lean",
         "workflow/reviews/qpbt-039-parameters-a01.md",
@@ -7675,7 +7675,7 @@
         "i039-integrator-a03-pr028-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Guarded-integrate exact approved head f6b19fc onto current main, then run post-integration scoped, target/full-build, source/blueprint, debt, and diff gates.",
+      "unexecuted_gate": "Completed: exact approved head was integrated as the second parent of 4a6683795a71712d6a5c52b7539c2f532fd39f71; later exact-main full builds passed.",
       "adoption": {
         "session_id": "i039-integrator-a03-pr028-bind",
         "verdict": "pass",
