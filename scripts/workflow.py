@@ -1923,6 +1923,237 @@ def _fsync_directory(path: Path) -> None:
         os.close(directory_fd)
 
 
+def _file_identity(metadata: os.stat_result) -> tuple[int, int]:
+    """Return the filesystem identity fields needed for race checks."""
+
+    return (metadata.st_dev, metadata.st_ino)
+
+
+def _read_descriptor_bytes(descriptor: int) -> bytes:
+    """Read one stable regular-file snapshot without changing its offset."""
+
+    before = os.fstat(descriptor)
+    chunks: list[bytes] = []
+    offset = 0
+    while offset < before.st_size:
+        chunk = os.pread(descriptor, min(1024 * 1024, before.st_size - offset), offset)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        offset += len(chunk)
+    after = os.fstat(descriptor)
+    if _file_identity(after) != _file_identity(before) or after.st_size != before.st_size:
+        raise WorkflowError("workflow event log changed while its snapshot was read")
+    value = b"".join(chunks)
+    if len(value) != before.st_size:
+        raise WorkflowError("workflow event log could not be read completely")
+    return value
+
+
+@dataclass
+class _BoundEventLog:
+    """One post-cutover event log held by no-follow descriptors."""
+
+    path: Path
+    directory_path: Path
+    directory_descriptor: int
+    descriptor: int
+    directory_identity: tuple[int, int]
+    leaf_identity: tuple[int, int]
+    leaf_mode: int
+    snapshot: bytes
+    owner_token: object
+    closed: bool = False
+
+    @property
+    def descriptor_path(self) -> Path:
+        # WorkflowStore already depends on Linux directory flock semantics.
+        return Path("/proc/self/fd") / str(self.descriptor)
+
+    def _verify_directory(self, operation: str) -> None:
+        if self.closed:
+            raise WorkflowError("workflow event log binding is closed")
+        try:
+            opened = os.fstat(self.directory_descriptor)
+            addressed = os.stat(self.directory_path, follow_symlinks=False)
+        except OSError as error:
+            raise WorkflowError(
+                f"workflow directory identity changed during {operation}: {error}"
+            ) from error
+        if (
+            not stat.S_ISDIR(opened.st_mode)
+            or not stat.S_ISDIR(addressed.st_mode)
+            or _file_identity(opened) != self.directory_identity
+            or _file_identity(addressed) != self.directory_identity
+        ):
+            raise WorkflowError(
+                f"workflow directory identity changed during {operation}"
+            )
+
+    def verify(self, operation: str) -> None:
+        """Require both descriptors to remain the addressed canonical objects."""
+
+        self._verify_directory(operation)
+        try:
+            opened = os.fstat(self.descriptor)
+            addressed = os.stat(
+                self.path.name,
+                dir_fd=self.directory_descriptor,
+                follow_symlinks=False,
+            )
+        except OSError as error:
+            raise WorkflowError(
+                f"workflow event log identity changed during {operation}: {error}"
+            ) from error
+        if (
+            not stat.S_ISREG(opened.st_mode)
+            or not stat.S_ISREG(addressed.st_mode)
+            or _file_identity(opened) != self.leaf_identity
+            or _file_identity(addressed) != self.leaf_identity
+        ):
+            raise WorkflowError(
+                f"workflow event log identity changed during {operation}"
+            )
+
+    def append(self, encoded: bytes) -> None:
+        """Append through the verified descriptor and reject a concurrent swap."""
+
+        self.verify("append")
+        view = memoryview(encoded)
+        while view:
+            written = os.write(self.descriptor, view)
+            if written <= 0:
+                raise WorkflowError("workflow event append made no progress")
+            view = view[written:]
+        os.fsync(self.descriptor)
+        self.verify("append")
+
+    def validate(self, documents: Mapping[str, Any] | None = None) -> None:
+        """Validate the still-bound inode, not a newly resolved pathname."""
+
+        self.verify("validation")
+        validate_event_log(self.descriptor_path, documents)
+        self.verify("validation")
+
+    def _write_snapshot_to_descriptor(self) -> None:
+        os.ftruncate(self.descriptor, 0)
+        view = memoryview(self.snapshot)
+        while view:
+            written = os.write(self.descriptor, view)
+            if written <= 0:
+                raise WorkflowError("workflow event rollback made no progress")
+            view = view[written:]
+        os.ftruncate(self.descriptor, len(self.snapshot))
+        os.fsync(self.descriptor)
+        if _read_descriptor_bytes(self.descriptor) != self.snapshot:
+            raise WorkflowError("workflow event rollback did not restore exact bytes")
+
+    def _replace_addressed_leaf(self) -> None:
+        """Atomically replace a removed or swapped leaf without following it."""
+
+        self._verify_directory("rollback")
+        temporary_name = f".{self.path.name}.rollback-{os.getpid()}-{os.urandom(8).hex()}"
+        temporary_descriptor: int | None = None
+        try:
+            flags = (
+                os.O_WRONLY
+                | os.O_CREAT
+                | os.O_EXCL
+                | getattr(os, "O_CLOEXEC", 0)
+                | getattr(os, "O_NOFOLLOW", 0)
+            )
+            temporary_descriptor = os.open(
+                temporary_name,
+                flags,
+                stat.S_IMODE(self.leaf_mode),
+                dir_fd=self.directory_descriptor,
+            )
+            os.fchmod(temporary_descriptor, stat.S_IMODE(self.leaf_mode))
+            view = memoryview(self.snapshot)
+            while view:
+                written = os.write(temporary_descriptor, view)
+                if written <= 0:
+                    raise WorkflowError("workflow event rollback made no progress")
+                view = view[written:]
+            os.fsync(temporary_descriptor)
+            os.close(temporary_descriptor)
+            temporary_descriptor = None
+            self._verify_directory("rollback")
+            os.replace(
+                temporary_name,
+                self.path.name,
+                src_dir_fd=self.directory_descriptor,
+                dst_dir_fd=self.directory_descriptor,
+            )
+            os.fsync(self.directory_descriptor)
+        except WorkflowError:
+            raise
+        except OSError as error:
+            raise WorkflowError(
+                f"workflow event log could not be restored atomically: {error}"
+            ) from error
+        finally:
+            if temporary_descriptor is not None:
+                os.close(temporary_descriptor)
+            try:
+                os.unlink(temporary_name, dir_fd=self.directory_descriptor)
+            except FileNotFoundError:
+                pass
+
+    def restore(self) -> None:
+        """Restore exact bytes and the canonical leaf without touching a target."""
+
+        self._verify_directory("rollback")
+        opened = os.fstat(self.descriptor)
+        if (
+            not stat.S_ISREG(opened.st_mode)
+            or _file_identity(opened) != self.leaf_identity
+        ):
+            raise WorkflowError("workflow event descriptor changed during rollback")
+        self._write_snapshot_to_descriptor()
+        try:
+            self.verify("rollback")
+        except WorkflowError:
+            self._replace_addressed_leaf()
+
+        self._verify_directory("rollback")
+        replacement: int | None = None
+        try:
+            flags = (
+                os.O_RDONLY
+                | getattr(os, "O_CLOEXEC", 0)
+                | getattr(os, "O_NOFOLLOW", 0)
+            )
+            replacement = os.open(
+                self.path.name, flags, dir_fd=self.directory_descriptor
+            )
+            metadata = os.fstat(replacement)
+            if not stat.S_ISREG(metadata.st_mode):
+                raise WorkflowError(
+                    "workflow event log rollback produced a non-regular file"
+                )
+            if _read_descriptor_bytes(replacement) != self.snapshot:
+                raise WorkflowError(
+                    "workflow event log rollback did not preserve exact bytes"
+                )
+        except WorkflowError:
+            raise
+        except OSError as error:
+            raise WorkflowError(
+                f"workflow event log rollback could not be verified: {error}"
+            ) from error
+        finally:
+            if replacement is not None:
+                os.close(replacement)
+
+    def close(self) -> None:
+        if self.closed:
+            return
+        self.closed = True
+        os.close(self.descriptor)
+        os.close(self.directory_descriptor)
+
+
 class WorkflowStore:
     """Concurrency-safe access to the local workflow ledgers."""
 
@@ -1960,7 +2191,92 @@ class WorkflowStore:
         )
         self._github_dispatch_store_token = object()
         self._workflow_write_token = object()
+        self._event_binding_token = object()
         self._durable_github_cutover_seen = False
+
+    def _open_cutover_event_log(self) -> _BoundEventLog:
+        """Open the canonical event log relative to its verified directory."""
+
+        self._validate_cutover_paths()
+        directory_path = self._state_dir_real.parent
+        directory_descriptor: int | None = None
+        descriptor: int | None = None
+        try:
+            expected_directory = os.stat(directory_path, follow_symlinks=False)
+            directory_flags = (
+                os.O_RDONLY
+                | os.O_DIRECTORY
+                | getattr(os, "O_CLOEXEC", 0)
+                | getattr(os, "O_NOFOLLOW", 0)
+            )
+            directory_descriptor = os.open(directory_path, directory_flags)
+            opened_directory = os.fstat(directory_descriptor)
+            if (
+                not stat.S_ISDIR(expected_directory.st_mode)
+                or not stat.S_ISDIR(opened_directory.st_mode)
+                or _file_identity(expected_directory)
+                != _file_identity(opened_directory)
+            ):
+                raise WorkflowError(
+                    "workflow directory identity changed while binding event log"
+                )
+
+            expected_leaf = os.stat(
+                self.events_path.name,
+                dir_fd=directory_descriptor,
+                follow_symlinks=False,
+            )
+            if not stat.S_ISREG(expected_leaf.st_mode):
+                raise WorkflowError(
+                    "workflow event log must be a regular, non-symlink file"
+                )
+            event_flags = (
+                os.O_RDWR
+                | os.O_APPEND
+                | getattr(os, "O_CLOEXEC", 0)
+                | getattr(os, "O_NOFOLLOW", 0)
+            )
+            # Deliberately no O_CREAT: cutover validation requires this leaf.
+            descriptor = os.open(
+                self.events_path.name,
+                event_flags,
+                dir_fd=directory_descriptor,
+            )
+            opened_leaf = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(opened_leaf.st_mode)
+                or _file_identity(expected_leaf) != _file_identity(opened_leaf)
+            ):
+                raise WorkflowError(
+                    "workflow event log identity changed while binding append"
+                )
+            snapshot = _read_descriptor_bytes(descriptor)
+            binding = _BoundEventLog(
+                path=self.events_path,
+                directory_path=directory_path,
+                directory_descriptor=directory_descriptor,
+                descriptor=descriptor,
+                directory_identity=_file_identity(opened_directory),
+                leaf_identity=_file_identity(opened_leaf),
+                leaf_mode=opened_leaf.st_mode,
+                snapshot=snapshot,
+                owner_token=self._event_binding_token,
+            )
+            directory_descriptor = None
+            descriptor = None
+            binding.verify("binding")
+            return binding
+        except WorkflowError:
+            raise
+        except OSError as error:
+            raise WorkflowError(
+                f"workflow event log could not be bound safely: {error}"
+            ) from error
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+            if directory_descriptor is not None:
+                os.close(directory_descriptor)
 
     def _durable_github_cutover(self) -> bool:
         """Detect cutover evidence retained in authoritative session history."""
@@ -2178,9 +2494,11 @@ class WorkflowStore:
         lock_held: bool = False,
         timestamp: str | None = None,
         _write_token: object | None = None,
+        _event_binding: _BoundEventLog | None = None,
     ) -> None:
         authorized = _write_token is self._workflow_write_token
-        if self._refresh_github_authority() is not None and not authorized:
+        github_cutover = self._refresh_github_authority() is not None
+        if github_cutover and not authorized:
             raise WorkflowError(
                 "GitHub-canonical lifecycle events require a guarded dispatch or "
                 "lease/import API"
@@ -2198,6 +2516,16 @@ class WorkflowStore:
         encoded = (json.dumps(envelope, ensure_ascii=True, separators=(",", ":")) + "\n").encode("utf-8")
 
         def write() -> None:
+            if github_cutover:
+                if (
+                    _event_binding is None
+                    or _event_binding.owner_token is not self._event_binding_token
+                ):
+                    raise WorkflowError(
+                        "GitHub-canonical event append requires its bound event transaction"
+                    )
+                _event_binding.append(encoded)
+                return
             self.events_path.parent.mkdir(parents=True, exist_ok=True)
             descriptor = os.open(self.events_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
             try:
@@ -2237,18 +2565,26 @@ class WorkflowStore:
             with self._lock(exclusive=True):
                 guarded_write()
 
-    def _batch_event_timestamp(self) -> str:
+    def _batch_event_timestamp(
+        self, event_binding: _BoundEventLog | None = None
+    ) -> str:
         """Return one timestamp that cannot move before the existing log tail."""
 
         # Keep this helper fail-closed even when called outside dispatch_sessions.
-        validate_event_log(self.events_path)
+        event_path = self.events_path
+        if event_binding is not None:
+            if event_binding.owner_token is not self._event_binding_token:
+                raise WorkflowError("event timestamp binding belongs to another store")
+            event_binding.verify("timestamp selection")
+            event_path = event_binding.descriptor_path
+        validate_event_log(event_path)
         current_text = utc_now()
         current = _timestamp_value(current_text)
-        if current is None or not self.events_path.exists():
+        if current is None or not event_path.exists():
             return current_text
         latest: dt.datetime | None = None
         try:
-            with self.events_path.open("r", encoding="utf-8") as stream:
+            with event_path.open("r", encoding="utf-8") as stream:
                 for line in stream:
                     try:
                         value = json.loads(line)
@@ -2259,6 +2595,8 @@ class WorkflowStore:
                         latest = timestamp
         except OSError:
             return current_text
+        if event_binding is not None:
+            event_binding.verify("timestamp selection")
         if latest is not None and current < latest:
             return latest.isoformat().replace("+00:00", "Z")
         return current_text
@@ -2271,6 +2609,7 @@ class WorkflowStore:
         events_existed: bool,
         events_offset: int,
         events_bytes: bytes | None,
+        event_binding: _BoundEventLog | None = None,
     ) -> None:
         """Restore the exact pre-dispatch files after a failed append.
 
@@ -2284,6 +2623,7 @@ class WorkflowStore:
             events_existed=events_existed,
             events_offset=events_offset,
             events_bytes=events_bytes,
+            event_binding=event_binding,
         )
 
     def _restore_event_log(
@@ -2292,9 +2632,21 @@ class WorkflowStore:
         events_existed: bool,
         events_offset: int,
         events_bytes: bytes | None,
+        event_binding: _BoundEventLog | None = None,
     ) -> None:
         """Restore the append-only event file to an exact captured snapshot."""
 
+        if event_binding is not None:
+            if event_binding.owner_token is not self._event_binding_token:
+                raise WorkflowError("event rollback binding belongs to another store")
+            if (
+                not events_existed
+                or events_offset != len(event_binding.snapshot)
+                or events_bytes != event_binding.snapshot
+            ):
+                raise WorkflowError("event rollback snapshot disagrees with its binding")
+            event_binding.restore()
+            return
         if not events_existed:
             try:
                 self.events_path.unlink()
@@ -2353,11 +2705,26 @@ class WorkflowStore:
                         "GitHub authority appeared during generic local mutation; retry"
                     )
             target_path = self.state_dir / filename
-            target_existed = target_path.exists()
-            target_bytes = target_path.read_bytes() if target_existed else None
-            events_existed = self.events_path.exists()
-            events_offset = self.events_path.stat().st_size if events_existed else 0
-            events_bytes = self.events_path.read_bytes() if events_existed else None
+            event_binding = (
+                self._open_cutover_event_log()
+                if github_authority_config is not None
+                else None
+            )
+            try:
+                target_existed = target_path.exists()
+                target_bytes = target_path.read_bytes() if target_existed else None
+                if event_binding is not None:
+                    events_existed = True
+                    events_offset = len(event_binding.snapshot)
+                    events_bytes = event_binding.snapshot
+                else:
+                    events_existed = self.events_path.exists()
+                    events_offset = self.events_path.stat().st_size if events_existed else 0
+                    events_bytes = self.events_path.read_bytes() if events_existed else None
+            except BaseException:
+                if event_binding is not None:
+                    event_binding.close()
+                raise
             try:
                 atomic_write_json(target_path, changed_document)
                 if (
@@ -2372,6 +2739,7 @@ class WorkflowStore:
                     payload,
                     lock_held=True,
                     _write_token=self._workflow_write_token,
+                    _event_binding=event_binding,
                 )
                 if (
                     filename in {"issues.json", "prs.json", "sessions.json"}
@@ -2391,12 +2759,16 @@ class WorkflowStore:
                         events_existed=events_existed,
                         events_offset=events_offset,
                         events_bytes=events_bytes,
+                        event_binding=event_binding,
                     )
                 except BaseException as rollback_error:
                     raise WorkflowError(
                         f"workflow mutation rollback failed for {filename!r}"
                     ) from rollback_error
                 raise
+            finally:
+                if event_binding is not None:
+                    event_binding.close()
             return result
 
     def plan_session(self, record: Mapping[str, Any]) -> dict[str, Any]:
@@ -2627,10 +2999,15 @@ class WorkflowStore:
             assert_authority_unchanged()
 
             sessions_path = self.state_dir / "sessions.json"
-            sessions_bytes = sessions_path.read_bytes()
-            events_existed = self.events_path.exists()
-            events_offset = self.events_path.stat().st_size if events_existed else 0
-            events_bytes = self.events_path.read_bytes() if events_existed else None
+            event_binding = self._open_cutover_event_log()
+            try:
+                sessions_bytes = sessions_path.read_bytes()
+                events_existed = True
+                events_offset = len(event_binding.snapshot)
+                events_bytes = event_binding.snapshot
+            except BaseException:
+                event_binding.close()
+                raise
             try:
                 atomic_write_json(sessions_path, changed_sessions)
                 assert_authority_unchanged()
@@ -2644,11 +3021,12 @@ class WorkflowStore:
                         ),
                     },
                     lock_held=True,
-                    timestamp=self._batch_event_timestamp(),
+                    timestamp=self._batch_event_timestamp(event_binding),
                     _write_token=self._workflow_write_token,
+                    _event_binding=event_binding,
                 )
                 assert_authority_unchanged()
-                validate_event_log(self.events_path, documents)
+                event_binding.validate(documents)
                 assert_authority_unchanged()
             except BaseException:
                 try:
@@ -2658,12 +3036,15 @@ class WorkflowStore:
                         events_existed=events_existed,
                         events_offset=events_offset,
                         events_bytes=events_bytes,
+                        event_binding=event_binding,
                     )
                 except BaseException as rollback_error:
                     raise WorkflowError(
                         "planned-session enqueue rollback failed"
                     ) from rollback_error
                 raise
+            finally:
+                event_binding.close()
             return candidate
 
     def dispatch_sessions(
@@ -2918,26 +3299,41 @@ class WorkflowStore:
                     plan["github_preflight"] = github_evidence
                 return plan
 
-            issued = copy.deepcopy(documents["sessions.json"]["issued"])
-            batch_timestamp = self._batch_event_timestamp()
-            remaining_planned = [
-                session
-                for session in documents["sessions.json"]["planned"]
-                if session["id"] not in set(selected_ids)
-            ]
-            documents["sessions.json"] = {
-                **documents["sessions.json"],
-                "planned": remaining_planned,
-                "issued": issued + materialized,
-            }
-            # Revalidate the complete cross-file snapshot before replacing the
-            # sessions document; no member of the admitted prefix can be partial.
-            validate_documents(documents)
-            sessions_path = self.state_dir / "sessions.json"
-            sessions_bytes = sessions_path.read_bytes()
-            events_existed = self.events_path.exists()
-            events_offset = self.events_path.stat().st_size if events_existed else 0
-            events_bytes = self.events_path.read_bytes() if events_existed else None
+            event_binding = (
+                self._open_cutover_event_log()
+                if github_authority_config is not None
+                else None
+            )
+            try:
+                issued = copy.deepcopy(documents["sessions.json"]["issued"])
+                batch_timestamp = self._batch_event_timestamp(event_binding)
+                remaining_planned = [
+                    session
+                    for session in documents["sessions.json"]["planned"]
+                    if session["id"] not in set(selected_ids)
+                ]
+                documents["sessions.json"] = {
+                    **documents["sessions.json"],
+                    "planned": remaining_planned,
+                    "issued": issued + materialized,
+                }
+                # Revalidate the complete cross-file snapshot before replacing the
+                # sessions document; no member of the admitted prefix can be partial.
+                validate_documents(documents)
+                sessions_path = self.state_dir / "sessions.json"
+                sessions_bytes = sessions_path.read_bytes()
+                if event_binding is not None:
+                    events_existed = True
+                    events_offset = len(event_binding.snapshot)
+                    events_bytes = event_binding.snapshot
+                else:
+                    events_existed = self.events_path.exists()
+                    events_offset = self.events_path.stat().st_size if events_existed else 0
+                    events_bytes = self.events_path.read_bytes() if events_existed else None
+            except BaseException:
+                if event_binding is not None:
+                    event_binding.close()
+                raise
             try:
                 if github_authority_config is not None and (
                     _regular_file_digest(
@@ -2974,6 +3370,7 @@ class WorkflowStore:
                         lock_held=True,
                         timestamp=batch_timestamp,
                         _write_token=self._workflow_write_token,
+                        _event_binding=event_binding,
                     )
                 self.append_event(
                     "sessions.dispatched",
@@ -2997,10 +3394,14 @@ class WorkflowStore:
                     lock_held=True,
                     timestamp=batch_timestamp,
                     _write_token=self._workflow_write_token,
+                    _event_binding=event_binding,
                 )
                 # Check the post-append lifecycle while the lock is still held;
                 # an injected or malformed writer is handled by the rollback.
-                validate_event_log(self.events_path, documents)
+                if event_binding is not None:
+                    event_binding.validate(documents)
+                else:
+                    validate_event_log(self.events_path, documents)
                 if github_authority_config is not None:
                     current_config = self._refresh_github_authority()
                     if (
@@ -3031,8 +3432,12 @@ class WorkflowStore:
                     events_existed=events_existed,
                     events_offset=events_offset,
                     events_bytes=events_bytes,
+                    event_binding=event_binding,
                 )
                 raise
+            finally:
+                if event_binding is not None:
+                    event_binding.close()
             plan["status"] = "issued"
             plan["dry_run"] = False
             plan["issued"] = selected_ids
@@ -4372,10 +4777,12 @@ def _github_cutover_indicator(
             "base_ref",
             "cutover_main_sha",
         }
+        or type(document.get("schema_version")) is not int
         or document.get("schema_version") != 1
         or document.get("kind") != "github-cutover-irreversible"
         or not isinstance(document.get("repository"), Mapping)
         or set(document["repository"]) != {"owner", "name", "database_id", "node_id"}
+        or type(document["repository"].get("database_id")) is not int
         or document.get("repository") != repository
         or document.get("base_ref") != "main"
         or not isinstance(document.get("cutover_main_sha"), str)

@@ -2168,6 +2168,29 @@ class WorkflowStoreTests(unittest.TestCase):
             "base_ref": "main",
             "cutover_main_sha": BASE_SHA,
         }
+
+        for field, value in (
+            ("schema_version", True),
+            ("schema_version", 1.0),
+            ("database_id", True),
+            ("database_id", 1352436168.0),
+        ):
+            with self.subTest(field=field, value=value):
+                malformed = copy.deepcopy(valid)
+                if field == "database_id":
+                    malformed["repository"][field] = value
+                else:
+                    malformed[field] = value
+                indicator.write_text(json.dumps(malformed), encoding="utf-8")
+                store = workflow.WorkflowStore(
+                    self.state_dir, self.runtime, self.events
+                )
+                with self.assertRaisesRegex(
+                    workflow.WorkflowError,
+                    "GitHub cutover indicator is malformed",
+                ):
+                    store.validate()
+
         indicator.write_text(json.dumps({**valid, "unexpected": True}), encoding="utf-8")
         store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
         with self.assertRaisesRegex(
@@ -2243,6 +2266,78 @@ class WorkflowStoreTests(unittest.TestCase):
 
         self.assertNotEqual(b"", removed_events)
         self.assertFalse(self.events.exists())
+        self.assertEqual(
+            state_before,
+            {path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())},
+        )
+
+    def test_github_cutover_event_symlink_swap_rolls_back_bound_append(self) -> None:
+        self.activate_github_cutover()
+        candidate = planned_session("i002-reviewer-a15-event-symlink-swap")
+        state_before = {
+            path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())
+        }
+        events_before = self.events.read_bytes()
+        alternate = self.root / "alternate-event-target.jsonl"
+        alternate.write_bytes(b"alternate-must-not-change\n")
+        alternate_before = alternate.read_bytes()
+        displaced = self.root / "workflow" / "events-displaced.jsonl"
+        original_write = workflow.os.write
+        swapped = False
+
+        def swap_leaf_at_append(descriptor: int, value: object) -> int:
+            nonlocal swapped
+            if not swapped:
+                swapped = True
+                self.events.replace(displaced)
+                self.events.symlink_to(alternate)
+            return original_write(descriptor, value)
+
+        with mock.patch.object(
+            workflow.os, "write", side_effect=swap_leaf_at_append
+        ), self.assertRaisesRegex(
+            workflow.WorkflowError, "event log identity changed during append"
+        ):
+            self.store.plan_session(candidate)
+
+        self.assertTrue(swapped)
+        self.assertFalse(self.events.is_symlink())
+        self.assertEqual(events_before, self.events.read_bytes())
+        self.assertEqual(events_before, displaced.read_bytes())
+        self.assertEqual(alternate_before, alternate.read_bytes())
+        self.assertEqual(
+            state_before,
+            {path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())},
+        )
+
+    def test_github_cutover_event_removal_rolls_back_bound_append(self) -> None:
+        self.activate_github_cutover()
+        candidate = planned_session("i002-reviewer-a16-event-leaf-removal")
+        state_before = {
+            path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())
+        }
+        events_before = self.events.read_bytes()
+        original_write = workflow.os.write
+        removed = False
+
+        def remove_leaf_at_append(descriptor: int, value: object) -> int:
+            nonlocal removed
+            if not removed:
+                removed = True
+                self.events.unlink()
+            return original_write(descriptor, value)
+
+        with mock.patch.object(
+            workflow.os, "write", side_effect=remove_leaf_at_append
+        ), self.assertRaisesRegex(
+            workflow.WorkflowError, "event log identity changed during append"
+        ):
+            self.store.plan_session(candidate)
+
+        self.assertTrue(removed)
+        self.assertTrue(self.events.is_file())
+        self.assertFalse(self.events.is_symlink())
+        self.assertEqual(events_before, self.events.read_bytes())
         self.assertEqual(
             state_before,
             {path.name: path.read_bytes() for path in sorted(self.state_dir.iterdir())},
