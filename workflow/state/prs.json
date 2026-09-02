@@ -7962,7 +7962,7 @@
     {
       "id": "LPR-031",
       "title": "fix(blueprint): elaborate executable CL contract",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-054"
       ],
@@ -8042,12 +8042,62 @@
           "result": "candidate bytes unchanged; exact head, tree, parent, six paths, patch, signature, and 5/5 checks authenticated"
         }
       ],
-      "reviews": [],
-      "findings": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-054-pr031-a03-f06a",
+          "reviewer_session_id": "i054-reviewer-a03-f06a-contract",
+          "verdict": "request_changes",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+          "started_at": "2026-09-02T19:04:24.751Z",
+          "completed_at": "2026-09-02T19:12:49.003417Z",
+          "result_path": "workflow/reviews/qpbt-054-review-a03.md",
+          "finding_ids": [
+            "F-LPR031-A03-001",
+            "F-LPR031-A03-002"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "292048ebca30f25ee9d21e45dd05ee6bd7db64e438e418c4ec5452e2b245758c",
+          "manifest_sha256": "6ad3b37ad21d3ac9f10b73b594c178e2d0c3b6581ae4c929d7b29184227c9630",
+          "integration_gate": "blocked: executable exponent access/runtime and ignored-tape semantics require a changed head and fresh review"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F-LPR031-A03-001",
+          "introduced_review_id": "review-qpbt-054-pr031-a03-f06a",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "The declared downsize finite machine would have to compute an arbitrary potentially noncomputable exponent family.",
+          "path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
+          "line": 88,
+          "required_change": "Add intrinsic executable exponent or field-size data and account for its runtime, or record and discharge a tracked paper gap before claiming the downsize constructor."
+        },
+        {
+          "id": "F-LPR031-A03-002",
+          "introduced_review_id": "review-qpbt-054-pr031-a03-f06a",
+          "base_sha": "639c883737e07b91156a9cbc31ec1aa65100a935",
+          "head_sha": "83062f78cc52ecf0edf0e725c00850fb458721b5",
+          "severity": "medium",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Canonical blank unused tapes do not establish the paper's ignored-tape invariance.",
+          "path": "workflow/reviews/qpbt-054-f06a-contract-a01.md",
+          "line": 211,
+          "required_change": "Quantify arbitrary ignored tape payloads and prove output invariance, or consistently document canonical blanking as a boundary normalization without claiming ignored-tape behavior."
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T18:46:52.097261Z",
-      "updated_at": "2026-09-02T18:58:08.315999Z",
+      "updated_at": "2026-09-02T19:14:44.162929Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.json",
@@ -8063,10 +8113,11 @@
       "provenance_session_ids": [
         "i054-orchestrator-a01-f06a-contract",
         "i054-probe-a01-turing-api",
-        "i054-integrator-a02-pr031-bind"
+        "i054-integrator-a02-pr031-bind",
+        "i054-reviewer-a03-f06a-contract"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Obtain one fresh immutable mathematical/API review of exact head 83062f78, then guardedly integrate and update QPBT-038 readiness."
+      "unexecuted_gate": "Resolve F-LPR031-A03-001 and F-LPR031-A03-002 on a changed head, rerun affected checks, and obtain a fresh immutable review."
     },
     {
       "id": "LPR-032",
