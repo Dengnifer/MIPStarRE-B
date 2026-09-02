@@ -1029,6 +1029,194 @@ class RuntimeTests(unittest.TestCase):
         self.assertIsNone(claimed["pr_id"])
         self.assertEqual(29, claimed["github_pull_request_number"])
 
+    def test_cutover_claim_and_import_success_use_one_bound_event_transaction(self) -> None:
+        session_id = "i002-prover-a01-cutover-bound-success"
+        record = self.real_issued_ledger(session_id)
+        self.activate_cutover()
+        authority = dict(
+            session_id=session_id,
+            workflow_root=self.root,
+            alias=session_id,
+            cwd=Path(record["worktree"]),
+            base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"],
+            read_only=False,
+            role="prover",
+            issue_id="QPBT-002",
+            parent_session_id=None,
+        )
+        claimed = local_agent.claim_issued_session(**authority)
+        self.assertEqual("running", claimed["status"])
+        envelope = {
+            "external_id": THREAD_ID,
+            "status": "finished",
+            "started_at": claimed["started_at"],
+            "ended_at": claimed["started_at"],
+            "elapsed_seconds": 0.0,
+            "token_usage": {
+                "input": 1,
+                "output": 1,
+                "total": 2,
+                "availability_reason": None,
+            },
+        }
+        imported = local_agent.import_session_result(
+            session_id=session_id,
+            workflow_root=self.root,
+            envelope=envelope,
+            outcome_path=record["result_envelope_path"],
+        )
+        self.assertEqual("finished", imported["status"])
+        artifact = self.root / str(record["result_envelope_path"])
+        self.assertTrue(artifact.is_file())
+        final_bytes = (
+            (self.root / "workflow/state/sessions.json").read_bytes(),
+            (self.root / "workflow/events.jsonl").read_bytes(),
+            artifact.read_bytes(),
+        )
+        local_agent.import_session_result(
+            session_id=session_id,
+            workflow_root=self.root,
+            envelope=envelope,
+            outcome_path=record["result_envelope_path"],
+        )
+        self.assertEqual(
+            final_bytes,
+            (
+                (self.root / "workflow/state/sessions.json").read_bytes(),
+                (self.root / "workflow/events.jsonl").read_bytes(),
+                artifact.read_bytes(),
+            ),
+        )
+
+    def test_cutover_claim_rolls_back_state_and_alternate_on_event_leaf_swap(self) -> None:
+        session_id = "i002-prover-a01-cutover-bound-swap"
+        record = self.real_issued_ledger(session_id)
+        self.activate_cutover()
+        state_dir = self.root / "workflow/state"
+        events = self.root / "workflow/events.jsonl"
+        state_before = {
+            path.name: path.read_bytes() for path in sorted(state_dir.iterdir())
+        }
+        events_before = events.read_bytes()
+        alternate = self.root / "alternate-event-target.jsonl"
+        alternate.write_bytes(b"alternate-must-not-change\n")
+        alternate_before = alternate.read_bytes()
+        displaced = self.root / "workflow/events-displaced.jsonl"
+        original_write = local_agent.workflow_state.os.write
+        swapped = False
+
+        def swap_leaf_at_append(descriptor: int, value: object) -> int:
+            nonlocal swapped
+            if not swapped:
+                swapped = True
+                events.replace(displaced)
+                events.symlink_to(alternate)
+            return original_write(descriptor, value)
+
+        authority = dict(
+            session_id=session_id,
+            workflow_root=self.root,
+            alias=session_id,
+            cwd=Path(record["worktree"]),
+            base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"],
+            read_only=False,
+            role="prover",
+            issue_id="QPBT-002",
+            parent_session_id=None,
+        )
+        with mock.patch.object(
+            local_agent.workflow_state.os, "write", side_effect=swap_leaf_at_append
+        ), self.assertRaisesRegex(
+            local_agent.workflow_state.WorkflowError,
+            "event log identity changed during append",
+        ):
+            local_agent.claim_issued_session(**authority)
+
+        self.assertTrue(swapped)
+        self.assertFalse(events.is_symlink())
+        self.assertEqual(events_before, events.read_bytes())
+        self.assertEqual(events_before, displaced.read_bytes())
+        self.assertEqual(alternate_before, alternate.read_bytes())
+        self.assertEqual(
+            state_before,
+            {path.name: path.read_bytes() for path in sorted(state_dir.iterdir())},
+        )
+
+    def test_cutover_import_rolls_back_artifact_on_event_leaf_removal(self) -> None:
+        session_id = "i002-prover-a01-cutover-bound-removal"
+        record = self.real_issued_ledger(session_id)
+        self.activate_cutover()
+        authority = dict(
+            session_id=session_id,
+            workflow_root=self.root,
+            alias=session_id,
+            cwd=Path(record["worktree"]),
+            base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"],
+            read_only=False,
+            role="prover",
+            issue_id="QPBT-002",
+            parent_session_id=None,
+        )
+        claimed = local_agent.claim_issued_session(**authority)
+        envelope = {
+            "external_id": THREAD_ID,
+            "status": "finished",
+            "started_at": claimed["started_at"],
+            "ended_at": claimed["started_at"],
+            "elapsed_seconds": 0.0,
+            "token_usage": {
+                "input": 1,
+                "output": 1,
+                "total": 2,
+                "availability_reason": None,
+            },
+        }
+        state_dir = self.root / "workflow/state"
+        events = self.root / "workflow/events.jsonl"
+        state_before = {
+            path.name: path.read_bytes() for path in sorted(state_dir.iterdir())
+        }
+        events_before = events.read_bytes()
+        artifact = self.root / str(record["result_envelope_path"])
+        original_write = local_agent.workflow_state.os.write
+        removed = False
+
+        def remove_leaf_at_append(descriptor: int, value: object) -> int:
+            nonlocal removed
+            if not removed:
+                removed = True
+                events.unlink()
+            return original_write(descriptor, value)
+
+        with mock.patch.object(
+            local_agent.workflow_state.os, "write", side_effect=remove_leaf_at_append
+        ), self.assertRaisesRegex(
+            local_agent.workflow_state.WorkflowError,
+            "event log identity changed during append",
+        ):
+            local_agent.import_session_result(
+                session_id=session_id,
+                workflow_root=self.root,
+                envelope=envelope,
+                outcome_path=record["result_envelope_path"],
+            )
+
+        self.assertTrue(removed)
+        self.assertFalse(artifact.exists())
+        self.assertFalse(events.is_symlink())
+        self.assertEqual(events_before, events.read_bytes())
+        self.assertEqual(
+            state_before,
+            {path.name: path.read_bytes() for path in sorted(state_dir.iterdir())},
+        )
+        self.assertEqual(
+            "running",
+            local_agent._session_store(self.root).validate()["sessions.json"]["issued"][0]["status"],
+        )
+
     def test_github_only_pr_claim_rejects_malformed_identity_exactly(self) -> None:
         session_id = "i002-reviewer-a01-malformed-github-only-pr"
         record = self.real_issued_ledger(session_id)

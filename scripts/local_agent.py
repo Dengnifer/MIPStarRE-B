@@ -228,77 +228,122 @@ def _session_transaction(
     """
     store = _session_store(workflow_root)
     with store._lock(exclusive=True):
-        documents = store.load()
-        workflow_state.validate_documents(documents)
-        workflow_state.validate_event_log(store.events_path, documents)
-        record = next(
-            (item for item in documents["sessions.json"]["issued"] if item.get("id") == session_id),
-            None,
-        )
-        if record is None:
-            raise AgentError(f"unknown issued session {session_id!r}")
-        changed, event, payload = operation(record)
-        artifact_spec = artifact_factory(record) if artifact_factory is not None else None
-        if not changed:
+        event_binding: workflow_state._BoundEventLog | None = None
+        if store._refresh_github_authority() is not None:
+            event_binding = store._open_cutover_event_log()
+        try:
+            documents = store.load()
+            workflow_state.validate_documents(documents)
+            if event_binding is not None:
+                event_binding.validate(documents)
+            else:
+                workflow_state.validate_event_log(store.events_path, documents)
+            record = next(
+                (
+                    item
+                    for item in documents["sessions.json"]["issued"]
+                    if item.get("id") == session_id
+                ),
+                None,
+            )
+            if record is None:
+                raise AgentError(f"unknown issued session {session_id!r}")
+            changed, event, payload = operation(record)
+            artifact_spec = (
+                artifact_factory(record) if artifact_factory is not None else None
+            )
+            if not changed:
+                if artifact_spec is not None:
+                    artifact_path, artifact_bytes = artifact_spec
+                    if not artifact_path.is_absolute():
+                        raise AgentError("transaction artifact path must be absolute")
+                    _write_exact_artifact(
+                        artifact_path.resolve(strict=False), artifact_bytes
+                    )
+                return dict(record)
+            workflow_state.validate_documents(documents)
+            sessions_path = store.state_dir / "sessions.json"
+            sessions_bytes = sessions_path.read_bytes()
+            if event_binding is not None:
+                events_existed = True
+                events_offset = len(event_binding.snapshot)
+                events_bytes = event_binding.snapshot
+            else:
+                events_existed = store.events_path.exists()
+                events_offset = (
+                    store.events_path.stat().st_size if events_existed else 0
+                )
+                events_bytes = (
+                    store.events_path.read_bytes() if events_existed else None
+                )
+            artifact_path: Path | None = None
+            artifact_bytes: bytes | None = None
+            artifact_existed = False
+            prior_artifact: bytes | None = None
             if artifact_spec is not None:
                 artifact_path, artifact_bytes = artifact_spec
                 if not artifact_path.is_absolute():
                     raise AgentError("transaction artifact path must be absolute")
-                _write_exact_artifact(
-                    artifact_path.resolve(strict=False), artifact_bytes
+                artifact_path = artifact_path.resolve(strict=False)
+                artifact_existed = artifact_path.exists()
+                if artifact_existed:
+                    if not artifact_path.is_file():
+                        raise AgentError("transaction artifact path is not a regular file")
+                    prior_artifact = artifact_path.read_bytes()
+            try:
+                if publication_guard is not None:
+                    publication_guard()
+                if artifact_path is not None and artifact_bytes is not None:
+                    _write_exact_artifact(artifact_path, artifact_bytes)
+                workflow_state.atomic_write_json(
+                    sessions_path, documents["sessions.json"]
                 )
+                if publication_guard is not None:
+                    publication_guard()
+                store.append_event(
+                    event,
+                    payload,
+                    lock_held=True,
+                    _write_token=store._workflow_write_token,
+                    _event_binding=event_binding,
+                )
+                if publication_guard is not None:
+                    publication_guard()
+                if event_binding is not None:
+                    event_binding.validate(documents)
+                else:
+                    workflow_state.validate_event_log(store.events_path, documents)
+            except BaseException:
+                rollback_error: BaseException | None = None
+                try:
+                    _restore_session_transaction(
+                        store=store,
+                        event_binding=event_binding,
+                        sessions_path=sessions_path,
+                        sessions_bytes=sessions_bytes,
+                        events_existed=events_existed,
+                        events_offset=events_offset,
+                        events_bytes=events_bytes,
+                    )
+                except BaseException as error:
+                    rollback_error = error
+                if artifact_path is not None:
+                    try:
+                        _restore_artifact(
+                            artifact_path,
+                            existed=artifact_existed,
+                            prior_bytes=prior_artifact,
+                        )
+                    except BaseException as error:
+                        if rollback_error is None:
+                            rollback_error = error
+                if rollback_error is not None:
+                    raise AgentError("session transaction rollback failed") from rollback_error
+                raise
             return dict(record)
-        workflow_state.validate_documents(documents)
-        sessions_path = store.state_dir / "sessions.json"
-        sessions_bytes = sessions_path.read_bytes()
-        events_existed = store.events_path.exists()
-        events_bytes = store.events_path.read_bytes() if events_existed else None
-        artifact_path: Path | None = None
-        artifact_bytes: bytes | None = None
-        artifact_existed = False
-        prior_artifact: bytes | None = None
-        if artifact_spec is not None:
-            artifact_path, artifact_bytes = artifact_spec
-            if not artifact_path.is_absolute():
-                raise AgentError("transaction artifact path must be absolute")
-            artifact_path = artifact_path.resolve(strict=False)
-            artifact_existed = artifact_path.exists()
-            if artifact_existed:
-                if not artifact_path.is_file():
-                    raise AgentError("transaction artifact path is not a regular file")
-                prior_artifact = artifact_path.read_bytes()
-        try:
-            if publication_guard is not None:
-                publication_guard()
-            if artifact_path is not None and artifact_bytes is not None:
-                _write_exact_artifact(artifact_path, artifact_bytes)
-            workflow_state.atomic_write_json(sessions_path, documents["sessions.json"])
-            if publication_guard is not None:
-                publication_guard()
-            store.append_event(
-                event,
-                payload,
-                lock_held=True,
-                _write_token=store._workflow_write_token,
-            )
-            if publication_guard is not None:
-                publication_guard()
-            workflow_state.validate_event_log(store.events_path, documents)
-        except BaseException:
-            _restore_session_transaction(
-                events_path=store.events_path,
-                sessions_path=sessions_path, sessions_bytes=sessions_bytes,
-                events_existed=events_existed,
-                events_bytes=events_bytes,
-            )
-            if artifact_path is not None:
-                _restore_artifact(
-                    artifact_path,
-                    existed=artifact_existed,
-                    prior_bytes=prior_artifact,
-                )
-            raise
-        return dict(record)
+        finally:
+            if event_binding is not None:
+                event_binding.close()
 
 
 def _write_exact_artifact(path: Path, data: bytes) -> None:
@@ -328,10 +373,12 @@ def _restore_artifact(path: Path, *, existed: bool, prior_bytes: bytes | None) -
 
 def _restore_session_transaction(
     *,
-    events_path: Path,
+    store: workflow_state.WorkflowStore,
+    event_binding: workflow_state._BoundEventLog | None,
     sessions_path: Path,
     sessions_bytes: bytes,
     events_existed: bool,
+    events_offset: int,
     events_bytes: bytes | None,
 ) -> None:
     """Restore lifecycle files without re-entering a potentially failing writer."""
@@ -339,15 +386,23 @@ def _restore_session_transaction(
     # Replacing the snapshots directly keeps rollback independent of the
     # injected writer that raised (including a one-shot KeyboardInterrupt).
     _atomic_write_bytes(sessions_path, sessions_bytes)
+    if event_binding is not None:
+        store._restore_event_log(
+            events_existed=events_existed,
+            events_offset=events_offset,
+            events_bytes=events_bytes,
+            event_binding=event_binding,
+        )
+        return
     if not events_existed:
         try:
-            events_path.unlink()
+            store.events_path.unlink()
         except FileNotFoundError:
             pass
         return
     if events_bytes is None:
         raise AgentError("event snapshot disappeared during transaction rollback")
-    _atomic_write_bytes(events_path, events_bytes)
+    _atomic_write_bytes(store.events_path, events_bytes)
 
 
 def _recovery_envelope(
