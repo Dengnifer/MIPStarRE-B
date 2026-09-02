@@ -160,6 +160,16 @@
       "disposition": "First prove simultaneous self-dual-normal-basis existence for GaloisField 2 k from Odd k and make only a noncomputable mathematical selection in F01. Separately formalize or import the pinned Shoup-Lenstra-Wang construction, its multiplication-table output, correctness, representation coherence, and faithful cost bound for K03A.",
       "public_effect": "No field, basis, algorithm, witness package, or correctness premise is added to callers. F01 retains the source's odd-k existence claim, while the stronger uniform algorithm-and-complexity claim remains a separate tracked obligation.",
       "issue": "QPBT-023"
+    },
+    {
+      "id": "G17",
+      "class": "formalization-contract-mismatch",
+      "source": "strategies-distance.tex:383-395 [3266-3278]; compression_arXiv_v3.tex:311",
+      "affected_nodes": ["F04-CONSISTENCY", "F04-DISTANCE-LAWS"],
+      "paper_problem": "The paper is unambiguous, but the frozen F04 contract replaced Fact 4.26's heterogeneous Alice/Bob consistency postprocessing by same-space measurement distance and omitted the normalized-state premise from Proposition 4.29.",
+      "disposition": "Use POVMConsistencyBigO before and after the same MeasurementFamily.postprocess on Alice/Bob families, and quantify hpsi immediately after psi in both consistency-triangle signatures.",
+      "public_effect": "Corrects two planned paper-labelled contracts before implementation; no paper theorem is weakened and no new assumption is exported to callers.",
+      "issue": "QPBT-032"
     }
   ]
 }
