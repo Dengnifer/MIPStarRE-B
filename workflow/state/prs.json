@@ -7838,7 +7838,7 @@
     {
       "id": "LPR-030",
       "title": "feat(QPBT/Game): define finite game semantics",
-      "status": "draft",
+      "status": "ready",
       "issue_ids": [
         "QPBT-042"
       ],
@@ -7846,7 +7846,9 @@
       "head": "issue/qpbt-042-semantics-a01",
       "base_sha": "c1d6271394fa9aba6eefb27955618a4540469c2f",
       "head_sha": "16a41327abd1a3fd749c8872c2773f013046d762",
-      "implementer_session_ids": [],
+      "implementer_session_ids": [
+        "i042-integrator-a02-pr030-bind"
+      ],
       "checks": [
         {
           "id": "check-qpbt-042-auth",
@@ -7924,7 +7926,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T17:28:37.879133Z",
-      "updated_at": "2026-09-02T17:28:37.879133Z",
+      "updated_at": "2026-09-02T17:37:56.197052Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Semantics.lean"
       ],
@@ -7933,10 +7935,11 @@
       "testing": "Scoped Lean, affected target, one private full build, pinned-source blueprint check, exact declaration/debt/import/path scans, and immutable identity authentication passed.",
       "addresses": "QPBT-042",
       "provenance_session_ids": [
-        "i042-orchestrator-a01-semantics"
+        "i042-orchestrator-a01-semantics",
+        "i042-integrator-a02-pr030-bind"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable mathematical/API review and guarded integration remain."
+      "unexecuted_gate": "Fresh immutable mathematical/API review and guarded integration remain; candidate bytes are adopted unchanged."
     }
   ]
 }
