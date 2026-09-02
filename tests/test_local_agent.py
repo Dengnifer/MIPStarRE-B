@@ -250,6 +250,25 @@ class AliasAndPromptTests(unittest.TestCase):
         with self.assertRaises(local_agent.AgentError):
             local_agent.make_alias("QPBT", "prover", 1, "task")
 
+    def test_canonical_issue_number_alias_cli(self) -> None:
+        arguments = local_agent.build_parser().parse_args(
+            [
+                "alias",
+                "--github-issue-number",
+                "28",
+                "--role",
+                "prover",
+                "--attempt",
+                "1",
+                "--slug",
+                "github-only",
+            ]
+        )
+        self.assertEqual(
+            "i028-prover-a01-github-only",
+            local_agent.run_cli(arguments)["alias"],
+        )
+
     def test_prompt_contains_persona_identity_and_contract(self) -> None:
         prompt = local_agent.build_prompt(
             alias="i001-prover-a01-proof",
@@ -511,6 +530,103 @@ class RuntimeTests(unittest.TestCase):
         write(self.root / "workflow" / "events.jsonl", json.dumps(event) + "\n")
         return record
 
+    def activate_cutover(
+        self,
+        *,
+        legacy_id: str = "QPBT-002",
+        number: int = 2,
+        include_pull_request: bool = False,
+    ) -> None:
+        repository = {
+            "owner": "Dengnifer",
+            "name": "MIPStarRE-B",
+            "database_id": 1352436168,
+            "node_id": "R_kgDOUJyJyA",
+        }
+        write(
+            self.root / "workflow" / "github.json",
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "repository": repository,
+                    "base_ref": "main",
+                    "cutover_manifest": "github-cutover.json",
+                }
+            )
+            + "\n",
+        )
+        write(
+            self.root / "workflow" / "github-cutover.json",
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "repository": repository,
+                    "base_ref": "main",
+                    "cutover_main_sha": "a" * 40,
+                    "issues": [
+                        {
+                            "legacy_id": legacy_id,
+                            "number": number,
+                            "database_id": 5318858703,
+                            "node_id": "I_kwDOUJyJyM8AAAABPQdXzw",
+                            "marker": (
+                                f"<!-- mipstarre-workflow:v1:issue:{legacy_id} -->"
+                            ),
+                        }
+                    ],
+                    "pull_requests": (
+                        [
+                            {
+                                "legacy_id": "LPR-001",
+                                "number": 26,
+                                "database_id": 5318858726,
+                                "node_id": "PR_kwDOUJyJyM8AAAABPQdYJg",
+                                "marker": local_agent.github_workflow.pull_request_marker(
+                                    "LPR-001"
+                                ),
+                                "base_ref": "main",
+                                "base_sha": test_workflow.BASE_SHA,
+                                "head_ref": "issue/qpbt-002",
+                                "head_sha": test_workflow.HEAD_SHA,
+                            }
+                        ]
+                        if include_pull_request
+                        else []
+                    ),
+                }
+            )
+            + "\n",
+        )
+
+    def set_stored_pr_identity(
+        self, *, pr_id: str | None, github_pull_request_number: int | None
+    ) -> None:
+        sessions_path = self.root / "workflow" / "state" / "sessions.json"
+        sessions = json.loads(sessions_path.read_text(encoding="utf-8"))
+        sessions["issued"][0]["pr_id"] = pr_id
+        sessions["issued"][0][
+            "github_pull_request_number"
+        ] = github_pull_request_number
+        if github_pull_request_number is not None:
+            sessions["issued"][0].update(
+                {
+                    "github_pull_request_base_ref": "main",
+                    "github_pull_request_base_sha": test_workflow.BASE_SHA,
+                    "github_pull_request_head_ref": "issue/qpbt-002",
+                    "github_pull_request_head_sha": test_workflow.HEAD_SHA,
+                }
+            )
+        sessions_path.write_text(json.dumps(sessions) + "\n", encoding="utf-8")
+        if pr_id is not None:
+            prs_path = self.root / "workflow" / "state" / "prs.json"
+            prs = json.loads(prs_path.read_text(encoding="utf-8"))
+            local_pr = test_workflow.pull_request(
+                status="draft", checks=[], reviews=[], findings=[]
+            )
+            local_pr["implementer_session_ids"] = []
+            prs["pull_requests"] = [local_pr]
+            prs_path.write_text(json.dumps(prs) + "\n", encoding="utf-8")
+
     def test_real_store_claim_duplicate_and_import_are_exactly_once(self) -> None:
         session_id = "i002-prover-a01-lease"
         record = self.real_issued_ledger(session_id)
@@ -541,11 +657,15 @@ class RuntimeTests(unittest.TestCase):
             outcome_path=record["result_envelope_path"],
         )
         terminal_bytes = (sessions.read_bytes(), events.read_bytes())
+        artifact = self.root / record["result_envelope_path"]
+        artifact_bytes = artifact.read_bytes()
+        artifact.unlink()
         local_agent.import_session_result(
             session_id=session_id, workflow_root=self.root, envelope=envelope,
             outcome_path=record["result_envelope_path"],
         )
         self.assertEqual(terminal_bytes, (sessions.read_bytes(), events.read_bytes()))
+        self.assertEqual(artifact_bytes, artifact.read_bytes())
         local_agent._session_store(self.root).validate()
 
     def test_dispatch_then_governed_exec_imports_real_codex_cli_thread_id(self) -> None:
@@ -627,6 +747,385 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(planned["result_envelope_path"], terminal["outcome_path"])
         result_path = self.root / str(planned["result_envelope_path"])
         self.assertEqual(THREAD_ID, json.loads(result_path.read_text())["external_id"])
+
+    def test_github_only_session_has_governed_exec_path(self) -> None:
+        session_id = "i028-prover-a01-github-only"
+        record = self.real_issued_ledger(session_id)
+        sessions_path = self.root / "workflow" / "state" / "sessions.json"
+        sessions = json.loads(sessions_path.read_text(encoding="utf-8"))
+        sessions["issued"][0].update(
+            {"issue_id": None, "github_issue_number": 28, "stage_id": "STAGE-01"}
+        )
+        sessions_path.write_text(json.dumps(sessions) + "\n", encoding="utf-8")
+        record.update(
+            {"issue_id": None, "github_issue_number": 28, "stage_id": "STAGE-01"}
+        )
+        runner = FakeRunner(codex_events("github-only proof complete"))
+        envelope = local_agent.run_exec(
+            alias=session_id,
+            prompt="prove the governed GitHub-only obligation",
+            cwd=Path(record["worktree"]),
+            runtime_dir=self.runtime,
+            runner=runner,
+            session_id=session_id,
+            workflow_root=self.root,
+            base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"],
+            role="prover",
+            issue_id=None,
+            github_issue_number=28,
+            parent_session_id=None,
+        )
+        self.assertEqual(THREAD_ID, envelope["external_id"])
+        final = local_agent._session_store(self.root).validate()["sessions.json"]["issued"][0]
+        self.assertEqual("finished", final["status"])
+        self.assertIsNone(final["issue_id"])
+        self.assertEqual(28, final["github_issue_number"])
+
+    def test_migrated_session_accepts_either_canonical_launch_identity(self) -> None:
+        authorities = (
+            ("i002-prover-a01-migrated-legacy", "QPBT-002", None),
+            ("i002-prover-a02-migrated-number", None, 2),
+        )
+        for session_id, issue_id, github_issue_number in authorities:
+            with self.subTest(session_id=session_id):
+                record = self.real_issued_ledger(session_id)
+                sessions_path = self.root / "workflow" / "state" / "sessions.json"
+                sessions = json.loads(sessions_path.read_text(encoding="utf-8"))
+                sessions["issued"][0]["github_issue_number"] = 2
+                sessions_path.write_text(
+                    json.dumps(sessions) + "\n", encoding="utf-8"
+                )
+                record["github_issue_number"] = 2
+                self.activate_cutover()
+                runner = FakeRunner(codex_events("migrated proof complete"))
+                envelope = local_agent.run_exec(
+                    alias=session_id,
+                    prompt="prove the governed migrated obligation",
+                    cwd=Path(record["worktree"]),
+                    runtime_dir=self.runtime,
+                    runner=runner,
+                    session_id=session_id,
+                    workflow_root=self.root,
+                    base_revision=record["base_revision"],
+                    owned_paths=record["owned_paths"],
+                    role="prover",
+                    issue_id=issue_id,
+                    github_issue_number=github_issue_number,
+                    parent_session_id=None,
+                )
+                self.assertEqual(THREAD_ID, envelope["external_id"])
+                final = local_agent._session_store(self.root).validate()[
+                    "sessions.json"
+                ]["issued"][0]
+                self.assertEqual("QPBT-002", final["issue_id"])
+                self.assertEqual(2, final["github_issue_number"])
+
+    def test_migrated_claim_rejects_malformed_dual_identity_exactly(self) -> None:
+        session_id = "i002-prover-a01-malformed-migrated-identity"
+        record = self.real_issued_ledger(session_id)
+        sessions_path = self.root / "workflow" / "state" / "sessions.json"
+        events_path = self.root / "workflow" / "events.jsonl"
+        sessions = json.loads(sessions_path.read_text(encoding="utf-8"))
+        sessions["issued"][0]["github_issue_number"] = 999
+        sessions_path.write_text(json.dumps(sessions) + "\n", encoding="utf-8")
+        self.activate_cutover()
+        before = (sessions_path.read_bytes(), events_path.read_bytes())
+
+        with self.assertRaisesRegex(
+            local_agent.AgentError, "conflict with the exact cutover manifest"
+        ):
+            local_agent.claim_issued_session(
+                session_id=session_id,
+                workflow_root=self.root,
+                alias=session_id,
+                cwd=Path(record["worktree"]),
+                base_revision=record["base_revision"],
+                owned_paths=record["owned_paths"],
+                read_only=False,
+                role="prover",
+                issue_id="QPBT-002",
+                github_issue_number=None,
+                parent_session_id=None,
+            )
+
+        self.assertEqual(before, (sessions_path.read_bytes(), events_path.read_bytes()))
+        self.assertEqual(
+            "issued",
+            local_agent._session_store(self.root).validate()["sessions.json"]["issued"][0]["status"],
+        )
+
+    def test_migrated_pr_claim_rejects_mismatched_dual_identity_exactly(self) -> None:
+        session_id = "i002-reviewer-a01-mismatched-pr-identity"
+        record = self.real_issued_ledger(session_id)
+        self.set_stored_pr_identity(
+            pr_id="LPR-001", github_pull_request_number=999
+        )
+        self.activate_cutover(include_pull_request=True)
+        sessions_path = self.root / "workflow" / "state" / "sessions.json"
+        events_path = self.root / "workflow" / "events.jsonl"
+        before = (sessions_path.read_bytes(), events_path.read_bytes())
+
+        with self.assertRaisesRegex(
+            local_agent.AgentError,
+            "pull-request identities conflict with the exact cutover manifest",
+        ):
+            local_agent.claim_issued_session(
+                session_id=session_id,
+                workflow_root=self.root,
+                alias=session_id,
+                cwd=Path(record["worktree"]),
+                base_revision=record["base_revision"],
+                owned_paths=record["owned_paths"],
+                read_only=False,
+                role="prover",
+                issue_id="QPBT-002",
+                parent_session_id=None,
+            )
+
+        self.assertEqual(before, (sessions_path.read_bytes(), events_path.read_bytes()))
+
+    def test_migrated_pr_claim_rejects_immutable_identity_mismatch_exactly(self) -> None:
+        session_id = "i002-reviewer-a01-mismatched-pr-head"
+        record = self.real_issued_ledger(session_id)
+        self.set_stored_pr_identity(
+            pr_id="LPR-001", github_pull_request_number=26
+        )
+        sessions_path = self.root / "workflow" / "state" / "sessions.json"
+        sessions = json.loads(sessions_path.read_text(encoding="utf-8"))
+        sessions["issued"][0]["github_pull_request_head_sha"] = "c" * 40
+        sessions_path.write_text(json.dumps(sessions) + "\n", encoding="utf-8")
+        self.activate_cutover(include_pull_request=True)
+        events_path = self.root / "workflow" / "events.jsonl"
+        before = (sessions_path.read_bytes(), events_path.read_bytes())
+
+        with self.assertRaisesRegex(
+            local_agent.AgentError,
+            "pull-request immutable identity conflicts with the exact cutover manifest",
+        ):
+            local_agent.claim_issued_session(
+                session_id=session_id,
+                workflow_root=self.root,
+                alias=session_id,
+                cwd=Path(record["worktree"]),
+                base_revision=record["base_revision"],
+                owned_paths=record["owned_paths"],
+                read_only=False,
+                role="prover",
+                issue_id="QPBT-002",
+                parent_session_id=None,
+            )
+
+        self.assertEqual(before, (sessions_path.read_bytes(), events_path.read_bytes()))
+
+    def test_migrated_pr_claim_rejects_legacy_id_absent_from_manifest(self) -> None:
+        session_id = "i002-reviewer-a01-pr-absent-from-manifest"
+        record = self.real_issued_ledger(session_id)
+        self.set_stored_pr_identity(
+            pr_id="LPR-001", github_pull_request_number=26
+        )
+        self.activate_cutover()
+        sessions_path = self.root / "workflow" / "state" / "sessions.json"
+        events_path = self.root / "workflow" / "events.jsonl"
+        before = (sessions_path.read_bytes(), events_path.read_bytes())
+
+        with self.assertRaisesRegex(
+            local_agent.AgentError,
+            "legacy pull-request identity is absent from the exact cutover manifest",
+        ):
+            local_agent.claim_issued_session(
+                session_id=session_id,
+                workflow_root=self.root,
+                alias=session_id,
+                cwd=Path(record["worktree"]),
+                base_revision=record["base_revision"],
+                owned_paths=record["owned_paths"],
+                read_only=False,
+                role="prover",
+                issue_id="QPBT-002",
+                parent_session_id=None,
+            )
+
+        self.assertEqual(before, (sessions_path.read_bytes(), events_path.read_bytes()))
+
+    def test_migrated_pr_claim_rejects_missing_legacy_half_exactly(self) -> None:
+        session_id = "i002-reviewer-a01-missing-pr-legacy-half"
+        record = self.real_issued_ledger(session_id)
+        self.set_stored_pr_identity(
+            pr_id=None, github_pull_request_number=26
+        )
+        self.activate_cutover(include_pull_request=True)
+        sessions_path = self.root / "workflow" / "state" / "sessions.json"
+        events_path = self.root / "workflow" / "events.jsonl"
+        before = (sessions_path.read_bytes(), events_path.read_bytes())
+
+        with self.assertRaisesRegex(
+            local_agent.AgentError,
+            "migrated GitHub pull-request identity is missing its legacy binding",
+        ):
+            local_agent.claim_issued_session(
+                session_id=session_id,
+                workflow_root=self.root,
+                alias=session_id,
+                cwd=Path(record["worktree"]),
+                base_revision=record["base_revision"],
+                owned_paths=record["owned_paths"],
+                read_only=False,
+                role="prover",
+                issue_id="QPBT-002",
+                parent_session_id=None,
+            )
+
+        self.assertEqual(before, (sessions_path.read_bytes(), events_path.read_bytes()))
+
+    def test_migrated_pr_claim_accepts_valid_dual_identity(self) -> None:
+        session_id = "i002-reviewer-a01-valid-migrated-pr"
+        record = self.real_issued_ledger(session_id)
+        self.set_stored_pr_identity(
+            pr_id="LPR-001", github_pull_request_number=26
+        )
+        self.activate_cutover(include_pull_request=True)
+
+        claimed = local_agent.claim_issued_session(
+            session_id=session_id,
+            workflow_root=self.root,
+            alias=session_id,
+            cwd=Path(record["worktree"]),
+            base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"],
+            read_only=False,
+            role="prover",
+            issue_id="QPBT-002",
+            parent_session_id=None,
+        )
+
+        self.assertEqual("running", claimed["status"])
+        self.assertEqual("LPR-001", claimed["pr_id"])
+        self.assertEqual(26, claimed["github_pull_request_number"])
+
+    def test_github_only_pr_claim_accepts_unbound_number(self) -> None:
+        session_id = "i002-reviewer-a01-valid-github-only-pr"
+        record = self.real_issued_ledger(session_id)
+        self.set_stored_pr_identity(
+            pr_id=None, github_pull_request_number=29
+        )
+        self.activate_cutover(include_pull_request=True)
+
+        claimed = local_agent.claim_issued_session(
+            session_id=session_id,
+            workflow_root=self.root,
+            alias=session_id,
+            cwd=Path(record["worktree"]),
+            base_revision=record["base_revision"],
+            owned_paths=record["owned_paths"],
+            read_only=False,
+            role="prover",
+            issue_id="QPBT-002",
+            parent_session_id=None,
+        )
+
+        self.assertEqual("running", claimed["status"])
+        self.assertIsNone(claimed["pr_id"])
+        self.assertEqual(29, claimed["github_pull_request_number"])
+
+    def test_github_only_pr_claim_rejects_malformed_identity_exactly(self) -> None:
+        session_id = "i002-reviewer-a01-malformed-github-only-pr"
+        record = self.real_issued_ledger(session_id)
+        self.set_stored_pr_identity(
+            pr_id=None, github_pull_request_number=29
+        )
+        sessions_path = self.root / "workflow" / "state" / "sessions.json"
+        sessions = json.loads(sessions_path.read_text(encoding="utf-8"))
+        sessions["issued"][0]["github_pull_request_base_ref"] = "develop"
+        sessions_path.write_text(json.dumps(sessions) + "\n", encoding="utf-8")
+        self.activate_cutover(include_pull_request=True)
+        events_path = self.root / "workflow" / "events.jsonl"
+        before = (sessions_path.read_bytes(), events_path.read_bytes())
+
+        with self.assertRaisesRegex(
+            local_agent.AgentError,
+            "GitHub-only pull-request immutable identity is invalid",
+        ):
+            local_agent.claim_issued_session(
+                session_id=session_id,
+                workflow_root=self.root,
+                alias=session_id,
+                cwd=Path(record["worktree"]),
+                base_revision=record["base_revision"],
+                owned_paths=record["owned_paths"],
+                read_only=False,
+                role="prover",
+                issue_id="QPBT-002",
+                parent_session_id=None,
+            )
+
+        self.assertEqual(before, (sessions_path.read_bytes(), events_path.read_bytes()))
+
+    def test_migrated_claim_rolls_back_when_manifest_changes_after_state_write(self) -> None:
+        session_id = "i002-prover-a01-manifest-publication-race"
+        record = self.real_issued_ledger(session_id)
+        sessions_path = self.root / "workflow" / "state" / "sessions.json"
+        events_path = self.root / "workflow" / "events.jsonl"
+        sessions = json.loads(sessions_path.read_text(encoding="utf-8"))
+        sessions["issued"][0]["github_issue_number"] = 2
+        sessions_path.write_text(json.dumps(sessions) + "\n", encoding="utf-8")
+        self.activate_cutover()
+        manifest_path = self.root / "workflow" / "github-cutover.json"
+        before = (sessions_path.read_bytes(), events_path.read_bytes())
+        original_write = local_agent.workflow_state.atomic_write_json
+
+        def write_then_change_manifest(path: Path, value: object) -> None:
+            original_write(path, value)
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["issues"][0]["number"] = 999
+            manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+
+        with mock.patch.object(
+            local_agent.workflow_state,
+            "atomic_write_json",
+            side_effect=write_then_change_manifest,
+        ), self.assertRaisesRegex(
+            local_agent.AgentError, "authority changed during publication"
+        ):
+            local_agent.claim_issued_session(
+                session_id=session_id,
+                workflow_root=self.root,
+                alias=session_id,
+                cwd=Path(record["worktree"]),
+                base_revision=record["base_revision"],
+                owned_paths=record["owned_paths"],
+                read_only=False,
+                role="prover",
+                issue_id="QPBT-002",
+                github_issue_number=None,
+                parent_session_id=None,
+            )
+
+        self.assertEqual(before, (sessions_path.read_bytes(), events_path.read_bytes()))
+
+    def test_packet_parser_accepts_canonical_github_issue_number(self) -> None:
+        parser = local_agent.build_parser()
+        arguments = parser.parse_args(
+            [
+                "--repo-root",
+                str(self.root),
+                "run",
+                "--github-issue-number",
+                "28",
+                "--role",
+                "prover",
+                "--attempt",
+                "1",
+                "--slug",
+                "github-only",
+                "--task",
+                "prove",
+            ]
+        )
+        alias, prompt, _ = local_agent._packet_from_arguments(arguments, self.root)
+        self.assertEqual("i028-prover-a01-github-only", alias)
+        self.assertIn('"github_issue_number": 28', prompt)
+        self.assertIn('"issue_id": null', prompt)
 
     def test_real_store_recovery_is_idempotent_and_rejects_conflict(self) -> None:
         session_id = "i002-prover-a01-recovery"

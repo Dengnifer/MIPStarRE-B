@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from contextlib import contextmanager
 import itertools
 import json
 from pathlib import Path
@@ -684,6 +685,91 @@ class WorkflowValidationTests(unittest.TestCase):
             all(entry["reason"] == "duplicate-orchestrator" for entry in result["blocked"])
         )
 
+    def test_github_only_formalization_delegates_require_one_active_orchestrator(self) -> None:
+        state = documents()
+        prover = planned_session(
+            "i028-prover-a01-github-only-formalization",
+            role="prover",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/GitHubOnlyProof.lean"],
+        )
+        prover["issue_id"] = None
+        prover["github_issue_number"] = 28
+        prover["stage_id"] = "STAGE-01"
+        state["sessions.json"]["planned"] = [prover]
+        projection = {
+            28: {
+                "status": "ready",
+                "kind": "formalization",
+                "execution_category": "implementation",
+                "dependency_numbers": [],
+                "incomplete_dependency_numbers": [],
+            }
+        }
+
+        blocked = workflow.plan_dispatch(
+            state,
+            capacity=2,
+            stage_id="STAGE-01",
+            session_ids=[prover["id"]],
+            canonical_issue_projection=projection,
+            canonical_issue_bindings={},
+        )
+        self.assertEqual("blocked", blocked["status"])
+        self.assertEqual(
+            "implementation-orchestrator-required",
+            blocked["blocked"][0]["reason"],
+        )
+
+        scout = planned_session(
+            "i028-scout-a01-github-only-formalization",
+            role="scout",
+            read_only=True,
+        )
+        scout["issue_id"] = None
+        scout["github_issue_number"] = 28
+        scout["stage_id"] = "STAGE-01"
+        state["sessions.json"]["planned"].append(scout)
+        blocked_scout = workflow.plan_dispatch(
+            state,
+            capacity=2,
+            stage_id="STAGE-01",
+            session_ids=[scout["id"]],
+            canonical_issue_projection=projection,
+            canonical_issue_bindings={},
+        )
+        self.assertEqual("blocked", blocked_scout["status"])
+        self.assertEqual(
+            "implementation-orchestrator-required",
+            blocked_scout["blocked"][0]["reason"],
+        )
+
+        orchestrator = issued_session(
+            "i028-orchestrator-a01-github-only-formalization",
+            role="orchestrator",
+            status="issued",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/GitHubOnlyOrchestration.md"],
+            started_at=None,
+            ended_at=None,
+            elapsed_seconds=None,
+        )
+        orchestrator["issue_id"] = None
+        orchestrator["github_issue_number"] = 28
+        orchestrator["stage_id"] = "STAGE-01"
+        state["sessions.json"]["issued"] = [orchestrator]
+
+        admitted = workflow.plan_dispatch(
+            state,
+            capacity=2,
+            stage_id="STAGE-01",
+            session_ids=[prover["id"]],
+            canonical_issue_projection=projection,
+            canonical_issue_bindings={},
+        )
+        self.assertEqual("ready", admitted["status"])
+        self.assertEqual([prover["id"]], admitted["dispatchable"])
+
     def test_dispatch_rejects_orchestrator_when_active_attempt_exists(self) -> None:
         state = documents()
         active = issued_session(
@@ -712,6 +798,49 @@ class WorkflowValidationTests(unittest.TestCase):
         )
         self.assertEqual("duplicate-orchestrator", result["blocked"][0]["reason"])
         self.assertEqual([active["id"]], result["blocked"][0]["with_session_ids"])
+
+    def test_dispatch_rejects_cross_domain_orchestrator_identity(self) -> None:
+        state = documents()
+        migrated = planned_session(
+            "i002-orchestrator-a03-migrated-identity",
+            role="orchestrator",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/Migrated.lean"],
+        )
+        migrated["github_issue_number"] = 2
+        github_only = planned_session(
+            "i002-orchestrator-a04-github-only-identity",
+            role="orchestrator",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/GitHubOnly.lean"],
+        )
+        github_only["issue_id"] = None
+        github_only["github_issue_number"] = 2
+        github_only["stage_id"] = "STAGE-01"
+        state["sessions.json"]["planned"] = [migrated, github_only]
+        result = workflow.plan_dispatch(
+            state,
+            capacity=2,
+            stage_id="STAGE-01",
+            session_ids=[migrated["id"], github_only["id"]],
+            canonical_issue_projection={
+                2: {
+                    "status": "ready",
+                    "kind": "formalization",
+                    "execution_category": "implementation",
+                    "dependency_numbers": [],
+                    "incomplete_dependency_numbers": [],
+                }
+            },
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual(
+            [migrated["id"], github_only["id"]],
+            [entry["id"] for entry in result["blocked"]],
+        )
+        self.assertTrue(
+            all(entry["reason"] == "duplicate-orchestrator" for entry in result["blocked"])
+        )
 
     def test_dispatch_plan_rejects_cross_candidate_batch_conflict(self) -> None:
         state = documents()
@@ -1425,19 +1554,92 @@ class WorkflowStoreTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
+    def activate_github_cutover(self) -> Path:
+        """Create the exact valid config/manifest pair used by cutover tests."""
+
+        repository = {
+            "owner": "Dengnifer",
+            "name": "MIPStarRE-B",
+            "database_id": 1352436168,
+            "node_id": "R_kgDOUJyJyA",
+        }
+        config = self.root / "workflow" / "github.json"
+        config.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "repository": repository,
+                    "base_ref": "main",
+                    "cutover_manifest": "github-cutover.json",
+                }
+            ),
+            encoding="utf-8",
+        )
+        manifest = {
+            "schema_version": 1,
+            "repository": repository,
+            "base_ref": "main",
+            "cutover_main_sha": BASE_SHA,
+            "issues": [
+                {
+                    "legacy_id": legacy_id,
+                    "number": number,
+                    "database_id": 100 + number,
+                    "node_id": f"I_issueNode0{number}",
+                    "marker": github_workflow.issue_marker(legacy_id),
+                }
+                for legacy_id, number in (("QPBT-001", 1), ("QPBT-002", 2))
+            ],
+            "pull_requests": [
+                {
+                    "legacy_id": "LPR-001",
+                    "number": 26,
+                    "database_id": 226,
+                    "node_id": "PR_pullRequestNode026",
+                    "marker": github_workflow.pull_request_marker("LPR-001"),
+                    "base_ref": "main",
+                    "base_sha": BASE_SHA,
+                    "head_ref": "issue/qpbt-002",
+                    "head_sha": HEAD_SHA,
+                }
+            ],
+        }
+        (self.root / "workflow" / "github-cutover.json").write_text(
+            json.dumps(manifest), encoding="utf-8"
+        )
+        return config
+
     def test_read_only_validation_creates_no_runtime_files(self) -> None:
         self.store.validate()
         self.assertFalse(self.runtime.exists())
 
     def test_github_cutover_disables_legacy_issue_and_pr_authority_commands(self) -> None:
-        config = self.root / "workflow" / "github.json"
-        config.write_text("{}\n", encoding="utf-8")
+        self.activate_github_cutover()
         parser = workflow.build_parser()
         issue_payload = json.dumps(issue("QPBT-003", "planned"))
         commands = [
             ["init", "--missing-only"],
             ["ready"],
             ["add", "issue", "--json", issue_payload],
+            [
+                "add",
+                "issued-session",
+                "--json",
+                json.dumps(issued_session("i002-reviewer-a01-direct-add")),
+            ],
+            [
+                "update",
+                "issued-session",
+                "i002-reviewer-a01-direct-update",
+                "--set",
+                'external_id="invented-thread"',
+            ],
+            [
+                "transition",
+                "issued-session",
+                "i002-reviewer-a01-direct-transition",
+                "running",
+            ],
             ["update", "issue", "QPBT-002", "--set", 'title="stale"'],
             ["transition", "pr", "LPR-001", "closed"],
         ]
@@ -1461,9 +1663,29 @@ class WorkflowStoreTests(unittest.TestCase):
         )
         self.assertEqual(events_before, self.events.read_bytes())
 
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "generic local API"
+        ):
+            self.store.mutate(
+                "sessions.json",
+                "record.updated",
+                {"kind": "issued-session"},
+                lambda document: document.update({"tampered": True}),
+            )
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "cannot be initialized"
+        ):
+            self.store.initialize(missing_only=True)
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "require a guarded dispatch"
+        ):
+            self.store.append_event(
+                "record.transitioned",
+                {"kind": "issued-session", "session_id": "forged"},
+            )
+
     def test_github_cutover_dispatch_requires_exact_explicit_config(self) -> None:
-        config = self.root / "workflow" / "github.json"
-        config.write_text("{}\n", encoding="utf-8")
+        self.activate_github_cutover()
         candidate = planned_session("i002-reviewer-a01-github-config")
         state = documents()
         state["sessions.json"]["planned"] = [candidate]
@@ -1514,13 +1736,489 @@ class WorkflowStoreTests(unittest.TestCase):
         self.assertEqual(before, (self.state_dir / "sessions.json").read_bytes())
         self.assertEqual(events_before, self.events.read_bytes())
 
-    def test_github_cutover_dispatch_uses_live_canonical_issue_projection(self) -> None:
+    def test_github_cutover_store_rejects_alternate_authority_config(self) -> None:
+        self.activate_github_cutover()
+        alternate = self.root / "alternate-github.json"
+        alternate.write_text("{}\n", encoding="utf-8")
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "exactly workflow/github.json"
+        ):
+            workflow.WorkflowStore(
+                self.state_dir,
+                self.runtime,
+                self.events,
+                github_authority_config=alternate,
+            )
+
+    def test_github_cutover_rejects_symlinked_authority_config(self) -> None:
         config = self.root / "workflow" / "github.json"
-        config.write_text("{}\n", encoding="utf-8")
+        target = self.root / "evil.json"
+        target.write_text("{}\n", encoding="utf-8")
+        config.symlink_to(target)
+        parser = workflow.build_parser()
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "regular, non-symlink"
+        ):
+            workflow.run_cli(
+                parser.parse_args(
+                    [
+                        "--root",
+                        str(self.root),
+                        "dispatch",
+                        "--capacity",
+                        "1",
+                        "--dry-run",
+                        "--github-config",
+                        "workflow/github.json",
+                    ]
+                )
+            )
+
+    def test_github_cutover_blocks_store_issue_and_pr_mutations(self) -> None:
+        self.activate_github_cutover()
+        before = {
+            name: (self.state_dir / name).read_bytes()
+            for name in ("issues.json", "prs.json")
+        }
+        for filename in ("issues.json", "prs.json"):
+            with self.subTest(filename=filename), self.assertRaisesRegex(
+                workflow.WorkflowError, "local issue/PR mutation is disabled"
+            ):
+                self.store.mutate(
+                    filename,
+                    "record.updated",
+                    {"kind": filename},
+                    lambda document: document.update({"tampered": True}),
+                )
+        self.assertEqual(
+            before,
+            {
+                name: (self.state_dir / name).read_bytes()
+                for name in ("issues.json", "prs.json")
+            },
+        )
+
+    def test_github_cutover_plans_migrated_session_with_manifest_number(self) -> None:
+        self.activate_github_cutover()
+        candidate = planned_session("i002-reviewer-a01-plan-migrated")
+        candidate.pop("github_issue_number", None)
+        parser = workflow.build_parser()
+
+        result = workflow.run_cli(
+            parser.parse_args(
+                [
+                    "--root",
+                    str(self.root),
+                    "add",
+                    "planned-session",
+                    "--json",
+                    json.dumps(candidate),
+                ]
+            )
+        )
+
+        self.assertEqual(2, result["github_issue_number"])
+        planned = self.store.validate()["sessions.json"]["planned"]
+        self.assertEqual([result], planned)
+
+    def test_github_cutover_plans_github_only_session_without_shadow_issue(self) -> None:
+        self.activate_github_cutover()
+        candidate = planned_session("i028-reviewer-a01-plan-github-only")
+        candidate["issue_id"] = None
+        candidate["github_issue_number"] = 28
+        candidate["pr_id"] = None
+        candidate["github_pull_request_number"] = 29
+        candidate["github_pull_request_base_ref"] = "main"
+        candidate["github_pull_request_base_sha"] = BASE_SHA
+        candidate["github_pull_request_head_ref"] = "workflow/qpbt-053"
+        candidate["github_pull_request_head_sha"] = HEAD_SHA
+        candidate["stage_id"] = "STAGE-01"
+        issues_before = (self.state_dir / "issues.json").read_bytes()
+
+        result = self.store.plan_session(candidate)
+
+        self.assertIsNone(result["issue_id"])
+        self.assertEqual(28, result["github_issue_number"])
+        self.assertEqual(29, result["github_pull_request_number"])
+        self.assertEqual("STAGE-01", result["stage_id"])
+        self.assertEqual(issues_before, (self.state_dir / "issues.json").read_bytes())
+        self.assertEqual(
+            [result], self.store.validate()["sessions.json"]["planned"]
+        )
+
+    def test_github_cutover_plan_identity_failures_roll_back_exact_bytes(self) -> None:
+        self.activate_github_cutover()
+        sessions_before = (self.state_dir / "sessions.json").read_bytes()
+        events_before = self.events.read_bytes()
+        mismatched = planned_session("i002-reviewer-a02-plan-mismatch")
+        mismatched["github_issue_number"] = 999
+        github_only_migrated = planned_session(
+            "i002-reviewer-a03-plan-migrated-as-github-only"
+        )
+        github_only_migrated["issue_id"] = None
+        github_only_migrated["github_issue_number"] = 2
+        github_only_migrated["stage_id"] = "STAGE-01"
+
+        for candidate, message in (
+            (mismatched, "binding disagrees"),
+            (github_only_migrated, "targets migrated issue #2"),
+        ):
+            with self.subTest(session_id=candidate["id"]), self.assertRaisesRegex(
+                workflow.WorkflowError, message
+            ):
+                self.store.plan_session(candidate)
+            self.assertEqual(
+                sessions_before, (self.state_dir / "sessions.json").read_bytes()
+            )
+            self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_symlinked_state_dir_cannot_bypass_authority(self) -> None:
+        self.activate_github_cutover()
+        alias = self.root / "state-alias"
+        alias.symlink_to(self.state_dir, target_is_directory=True)
+        store = workflow.WorkflowStore(alias, self.runtime, self.events)
+        issues_before = (self.state_dir / "issues.json").read_bytes()
+        events_before = self.events.read_bytes()
+
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "must not use a symlink or lexical alias"
+        ):
+            store.mutate(
+                "issues.json",
+                "record.updated",
+                {"kind": "issue"},
+                lambda document: document.update({"tampered": True}),
+            )
+
+        self.assertEqual(issues_before, (self.state_dir / "issues.json").read_bytes())
+        self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_plan_rejects_issued_record_dead_ends(self) -> None:
+        self.activate_github_cutover()
+        sessions_before = (self.state_dir / "sessions.json").read_bytes()
+        events_before = self.events.read_bytes()
+        unknown_pr = planned_session("i002-reviewer-a05-unknown-pr")
+        unknown_pr["pr_id"] = "LPR-404"
+        missing_backend = planned_session("i002-reviewer-a06-missing-backend")
+        missing_backend.pop("backend")
+        unbound_pr_without_identity = planned_session(
+            "i002-reviewer-a09-unbound-pr-without-identity"
+        )
+        unbound_pr_without_identity["pr_id"] = None
+        unbound_pr_without_identity["github_pull_request_number"] = 999
+
+        for candidate, message in (
+            (unknown_pr, "unmigrated legacy pull request 'LPR-404'"),
+            (missing_backend, "cannot materialize as an issued record.*backend"),
+            (
+                unbound_pr_without_identity,
+                "pull-request base ref must match canonical main",
+            ),
+        ):
+            with self.subTest(session_id=candidate["id"]), self.assertRaisesRegex(
+                workflow.WorkflowError, message
+            ):
+                self.store.plan_session(candidate)
+            self.assertEqual(
+                sessions_before, (self.state_dir / "sessions.json").read_bytes()
+            )
+            self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_plan_binds_migrated_pull_request_identity(self) -> None:
+        self.activate_github_cutover()
+        state = documents()
+        draft = pull_request(status="draft", checks=[], reviews=[], findings=[])
+        draft["implementer_session_ids"] = []
+        state["prs.json"]["pull_requests"] = [draft]
+        (self.state_dir / "prs.json").write_text(
+            json.dumps(state["prs.json"]), encoding="utf-8"
+        )
+        sessions_before = (self.state_dir / "sessions.json").read_bytes()
+        events_before = self.events.read_bytes()
+
+        mismatch = planned_session("i002-reviewer-a07-pr-mismatch")
+        mismatch["pr_id"] = "LPR-001"
+        mismatch["github_pull_request_number"] = 999
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "pull-request binding disagrees"
+        ):
+            self.store.plan_session(mismatch)
+        self.assertEqual(sessions_before, (self.state_dir / "sessions.json").read_bytes())
+        self.assertEqual(events_before, self.events.read_bytes())
+
+        migrated = planned_session("i002-reviewer-a08-pr-materialized")
+        migrated["pr_id"] = "LPR-001"
+        migrated.pop("github_pull_request_number", None)
+        result = self.store.plan_session(migrated)
+        self.assertEqual(26, result["github_pull_request_number"])
+        self.assertEqual("main", result["github_pull_request_base_ref"])
+        self.assertEqual(HEAD_SHA, result["github_pull_request_head_sha"])
+
+    def test_github_cutover_dispatch_reaudits_migrated_pr_manifest_binding(self) -> None:
+        config = self.activate_github_cutover()
+        state = documents()
+        draft = pull_request(status="draft", checks=[], reviews=[], findings=[])
+        draft["implementer_session_ids"] = []
+        state["prs.json"]["pull_requests"] = [draft]
+        (self.state_dir / "prs.json").write_text(
+            json.dumps(state["prs.json"]), encoding="utf-8"
+        )
+        candidate = planned_session("i002-reviewer-a10-pr-remapped")
+        candidate["pr_id"] = "LPR-001"
+        candidate = self.store.plan_session(candidate)
+        manifest_path = self.root / "workflow" / "github-cutover.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["pull_requests"][0]["number"] = 27
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        sessions_before = (self.state_dir / "sessions.json").read_bytes()
+        events_before = self.events.read_bytes()
+
+        with mock.patch.object(github_workflow, "live_preflight") as preflight, \
+             self.assertRaisesRegex(
+                 workflow.WorkflowError,
+                 "mismatched migrated GitHub pull-request binding",
+             ):
+            workflow._github_dispatch_preflight(
+                self.store, config.resolve(), [candidate["id"]]
+            )
+        preflight.assert_not_called()
+        self.assertEqual(sessions_before, (self.state_dir / "sessions.json").read_bytes())
+        self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_plan_rejects_duplicate_orchestrator_dead_end(self) -> None:
+        self.activate_github_cutover()
+        first = planned_session(
+            "i002-orchestrator-a01-cutover-plan",
+            role="orchestrator",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/First.lean"],
+        )
+        second = planned_session(
+            "i002-orchestrator-a02-cutover-plan",
+            role="orchestrator",
+            read_only=False,
+            owned_paths=["MIPStarRE/QPBT/Second.lean"],
+        )
+        self.store.plan_session(first)
+        sessions_before = (self.state_dir / "sessions.json").read_bytes()
+        events_before = self.events.read_bytes()
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "duplicate orchestrator"
+        ):
+            self.store.plan_session(second)
+        self.assertEqual(sessions_before, (self.state_dir / "sessions.json").read_bytes())
+        self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_manifest_without_config_fails_closed(self) -> None:
+        config = self.activate_github_cutover()
+        config.unlink()
+        store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
+        sessions_before = (self.state_dir / "sessions.json").read_bytes()
+        events_before = self.events.read_bytes()
+
+        with self.assertRaisesRegex(
+            workflow.WorkflowError,
+            "authority config is missing while the irreversible cutover manifest remains",
+        ):
+            store.plan_session(planned_session("i002-reviewer-a04-missing-config"))
+
+        self.assertEqual(
+            sessions_before, (self.state_dir / "sessions.json").read_bytes()
+        )
+        self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_long_lived_store_rechecks_cutover_marker_before_dispatch(self) -> None:
+        candidate = planned_session("i002-reviewer-a01-late-cutover")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        self.activate_github_cutover()
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "requires an opaque live preflight proof"
+        ):
+            self.store.dispatch_sessions(
+                capacity=1,
+                session_ids=[candidate["id"]],
+                dry_run=True,
+                issue_projection={},
+                canonical_issue_projection={},
+            )
+
+    def test_cutover_marker_created_before_dispatch_lock_fails_closed(self) -> None:
+        candidate = planned_session("i002-reviewer-a02-cutover-race")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        original_refresh = self.store._refresh_github_authority
+        calls = 0
+
+        def create_marker_on_second_refresh() -> Path | None:
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                (self.root / "workflow" / "github.json").write_text(
+                    "{}\n", encoding="utf-8"
+                )
+            return original_refresh()
+
+        self.store._refresh_github_authority = create_marker_on_second_refresh  # type: ignore[method-assign]
+        try:
+            with self.assertRaisesRegex(
+                workflow.WorkflowError, "appeared or disappeared during dispatch"
+            ):
+                self.store.dispatch_sessions(
+                    capacity=1,
+                    session_ids=[candidate["id"]],
+                    dry_run=True,
+                    issue_projection={
+                        "QPBT-002": {
+                            "status": "ready",
+                            "parent_id": None,
+                            "dependency_ids": [],
+                        }
+                    },
+                    canonical_issue_projection={},
+                )
+        finally:
+            self.store._refresh_github_authority = original_refresh  # type: ignore[method-assign]
+
+    def test_cutover_marker_created_during_session_mutation_fails_closed(self) -> None:
+        sessions_path = self.state_dir / "sessions.json"
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+
+        def create_marker(document: dict[str, object]) -> None:
+            document["mutation_marker"] = True
+            (self.root / "workflow" / "github.json").write_text(
+                "{}\n", encoding="utf-8"
+            )
+
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "authority appeared during generic local mutation"
+        ):
+            self.store.mutate(
+                "sessions.json",
+                "record.updated",
+                {"kind": "issued-session"},
+                create_marker,
+            )
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_cutover_marker_created_after_session_write_rolls_back(self) -> None:
+        sessions_path = self.state_dir / "sessions.json"
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+        original_write = workflow.atomic_write_json
+
+        def create_marker_after_write(path: Path, value: object) -> None:
+            original_write(path, value)
+            if path == sessions_path:
+                (self.root / "workflow" / "github.json").write_text(
+                    "{}\n", encoding="utf-8"
+                )
+
+        with mock.patch.object(
+            workflow, "atomic_write_json", side_effect=create_marker_after_write
+        ), self.assertRaisesRegex(
+            workflow.WorkflowError, "authority appeared during generic local mutation"
+        ):
+            self.store.mutate(
+                "sessions.json",
+                "record.updated",
+                {"kind": "issued-session"},
+                lambda document: document.update({"mutation_marker": True}),
+            )
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_cutover_marker_created_during_initialize_rolls_back(self) -> None:
+        root = self.root / "initialize-race"
+        state_dir = root / "workflow" / "state"
+        state_dir.mkdir(parents=True)
+        events = root / "workflow" / "events.jsonl"
+        store = workflow.WorkflowStore(
+            state_dir, root / ".workflow-runtime", events
+        )
+        original_write = workflow.atomic_write_json
+
+        def create_marker_after_first_write(path: Path, value: object) -> None:
+            original_write(path, value)
+            if path.name == "issues.json":
+                (root / "workflow" / "github.json").write_text(
+                    "{}\n", encoding="utf-8"
+                )
+
+        with mock.patch.object(
+            workflow, "atomic_write_json", side_effect=create_marker_after_first_write
+        ), self.assertRaisesRegex(
+            workflow.WorkflowError, "appeared during workflow initialization"
+        ):
+            store.initialize()
+        self.assertEqual([], list(state_dir.iterdir()))
+        self.assertFalse(events.exists())
+
+    def test_initialize_rolls_back_interrupt_after_first_publication(self) -> None:
+        root = self.root / "initialize-interrupt"
+        state_dir = root / "workflow" / "state"
+        state_dir.mkdir(parents=True)
+        events = root / "workflow" / "events.jsonl"
+        store = workflow.WorkflowStore(
+            state_dir, root / ".workflow-runtime", events
+        )
+        original_write = workflow.atomic_write_json
+        interrupted = False
+
+        def interrupt_after_write(path: Path, value: object) -> None:
+            nonlocal interrupted
+            original_write(path, value)
+            if not interrupted:
+                interrupted = True
+                raise KeyboardInterrupt
+
+        with mock.patch.object(
+            workflow, "atomic_write_json", side_effect=interrupt_after_write
+        ), self.assertRaises(KeyboardInterrupt):
+            store.initialize()
+        self.assertEqual([], list(state_dir.iterdir()))
+        self.assertFalse(events.exists())
+
+    def test_cutover_marker_created_on_event_lock_fails_closed(self) -> None:
+        before_events = self.events.read_bytes()
+        original_lock = self.store._lock
+
+        @contextmanager
+        def create_marker_on_lock(*, exclusive: bool):
+            with original_lock(exclusive=exclusive) as descriptor:
+                (self.root / "workflow" / "github.json").write_text(
+                    "{}\n", encoding="utf-8"
+                )
+                yield descriptor
+
+        self.store._lock = create_marker_on_lock  # type: ignore[method-assign]
+        try:
+            with self.assertRaisesRegex(
+                workflow.WorkflowError, "appeared during generic event append"
+            ):
+                self.store.append_event("record.updated", {"kind": "stage"})
+        finally:
+            self.store._lock = original_lock  # type: ignore[method-assign]
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_github_cutover_dispatch_uses_live_canonical_issue_projection(self) -> None:
+        config = self.activate_github_cutover()
         candidate = planned_session("i002-reviewer-a01-github-preflight")
         candidate["github_issue_number"] = 2
         state = documents()
+        state["issues.json"]["issues"][1]["kind"] = "workflow"
         state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "issues.json").write_text(
+            json.dumps(state["issues.json"]), encoding="utf-8"
+        )
         (self.state_dir / "sessions.json").write_text(
             json.dumps(state["sessions.json"]), encoding="utf-8"
         )
@@ -1530,6 +2228,7 @@ class WorkflowStoreTests(unittest.TestCase):
         )
         authority = mock.Mock()
         authority.issues = bindings
+        authority.pull_requests = ()
         authority.issue_by_legacy_id.side_effect = lambda value: {
             item.legacy_id: item for item in bindings
         }[value]
@@ -1549,9 +2248,9 @@ class WorkflowStoreTests(unittest.TestCase):
             "OPEN",
             None,
             "ready",
-            "formalization",
+            "workflow",
             "QPBT-002",
-            ("kind:formalization", "status:ready"),
+            ("kind:workflow", "status:ready"),
             None,
             None,
             None,
@@ -1611,11 +2310,19 @@ class WorkflowStoreTests(unittest.TestCase):
 
         self.assertEqual("ready", result["status"])
         self.assertEqual([2], result["github_preflight"]["selected_issue_numbers"])
-        preflight.assert_called_once_with(
-            config.resolve(),
-            issue_numbers=[2],
-            pull_request_expectations=[],
-        )
+        preflight.assert_has_calls([
+            mock.call(
+                config.resolve(),
+                issue_numbers=[2],
+                pull_request_expectations=[],
+            ),
+            mock.call(
+                config.resolve(),
+                issue_numbers=[2],
+                pull_request_expectations=[],
+            ),
+        ])
+        self.assertEqual(2, preflight.call_count)
         self.assertEqual([], self.store.validate()["sessions.json"]["issued"])
 
         guarded_store = workflow.WorkflowStore(
@@ -1624,7 +2331,7 @@ class WorkflowStoreTests(unittest.TestCase):
             self.events,
         )
         with self.assertRaisesRegex(
-            workflow.WorkflowError, "requires a live canonical issue projection"
+            workflow.WorkflowError, "requires an opaque live preflight proof"
         ):
             guarded_store.dispatch_sessions(
                 capacity=1,
@@ -1632,9 +2339,210 @@ class WorkflowStoreTests(unittest.TestCase):
                 dry_run=True,
             )
 
+    def test_github_cutover_dispatch_live_checks_exact_github_only_pr_twice(self) -> None:
+        config = self.activate_github_cutover()
+        state = documents()
+        state["issues.json"]["issues"][1]["kind"] = "workflow"
+        (self.state_dir / "issues.json").write_text(
+            json.dumps(state["issues.json"]), encoding="utf-8"
+        )
+        candidate = planned_session("i002-reviewer-a09-github-only-pr")
+        candidate.update(
+            {
+                "pr_id": None,
+                "github_pull_request_number": 29,
+                "github_pull_request_base_ref": "main",
+                "github_pull_request_base_sha": BASE_SHA,
+                "github_pull_request_head_ref": "workflow/qpbt-053",
+                "github_pull_request_head_sha": HEAD_SHA,
+            }
+        )
+        candidate = self.store.plan_session(candidate)
+        repository = github_workflow.RepositorySnapshot(
+            github_workflow.RepositoryIdentity(
+                "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
+            ),
+            "main",
+            BASE_SHA,
+            "from-monorepo",
+        )
+        selected_issue = github_workflow.IssueSnapshot(
+            "QPBT-002", 2, 102, "ISSUE2", "OPEN", None, "ready",
+            "workflow", "QPBT-002", ("kind:workflow", "status:ready"),
+            None, None, None, None, (), (), (), ()
+        )
+        selected_pr = github_workflow.PullRequestSnapshot(
+            None,
+            29,
+            229,
+            "PR_pullNode029",
+            "OPEN",
+            "required",
+            "GitHub canonical cutover",
+            ("review:required",),
+            "main",
+            BASE_SHA,
+            "workflow/qpbt-053",
+            HEAD_SHA,
+            None,
+        )
+        snapshot = github_workflow.PreflightSnapshot(
+            repository, BASE_SHA, (selected_issue,), (selected_pr,)
+        )
+        expectation = github_workflow.PullRequestExpectation(
+            29, "main", BASE_SHA, "workflow/qpbt-053", HEAD_SHA
+        )
+        with mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ) as preflight:
+            _, _, evidence, proof = workflow._github_dispatch_preflight(
+                self.store, config.resolve(), [candidate["id"]]
+            )
+            result = self.store.dispatch_sessions(
+                capacity=1,
+                session_ids=[candidate["id"]],
+                dry_run=True,
+                github_preflight_proof=proof,
+            )
+
+        self.assertEqual("ready", result["status"])
+        self.assertEqual([29], evidence["selected_pull_request_numbers"])
+        preflight.assert_has_calls(
+            [
+                mock.call(
+                    config.resolve(),
+                    issue_numbers=[2],
+                    pull_request_expectations=[expectation],
+                ),
+                mock.call(
+                    config.resolve(),
+                    issue_numbers=[2],
+                    pull_request_expectations=[expectation],
+                ),
+            ]
+        )
+
+        sessions_before = (self.state_dir / "sessions.json").read_bytes()
+        events_before = self.events.read_bytes()
+        missing_pr = github_workflow.PreflightSnapshot(
+            repository, BASE_SHA, (selected_issue,), ()
+        )
+        with mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ):
+            _, _, _, proof = workflow._github_dispatch_preflight(
+                self.store, config.resolve(), [candidate["id"]]
+            )
+        with mock.patch.object(
+            github_workflow, "live_preflight", return_value=missing_pr
+        ), self.assertRaisesRegex(
+            workflow.WorkflowError, "omitted selected pull requests: 29"
+        ):
+            self.store.dispatch_sessions(
+                capacity=1,
+                session_ids=[candidate["id"]],
+                github_preflight_proof=proof,
+            )
+        self.assertEqual(sessions_before, (self.state_dir / "sessions.json").read_bytes())
+        self.assertEqual(events_before, self.events.read_bytes())
+
+    def test_github_cutover_locked_live_state_change_blocks_publication(self) -> None:
+        config = self.activate_github_cutover()
+        candidate = planned_session("i002-reviewer-a10-locked-live-state")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        sessions_before = sessions_path.read_bytes()
+        events_before = self.events.read_bytes()
+        repository = github_workflow.RepositorySnapshot(
+            github_workflow.RepositoryIdentity(
+                "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
+            ),
+            "main",
+            BASE_SHA,
+            "from-monorepo",
+        )
+
+        def selected(status: str) -> github_workflow.IssueSnapshot:
+            return github_workflow.IssueSnapshot(
+                legacy_id="QPBT-002",
+                number=2,
+                database_id=102,
+                node_id="I_issueNode02",
+                state="OPEN",
+                state_reason=None,
+                status=status,
+                kind="formalization",
+                title="QPBT-002",
+                labels=("kind:formalization", f"status:{status}"),
+                parent_number=None,
+                parent_database_id=None,
+                parent_node_id=None,
+                parent_legacy_id=None,
+                child_numbers=(),
+                child_legacy_ids=(),
+                dependency_numbers=(1,),
+                dependency_legacy_ids=("QPBT-001",),
+            )
+
+        dependency = github_workflow.IssueSnapshot(
+            legacy_id="QPBT-001",
+            number=1,
+            database_id=101,
+            node_id="I_issueNode01",
+            state="CLOSED",
+            state_reason="COMPLETED",
+            status="done",
+            kind="formalization",
+            title="QPBT-001",
+            labels=("kind:formalization",),
+            parent_number=None,
+            parent_database_id=None,
+            parent_node_id=None,
+            parent_legacy_id=None,
+            child_numbers=(),
+            child_legacy_ids=(),
+            dependency_numbers=(),
+            dependency_legacy_ids=(),
+        )
+        snapshots = [
+            github_workflow.PreflightSnapshot(
+                repository, BASE_SHA, (selected("ready"), dependency), ()
+            ),
+            github_workflow.PreflightSnapshot(
+                repository, BASE_SHA, (selected("blocked"), dependency), ()
+            ),
+        ]
+        arguments = workflow.build_parser().parse_args(
+            [
+                "--root",
+                str(self.root),
+                "dispatch",
+                "--capacity",
+                "1",
+                "--session-id",
+                str(candidate["id"]),
+                "--github-config",
+                "workflow/github.json",
+            ]
+        )
+
+        with mock.patch.object(
+            github_workflow, "live_preflight", side_effect=snapshots
+        ) as preflight, self.assertRaisesRegex(
+            workflow.WorkflowError, "not dispatchable from status 'blocked'"
+        ):
+            workflow.run_cli(arguments)
+
+        self.assertEqual(2, preflight.call_count)
+        self.assertEqual(sessions_before, sessions_path.read_bytes())
+        self.assertEqual(events_before, self.events.read_bytes())
+
     def test_github_cutover_dispatches_github_only_issue_without_shadow_row(self) -> None:
-        config = self.root / "workflow" / "github.json"
-        config.write_text("{}\n", encoding="utf-8")
+        config = self.activate_github_cutover()
         candidate = planned_session("i028-reviewer-a01-live-contract")
         candidate["issue_id"] = None
         candidate["github_issue_number"] = 28
@@ -1647,6 +2555,7 @@ class WorkflowStoreTests(unittest.TestCase):
         frozen_issues = (self.state_dir / "issues.json").read_bytes()
         authority = mock.Mock()
         authority.issues = ()
+        authority.pull_requests = ()
         repository = github_workflow.RepositorySnapshot(
             github_workflow.RepositoryIdentity(
                 "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
@@ -1706,16 +2615,556 @@ class WorkflowStoreTests(unittest.TestCase):
 
         self.assertEqual("issued", result["status"])
         self.assertEqual([28], result["github_preflight"]["selected_issue_numbers"])
-        preflight.assert_called_once_with(
-            config.resolve(),
-            issue_numbers=[28],
-            pull_request_expectations=[],
-        )
+        preflight.assert_has_calls([
+            mock.call(
+                config.resolve(),
+                issue_numbers=[28],
+                pull_request_expectations=[],
+            ),
+            mock.call(
+                config.resolve(),
+                issue_numbers=[28],
+                pull_request_expectations=[],
+            ),
+        ])
+        self.assertEqual(2, preflight.call_count)
         issued = self.store.validate()["sessions.json"]["issued"][-1]
         self.assertIsNone(issued["issue_id"])
         self.assertEqual(28, issued["github_issue_number"])
         self.assertEqual("STAGE-01", issued["stage_id"])
         self.assertEqual(frozen_issues, (self.state_dir / "issues.json").read_bytes())
+
+    def test_github_cutover_materializes_resolved_number_for_migrated_session(self) -> None:
+        config = self.activate_github_cutover()
+        candidate = planned_session("i002-reviewer-a01-materialize-number")
+        candidate.pop("github_issue_number", None)
+        state = documents()
+        state["issues.json"]["issues"][1]["kind"] = "workflow"
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "issues.json").write_text(
+            json.dumps(state["issues.json"]), encoding="utf-8"
+        )
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        binding = github_workflow.IssueBinding(
+            "QPBT-002", 2, 102, "ISSUE2", "marker2"
+        )
+        authority = mock.Mock()
+        authority.issues = (binding,)
+        authority.pull_requests = ()
+        authority.issue_by_legacy_id.side_effect = lambda value: binding
+        repository = github_workflow.RepositorySnapshot(
+            github_workflow.RepositoryIdentity(
+                "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
+            ),
+            "main",
+            BASE_SHA,
+            "from-monorepo",
+        )
+        selected = github_workflow.IssueSnapshot(
+            "QPBT-002", 2, 102, "ISSUE2", "OPEN", None, "ready",
+            "workflow", "QPBT-002", ("kind:workflow", "status:ready"), None, None,
+            None, None, (), (), (), ()
+        )
+        snapshot = github_workflow.PreflightSnapshot(
+            repository, BASE_SHA, (selected,), ()
+        )
+        parser = workflow.build_parser()
+        arguments = parser.parse_args(
+            [
+                "--root", str(self.root), "dispatch", "--capacity", "1",
+                "--session-id", candidate["id"], "--github-config",
+                "workflow/github.json",
+            ]
+        )
+        with mock.patch.object(
+            github_workflow, "load_authority", return_value=authority
+        ), mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ):
+            result = workflow.run_cli(arguments)
+        self.assertEqual("issued", result["status"])
+        issued = self.store.validate()["sessions.json"]["issued"][-1]
+        self.assertEqual("QPBT-002", issued["issue_id"])
+        self.assertEqual(2, issued["github_issue_number"])
+
+    def test_github_cutover_manifest_digest_is_checked_before_publication(self) -> None:
+        config = self.activate_github_cutover()
+        manifest = self.root / "workflow" / "github-cutover.json"
+        manifest.write_text("manifest-A\n", encoding="utf-8")
+        candidate = planned_session("i002-reviewer-a02-manifest-race")
+        candidate.pop("github_issue_number", None)
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        binding = github_workflow.IssueBinding(
+            "QPBT-002", 2, 102, "ISSUE2", "marker2"
+        )
+        authority = mock.Mock()
+        authority.issues = (binding,)
+        authority.pull_requests = ()
+        authority.manifest_path = manifest
+        authority.issue_by_legacy_id.side_effect = lambda value: binding
+        repository = github_workflow.RepositorySnapshot(
+            github_workflow.RepositoryIdentity(
+                "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
+            ),
+            "main", BASE_SHA, "from-monorepo",
+        )
+        selected = github_workflow.IssueSnapshot(
+            "QPBT-002", 2, 102, "ISSUE2", "OPEN", None, "ready",
+            "formalization", "QPBT-002", ("status:ready",), None, None,
+            None, None, (), (), (), ()
+        )
+        snapshot = github_workflow.PreflightSnapshot(
+            repository, BASE_SHA, (selected,), ()
+        )
+        with mock.patch.object(
+            github_workflow, "load_authority", return_value=authority
+        ), mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ):
+            _, _, _, proof = workflow._github_dispatch_preflight(
+                self.store, config.resolve(), [candidate["id"]]
+            )
+        self.assertIsNotNone(proof)
+        original_lock = self.store._lock
+
+        @contextmanager
+        def rewrite_manifest_on_lock(*, exclusive: bool):
+            with original_lock(exclusive=exclusive) as descriptor:
+                if exclusive:
+                    manifest.write_text("manifest-B\n", encoding="utf-8")
+                yield descriptor
+
+        self.store._lock = rewrite_manifest_on_lock  # type: ignore[method-assign]
+        try:
+            with mock.patch.object(
+                github_workflow, "load_authority", return_value=authority
+            ), mock.patch.object(
+                github_workflow, "live_preflight", return_value=snapshot
+            ):
+                with self.assertRaisesRegex(
+                    workflow.WorkflowError,
+                    "cutover manifest changed during dispatch|"
+                    "does not match a fresh live preflight under the publication lock",
+                ):
+                    self.store.dispatch_sessions(
+                        capacity=1,
+                        session_ids=[candidate["id"]],
+                        github_preflight_proof=proof,
+                    )
+        finally:
+            self.store._lock = original_lock  # type: ignore[method-assign]
+
+    def test_github_cutover_direct_empty_projection_cannot_bypass_preflight(self) -> None:
+        config = self.activate_github_cutover()
+        candidate = planned_session("i002-reviewer-a02-empty-proof")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        guarded_store = workflow.WorkflowStore(
+            self.state_dir, self.runtime, self.events
+        )
+        before_sessions = (self.state_dir / "sessions.json").read_bytes()
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "opaque live preflight proof"
+        ):
+            guarded_store.dispatch_sessions(
+                capacity=1,
+                session_ids=[str(candidate["id"])],
+                dry_run=False,
+                issue_projection={},
+                canonical_issue_projection={},
+            )
+        forged = workflow._GitHubDispatchProof(
+            store_token=object(),
+            config_path=config.resolve(),
+            selected_session_ids=(str(candidate["id"]),),
+            planned_rows_digest="forged",
+            issue_projection={},
+            canonical_issue_projection={},
+            canonical_issue_bindings={},
+            canonical_pull_request_bindings={},
+        )
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "belongs to another store"
+        ):
+            guarded_store.dispatch_sessions(
+                capacity=1,
+                session_ids=[str(candidate["id"])],
+                dry_run=True,
+                github_preflight_proof=forged,
+            )
+        self.assertEqual(before_sessions, (self.state_dir / "sessions.json").read_bytes())
+
+    def test_github_cutover_dispatch_rejects_stale_planned_snapshot(self) -> None:
+        config = self.activate_github_cutover()
+        candidate = planned_session("i002-reviewer-a03-stale-proof")
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        guarded_store = workflow.WorkflowStore(
+            self.state_dir, self.runtime, self.events
+        )
+        binding = github_workflow.IssueBinding(
+            "QPBT-002", 2, 102, "ISSUE2", "marker2"
+        )
+        authority = mock.Mock()
+        authority.issues = (binding,)
+        authority.pull_requests = ()
+        authority.issue_by_legacy_id.side_effect = lambda value: binding
+        repository = github_workflow.RepositorySnapshot(
+            github_workflow.RepositoryIdentity(
+                "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
+            ),
+            "main",
+            BASE_SHA,
+            "from-monorepo",
+        )
+        selected = github_workflow.IssueSnapshot(
+            "QPBT-002",
+            2,
+            102,
+            "ISSUE2",
+            "OPEN",
+            None,
+            "ready",
+            "formalization",
+            "QPBT-002",
+            ("kind:formalization", "status:ready"),
+            None,
+            None,
+            None,
+            None,
+            (),
+            (),
+            (),
+            (),
+        )
+        snapshot = github_workflow.PreflightSnapshot(
+            repository, BASE_SHA, (selected,), ()
+        )
+        with mock.patch.object(
+            github_workflow, "load_authority", return_value=authority
+        ), mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ):
+            _, _, _, proof = workflow._github_dispatch_preflight(
+                guarded_store, config.resolve(), [str(candidate["id"])]
+            )
+        self.assertIsNotNone(proof)
+        other_store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "belongs to another store"
+        ):
+            other_store.dispatch_sessions(
+                capacity=1,
+                session_ids=[str(candidate["id"])],
+                dry_run=True,
+                github_preflight_proof=proof,
+            )
+        changed = copy.deepcopy(candidate)
+        changed["role"] = "scout"
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps({"schema_version": 1, "planned": [changed], "issued": []}),
+            encoding="utf-8",
+        )
+        with mock.patch.object(
+            github_workflow, "load_authority", return_value=authority
+        ), mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ):
+            with self.assertRaisesRegex(
+                workflow.WorkflowError, "does not match a fresh live preflight"
+            ):
+                guarded_store.dispatch_sessions(
+                    capacity=1,
+                    session_ids=[str(candidate["id"])],
+                    dry_run=True,
+                    github_preflight_proof=proof,
+                )
+
+    def test_github_cutover_rejects_migrated_issue_as_github_only(self) -> None:
+        config = self.activate_github_cutover()
+        candidate = planned_session("i002-reviewer-a04-migrated-number")
+        candidate["issue_id"] = None
+        candidate["github_issue_number"] = 2
+        candidate["stage_id"] = "STAGE-01"
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        authority = mock.Mock()
+        authority.issues = (
+            github_workflow.IssueBinding("QPBT-002", 2, 102, "ISSUE2", "marker2"),
+        )
+        authority.pull_requests = ()
+        repository = github_workflow.RepositorySnapshot(
+            github_workflow.RepositoryIdentity(
+                "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
+            ),
+            "main",
+            BASE_SHA,
+            "from-monorepo",
+        )
+        selected = github_workflow.IssueSnapshot(
+            "QPBT-002",
+            2,
+            102,
+            "ISSUE2",
+            "OPEN",
+            None,
+            "ready",
+            "formalization",
+            "QPBT-002",
+            ("kind:formalization", "status:ready"),
+            None,
+            None,
+            None,
+            None,
+            (),
+            (),
+            (),
+            (),
+        )
+        snapshot = github_workflow.PreflightSnapshot(repository, BASE_SHA, (selected,), ())
+        parser = workflow.build_parser()
+        arguments = parser.parse_args(
+            [
+                "--root",
+                str(self.root),
+                "dispatch",
+                "--capacity",
+                "1",
+                "--session-id",
+                str(candidate["id"]),
+                "--github-config",
+                "workflow/github.json",
+            ]
+        )
+        with mock.patch.object(
+            github_workflow, "load_authority", return_value=authority
+        ), mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ):
+            with self.assertRaisesRegex(
+                workflow.WorkflowError, "targets migrated issue"
+            ):
+                workflow.run_cli(arguments)
+
+    def test_github_cutover_rejects_unselected_migrated_number_reservation(self) -> None:
+        config = self.activate_github_cutover()
+        selected = planned_session("i002-orchestrator-a05-selected-migrated", role="orchestrator")
+        stale = planned_session("i002-orchestrator-a06-stale-github-only", role="orchestrator")
+        stale["issue_id"] = None
+        stale["github_issue_number"] = 2
+        stale["stage_id"] = "STAGE-01"
+        state = documents()
+        state["sessions.json"]["planned"] = [selected, stale]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        binding = github_workflow.IssueBinding(
+            "QPBT-002", 2, 102, "ISSUE2", "marker2"
+        )
+        authority = mock.Mock()
+        authority.issues = (binding,)
+        authority.pull_requests = ()
+        with mock.patch.object(
+            github_workflow, "load_authority", return_value=authority
+        ), mock.patch.object(github_workflow, "live_preflight") as preflight:
+            with self.assertRaisesRegex(
+                workflow.WorkflowError, "stale-github-only.*targets migrated issue"
+            ):
+                workflow._github_dispatch_preflight(
+                    workflow.WorkflowStore(self.state_dir, self.runtime, self.events),
+                    config.resolve(),
+                    [str(selected["id"])],
+                )
+        preflight.assert_not_called()
+
+    def test_github_cutover_preflight_respects_stage_scope(self) -> None:
+        config = self.activate_github_cutover()
+        state = documents()
+        state["issues.json"]["issues"].append(issue("QPBT-003", "planned"))
+        state["stages.json"]["stages"].append(
+            {
+                "id": "STAGE-02",
+                "name": "other",
+                "status": "in_progress",
+                "issue_ids": ["QPBT-003"],
+                "started_at": NOW,
+                "ended_at": None,
+                "elapsed_seconds": None,
+                "token_usage": unavailable_tokens(),
+                "subagents_issued": 0,
+                "max_concurrency": 1,
+                "outputs": [],
+                "incident_ids": ["INC-001"],
+            }
+        )
+        first = planned_session("i002-reviewer-a07-stage-one")
+        second = planned_session("i003-reviewer-a08-stage-two", issue_id="QPBT-003")
+        state["sessions.json"]["planned"] = [first, second]
+        (self.state_dir / "issues.json").write_text(
+            json.dumps(state["issues.json"]), encoding="utf-8"
+        )
+        (self.state_dir / "stages.json").write_text(
+            json.dumps(state["stages.json"]), encoding="utf-8"
+        )
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        bindings = (
+            github_workflow.IssueBinding("QPBT-002", 2, 102, "ISSUE2", "marker2"),
+            github_workflow.IssueBinding("QPBT-003", 3, 103, "ISSUE3", "marker3"),
+        )
+        authority = mock.Mock()
+        authority.issues = bindings
+        authority.pull_requests = ()
+        authority.issue_by_legacy_id.side_effect = lambda value: {
+            item.legacy_id: item for item in bindings
+        }[value]
+        repository = github_workflow.RepositorySnapshot(
+            github_workflow.RepositoryIdentity(
+                "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
+            ),
+            "main",
+            BASE_SHA,
+            "from-monorepo",
+        )
+        selected = github_workflow.IssueSnapshot(
+            "QPBT-002", 2, 102, "ISSUE2", "OPEN", None, "ready",
+            "formalization", "QPBT-002", ("status:ready",), None, None,
+            None, None, (), (), (), ()
+        )
+        snapshot = github_workflow.PreflightSnapshot(
+            repository, BASE_SHA, (selected,), ()
+        )
+        with mock.patch.object(
+            github_workflow, "load_authority", return_value=authority
+        ), mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ) as preflight:
+            workflow._github_dispatch_preflight(
+                workflow.WorkflowStore(self.state_dir, self.runtime, self.events),
+                config.resolve(),
+                None,
+                "STAGE-01",
+            )
+        preflight.assert_called_once_with(
+            config.resolve(), issue_numbers=[2], pull_request_expectations=[]
+        )
+
+    def test_github_cutover_preflight_rejects_unhashable_dependencies(self) -> None:
+        config = self.activate_github_cutover()
+        candidate = planned_session("i028-reviewer-a09-malformed-dependencies")
+        candidate["issue_id"] = None
+        candidate["github_issue_number"] = 28
+        candidate["stage_id"] = "STAGE-01"
+        state = documents()
+        state["sessions.json"]["planned"] = [candidate]
+        (self.state_dir / "sessions.json").write_text(
+            json.dumps(state["sessions.json"]), encoding="utf-8"
+        )
+        authority = mock.Mock()
+        authority.issues = ()
+        authority.pull_requests = ()
+        repository = github_workflow.RepositorySnapshot(
+            github_workflow.RepositoryIdentity(
+                "Dengnifer", "MIPStarRE-B", 1352436168, "R_kgDOUJyJyA"
+            ),
+            "main",
+            BASE_SHA,
+            "from-monorepo",
+        )
+        malformed = github_workflow.IssueSnapshot(
+            legacy_id=None,
+            number=28,
+            database_id=128,
+            node_id="ISSUE28",
+            state="OPEN",
+            state_reason=None,
+            status="ready",
+            kind="workflow",
+            title="malformed",
+            labels=("status:ready",),
+            parent_number=None,
+            parent_database_id=None,
+            parent_node_id=None,
+            parent_legacy_id=None,
+            child_numbers=(),
+            child_legacy_ids=(),
+            dependency_numbers=([[]],),  # type: ignore[arg-type]
+            dependency_legacy_ids=(),
+        )
+        snapshot = github_workflow.PreflightSnapshot(
+            repository, BASE_SHA, (malformed,), ()
+        )
+        with mock.patch.object(
+            github_workflow, "load_authority", return_value=authority
+        ), mock.patch.object(
+            github_workflow, "live_preflight", return_value=snapshot
+        ):
+            with self.assertRaisesRegex(
+                workflow.WorkflowError, "invalid dependencies"
+            ):
+                workflow._github_dispatch_preflight(
+                    workflow.WorkflowStore(self.state_dir, self.runtime, self.events),
+                    config.resolve(),
+                    [str(candidate["id"])],
+                )
+
+    def test_plan_dispatch_rejects_malformed_canonical_projection(self) -> None:
+        state = documents()
+        candidate = planned_session("i002-reviewer-a05-malformed-projection")
+        candidate["issue_id"] = None
+        candidate["github_issue_number"] = 22
+        candidate["stage_id"] = "STAGE-01"
+        state["sessions.json"]["planned"] = [candidate]
+        with self.assertRaisesRegex(
+            workflow.WorkflowError, "canonical issue projection must be an object"
+        ):
+            workflow.plan_dispatch(
+                state,
+                capacity=1,
+                session_ids=[str(candidate["id"])],
+                canonical_issue_projection=[],  # type: ignore[arg-type]
+            )
+
+    def test_github_cutover_override_cannot_add_canonical_issue_number(self) -> None:
+        state = documents()
+        candidate = planned_session("i002-reviewer-a10-identity-override")
+        candidate.pop("github_issue_number", None)
+        state["sessions.json"]["planned"] = [candidate]
+        result = workflow.plan_dispatch(
+            state,
+            capacity=1,
+            session_ids=[candidate["id"]],
+            session_overrides={candidate["id"]: {"github_issue_number": 999}},
+            canonical_issue_projection={
+                2: {
+                    "status": "ready",
+                    "kind": "formalization",
+                    "execution_category": "implementation",
+                    "dependency_numbers": [],
+                    "incomplete_dependency_numbers": [],
+                }
+            },
+            canonical_issue_bindings={"QPBT-002": 2},
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual("invalid-dispatch-override", result["blocked"][0]["reason"])
+        self.assertIn("github_issue_number", result["blocked"][0]["detail"])
 
     def test_dispatch_batch_issues_available_prefix_when_capacity_is_exhausted(self) -> None:
         first = collaboration_planned_session("i002-reviewer-a01-batch")
@@ -2098,6 +3547,53 @@ class WorkflowStoreTests(unittest.TestCase):
         loaded = self.store.validate()
         self.assertEqual([candidate["id"]], [row["id"] for row in loaded["sessions.json"]["planned"]])
         self.assertEqual([], loaded["sessions.json"]["issued"])
+
+    def test_generic_mutation_rolls_back_every_state_file_when_event_append_fails(self) -> None:
+        original_append_event = self.store.append_event
+
+        def fail_append(event: str, payload: object, **kwargs: object) -> None:
+            raise RuntimeError("injected mutation append failure")
+
+        self.store.append_event = fail_append  # type: ignore[method-assign]
+        try:
+            for filename in workflow.DEFAULT_DOCUMENTS:
+                with self.subTest(filename=filename):
+                    state = documents()
+                    for name, value in state.items():
+                        (self.state_dir / name).write_text(
+                            json.dumps(value), encoding="utf-8"
+                        )
+                    before = {
+                        path.name: path.read_bytes()
+                        for path in sorted(self.state_dir.iterdir())
+                    }
+                    before_events = self.events.read_bytes()
+
+                    def mutate(document: dict[str, object]) -> None:
+                        document["mutation_marker"] = filename
+
+                    with self.assertRaisesRegex(
+                        RuntimeError, "injected mutation append failure"
+                    ):
+                        self.store.mutate(
+                            filename,
+                            "record.updated",
+                            {"kind": filename},
+                            mutate,
+                        )
+                    self.assertEqual(
+                        before,
+                        {
+                            path.name: path.read_bytes()
+                            for path in sorted(self.state_dir.iterdir())
+                        },
+                    )
+                    self.assertEqual(
+                        before_events,
+                        self.events.read_bytes(),
+                    )
+        finally:
+            self.store.append_event = original_append_event  # type: ignore[method-assign]
 
     def test_dispatch_rolls_back_keyboard_interrupt_at_every_publication_boundary(self) -> None:
         baseline_events = self.events.read_bytes()

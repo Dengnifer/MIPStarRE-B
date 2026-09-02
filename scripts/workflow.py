@@ -16,15 +16,19 @@ import argparse
 from contextlib import contextmanager
 import copy
 import datetime as dt
+from dataclasses import dataclass
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
 from pathlib import PurePosixPath
 import re
+import stat
 import sys
 import tempfile
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
+from types import MappingProxyType
 
 
 SCHEMA_VERSION = 1
@@ -80,6 +84,10 @@ DISPATCH_IMMUTABLE_FIELDS = {
     "github_issue_number",
     "pr_id",
     "github_pull_request_number",
+    "github_pull_request_base_ref",
+    "github_pull_request_base_sha",
+    "github_pull_request_head_ref",
+    "github_pull_request_head_sha",
     "stage_id",
     "parent_session_id",
     "attempt",
@@ -135,6 +143,8 @@ TIMING_QUALITIES = {
     BOUNDED_TIMING_QUALITY,
 }
 SHA_RE = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+GITHUB_COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+GITHUB_REF_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
 SESSION_NAME_RE = re.compile(
     r"^i[0-9]+-[a-z0-9]+(?:-[a-z0-9]+)*-a[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$"
 )
@@ -183,6 +193,51 @@ class ValidationError(WorkflowError):
         super().__init__("\n".join(self.errors))
 
 
+@dataclass(frozen=True)
+class _GitHubDispatchProof:
+    """Opaque local binding produced only after a live GitHub preflight.
+
+    Construction is intentionally not an admission authority.  Dispatch
+    independently performs the live preflight before using it, so a
+    shaped dataclass instance supplied by a caller is only a hint and cannot
+    bypass the canonical GitHub read.
+    """
+
+    store_token: object
+    config_path: Path
+    selected_session_ids: tuple[str, ...]
+    planned_rows_digest: str
+    issue_projection: Mapping[str, Mapping[str, Any]]
+    canonical_issue_projection: Mapping[int, Mapping[str, Any]]
+    canonical_issue_bindings: Mapping[str, int]
+    canonical_pull_request_bindings: Mapping[str, int]
+    config_digest: str = ""
+    manifest_path: Path | None = None
+    manifest_digest: str = ""
+
+
+def _freeze_json_value(value: Any) -> Any:
+    """Recursively freeze JSON-shaped proof data before it crosses the API."""
+
+    if isinstance(value, Mapping):
+        return MappingProxyType(
+            {key: _freeze_json_value(item) for key, item in value.items()}
+        )
+    if isinstance(value, list):
+        return tuple(_freeze_json_value(item) for item in value)
+    return value
+
+
+def _thaw_json_value(value: Any) -> Any:
+    """Copy frozen proof data into ordinary planner-owned containers."""
+
+    if isinstance(value, Mapping):
+        return {key: _thaw_json_value(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_thaw_json_value(item) for item in value]
+    return copy.deepcopy(value)
+
+
 def utc_now() -> str:
     """Return a stable UTC timestamp suitable for ledger records."""
 
@@ -215,10 +270,229 @@ def _is_positive_int(value: Any) -> bool:
 def _session_issue_key(session: Mapping[str, Any]) -> tuple[str, Any]:
     """Return the canonical scheduling identity available on a session row."""
 
+    issue_id = session.get("issue_id")
+    if isinstance(issue_id, str):
+        return "legacy", issue_id
     github_number = session.get("github_issue_number")
     if _is_positive_int(github_number):
         return "github", github_number
-    return "legacy", session.get("issue_id")
+    return "legacy", issue_id
+
+
+def _session_issue_keys(session: Mapping[str, Any]) -> set[tuple[str, Any]]:
+    """Return every non-null scheduling identity carried by a session row.
+
+    During the GitHub cutover a compatibility row can retain its legacy issue
+    id while also carrying the canonical GitHub number.  Comparing only one
+    preferred field lets a malformed or partially migrated row evade the
+    duplicate-orchestrator guard, so admission compares both identities.
+    """
+
+    keys: set[tuple[str, Any]] = set()
+    issue_id = session.get("issue_id")
+    if isinstance(issue_id, str):
+        keys.add(("legacy", issue_id))
+    github_number = session.get("github_issue_number")
+    if _is_positive_int(github_number):
+        keys.add(("github", github_number))
+    if not keys:
+        keys.add(("legacy", issue_id))
+    return keys
+
+
+def _session_issue_keys_with_bindings(
+    session: Mapping[str, Any],
+    canonical_issue_bindings: Mapping[str, int] | None = None,
+) -> set[tuple[str, Any]]:
+    """Include the opposite identity domain when the cutover map proves it."""
+
+    keys = _session_issue_keys(session)
+    bindings = canonical_issue_bindings or {}
+    issue_id = session.get("issue_id")
+    github_number = session.get("github_issue_number")
+    if isinstance(issue_id, str) and issue_id in bindings:
+        keys.add(("github", bindings[issue_id]))
+    if _is_positive_int(github_number):
+        for legacy_id, number in bindings.items():
+            if number == github_number:
+                keys.add(("legacy", legacy_id))
+    return keys
+
+
+def _planned_rows_digest(
+    documents: Mapping[str, Any], selected_session_ids: Sequence[str]
+) -> str:
+    """Hash the exact planned rows admitted by a GitHub preflight."""
+
+    planned = documents["sessions.json"]["planned"]
+    by_id = {
+        row.get("id"): row
+        for row in planned
+        if isinstance(row, Mapping) and isinstance(row.get("id"), str)
+    }
+    rows = []
+    for session_id in selected_session_ids:
+        row = by_id.get(session_id)
+        if row is None:
+            raise WorkflowError(
+                f"GitHub dispatch preflight names unknown planned session {session_id!r}"
+            )
+        rows.append(copy.deepcopy(row))
+    encoded = json.dumps(
+        rows,
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _selected_planned_session_ids(
+    documents: Mapping[str, Any],
+    session_ids: Sequence[str] | None,
+    stage_id: str | None,
+) -> list[str]:
+    """Select planned rows with the same stage semantics as the planner."""
+
+    _known_stage(documents, stage_id)
+    planned = {
+        row.get("id"): row
+        for row in documents["sessions.json"]["planned"]
+        if isinstance(row, Mapping) and isinstance(row.get("id"), str)
+    }
+    if session_ids is not None:
+        requested = list(session_ids)
+        if any(not isinstance(item, str) or not item.strip() for item in requested):
+            raise WorkflowError("dispatch session IDs must be non-empty strings")
+        if len(requested) != len(set(requested)):
+            raise WorkflowError("dispatch session IDs must be unique")
+        return sorted(requested)
+    membership = _issue_stage_membership(documents)
+    return sorted(
+        session_id
+        for session_id, session in planned.items()
+        if stage_id is None
+        or (
+            session.get("issue_id") is None
+            and session.get("stage_id") == stage_id
+        )
+        or stage_id in membership.get(session.get("issue_id"), [])
+    )
+
+
+def _audit_github_session_bindings(
+    documents: Mapping[str, Any],
+    canonical_issue_bindings: Mapping[str, int],
+    canonical_pull_request_bindings: Mapping[str, int] | None = None,
+) -> None:
+    """Reject stale or mismatched migrated identities in the final snapshot."""
+
+    reverse_issue_bindings = {
+        number: legacy_id
+        for legacy_id, number in canonical_issue_bindings.items()
+    }
+    pull_request_bindings_supplied = canonical_pull_request_bindings is not None
+    pull_request_bindings = dict(canonical_pull_request_bindings or {})
+    reverse_pull_request_bindings = {
+        number: legacy_id
+        for legacy_id, number in pull_request_bindings.items()
+    }
+    for bucket in ("planned", "issued"):
+        for row in documents["sessions.json"][bucket]:
+            if bucket == "issued" and row.get("status") not in ACTIVE_SESSION_STATUSES:
+                continue
+            legacy_id = row.get("issue_id")
+            github_number = row.get("github_issue_number")
+            if legacy_id is None and github_number in reverse_issue_bindings:
+                raise WorkflowError(
+                    f"GitHub-only session {row.get('id')!r} targets migrated issue #{github_number}"
+                )
+            if (
+                isinstance(legacy_id, str)
+                and legacy_id in canonical_issue_bindings
+                and github_number is not None
+                and canonical_issue_bindings[legacy_id] != github_number
+            ):
+                raise WorkflowError(
+                    f"session {row.get('id')!r} has a mismatched migrated GitHub issue binding"
+                )
+            legacy_pr_id = row.get("pr_id")
+            github_pr_number = row.get("github_pull_request_number")
+            if legacy_pr_id is None and github_pr_number in reverse_pull_request_bindings:
+                raise WorkflowError(
+                    f"GitHub-only session {row.get('id')!r} targets migrated "
+                    f"pull request #{github_pr_number}"
+                )
+            if isinstance(legacy_pr_id, str) and pull_request_bindings_supplied:
+                canonical_pr_number = pull_request_bindings.get(legacy_pr_id)
+                if canonical_pr_number is None:
+                    raise WorkflowError(
+                        f"session {row.get('id')!r} names unmigrated legacy "
+                        f"pull request {legacy_pr_id!r}"
+                    )
+                if (
+                    github_pr_number is not None
+                    and github_pr_number != canonical_pr_number
+                ):
+                    raise WorkflowError(
+                        f"session {row.get('id')!r} has a mismatched migrated "
+                        "GitHub pull-request binding"
+                    )
+
+
+def _pull_request_identity_fields(value: Any) -> dict[str, Any]:
+    """Project a cutover binding or row onto the immutable PR identity fields."""
+
+    if isinstance(value, Mapping):
+        getter = value.get
+    else:
+        getter = lambda field: getattr(value, field.removeprefix("github_pull_request_"))
+    return {
+        "github_pull_request_base_ref": getter("github_pull_request_base_ref"),
+        "github_pull_request_base_sha": getter("github_pull_request_base_sha"),
+        "github_pull_request_head_ref": getter("github_pull_request_head_ref"),
+        "github_pull_request_head_sha": getter("github_pull_request_head_sha"),
+    }
+
+
+def _validate_pull_request_identity_fields(
+    fields: Mapping[str, Any], *, expected_base_ref: str
+) -> None:
+    """Validate the exact base/head tuple required for an unbound GitHub PR."""
+
+    base_ref = fields.get("github_pull_request_base_ref")
+    head_ref = fields.get("github_pull_request_head_ref")
+    base_sha = fields.get("github_pull_request_base_sha")
+    head_sha = fields.get("github_pull_request_head_sha")
+    if base_ref != expected_base_ref:
+        raise WorkflowError(
+            "planned session GitHub pull-request base ref must match canonical main"
+        )
+    if (
+        not isinstance(head_ref, str)
+        or GITHUB_REF_RE.fullmatch(head_ref) is None
+        or ".." in head_ref
+        or "//" in head_ref
+        or "@{" in head_ref
+        or head_ref.endswith(("/", ".", ".lock"))
+    ):
+        raise WorkflowError(
+            "planned session GitHub pull-request head ref must be an exact safe ref"
+        )
+    if (
+        not isinstance(base_sha, str)
+        or GITHUB_COMMIT_SHA_RE.fullmatch(base_sha) is None
+    ):
+        raise WorkflowError(
+            "planned session GitHub pull-request base SHA must be exact"
+        )
+    if (
+        not isinstance(head_sha, str)
+        or GITHUB_COMMIT_SHA_RE.fullmatch(head_sha) is None
+    ):
+        raise WorkflowError(
+            "planned session GitHub pull-request head SHA must be exact"
+        )
 
 
 def _require_keys(record: Mapping[str, Any], required: Iterable[str], location: str, errors: list[str]) -> None:
@@ -1127,6 +1401,23 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
             errors.append(
                 f"{loc}.github_pull_request_number: expected a positive integer"
             )
+        github_pr_identity = _pull_request_identity_fields(session)
+        if any(value is not None for value in github_pr_identity.values()):
+            if not _is_positive_int(github_pr_number):
+                errors.append(
+                    f"{loc}: pull-request base/head identity requires a positive "
+                    "github_pull_request_number"
+                )
+            for field in (
+                "github_pull_request_base_ref",
+                "github_pull_request_head_ref",
+            ):
+                _nonempty_string(session.get(field), f"{loc}.{field}", errors)
+            for field in (
+                "github_pull_request_base_sha",
+                "github_pull_request_head_sha",
+            ):
+                _validate_sha(session.get(field), f"{loc}.{field}", errors)
         parent = session.get("parent_session_id")
         if parent is not None and (not isinstance(parent, str) or parent not in all_session_ids):
             errors.append(f"{loc}.parent_session_id: unknown session {parent!r}")
@@ -1644,13 +1935,60 @@ class WorkflowStore:
         self.state_dir = state_dir
         self.runtime_dir = runtime_dir
         self.events_path = events_path
-        adjacent_config = state_dir.parent / "github.json"
+        self._state_dir_real = state_dir.resolve(strict=False)
+        self._workflow_root = _workflow_root_for_state_dir(state_dir)
+        self._state_dir_is_alias = (
+            _lexical_absolute(state_dir) != self._state_dir_real
+        )
+        adjacent_config = self._workflow_root / GITHUB_AUTHORITY_CONFIG
+        if (
+            github_authority_config is not None
+            and _lexical_absolute(github_authority_config)
+            != _lexical_absolute(adjacent_config)
+        ):
+            raise WorkflowError(
+                "GitHub authority config must be exactly workflow/github.json"
+            )
+        if github_authority_config is not None:
+            _regular_nonsymlink(github_authority_config, "GitHub authority config")
         self.github_authority_config = (
             github_authority_config
             if github_authority_config is not None
-            else (adjacent_config if adjacent_config.is_file() else None)
+            else _github_authority_config(self._workflow_root)
         )
+        self._github_dispatch_store_token = object()
+        self._workflow_write_token = object()
 
+    def _refresh_github_authority(self) -> Path | None:
+        """Reconcile the cutover marker for long-lived store instances."""
+
+        if self.state_dir.resolve(strict=False) != self._state_dir_real:
+            raise WorkflowError(
+                "workflow state directory target changed after store construction"
+            )
+        detected = _github_authority_config(self._workflow_root)
+        manifest = _github_cutover_manifest(self._workflow_root)
+        configured = self.github_authority_config
+        if (detected is not None or manifest is not None) and self._state_dir_is_alias:
+            raise WorkflowError(
+                "GitHub-canonical workflow state directory must not use a symlink "
+                "or lexical alias"
+            )
+        if detected is None and manifest is not None:
+            raise WorkflowError(
+                "GitHub authority config is missing while the irreversible cutover "
+                "manifest remains"
+            )
+        if configured is None:
+            if detected is not None:
+                self.github_authority_config = detected
+            return detected
+        if detected is None:
+            raise WorkflowError("GitHub authority config disappeared during dispatch")
+        if _lexical_absolute(configured) != _lexical_absolute(detected):
+            raise WorkflowError("GitHub authority config changed during dispatch")
+        _regular_nonsymlink(configured, "GitHub authority config")
+        return configured
     @contextmanager
     def _lock(self, *, exclusive: bool) -> Any:
         # A directory fd supports flock on the Linux hosts used by this
@@ -1696,18 +2034,59 @@ class WorkflowStore:
     def initialize(self, *, missing_only: bool = False) -> list[str]:
         created: list[str] = []
         with self._lock(exclusive=True):
+            if self._refresh_github_authority() is not None:
+                raise WorkflowError(
+                    "GitHub-canonical workflow state cannot be initialized through "
+                    "the generic local API"
+                )
             existing = [name for name in DEFAULT_DOCUMENTS if (self.state_dir / name).exists()]
             if existing and not missing_only:
                 raise WorkflowError(
                     "refusing to overwrite existing state files: " + ", ".join(existing)
                 )
-            for filename, document in DEFAULT_DOCUMENTS.items():
-                path = self.state_dir / filename
-                if path.exists():
-                    continue
-                atomic_write_json(path, copy.deepcopy(document))
-                created.append(filename)
-            self.append_event("workflow.initialized", {"created": created}, lock_held=True)
+            events_existed = self.events_path.exists()
+            events_offset = self.events_path.stat().st_size if events_existed else 0
+            events_bytes = self.events_path.read_bytes() if events_existed else None
+            try:
+                for filename, document in DEFAULT_DOCUMENTS.items():
+                    path = self.state_dir / filename
+                    if path.exists():
+                        continue
+                    if self._refresh_github_authority() is not None:
+                        raise WorkflowError(
+                            "GitHub authority appeared during workflow initialization; retry"
+                        )
+                    created.append(filename)
+                    atomic_write_json(path, copy.deepcopy(document))
+                    if self._refresh_github_authority() is not None:
+                        raise WorkflowError(
+                            "GitHub authority appeared during workflow initialization; retry"
+                        )
+                self.append_event(
+                    "workflow.initialized",
+                    {"created": created},
+                    lock_held=True,
+                    _write_token=self._workflow_write_token,
+                )
+                if self._refresh_github_authority() is not None:
+                    raise WorkflowError(
+                        "GitHub authority appeared during workflow initialization; retry"
+                    )
+            except BaseException:
+                try:
+                    for filename in created:
+                        (self.state_dir / filename).unlink(missing_ok=True)
+                    _fsync_directory(self.state_dir)
+                    self._restore_event_log(
+                        events_existed=events_existed,
+                        events_offset=events_offset,
+                        events_bytes=events_bytes,
+                    )
+                except BaseException as rollback_error:
+                    raise WorkflowError(
+                        "workflow initialization rollback failed"
+                    ) from rollback_error
+                raise
         return created
 
     def append_event(
@@ -1717,7 +2096,14 @@ class WorkflowStore:
         *,
         lock_held: bool = False,
         timestamp: str | None = None,
+        _write_token: object | None = None,
     ) -> None:
+        authorized = _write_token is self._workflow_write_token
+        if self._refresh_github_authority() is not None and not authorized:
+            raise WorkflowError(
+                "GitHub-canonical lifecycle events require a guarded dispatch or "
+                "lease/import API"
+            )
         if timestamp is not None and _timestamp_value(timestamp) is None:
             raise WorkflowError("event timestamp must be a timezone-aware ISO-8601 value")
         envelope = {
@@ -1739,11 +2125,36 @@ class WorkflowStore:
             finally:
                 os.close(descriptor)
 
+        def guarded_write() -> None:
+            if authorized:
+                write()
+                return
+            if self._refresh_github_authority() is not None:
+                raise WorkflowError(
+                    "GitHub authority appeared during generic event append; retry"
+                )
+            events_existed = self.events_path.exists()
+            events_offset = self.events_path.stat().st_size if events_existed else 0
+            events_bytes = self.events_path.read_bytes() if events_existed else None
+            try:
+                write()
+                if self._refresh_github_authority() is not None:
+                    raise WorkflowError(
+                        "GitHub authority appeared during generic event append; retry"
+                    )
+            except BaseException:
+                self._restore_event_log(
+                    events_existed=events_existed,
+                    events_offset=events_offset,
+                    events_bytes=events_bytes,
+                )
+                raise
+
         if lock_held:
-            write()
+            guarded_write()
         else:
             with self._lock(exclusive=True):
-                write()
+                guarded_write()
 
     def _batch_event_timestamp(self) -> str:
         """Return one timestamp that cannot move before the existing log tail."""
@@ -1788,6 +2199,21 @@ class WorkflowStore:
         """
 
         _atomic_write_bytes(sessions_path, sessions_bytes)
+        self._restore_event_log(
+            events_existed=events_existed,
+            events_offset=events_offset,
+            events_bytes=events_bytes,
+        )
+
+    def _restore_event_log(
+        self,
+        *,
+        events_existed: bool,
+        events_offset: int,
+        events_bytes: bytes | None,
+    ) -> None:
+        """Restore the append-only event file to an exact captured snapshot."""
+
         if not events_existed:
             try:
                 self.events_path.unlink()
@@ -1824,14 +2250,340 @@ class WorkflowStore:
         if filename not in DEFAULT_DOCUMENTS:
             raise WorkflowError(f"unknown state document {filename!r}")
         with self._lock(exclusive=True):
+            github_authority_config = self._refresh_github_authority()
+            if filename in {"issues.json", "prs.json", "sessions.json"} and github_authority_config is not None:
+                raise WorkflowError(
+                    (
+                        "GitHub Issues and pull requests are canonical; local issue/PR "
+                        "mutation is disabled"
+                        if filename in {"issues.json", "prs.json"}
+                        else "GitHub-canonical workflow state cannot be mutated through "
+                        "the generic local API; use the guarded dispatch or lease/import API"
+                    )
+                )
             documents = self.load()
             changed_document = copy.deepcopy(documents[filename])
             result = mutation(changed_document)
             documents[filename] = changed_document
             validate_documents(documents)
-            atomic_write_json(self.state_dir / filename, changed_document)
-            self.append_event(event, payload, lock_held=True)
+            if filename in {"issues.json", "prs.json", "sessions.json"}:
+                if self._refresh_github_authority() is not None:
+                    raise WorkflowError(
+                        "GitHub authority appeared during generic local mutation; retry"
+                    )
+            target_path = self.state_dir / filename
+            target_existed = target_path.exists()
+            target_bytes = target_path.read_bytes() if target_existed else None
+            events_existed = self.events_path.exists()
+            events_offset = self.events_path.stat().st_size if events_existed else 0
+            events_bytes = self.events_path.read_bytes() if events_existed else None
+            try:
+                atomic_write_json(target_path, changed_document)
+                if (
+                    filename in {"issues.json", "prs.json", "sessions.json"}
+                    and self._refresh_github_authority() is not None
+                ):
+                    raise WorkflowError(
+                        "GitHub authority appeared during generic local mutation; retry"
+                    )
+                self.append_event(
+                    event,
+                    payload,
+                    lock_held=True,
+                    _write_token=self._workflow_write_token,
+                )
+                if (
+                    filename in {"issues.json", "prs.json", "sessions.json"}
+                    and self._refresh_github_authority() is not None
+                ):
+                    raise WorkflowError(
+                        "GitHub authority appeared during generic local mutation; retry"
+                    )
+            except BaseException:
+                try:
+                    if target_existed:
+                        assert target_bytes is not None
+                        _atomic_write_bytes(target_path, target_bytes)
+                    else:
+                        target_path.unlink(missing_ok=True)
+                    self._restore_event_log(
+                        events_existed=events_existed,
+                        events_offset=events_offset,
+                        events_bytes=events_bytes,
+                    )
+                except BaseException as rollback_error:
+                    raise WorkflowError(
+                        f"workflow mutation rollback failed for {filename!r}"
+                    ) from rollback_error
+                raise
             return result
+
+    def plan_session(self, record: Mapping[str, Any]) -> dict[str, Any]:
+        """Append one manifest-bound planned session after GitHub cutover.
+
+        Planning records expected work but does not authorize it. Migrated
+        identities are authenticated against the immutable cutover manifest;
+        GitHub-only rows are checked live only by the existing dispatch gate.
+        """
+
+        if not isinstance(record, Mapping):
+            raise WorkflowError("planned session must be an object")
+        with self._lock(exclusive=True):
+            config_path = self._refresh_github_authority()
+            if config_path is None:
+                raise WorkflowError(
+                    "guarded planned-session enqueue requires GitHub cutover authority"
+                )
+            config_path = _lexical_absolute(config_path)
+            config_digest = _regular_file_digest(
+                config_path, "GitHub authority config"
+            )
+            manifest_path = _lexical_absolute(
+                config_path.parent / "github-cutover.json"
+            )
+            manifest_digest = _regular_file_digest(
+                manifest_path, "GitHub cutover manifest"
+            )
+            try:
+                import github_workflow
+
+                authority = github_workflow.load_authority(config_path)
+                if _authority_manifest_path(config_path, authority) != manifest_path:
+                    raise WorkflowError(
+                        "GitHub cutover manifest changed during planned-session enqueue"
+                    )
+            except WorkflowError:
+                raise
+            except Exception as error:
+                if error.__class__.__name__ == "GitHubWorkflowError":
+                    raise WorkflowError(
+                        f"GitHub planned-session authority failed: {error}"
+                    ) from None
+                raise
+
+            bindings: dict[str, int] = {}
+            reverse_bindings: dict[int, str] = {}
+            for binding in authority.issues:
+                legacy_id = getattr(binding, "legacy_id", None)
+                number = getattr(binding, "number", None)
+                if (
+                    not isinstance(legacy_id, str)
+                    or not legacy_id.strip()
+                    or not _is_positive_int(number)
+                    or legacy_id in bindings
+                    or number in reverse_bindings
+                ):
+                    raise WorkflowError(
+                        "GitHub cutover manifest contains invalid issue bindings"
+                    )
+                bindings[legacy_id] = number
+                reverse_bindings[number] = legacy_id
+
+            pull_request_bindings: dict[str, int] = {}
+            reverse_pull_request_bindings: dict[int, str] = {}
+            pull_request_binding_objects: dict[str, Any] = {}
+            for binding in authority.pull_requests:
+                legacy_id = getattr(binding, "legacy_id", None)
+                number = getattr(binding, "number", None)
+                if (
+                    not isinstance(legacy_id, str)
+                    or not legacy_id.strip()
+                    or not _is_positive_int(number)
+                    or legacy_id in pull_request_bindings
+                    or number in reverse_pull_request_bindings
+                ):
+                    raise WorkflowError(
+                        "GitHub cutover manifest contains invalid pull-request bindings"
+                    )
+                pull_request_bindings[legacy_id] = number
+                reverse_pull_request_bindings[number] = legacy_id
+                pull_request_binding_objects[legacy_id] = binding
+
+            candidate = copy.deepcopy(dict(record))
+            issue_id = candidate.get("issue_id")
+            github_number = candidate.get("github_issue_number")
+            if isinstance(issue_id, str):
+                canonical_number = bindings.get(issue_id)
+                if canonical_number is None:
+                    raise WorkflowError(
+                        f"planned session names unmigrated legacy issue {issue_id!r}; "
+                        "GitHub-only work must use issue_id null"
+                    )
+                if github_number is not None and github_number != canonical_number:
+                    raise WorkflowError(
+                        "planned session GitHub issue binding disagrees with the "
+                        "cutover manifest"
+                    )
+                candidate["github_issue_number"] = canonical_number
+            elif issue_id is None:
+                if not _is_positive_int(github_number):
+                    raise WorkflowError(
+                        "GitHub-only planned session requires a positive "
+                        "github_issue_number"
+                    )
+                if github_number in reverse_bindings:
+                    raise WorkflowError(
+                        f"GitHub-only planned session targets migrated issue #{github_number}"
+                    )
+            else:
+                raise WorkflowError("planned session issue_id must be a string or null")
+
+            pr_id = candidate.get("pr_id")
+            github_pr_number = candidate.get("github_pull_request_number")
+            if isinstance(pr_id, str):
+                canonical_pr_number = pull_request_bindings.get(pr_id)
+                if canonical_pr_number is None:
+                    raise WorkflowError(
+                        f"planned session names unmigrated legacy pull request {pr_id!r}; "
+                        "GitHub-only work must use pr_id null"
+                    )
+                if (
+                    github_pr_number is not None
+                    and github_pr_number != canonical_pr_number
+                ):
+                    raise WorkflowError(
+                        "planned session GitHub pull-request binding disagrees with "
+                        "the cutover manifest"
+                    )
+                candidate["github_pull_request_number"] = canonical_pr_number
+                canonical_pr_fields = _pull_request_identity_fields(
+                    pull_request_binding_objects[pr_id]
+                )
+                for field, expected in canonical_pr_fields.items():
+                    supplied = candidate.get(field)
+                    if supplied is not None and supplied != expected:
+                        raise WorkflowError(
+                            "planned session GitHub pull-request base/head identity "
+                            "disagrees with the cutover manifest"
+                        )
+                    candidate[field] = expected
+            elif pr_id is None:
+                if (
+                    github_pr_number is not None
+                    and not _is_positive_int(github_pr_number)
+                ):
+                    raise WorkflowError(
+                        "GitHub-only planned session requires a positive "
+                        "github_pull_request_number when one is supplied"
+                    )
+                if github_pr_number in reverse_pull_request_bindings:
+                    raise WorkflowError(
+                        "GitHub-only planned session targets migrated pull request "
+                        f"#{github_pr_number}"
+                    )
+                github_pr_fields = _pull_request_identity_fields(candidate)
+                if github_pr_number is None:
+                    if any(value is not None for value in github_pr_fields.values()):
+                        raise WorkflowError(
+                            "planned session has GitHub pull-request base/head identity "
+                            "without a github_pull_request_number"
+                        )
+                else:
+                    _validate_pull_request_identity_fields(
+                        github_pr_fields,
+                        expected_base_ref=authority.base_ref,
+                    )
+            else:
+                raise WorkflowError("planned session pr_id must be a string or null")
+
+            def assert_authority_unchanged() -> None:
+                current = self._refresh_github_authority()
+                if current is None or _lexical_absolute(current) != config_path:
+                    raise WorkflowError(
+                        "GitHub authority changed during planned-session enqueue"
+                    )
+                if (
+                    _regular_file_digest(current, "GitHub authority config")
+                    != config_digest
+                ):
+                    raise WorkflowError(
+                        "GitHub authority config changed during planned-session enqueue"
+                    )
+                if (
+                    _regular_file_digest(
+                        manifest_path, "GitHub cutover manifest"
+                    )
+                    != manifest_digest
+                ):
+                    raise WorkflowError(
+                        "GitHub cutover manifest changed during planned-session enqueue"
+                    )
+
+            assert_authority_unchanged()
+            documents = self.load()
+            validate_documents(documents)
+            validate_event_log(self.events_path, documents)
+            _audit_github_session_bindings(
+                documents, bindings, pull_request_bindings
+            )
+            duplicate_orchestrators = _duplicate_orchestrator_ids(
+                documents, candidate, bindings
+            )
+            if duplicate_orchestrators:
+                raise WorkflowError(
+                    "planned session would create a duplicate orchestrator with: "
+                    + ", ".join(duplicate_orchestrators)
+                )
+            changed_sessions = copy.deepcopy(documents["sessions.json"])
+            changed_sessions["planned"].append(candidate)
+            documents["sessions.json"] = changed_sessions
+            validate_documents(documents)
+            _audit_github_session_bindings(
+                documents, bindings, pull_request_bindings
+            )
+            materialized = _dispatch_record(candidate, reject_new_immutable=True)
+            materialization_errors = _candidate_validation_errors(
+                documents,
+                materialized,
+                ignore_active_ownership=True,
+                allow_unconfirmed_external_id=True,
+            )
+            if materialization_errors:
+                raise WorkflowError(
+                    "planned session cannot materialize as an issued record: "
+                    + "; ".join(materialization_errors)
+                )
+            assert_authority_unchanged()
+
+            sessions_path = self.state_dir / "sessions.json"
+            sessions_bytes = sessions_path.read_bytes()
+            events_existed = self.events_path.exists()
+            events_offset = self.events_path.stat().st_size if events_existed else 0
+            events_bytes = self.events_path.read_bytes() if events_existed else None
+            try:
+                atomic_write_json(sessions_path, changed_sessions)
+                assert_authority_unchanged()
+                self.append_event(
+                    "record.added",
+                    {
+                        "kind": "planned-session",
+                        "id": candidate.get("id"),
+                        "github_issue_number": candidate.get(
+                            "github_issue_number"
+                        ),
+                    },
+                    lock_held=True,
+                    timestamp=self._batch_event_timestamp(),
+                    _write_token=self._workflow_write_token,
+                )
+                assert_authority_unchanged()
+                validate_event_log(self.events_path, documents)
+                assert_authority_unchanged()
+            except BaseException:
+                try:
+                    self._restore_dispatch_transaction(
+                        sessions_path=sessions_path,
+                        sessions_bytes=sessions_bytes,
+                        events_existed=events_existed,
+                        events_offset=events_offset,
+                        events_bytes=events_bytes,
+                    )
+                except BaseException as rollback_error:
+                    raise WorkflowError(
+                        "planned-session enqueue rollback failed"
+                    ) from rollback_error
+                raise
+            return candidate
 
     def dispatch_sessions(
         self,
@@ -1844,6 +2596,7 @@ class WorkflowStore:
         dry_run: bool = False,
         issue_projection: Mapping[str, Mapping[str, Any]] | None = None,
         canonical_issue_projection: Mapping[int, Mapping[str, Any]] | None = None,
+        github_preflight_proof: _GitHubDispatchProof | None = None,
     ) -> dict[str, Any]:
         """Plan and atomically confirm the available launched-session prefix.
 
@@ -1859,15 +2612,135 @@ class WorkflowStore:
         lease and import the real external identity after the runner returns.
         """
 
-        if self.github_authority_config is not None and (
-            issue_projection is None or canonical_issue_projection is None
-        ):
-            raise WorkflowError(
-                "GitHub-canonical dispatch requires a live canonical issue projection"
-            )
+        github_evidence: dict[str, Any] | None = None
+        github_authority_config = self._refresh_github_authority()
+        if github_authority_config is not None:
+            if not isinstance(github_preflight_proof, _GitHubDispatchProof):
+                raise WorkflowError(
+                    "GitHub-canonical dispatch requires an opaque live preflight proof"
+                )
+            if github_preflight_proof.store_token is not self._github_dispatch_store_token:
+                raise WorkflowError(
+                    "GitHub dispatch preflight proof belongs to another store"
+                )
+            if github_preflight_proof.config_path != _lexical_absolute(github_authority_config):
+                raise WorkflowError("GitHub dispatch preflight proof uses another config")
+            if issue_projection is not None or canonical_issue_projection is not None:
+                raise WorkflowError(
+                    "GitHub-canonical dispatch accepts projections only through its opaque proof"
+                )
+            canonical_issue_bindings = None
+        else:
+            canonical_issue_bindings = None
         with self._lock(exclusive=True):
+            locked_github_authority_config = self._refresh_github_authority()
+            if (locked_github_authority_config is None) != (
+                github_authority_config is None
+            ):
+                raise WorkflowError(
+                    "GitHub authority appeared or disappeared during dispatch; retry"
+                )
+            if (
+                locked_github_authority_config is not None
+                and _lexical_absolute(locked_github_authority_config)
+                != _lexical_absolute(github_authority_config)
+            ):
+                raise WorkflowError("GitHub authority config changed during dispatch")
             documents = self.load()
             validate_documents(documents)
+            if github_authority_config is not None:
+                (
+                    fresh_issue_projection,
+                    fresh_canonical_projection,
+                    github_evidence,
+                    fresh_proof,
+                ) = _github_dispatch_preflight(
+                    self,
+                    github_authority_config,
+                    session_ids,
+                    stage_id,
+                    documents=documents,
+                )
+                if (
+                    github_preflight_proof.selected_session_ids
+                    != fresh_proof.selected_session_ids
+                    or github_preflight_proof.planned_rows_digest
+                    != fresh_proof.planned_rows_digest
+                    or _thaw_json_value(github_preflight_proof.issue_projection)
+                    != _thaw_json_value(fresh_proof.issue_projection)
+                    or _thaw_json_value(
+                        github_preflight_proof.canonical_issue_projection
+                    )
+                    != _thaw_json_value(fresh_proof.canonical_issue_projection)
+                    or _thaw_json_value(
+                        github_preflight_proof.canonical_issue_bindings
+                    )
+                    != _thaw_json_value(fresh_proof.canonical_issue_bindings)
+                    or _thaw_json_value(
+                        github_preflight_proof.canonical_pull_request_bindings
+                    )
+                    != _thaw_json_value(
+                        fresh_proof.canonical_pull_request_bindings
+                    )
+                    or github_preflight_proof.config_digest
+                    != fresh_proof.config_digest
+                    or github_preflight_proof.manifest_path
+                    != fresh_proof.manifest_path
+                    or github_preflight_proof.manifest_digest
+                    != fresh_proof.manifest_digest
+                ):
+                    raise WorkflowError(
+                        "GitHub dispatch preflight proof does not match a fresh "
+                        "live preflight under the publication lock"
+                    )
+                issue_projection = fresh_issue_projection
+                canonical_issue_projection = fresh_canonical_projection
+                canonical_issue_bindings = _thaw_json_value(
+                    fresh_proof.canonical_issue_bindings
+                )
+                canonical_pull_request_bindings = _thaw_json_value(
+                    fresh_proof.canonical_pull_request_bindings
+                )
+                _audit_github_session_bindings(
+                    documents,
+                    canonical_issue_bindings,
+                    canonical_pull_request_bindings,
+                )
+                if (
+                    _regular_file_digest(
+                        github_authority_config, "GitHub authority config"
+                    )
+                    != github_preflight_proof.config_digest
+                ):
+                    raise WorkflowError(
+                        "GitHub authority config changed during dispatch"
+                    )
+                if github_authority_config is not None and github_preflight_proof is not None and github_preflight_proof.manifest_path is not None and (
+                    _regular_file_digest(
+                        github_preflight_proof.manifest_path,
+                        "GitHub cutover manifest",
+                    )
+                    != github_preflight_proof.manifest_digest
+                ):
+                    raise WorkflowError(
+                        "GitHub cutover manifest changed during dispatch"
+                    )
+                actual_ids = tuple(
+                    _selected_planned_session_ids(documents, session_ids, stage_id)
+                )
+                if actual_ids != github_preflight_proof.selected_session_ids:
+                    raise WorkflowError(
+                        "GitHub dispatch planned-session selection changed after preflight"
+                    )
+                if _planned_rows_digest(documents, actual_ids) != github_preflight_proof.planned_rows_digest:
+                    raise WorkflowError(
+                        "GitHub dispatch planned-session snapshot changed after preflight"
+                    )
+                _bind_canonical_issue_numbers(
+                    documents,
+                    actual_ids,
+                    canonical_issue_bindings,
+                )
             # An invalid or reverse-chronological history must never receive a
             # new event.  This check also makes the timestamp guard's input
             # trustworthy before any ledger replacement occurs.
@@ -1883,6 +2756,8 @@ class WorkflowStore:
             )
             planning_documents = documents
             if issue_projection is not None:
+                if not isinstance(issue_projection, Mapping):
+                    raise WorkflowError("canonical issue projection must be an object")
                 planning_documents = copy.deepcopy(documents)
                 issues_by_id = {
                     item["id"]: item
@@ -1907,6 +2782,7 @@ class WorkflowStore:
                 session_ids=session_ids,
                 session_overrides=effective_overrides,
                 canonical_issue_projection=canonical_issue_projection,
+                canonical_issue_bindings=canonical_issue_bindings,
             )
             # A blocked candidate invalidates the requested batch.  Capacity-only
             # queueing is different: issue the deterministic available prefix as
@@ -1914,6 +2790,8 @@ class WorkflowStore:
             if dry_run or plan["status"] == "blocked":
                 plan["dry_run"] = dry_run
                 plan["issued"] = []
+                if github_evidence is not None:
+                    plan["github_preflight"] = github_evidence
                 return plan
 
             selected_ids = list(plan["dispatchable"])
@@ -1949,10 +2827,14 @@ class WorkflowStore:
                 plan["blocked_batch_unchanged"] = True
                 plan["dry_run"] = False
                 plan["issued"] = []
+                if github_evidence is not None:
+                    plan["github_preflight"] = github_evidence
                 return plan
             if not selected_ids:
                 plan["dry_run"] = False
                 plan["issued"] = []
+                if github_evidence is not None:
+                    plan["github_preflight"] = github_evidence
                 return plan
 
             issued = copy.deepcopy(documents["sessions.json"]["issued"])
@@ -1976,6 +2858,25 @@ class WorkflowStore:
             events_offset = self.events_path.stat().st_size if events_existed else 0
             events_bytes = self.events_path.read_bytes() if events_existed else None
             try:
+                if github_authority_config is not None and (
+                    _regular_file_digest(
+                        github_authority_config, "GitHub authority config"
+                    )
+                    != github_preflight_proof.config_digest
+                ):
+                    raise WorkflowError(
+                        "GitHub authority config changed before publication"
+                    )
+                if github_authority_config is not None and github_preflight_proof is not None and github_preflight_proof.manifest_path is not None and (
+                    _regular_file_digest(
+                        github_preflight_proof.manifest_path,
+                        "GitHub cutover manifest",
+                    )
+                    != github_preflight_proof.manifest_digest
+                ):
+                    raise WorkflowError(
+                        "GitHub cutover manifest changed before publication"
+                    )
                 atomic_write_json(sessions_path, documents["sessions.json"])
                 for session_id in selected_ids:
                     self.append_event(
@@ -1991,6 +2892,7 @@ class WorkflowStore:
                         },
                         lock_held=True,
                         timestamp=batch_timestamp,
+                        _write_token=self._workflow_write_token,
                     )
                 self.append_event(
                     "sessions.dispatched",
@@ -2013,10 +2915,34 @@ class WorkflowStore:
                     },
                     lock_held=True,
                     timestamp=batch_timestamp,
+                    _write_token=self._workflow_write_token,
                 )
                 # Check the post-append lifecycle while the lock is still held;
                 # an injected or malformed writer is handled by the rollback.
                 validate_event_log(self.events_path, documents)
+                if github_authority_config is not None:
+                    current_config = self._refresh_github_authority()
+                    if (
+                        current_config is None
+                        or _regular_file_digest(
+                            current_config, "GitHub authority config"
+                        )
+                        != github_preflight_proof.config_digest
+                    ):
+                        raise WorkflowError(
+                            "GitHub authority config changed during publication"
+                        )
+                    if (
+                        github_preflight_proof.manifest_path is None
+                        or _regular_file_digest(
+                            github_preflight_proof.manifest_path,
+                            "GitHub cutover manifest",
+                        )
+                        != github_preflight_proof.manifest_digest
+                    ):
+                        raise WorkflowError(
+                            "GitHub cutover manifest changed during publication"
+                        )
             except BaseException:
                 self._restore_dispatch_transaction(
                     sessions_path=sessions_path,
@@ -2032,6 +2958,8 @@ class WorkflowStore:
             plan["atomic_batch"] = True
             plan["request_atomic"] = True
             plan["all_or_nothing"] = not bool(plan["queued"])
+            if github_evidence is not None:
+                plan["github_preflight"] = github_evidence
             return plan
 
 
@@ -2176,6 +3104,7 @@ def active_non_coordinator_count(
 def _duplicate_orchestrator_ids(
     documents: Mapping[str, Any],
     candidate: Mapping[str, Any],
+    canonical_issue_bindings: Mapping[str, int] | None = None,
 ) -> list[str]:
     """Find planned or active orchestrators already assigned to an issue.
 
@@ -2186,20 +3115,22 @@ def _duplicate_orchestrator_ids(
 
     if candidate.get("role") != "orchestrator":
         return []
-    issue_key = _session_issue_key(candidate)
+    issue_keys = _session_issue_keys_with_bindings(candidate, canonical_issue_bindings)
     candidate_id = candidate.get("id")
     duplicates: list[str] = []
     for session in documents["sessions.json"]["planned"]:
         if (
             session.get("id") != candidate_id
-            and _session_issue_key(session) == issue_key
+            and _session_issue_keys_with_bindings(session, canonical_issue_bindings)
+            & issue_keys
             and session.get("role") == "orchestrator"
         ):
             duplicates.append(str(session.get("id")))
     for session in documents["sessions.json"]["issued"]:
         if (
             session.get("id") != candidate_id
-            and _session_issue_key(session) == issue_key
+            and _session_issue_keys_with_bindings(session, canonical_issue_bindings)
+            & issue_keys
             and session.get("role") == "orchestrator"
             and session.get("status") in ACTIVE_SESSION_STATUSES
         ):
@@ -2207,9 +3138,36 @@ def _duplicate_orchestrator_ids(
     return sorted(set(duplicates))
 
 
+def _active_issue_orchestrators(
+    documents: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+    canonical_issue_bindings: Mapping[str, int] | None = None,
+) -> list[Mapping[str, Any]]:
+    """Return active orchestrators bound to the candidate's canonical issue."""
+
+    issue_keys = _session_issue_keys_with_bindings(
+        candidate, canonical_issue_bindings
+    )
+    return sorted(
+        (
+            session
+            for session in documents["sessions.json"]["issued"]
+            if session.get("role") == "orchestrator"
+            and session.get("status") in ACTIVE_SESSION_STATUSES
+            and _session_issue_keys_with_bindings(
+                session, canonical_issue_bindings
+            )
+            & issue_keys
+        ),
+        key=lambda session: str(session.get("id")),
+    )
+
+
 def _dispatch_record(
     planned: Mapping[str, Any],
     override: Mapping[str, Any] | None = None,
+    *,
+    reject_new_immutable: bool = False,
 ) -> dict[str, Any]:
     """Construct an issued candidate without mutating the planned row."""
 
@@ -2224,7 +3182,10 @@ def _dispatch_record(
                 f"dispatch override for {record.get('id')!r} has invalid status"
             )
         for field in DISPATCH_IMMUTABLE_FIELDS:
-            if field in override and field in record and override[field] != record[field]:
+            if field in override and (
+                (field not in record and reject_new_immutable)
+                or (field in record and override[field] != record[field])
+            ):
                 raise WorkflowError(
                     f"dispatch override for {record.get('id')!r} changes immutable field {field!r}"
                 )
@@ -2241,6 +3202,29 @@ def _dispatch_record(
         record.update(copy.deepcopy(dict(override)))
     record["status"] = "issued"
     return record
+
+
+def _bind_canonical_issue_numbers(
+    documents: MutableMapping[str, Any],
+    selected_session_ids: Sequence[str],
+    canonical_issue_bindings: Mapping[str, int],
+) -> None:
+    """Materialize the live GitHub number on migrated issued-session rows."""
+
+    selected = set(selected_session_ids)
+    for row in documents["sessions.json"]["planned"]:
+        if row.get("id") not in selected:
+            continue
+        legacy_id = row.get("issue_id")
+        if not isinstance(legacy_id, str) or legacy_id not in canonical_issue_bindings:
+            continue
+        number = canonical_issue_bindings[legacy_id]
+        existing = row.get("github_issue_number")
+        if existing is not None and existing != number:
+            raise WorkflowError(
+                f"planned session {row.get('id')!r} has a mismatched migrated GitHub issue binding"
+            )
+        row["github_issue_number"] = number
 
 
 def _ownership_claims(record: Mapping[str, Any]) -> tuple[list[tuple[str, tuple[str, ...], str]], str | None]:
@@ -2338,6 +3322,7 @@ def plan_dispatch(
     session_ids: Sequence[str] | None = None,
     session_overrides: Mapping[str, Mapping[str, Any]] | None = None,
     canonical_issue_projection: Mapping[int, Mapping[str, Any]] | None = None,
+    canonical_issue_bindings: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
     """Plan a deterministic, capacity-bounded dispatch without changing state.
 
@@ -2372,6 +3357,27 @@ def plan_dispatch(
         session["id"]: session for session in documents["sessions.json"]["planned"]
     }
     canonical_issues: dict[int, Mapping[str, Any]] = {}
+    if canonical_issue_bindings is not None and not isinstance(
+        canonical_issue_bindings, Mapping
+    ):
+        raise WorkflowError("canonical issue bindings must be an object")
+    issue_bindings: dict[str, int] = {}
+    for legacy_id, number in (canonical_issue_bindings or {}).items():
+        if (
+            not isinstance(legacy_id, str)
+            or not legacy_id.strip()
+            or not _is_positive_int(number)
+        ):
+            raise WorkflowError("canonical issue bindings have invalid identities")
+        if legacy_id in issue_bindings and issue_bindings[legacy_id] != number:
+            raise WorkflowError("canonical issue bindings contain a duplicate legacy id")
+        if number in issue_bindings.values():
+            raise WorkflowError("canonical issue bindings contain a duplicate GitHub number")
+        issue_bindings[legacy_id] = number
+    if canonical_issue_projection is not None and not isinstance(
+        canonical_issue_projection, Mapping
+    ):
+        raise WorkflowError("canonical issue projection must be an object")
     for number, value in (canonical_issue_projection or {}).items():
         if not _is_positive_int(number):
             raise WorkflowError(
@@ -2379,10 +3385,25 @@ def plan_dispatch(
             )
         if not isinstance(value, Mapping) or set(value) != {
             "status",
+            "kind",
+            "execution_category",
             "dependency_numbers",
             "incomplete_dependency_numbers",
         }:
             raise WorkflowError("canonical issue projection has an invalid field set")
+        if value.get("status") not in ISSUE_STATUSES:
+            raise WorkflowError("canonical issue projection has an invalid status")
+        kind = value.get("kind")
+        execution_category = value.get("execution_category")
+        if not isinstance(kind, str) or not kind.strip():
+            raise WorkflowError("canonical issue projection has an invalid kind")
+        if (
+            execution_category not in ISSUE_EXECUTION_CATEGORIES
+            or execution_category != _issue_execution_category({"kind": kind})
+        ):
+            raise WorkflowError(
+                "canonical issue projection has an invalid execution category"
+            )
         dependencies = value.get("dependency_numbers")
         incomplete = value.get("incomplete_dependency_numbers")
         if (
@@ -2410,24 +3431,7 @@ def plan_dispatch(
             + ", ".join(unknown_overrides)
         )
 
-    if session_ids is None:
-        selected_ids = sorted(
-            session_id
-            for session_id, session in planned.items()
-            if stage_id is None
-            or (
-                session.get("issue_id") is None
-                and session.get("stage_id") == stage_id
-            )
-            or stage_id in membership.get(session.get("issue_id"), [])
-        )
-    else:
-        requested = list(session_ids)
-        if any(not isinstance(item, str) or not item.strip() for item in requested):
-            raise WorkflowError("dispatch session IDs must be non-empty strings")
-        if len(requested) != len(set(requested)):
-            raise WorkflowError("dispatch session IDs must be unique")
-        selected_ids = sorted(requested)
+    selected_ids = _selected_planned_session_ids(documents, session_ids, stage_id)
 
     unused_overrides = sorted(set(overrides) - set(selected_ids))
     if unused_overrides:
@@ -2510,13 +3514,19 @@ def plan_dispatch(
             )
             continue
         try:
-            candidate = _dispatch_record(session, overrides.get(session_id))
+            candidate = _dispatch_record(
+                session,
+                overrides.get(session_id),
+                reject_new_immutable=canonical_issue_bindings is not None,
+            )
         except WorkflowError as error:
             blocked.append(
                 {"id": session_id, "reason": "invalid-dispatch-override", "detail": str(error)}
             )
             continue
-        duplicate_orchestrators = _duplicate_orchestrator_ids(documents, candidate)
+        duplicate_orchestrators = _duplicate_orchestrator_ids(
+            documents, candidate, issue_bindings
+        )
         if duplicate_orchestrators:
             blocked.append(
                 {
@@ -2527,6 +3537,56 @@ def plan_dispatch(
                 }
             )
             continue
+        if canonical_issue_bindings is not None:
+            candidate_number = candidate.get("github_issue_number")
+            if not _is_positive_int(candidate_number):
+                candidate_number = issue_bindings.get(candidate.get("issue_id"))
+            scheduling_issue = canonical_issues.get(candidate_number)
+            if scheduling_issue is None:
+                blocked.append(
+                    {
+                        "id": session_id,
+                        "reason": "unknown-canonical-github-issue",
+                        "github_issue_number": candidate_number,
+                    }
+                )
+                continue
+            if scheduling_issue.get("execution_category") == "implementation":
+                if (
+                    candidate.get("role") == "orchestrator"
+                    and candidate.get("read_only") is not False
+                ):
+                    blocked.append(
+                        {
+                            "id": session_id,
+                            "reason": "implementation-orchestrator-must-be-writable",
+                            "github_issue_number": candidate_number,
+                        }
+                    )
+                    continue
+                if candidate.get("role") == "orchestrator":
+                    # The duplicate guard above proves that this candidate will
+                    # become the issue's sole active orchestrator.
+                    pass
+                else:
+                    orchestrators = _active_issue_orchestrators(
+                        documents, candidate, issue_bindings
+                    )
+                    writable = [
+                        item for item in orchestrators if item.get("read_only") is False
+                    ]
+                    if len(orchestrators) != 1 or len(writable) != 1:
+                        blocked.append(
+                            {
+                                "id": session_id,
+                                "reason": "implementation-orchestrator-required",
+                                "github_issue_number": candidate_number,
+                                "active_orchestrator_ids": [
+                                    item.get("id") for item in orchestrators
+                                ],
+                            }
+                        )
+                        continue
         errors = _candidate_validation_errors(
             documents,
             candidate,
@@ -2874,7 +3934,14 @@ def _check_session_update(record: Mapping[str, Any], assignments: Sequence[tuple
         "backend",
         "role",
         "issue_id",
+        "github_issue_number",
         "pr_id",
+        "github_pull_request_number",
+        "github_pull_request_base_ref",
+        "github_pull_request_base_sha",
+        "github_pull_request_head_ref",
+        "github_pull_request_head_sha",
+        "stage_id",
         "parent_session_id",
         "attempt",
         "read_only",
@@ -3074,11 +4141,132 @@ def _resolve(root: Path, value: str) -> Path:
     return path if path.is_absolute() else root / path
 
 
+def _lexical_absolute(path: Path) -> Path:
+    """Normalize a path without following symlinks."""
+
+    return Path(os.path.abspath(os.fspath(path)))
+
+
+def _workflow_root_for_state_dir(state_dir: Path) -> Path:
+    """Derive the repository root from the real state directory path."""
+
+    try:
+        resolved = state_dir.resolve(strict=False)
+    except OSError as error:
+        raise WorkflowError(
+            f"workflow state directory cannot be resolved: {error}"
+        ) from error
+    return resolved.parent.parent
+
+
+def _regular_file_digest(path: Path, label: str) -> str:
+    """Hash one regular file through a no-follow descriptor."""
+
+    if not _regular_nonsymlink(path, label):
+        raise WorkflowError(f"{label} is unavailable")
+    descriptor: int | None = None
+    digest = hashlib.sha256()
+    try:
+        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path, flags)
+        opened = os.fstat(descriptor)
+        if not stat.S_ISREG(opened.st_mode):
+            raise WorkflowError(f"{label} must be a regular, non-symlink file")
+        with os.fdopen(descriptor, "rb", closefd=True) as stream:
+            descriptor = None
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except WorkflowError:
+        raise
+    except OSError as error:
+        raise WorkflowError(f"{label} cannot be read: {error}") from error
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+    return digest.hexdigest()
+
+
+def _authority_manifest_path(
+    config_path: Path, authority: Any
+) -> Path:
+    """Return the immutable manifest path loaded by a GitHub authority.
+
+    The production authority always exposes a ``Path``.  Lightweight test
+    doubles may omit that attribute, but the canonical adjacent path remains
+    the only accepted fallback; an arbitrary or traversing manifest can never
+    become dispatch authority.
+    """
+
+    expected = _lexical_absolute(config_path.parent / "github-cutover.json")
+    candidate = getattr(authority, "manifest_path", None)
+    if isinstance(candidate, (str, os.PathLike, Path)):
+        path = Path(candidate)
+        if not path.is_absolute():
+            path = config_path.parent / path
+        if _lexical_absolute(path) != expected:
+            raise WorkflowError(
+                "GitHub cutover manifest must be exactly workflow/github-cutover.json"
+            )
+    path = expected
+    if not _regular_nonsymlink(path, "GitHub cutover manifest"):
+        raise WorkflowError("GitHub cutover manifest is unavailable")
+    return path
+
+
+def _regular_nonsymlink(path: Path, label: str) -> bool:
+    """Return whether ``path`` is a directly-addressed regular file."""
+
+    _reject_symlink_components(path, label)
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        return False
+    except OSError as error:
+        raise WorkflowError(f"{label} cannot be inspected: {error}") from error
+    if stat.S_ISLNK(metadata.st_mode):
+        raise WorkflowError(f"{label} must be a regular, non-symlink file")
+    if not stat.S_ISREG(metadata.st_mode):
+        raise WorkflowError(f"{label} must be a regular, non-symlink file")
+    return True
+
+
+def _reject_symlink_components(path: Path, label: str) -> None:
+    """Reject symlinked parent components as well as a symlinked leaf."""
+
+    absolute = _lexical_absolute(path)
+    current = Path(absolute.anchor)
+    for component in absolute.parts[1:]:
+        current /= component
+        try:
+            metadata = current.lstat()
+        except FileNotFoundError:
+            # The eventual regular-file check reports a missing path.  There
+            # cannot be a symlink below a component that does not exist.
+            return
+        except OSError as error:
+            raise WorkflowError(f"{label} cannot be inspected: {error}") from error
+        if stat.S_ISLNK(metadata.st_mode):
+            raise WorkflowError(
+                f"{label} must be a regular, non-symlink file (path contains a symlink component)"
+            )
+
+
 def _github_authority_config(root: Path) -> Path | None:
     """Return the committed GitHub authority config when cutover is active."""
 
     candidate = root / GITHUB_AUTHORITY_CONFIG
-    return candidate if candidate.is_file() else None
+    if not _regular_nonsymlink(candidate, "GitHub authority config"):
+        return None
+    return candidate
+
+
+def _github_cutover_manifest(root: Path) -> Path | None:
+    """Return the irreversible cutover marker independently of its config."""
+
+    candidate = root / "workflow" / "github-cutover.json"
+    if not _regular_nonsymlink(candidate, "GitHub cutover manifest"):
+        return None
+    return candidate
 
 
 def _reject_legacy_github_authority(arguments: argparse.Namespace, root: Path) -> None:
@@ -3090,10 +4278,17 @@ def _reject_legacy_github_authority(arguments: argparse.Namespace, root: Path) -
     kind = getattr(arguments, "kind", None)
     if command in {"init", "ready"} or (
         command in {"add", "update", "transition"} and kind in {"issue", "pr"}
+    ) or (
+        command in {"add", "update", "transition"} and kind == "issued-session"
     ):
+        detail = (
+            "this legacy issue/PR authority command is disabled"
+            if kind != "issued-session"
+            else "generic issued-session mutation is disabled; use guarded dispatch or lease/import"
+        )
         raise WorkflowError(
             "GitHub Issues and pull requests in Dengnifer/MIPStarRE-B are canonical; "
-            "this legacy local issue/PR authority command is disabled"
+            + detail
         )
 
 
@@ -3108,8 +4303,13 @@ def _required_github_config(arguments: argparse.Namespace, root: Path) -> Path |
         raise WorkflowError(
             "GitHub-canonical dispatch requires --github-config workflow/github.json"
         )
-    actual = _resolve(root, supplied).resolve()
-    expected = expected.resolve()
+    actual_path = _resolve(root, supplied)
+    if not _regular_nonsymlink(actual_path, "GitHub authority config"):
+        raise WorkflowError(
+            "GitHub-canonical dispatch config must be exactly workflow/github.json"
+        )
+    actual = _lexical_absolute(actual_path)
+    expected = _lexical_absolute(expected)
     if actual != expected:
         raise WorkflowError(
             "GitHub-canonical dispatch config must be exactly workflow/github.json"
@@ -3121,28 +4321,69 @@ def _github_dispatch_preflight(
     store: "WorkflowStore",
     config_path: Path | None,
     session_ids: Sequence[str] | None,
+    stage_id: str | None = None,
+    *,
+    documents: Mapping[str, Any] | None = None,
 ) -> tuple[
     dict[str, dict[str, Any]] | None,
     dict[int, dict[str, Any]] | None,
     dict[str, Any] | None,
+    _GitHubDispatchProof | None,
 ]:
     """Read canonical issue state and derive an in-memory dispatch projection."""
 
     if config_path is None:
-        return None, None, None
+        return None, None, None, None
+    expected_config = _lexical_absolute(store.state_dir.parent / "github.json")
+    if _lexical_absolute(config_path) != expected_config:
+        raise WorkflowError(
+            "GitHub authority config must be exactly workflow/github.json"
+        )
+    if not _regular_nonsymlink(config_path, "GitHub authority config"):
+        raise WorkflowError("GitHub authority config is unavailable")
+    config_path = _lexical_absolute(config_path)
+    config_digest_before = _regular_file_digest(
+        config_path, "GitHub authority config"
+    )
     try:
         import github_workflow
 
         authority = github_workflow.load_authority(config_path)
-        documents = store.validate()
+        manifest_path = _authority_manifest_path(config_path, authority)
+        manifest_digest_before = _regular_file_digest(
+            manifest_path, "GitHub cutover manifest"
+        )
+        if documents is None:
+            documents = store.validate()
+        else:
+            validate_documents(documents)
+            validate_event_log(store.events_path, documents)
+        canonical_issue_bindings = {
+            binding.legacy_id: binding.number for binding in authority.issues
+        }
+        canonical_pull_request_bindings = {
+            binding.legacy_id: binding.number
+            for binding in authority.pull_requests
+        }
+        # A migrated issue must never have a second, GitHub-only reservation in
+        # the local execution layer.  Audit all planned and active rows before
+        # selecting a batch so an unselected stale row cannot evade admission.
+        _audit_github_session_bindings(
+            documents,
+            canonical_issue_bindings,
+            canonical_pull_request_bindings,
+        )
         planned = {
             row.get("id"): row
             for row in documents["sessions.json"]["planned"]
             if isinstance(row.get("id"), str)
         }
-        selected_ids = sorted(planned) if session_ids is None else sorted(session_ids)
+        selected_ids = _selected_planned_session_ids(documents, session_ids, stage_id)
         selected_rows: list[tuple[Mapping[str, Any], int]] = []
         selected_numbers: list[int] = []
+        selected_pull_requests: dict[
+            int, tuple[Any, str | None]
+        ] = {}
         for session_id in selected_ids:
             row = planned.get(session_id)
             if row is None:
@@ -3164,14 +4405,97 @@ def _github_dispatch_preflight(
                 )
             selected_rows.append((row, github_number))
             selected_numbers.append(github_number)
+            legacy_pr_id = row.get("pr_id")
+            github_pr_number = row.get("github_pull_request_number")
+            expected_legacy_pr_id: str | None = None
+            if isinstance(legacy_pr_id, str):
+                binding = authority.pull_request_by_legacy_id(legacy_pr_id)
+                if (
+                    github_pr_number is not None
+                    and github_pr_number != binding.number
+                ):
+                    raise WorkflowError(
+                        f"planned session {session_id!r} GitHub pull-request "
+                        "binding mismatch"
+                    )
+                github_pr_number = binding.number
+                expected_legacy_pr_id = legacy_pr_id
+                identity_fields = _pull_request_identity_fields(binding)
+                for field, expected in identity_fields.items():
+                    supplied = row.get(field)
+                    if supplied is not None and supplied != expected:
+                        raise WorkflowError(
+                            f"planned session {session_id!r} GitHub pull-request "
+                            "base/head identity mismatch"
+                        )
+            elif legacy_pr_id is not None:
+                raise WorkflowError(
+                    f"planned session {session_id!r} has an invalid pr_id"
+                )
+            elif github_pr_number is not None:
+                if not _is_positive_int(github_pr_number):
+                    raise WorkflowError(
+                        f"planned session {session_id!r} has an invalid canonical "
+                        "GitHub pull-request number"
+                    )
+                if authority.optional_pull_request_by_number(github_pr_number) is not None:
+                    raise WorkflowError(
+                        f"planned session {session_id!r} omits the migrated "
+                        "pull-request legacy identity"
+                    )
+                identity_fields = _pull_request_identity_fields(row)
+                _validate_pull_request_identity_fields(
+                    identity_fields,
+                    expected_base_ref=authority.base_ref,
+                )
+            else:
+                identity_fields = _pull_request_identity_fields(row)
+                if any(value is not None for value in identity_fields.values()):
+                    raise WorkflowError(
+                        f"planned session {session_id!r} has pull-request "
+                        "base/head identity without a number"
+                    )
+                continue
+
+            expectation = github_workflow.PullRequestExpectation(
+                github_pr_number,
+                identity_fields["github_pull_request_base_ref"],
+                identity_fields["github_pull_request_base_sha"],
+                identity_fields["github_pull_request_head_ref"],
+                identity_fields["github_pull_request_head_sha"],
+            )
+            previous = selected_pull_requests.get(github_pr_number)
+            current = (expectation, expected_legacy_pr_id)
+            if previous is not None and previous != current:
+                raise WorkflowError(
+                    f"selected sessions disagree on GitHub pull request #{github_pr_number}"
+                )
+            selected_pull_requests[github_pr_number] = current
         if len(selected_numbers) != len(set(selected_numbers)):
             # Multiple roles on one issue are valid, so query that object once.
             selected_numbers = sorted(set(selected_numbers))
         snapshot = github_workflow.live_preflight(
             config_path,
             issue_numbers=selected_numbers,
-            pull_request_expectations=[],
+            pull_request_expectations=[
+                selected_pull_requests[number][0]
+                for number in sorted(selected_pull_requests)
+            ],
         )
+        config_digest_after = _regular_file_digest(
+            config_path, "GitHub authority config"
+        )
+        if config_digest_after != config_digest_before:
+            raise WorkflowError(
+                "GitHub authority config changed during live preflight"
+            )
+        manifest_digest_after = _regular_file_digest(
+            manifest_path, "GitHub cutover manifest"
+        )
+        if manifest_digest_after != manifest_digest_before:
+            raise WorkflowError(
+                "GitHub cutover manifest changed during live preflight"
+            )
     except WorkflowError:
         raise
     except Exception as error:
@@ -3179,11 +4503,134 @@ def _github_dispatch_preflight(
             raise WorkflowError(f"GitHub dispatch preflight failed: {error}") from None
         raise
 
-    snapshots = {item.number: item for item in snapshot.issues}
+    try:
+        live_pull_requests = tuple(snapshot.pull_requests)
+    except TypeError as error:
+        raise WorkflowError(
+            "GitHub dispatch preflight returned a malformed pull-request list"
+        ) from error
+    pull_request_snapshots: dict[int, Any] = {}
+    for item in live_pull_requests:
+        number = getattr(item, "number", None)
+        if not _is_positive_int(number) or number in pull_request_snapshots:
+            raise WorkflowError(
+                "GitHub dispatch preflight returned an invalid or duplicate "
+                "pull-request number"
+            )
+        selected = selected_pull_requests.get(number)
+        if selected is None:
+            raise WorkflowError(
+                f"GitHub dispatch preflight returned unrequested pull request #{number}"
+            )
+        expectation, expected_legacy_id = selected
+        if getattr(item, "state", None) != "OPEN":
+            raise WorkflowError(
+                f"GitHub pull request #{number} is not open for dispatch"
+            )
+        actual_identity = (
+            getattr(item, "base_ref", None),
+            getattr(item, "base_sha", None),
+            getattr(item, "head_ref", None),
+            getattr(item, "head_sha", None),
+        )
+        expected_identity = (
+            expectation.base_ref,
+            expectation.base_sha,
+            expectation.head_ref,
+            expectation.head_sha,
+        )
+        if actual_identity != expected_identity:
+            raise WorkflowError(
+                f"GitHub pull request #{number} base/head identity changed"
+            )
+        if getattr(item, "legacy_id", None) != expected_legacy_id:
+            raise WorkflowError(
+                f"GitHub pull request #{number} migration identity mismatch"
+            )
+        pull_request_snapshots[number] = item
+    missing_pull_requests = sorted(
+        set(selected_pull_requests) - set(pull_request_snapshots)
+    )
+    if missing_pull_requests:
+        raise WorkflowError(
+            "GitHub dispatch preflight omitted selected pull requests: "
+            + ", ".join(str(item) for item in missing_pull_requests)
+        )
+
+    try:
+        live_issues = tuple(snapshot.issues)
+    except TypeError as error:
+        raise WorkflowError("GitHub dispatch preflight returned a malformed issue list") from error
+    snapshots: dict[int, Any] = {}
+    for item in live_issues:
+        number = getattr(item, "number", None)
+        dependencies = getattr(item, "dependency_numbers", None)
+        dependency_legacy_ids = getattr(item, "dependency_legacy_ids", None)
+        if not _is_positive_int(number):
+            raise WorkflowError("GitHub dispatch preflight returned an invalid issue number")
+        state = getattr(item, "state", None)
+        status = getattr(item, "status", None)
+        state_reason = getattr(item, "state_reason", None)
+        legacy_id = getattr(item, "legacy_id", None)
+        if not isinstance(state, str) or state not in {"OPEN", "CLOSED"}:
+            raise WorkflowError(
+                f"GitHub dispatch preflight returned invalid state for issue #{number}"
+            )
+        if not isinstance(status, str) or status not in {
+            "planned",
+            "ready",
+            "in-progress",
+            "review",
+            "blocked",
+            "done",
+            "not-planned",
+        }:
+            raise WorkflowError(
+                f"GitHub dispatch preflight returned invalid status for issue #{number}"
+            )
+        if state_reason is not None and not isinstance(state_reason, str):
+            raise WorkflowError(
+                f"GitHub dispatch preflight returned invalid state reason for issue #{number}"
+            )
+        if legacy_id is not None and not isinstance(legacy_id, str):
+            raise WorkflowError(
+                f"GitHub dispatch preflight returned invalid legacy id for issue #{number}"
+            )
+        if (
+            not isinstance(dependencies, (tuple, list))
+            or any(not _is_positive_int(dependency) for dependency in dependencies)
+            or len(dependencies) != len(set(dependencies))
+        ):
+            raise WorkflowError(
+                f"GitHub dispatch preflight returned invalid dependencies for issue #{number}"
+            )
+        if (
+            not isinstance(dependency_legacy_ids, (tuple, list))
+            or any(not isinstance(dependency, str) for dependency in dependency_legacy_ids)
+            or len(dependency_legacy_ids) != len(set(dependency_legacy_ids))
+        ):
+            raise WorkflowError(
+                f"GitHub dispatch preflight returned invalid legacy dependencies for issue #{number}"
+            )
+        if number in snapshots:
+            raise WorkflowError(
+                f"GitHub dispatch preflight returned duplicate issue #{number}"
+            )
+        snapshots[number] = item
     for _row, number in selected_rows:
         issue = snapshots.get(number)
         if issue is None:
             raise WorkflowError("GitHub dispatch preflight omitted a selected issue")
+        row = _row
+        legacy_id = row.get("issue_id")
+        if legacy_id is None and issue.legacy_id is not None:
+            raise WorkflowError(
+                f"GitHub-only session targets migrated issue #{number}"
+            )
+        if isinstance(legacy_id, str) and issue.legacy_id != legacy_id:
+            raise WorkflowError(
+                f"planned session {row.get('id')!r} legacy issue binding disagrees with GitHub"
+            )
         if issue.state != "OPEN" or issue.status not in {
             "ready",
             "in-progress",
@@ -3210,6 +4657,14 @@ def _github_dispatch_preflight(
     canonical_projection: dict[int, dict[str, Any]] = {}
     for _row, number in selected_rows:
         issue = snapshots[number]
+        missing_dependencies = sorted(
+            set(issue.dependency_numbers) - set(snapshots)
+        )
+        if missing_dependencies:
+            raise WorkflowError(
+                "GitHub dispatch preflight omitted dependency issues: "
+                + ", ".join(str(item) for item in missing_dependencies)
+            )
         incomplete = [
             dependency_number
             for dependency_number in issue.dependency_numbers
@@ -3220,10 +4675,12 @@ def _github_dispatch_preflight(
         ]
         canonical_projection[number] = {
             "status": status_map[issue.status],
+            "kind": issue.kind,
+            "execution_category": _issue_execution_category({"kind": issue.kind}),
             "dependency_numbers": list(issue.dependency_numbers),
             "incomplete_dependency_numbers": sorted(incomplete),
         }
-    for issue in snapshot.issues:
+    for issue in live_issues:
         legacy_id = issue.legacy_id
         if legacy_id is None:
             continue
@@ -3255,11 +4712,27 @@ def _github_dispatch_preflight(
         "base_ref": snapshot.repository.base_ref,
         "base_sha": snapshot.repository.base_sha,
         "selected_issue_numbers": selected_numbers,
+        "selected_pull_request_numbers": sorted(selected_pull_requests),
         "selected_statuses": {
             str(number): snapshots[number].status for number in selected_numbers
         },
     }
-    return projection, canonical_projection, evidence
+    proof = _GitHubDispatchProof(
+        store_token=store._github_dispatch_store_token,
+        config_path=_lexical_absolute(config_path),
+        selected_session_ids=tuple(sorted(selected_ids)),
+        planned_rows_digest=_planned_rows_digest(documents, selected_ids),
+        issue_projection=_freeze_json_value(projection),
+        canonical_issue_projection=_freeze_json_value(canonical_projection),
+        canonical_issue_bindings=_freeze_json_value(canonical_issue_bindings),
+        canonical_pull_request_bindings=_freeze_json_value(
+            canonical_pull_request_bindings
+        ),
+        config_digest=config_digest_after,
+        manifest_path=manifest_path,
+        manifest_digest=manifest_digest_after,
+    )
+    return projection, canonical_projection, evidence, proof
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -3409,6 +4882,9 @@ def run_cli(arguments: argparse.Namespace) -> Any:
         filename, collection = _record_spec(arguments.kind)
         record = _load_json_argument(arguments.json, arguments.file)
 
+        if arguments.kind == "planned-session" and store._refresh_github_authority() is not None:
+            return store.plan_session(record)
+
         def append(document: MutableMapping[str, Any]) -> dict[str, Any]:
             document[collection].append(record)
             return record
@@ -3493,8 +4969,9 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             issue_projection,
             canonical_issue_projection,
             github_evidence,
+            github_preflight_proof,
         ) = _github_dispatch_preflight(
-            store, github_config, [arguments.id]
+            store, github_config, [arguments.id], arguments.stage
         )
         additions = _load_json_argument(arguments.json, arguments.file)
         if not isinstance(additions, Mapping):
@@ -3509,8 +4986,7 @@ def run_cli(arguments: argparse.Namespace) -> Any:
                 if arguments.launched_external_id is not None
                 else None
             ),
-            issue_projection=issue_projection,
-            canonical_issue_projection=canonical_issue_projection,
+            github_preflight_proof=github_preflight_proof,
         )
         if result.get("status") != "issued":
             # Queue/block responses retain the planner envelope so callers can
@@ -3540,8 +5016,9 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             issue_projection,
             canonical_issue_projection,
             github_evidence,
+            github_preflight_proof,
         ) = _github_dispatch_preflight(
-            store, github_config, arguments.session_ids
+            store, github_config, arguments.session_ids, arguments.stage
         )
         overrides = _load_dispatch_overrides(
             arguments.overrides_json,
@@ -3556,8 +5033,7 @@ def run_cli(arguments: argparse.Namespace) -> Any:
                 arguments.confirm_launched
             ),
             dry_run=arguments.dry_run,
-            issue_projection=issue_projection,
-            canonical_issue_projection=canonical_issue_projection,
+            github_preflight_proof=github_preflight_proof,
         )
         if github_evidence is not None:
             result["github_preflight"] = github_evidence

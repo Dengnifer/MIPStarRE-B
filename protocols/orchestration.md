@@ -53,7 +53,7 @@ python3 scripts/github_workflow.py --config workflow/github.json preflight
 ```
 
 `validate` is offline; `preflight` is a live GET-only check. The committed
-`workflow/github.json` binds the exact private repository identity, explicit
+`workflow/github.json` binds the exact repository identity, explicit
 base ref, and immutable migration manifest; it contains no credential. The optional
 `preflight --repository-only` check is insufficient for an object mutation.
 Every writing `gh` command explicitly includes
@@ -73,6 +73,33 @@ may also retain its legacy `issue_id` for compatibility. Work created only on
 GitHub uses `issue_id: null` and an explicit known local `stage_id`; no shadow
 issue row is created. Dispatch plans these rows from a live, in-memory
 canonical-number projection and never persists that projection as issue state.
+Repository visibility is not workflow authority: the repository may be public,
+but exact repository IDs, the explicit `main` base, and scoped root-only writes
+remain mandatory.
+
+The root creates post-cutover planned rows only through
+`python3 scripts/workflow.py add planned-session --json ...`. That guarded
+transaction holds the workflow lock, loads the exact adjacent config and
+immutable cutover manifest, materializes the canonical number for migrated
+work, rejects GitHub-only shadows of migrated issues or PRs, binds every
+PR-bound session to exact base/head refs and SHAs, rejects records that cannot
+materialize as issued sessions and duplicate orchestrators, validates the
+complete state, and rolls back exact session/event bytes on any publication
+failure.
+Planning does not perform a live status check and grants no launch authority;
+the dispatch gate performs that check immediately before admission. The
+cutover manifest is irreversible: a missing config fails closed, and canonical
+state may be addressed only through its real, non-aliased `workflow/state`
+path.
+
+Each mutating dispatch performs its final live GitHub issue and selected-PR
+reads while holding the same exclusive lock used for local publication. The
+resulting projection binds issue status, dependencies, kind, and execution
+category, plus each selected PR's open state and exact base/head identity.
+Every non-orchestrator
+formalization delegate, including read-only scouts and reviewers, is admitted
+only after exactly one active writable orchestrator is bound to the same
+canonical issue; the orchestrator itself must be dispatched first.
 
 For `codex-collaboration` session admission, use the following spawn-first,
 confirm-at-dispatch sequence. The workflow CLI has no collaboration-tool access
@@ -217,7 +244,9 @@ Use `i<issue-number>-<role>-a<two-digit-attempt>-<slug>`, for example
 `i005-prover-a02-pauli-linearity`. The stable name, external Codex thread ID,
 and parent session ID are separate fields.
 
-1. **Plan:** add an expected role to `sessions.json:planned`. No agent exists.
+1. **Plan:** add an expected role to `sessions.json:planned`. After GitHub
+   cutover, use only the guarded `workflow.py add planned-session` command; do
+   not hand-edit the ledger. No agent exists and no work is authorized.
 2. **Issue:** create the immutable issued-attempt record and launch the agent.
 3. **Run:** write raw JSONL and outputs to `.workflow-runtime/runs/<name>/`.
 4. **Inspect:** verify owned paths, diff, commands, result, metrics, and handoff.

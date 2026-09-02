@@ -34,6 +34,30 @@ GitHub issue/PR number without inventing a legacy issue row; historical rows
 remain compatible. Session, metrics, cache, and immutable review artifacts stay
 local, and the singleton hot-main build protocol is unchanged.
 
+The provisional adversarial cutover review then found six admission and replay
+gaps. The repair adds a dedicated manifest-bound planned-session enqueue while
+keeping generic session mutation closed; derives authority from the real state
+path and treats the retained manifest as an irreversible cutover marker; moves
+the final live GET under the publication lock; binds live issue kind/category
+so every non-orchestrator formalization delegate requires its active writable
+orchestrator; checks
+both halves of migrated launch identity against the exact manifest through
+publication; and recreates or verifies the exact terminal artifact on an
+otherwise idempotent import. Focused race and byte-rollback regressions cover
+each boundary. Repository visibility is now public for CI quota availability,
+but visibility does not relax exact repository identity, explicit `main`,
+review identity, credential, or root-only write controls.
+
+The next admission review found immutable planned-row and PR-authority dead
+ends. The enqueue now rejects records that cannot materialize as issued rows
+and duplicate orchestrators. Migrated PR pairs and exact base/head fields are
+manifest-bound; GitHub-only PR work supplies the same immutable tuple. Dispatch
+re-audits current PR bindings and performs both the outer and lock-held live PR
+GET, while claim rechecks the stored tuple through publication. The focused
+precommit review approved the four-file repair manifest after workflow
+`117/117`, local-agent `77/77`, and adapter `31/31` tests passed. A fresh
+committed whole-candidate review remains required before activation.
+
 The server default branch is still `from-monorepo` because the current token
 lacks repository-administration permission. This is nonblocking: every PR
 creation explicitly uses `--base main`, the adapter distinguishes configured
