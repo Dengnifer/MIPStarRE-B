@@ -2650,7 +2650,7 @@
         "Add focused regressions for each missing warm input, conflicting selectors, malformed paths, successful preflight, source-absent seeded worktrees, mandatory replace-existing materialization, and successful verified preparation, proving no lock-held build, snapshot, READY, or authored-source drift on failure.",
         "Update the local build/orchestration protocol and changelog with the preflight and preparation commands, run focused and aggregate workflow/checker/diff gates, obtain a fresh immutable review, and record the third-occurrence incident disposition."
       ],
-      "owner_session_id": "i051-reviewer-a07-cache-security",
+      "owner_session_id": "i051-fixer-a08-cache-transaction",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-052",
         "research/metrics/incidents.jsonl#INC-065",
@@ -2672,7 +2672,7 @@
         "workflow/reviews/qpbt-051-input-preflight.md"
       ],
       "created_at": "2026-09-01T19:00:00Z",
-      "updated_at": "2026-09-03T01:01:21.580094Z",
+      "updated_at": "2026-09-03T01:23:12.191132Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3103,7 +3103,7 @@
         "Document the exact G19-related operational/resource debt and its Stage 4C discharge plan under docs/paper-gaps, linked to QPBT-061, without claiming a new paper theorem or weakening source fidelity.",
         "Update checker mutation coverage, metadata, generated graph/chapter entry, and blueprint README; run deterministic generation twice, all blueprint tests, default and pinned-source checks, workflow validation, and diff hygiene, then obtain a fresh independent review."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i060-orchestrator-a01-skeleton-boundary",
       "source_refs": [
         "protocols/formalization.md#Skeleton-stages",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-712",
@@ -3122,7 +3122,7 @@
         "workflow/reviews/qpbt-060-f06a-skeleton-boundary-a01.md"
       ],
       "created_at": "2026-09-03T01:16:00.451829Z",
-      "updated_at": "2026-09-03T01:16:00.451829Z",
+      "updated_at": "2026-09-03T01:23:11.846876Z",
       "blocked_reason": null,
       "unblock_condition": null
     },

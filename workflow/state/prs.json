@@ -8771,6 +8771,30 @@
             "F051-A03-003"
           ],
           "integration_gate": "blocked pending direct byte consumers for captured pins/manifests and rollback coverage through publication/metrics failure"
+        },
+        {
+          "id": "review-qpbt-051-pr034-a07-security",
+          "reviewer_session_id": "i051-reviewer-a07-cache-security",
+          "verdict": "request_changes",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "9ce7c45a95b7e771082a32f0f59ecb16b9afd6c2",
+          "started_at": "2026-09-03T01:01:20.807258Z",
+          "completed_at": "2026-09-03T01:14:37.884058Z",
+          "result_path": "/tmp/i051-review-a07.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "6f6f548345a89dd10715c566c8a4f3d5942fd9ba830dfc00fc53568c618ced95",
+          "manifest_sha256": "b18e702a7a18d5a05d0d6cc34421b239896763ba31be44ec7a3624b06f5e6490",
+          "patch_sha256": "0b1da576393efac620d5f3d39e29a4890750a5d4d482b038a9b8f60fda3e6673",
+          "repair_patch_sha256": "39a940e15eece5d250d4f2f89b5aeff25ab8929186be7fae76d8a32602151e6f",
+          "resolved_finding_ids": [
+            "F051-A03-001",
+            "F051-A03-002"
+          ],
+          "retained_open_finding_ids": [
+            "F051-A03-003"
+          ],
+          "integration_gate": "blocked pending old-moved/new-published rollback state and seed metric/handoff transaction closure"
         }
       ],
       "findings": [
@@ -8780,10 +8804,10 @@
           "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
           "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
           "severity": "blocker",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Fresh A07 immutable review verified exact authenticated-byte consumption for every verifier, pin, and manifest input, including scoped hook restoration and no mutable temporary-path reopen.",
+          "resolved_by_review_id": "review-qpbt-051-pr034-a07-security",
           "confirmation_review_ids": [],
           "summary": "Mutable verifier and pin bytes are executed or parsed without binding the consumed bytes to the cache identity.",
           "path": "scripts/hot_main_cache.py",
@@ -8826,7 +8850,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T23:07:18.585757Z",
-      "updated_at": "2026-09-03T00:55:52.009461Z",
+      "updated_at": "2026-09-03T01:27:05.758926Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -8846,7 +8870,7 @@
         "i051-fixer-a06-cache-security"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable A07 review must confirm F051-A03-001 and F051-A03-003 on changed head 9ce7c45a and reconfirm the prior F051-A03-002 resolution before integration."
+      "unexecuted_gate": "A08 must repair the sole retained F051-A03-003 blocker on a changed head, pass scoped gates, and receive one fresh immutable review before integration."
     }
   ]
 }

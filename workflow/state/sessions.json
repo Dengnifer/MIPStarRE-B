@@ -27597,6 +27597,87 @@
         "nested_agents": 0
       },
       "notes": "Read-only prover independently endorsed the one-tape left decoder, six-tape count-indexed decoder, and List.ofFn_injective route; the owner compiled the equivalent proof in commit d80a8e6."
+    },
+    {
+      "id": "i051-fixer-a08-cache-transaction",
+      "name": "i051-fixer-a08-cache-transaction",
+      "role": "fixer",
+      "issue_id": "QPBT-051",
+      "attempt": 8,
+      "status": "running",
+      "dispatch_condition": "Fresh immutable A07 resolved F051-A03-001/002 but retained one blocker F051-A03-003 on exact clean head 9ce7c45a; the cache worktree is isolated from both Lean critical-path writers.",
+      "pr_id": "LPR-034",
+      "read_only": false,
+      "base_revision": "9ce7c45a95b7e771082a32f0f59ecb16b9afd6c2",
+      "base_revision_reason": "Exact A07-reviewed LPR-034 head with sole retained blocker F051-A03-003.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-051-preflight-a01",
+      "owned_paths": [
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "protocols/local-development.md",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "validation_command": "Authenticate /tmp/i051-review-a07.md SHA-256 6f6f548345a89dd10715c566c8a4f3d5942fd9ba830dfc00fc53568c618ced95 and exact clean base 9ce7c45a95b7e771082a32f0f59ecb16b9afd6c2. Repair only retained F051-A03-003: distinguish old-moved and new-published states so a failed first old-to-backup rename cannot withdraw/delete the original destination; eliminate the successful publisher/caller interruption gap; put standalone seed publication and its success metric under one rollback boundary, retaining the old backup until the metric succeeds and making only later cleanup nonfatal. Add deterministic regressions for first-rename failure, immediate post-publication handoff interruption, and standalone seed metric failure. Preserve F051-A03-001/002 repairs, authored QPBT bytes, cache identity, existing behavior, and exact protocol truth. Run Python compilation, focused tests, workflow/checker tests, aggregate tests where practical, workflow validation, diff check, and exact five-path scope. Commit only owned paths and write /tmp/i051-repair-a08.md with exact identity/hashes/timings. No Lean/Lake/build/cache/materialization/network/endpoint/GitHub/credentials/nested agents.",
+      "result_envelope_path": "/tmp/i051-repair-a08.md",
+      "priority": 2,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i051_fixer_a08_cache_transaction",
+      "started_at": "2026-09-03T01:23:11.455682Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null
+    },
+    {
+      "id": "i060-orchestrator-a01-skeleton-boundary",
+      "name": "i060-orchestrator-a01-skeleton-boundary",
+      "role": "orchestrator",
+      "issue_id": "QPBT-060",
+      "attempt": 1,
+      "status": "running",
+      "dispatch_condition": "QPBT-059 is approved and integrated, QPBT-057 has an exact two-hole Stage-4A design, and the blueprint paths do not overlap the active Types writer.",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "838907973f585a3dcb2290178568c47697e4e90d",
+      "base_revision_reason": "Canonical checkpoint that restores user-requested staged scope and records QPBT-060/QPBT-061.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-060-skeleton-boundary-a01",
+      "owned_paths": [
+        "blueprint/README.md",
+        "blueprint/check.py",
+        "blueprint/tests/test_check.py",
+        "blueprint/metadata/nodes.json",
+        "blueprint/generated/graph.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "docs/paper-gaps/executable-cl-compiler.md",
+        "workflow/reviews/qpbt-060-f06a-skeleton-boundary-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-060/QPBT-061 state, protocols/formalization.md skeleton stages, approved QPBT-059 marker, G19, and exact current checker/tests/metadata before editing. Implement the smallest exact blueprint correction: global minimal-skeleton debt becomes four with only the existing F01/main theorem holes plus private ExecutableCLSampler.downsizeCompiler_exists and public ExecutableCLSampler.downsize_time; F06A permits exactly its two theorem-body holes without adding either helper to the frozen 56-name API; complete skeleton permits theorem-body sorry and proof-complete remains zero. Document the G19/compiler debt and QPBT-061 discharge. Preserve marker hash, public names, imports, topology, source fidelity, and historical reports. Add fail-closed mutation tests, generate twice byte-identically, run all blueprint tests, default/pinned-source checks, workflow validation, diff check, exact owned-path scan. Commit only owned paths and report exact identity/metrics. No Types.lean/state/metrics/protocol edits, Lean/Lake/build/cache/network/endpoint/GitHub/credentials/nested agents.",
+      "result_envelope_path": "workflow/reviews/qpbt-060-f06a-skeleton-boundary-a01.md",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "backend": "codex-collaboration",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i060_orchestrator_a01_skeleton_boundary",
+      "started_at": "2026-09-03T01:23:11.027612Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null
     }
   ]
 }
