@@ -8703,6 +8703,29 @@
           "manifest_sha256": "40ebd81772e58a7eeaba9e5ec4bcccde15f0c5c247292d10a87e4a5798118510",
           "patch_sha256": "c083e3a1389cf63dd39f19027f25ae7fd00ef43317e8b62f4d065b1827d5cada",
           "integration_gate": "blocked pending an identity-bound captured-byte loader, final authored verification, and operation-wide prepare transaction"
+        },
+        {
+          "id": "review-qpbt-051-pr034-a05-security",
+          "reviewer_session_id": "i051-reviewer-a05-cache-security",
+          "verdict": "request_changes",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "a94f6e735f4408b281e2ed69ededa463a98778ec",
+          "started_at": "2026-09-03T00:25:40.920804Z",
+          "completed_at": "2026-09-03T00:30:29.161264Z",
+          "result_path": "/tmp/i051-review-a05.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "73c83936c8d5034d425085102f5165be521b97f8568a89d013a939c25f68e9d3",
+          "manifest_sha256": "dbdbc09d77a314f412eb438891243337533d34a16e066e43c72887e9529cf183",
+          "patch_sha256": "a111ae49d150160f774c835e5c88e551e704ad0f52dfaa9e15094814e4dd8f4b",
+          "resolved_finding_ids": [
+            "F051-A03-002"
+          ],
+          "retained_open_finding_ids": [
+            "F051-A03-001",
+            "F051-A03-003"
+          ],
+          "integration_gate": "blocked pending direct byte consumers for captured pins/manifests and rollback coverage through publication/metrics failure"
         }
       ],
       "findings": [
@@ -8728,10 +8751,10 @@
           "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
           "head_sha": "767606694e62aefd105959dbb5a979b041ae0d65",
           "severity": "high",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Fresh A05 immutable review directly verified a final authored scan after verify_materialized, equality against both earlier inventories and verifier evidence, and return of only the final inventory.",
+          "resolved_by_review_id": "review-qpbt-051-pr034-a05-security",
           "confirmation_review_ids": [],
           "summary": "prepare can return stale authored-QPBT evidence because it does not recheck after foundation verification.",
           "path": "scripts/hot_main_cache.py",
@@ -8758,7 +8781,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T23:07:18.585757Z",
-      "updated_at": "2026-09-03T00:22:33.997991Z",
+      "updated_at": "2026-09-03T00:33:33.619037Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -8777,7 +8800,7 @@
         "i051-fixer-a04-security"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "A fresh immutable resolution review of changed head a94f6e735f4408b281e2ed69ededa463a98778ec is required before findings can be resolved or integration can proceed."
+      "unexecuted_gate": "F051-A03-001 and F051-A03-003 remain open after A05: remove mutable temporary-path pin/manifest reopens and cover every post-publication failure with rollback before a fresh changed-head review."
     }
   ]
 }

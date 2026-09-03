@@ -2650,7 +2650,7 @@
         "Add focused regressions for each missing warm input, conflicting selectors, malformed paths, successful preflight, source-absent seeded worktrees, mandatory replace-existing materialization, and successful verified preparation, proving no lock-held build, snapshot, READY, or authored-source drift on failure.",
         "Update the local build/orchestration protocol and changelog with the preflight and preparation commands, run focused and aggregate workflow/checker/diff gates, obtain a fresh immutable review, and record the third-occurrence incident disposition."
       ],
-      "owner_session_id": "i051-orchestrator-a01-preflight",
+      "owner_session_id": "i051-fixer-a06-cache-security",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-052",
         "research/metrics/incidents.jsonl#INC-065",
@@ -2672,7 +2672,7 @@
         "workflow/reviews/qpbt-051-input-preflight.md"
       ],
       "created_at": "2026-09-01T19:00:00Z",
-      "updated_at": "2026-09-02T22:58:48.671312Z",
+      "updated_at": "2026-09-03T00:37:13.750485Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3020,7 +3020,7 @@
       "title": "fix(QPBT/Game): use the paper linear six-tape encoding",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-057",
       "dependency_ids": [
         "QPBT-056"
@@ -3059,7 +3059,7 @@
         "blueprint/src/generated/chapter-02-entries.tex"
       ],
       "created_at": "2026-09-03T00:12:21.251816Z",
-      "updated_at": "2026-09-03T00:20:38.448125Z",
+      "updated_at": "2026-09-03T00:34:16.324421Z",
       "blocked_reason": null,
       "unblock_condition": null
     }
