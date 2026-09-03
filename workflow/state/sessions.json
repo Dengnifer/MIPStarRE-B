@@ -27863,7 +27863,7 @@
       "role": "scout",
       "issue_id": "QPBT-065",
       "attempt": 14,
-      "status": "running",
+      "status": "archived",
       "dispatch_condition": "QPBT-038 is blocked on sequential F06/F06A/F07 integration; prepare an exact integration and combined-build gate while writers/reviewers proceed.",
       "pr_id": null,
       "read_only": true,
@@ -27879,18 +27879,30 @@
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "external_id": "/root/i038_scout_a14_types_integration",
       "started_at": "2026-09-03T08:12:10.509645Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-03T08:19:35.871942Z",
+      "elapsed_seconds": 445.362,
       "token_usage": {
         "input": null,
         "output": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage",
         "total": null
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
+      "archive_status": "archived",
+      "outcome_path": "/tmp/i038-types-integration.md",
       "candidate_head_sha": "64ae83d7760619955eeafc49ff56b09c33e5397e",
-      "candidate_tree": "2bb5bcc4a11982f8ac25e56db20e56832f48945c"
+      "candidate_tree": "2bb5bcc4a11982f8ac25e56db20e56832f48945c",
+      "timing_quality": "runtime-measured",
+      "outcome": "types-integration-gate-prepared",
+      "checks": {
+        "report_sha256": "31de2ba6cf976531e962b87cd0ea35c1ed17232c7f6549bd6e84faaac520fef4",
+        "report_lines": 201,
+        "qpbt057_integratable": false,
+        "reason": "fresh reviewer must resolve resource-selection finding",
+        "repository_writes": 0,
+        "github_write": 0,
+        "network_calls": 0
+      },
+      "notes": "Read-only integration DAG; identified QPBT-057 Classical.choice/resource-bound concern and preserved the fresh review gate."
     },
     {
       "id": "i058-scout-a01-typed-source",
@@ -27898,7 +27910,7 @@
       "role": "scout",
       "issue_id": "QPBT-063",
       "attempt": 1,
-      "status": "running",
+      "status": "archived",
       "dispatch_condition": "QPBT-058 is dependency-blocked on reviewed/integrated QPBT-057; source and Mathlib preparation can run concurrently without touching Types.lean.",
       "pr_id": null,
       "read_only": true,
@@ -27914,18 +27926,29 @@
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "external_id": "/root/i058_scout_a01_typed_source",
       "started_at": "2026-09-03T08:12:09.166141Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-03T08:19:38.058457Z",
+      "elapsed_seconds": 448.892,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
+      "archive_status": "archived",
+      "outcome_path": "/tmp/i058-typed-source.md",
       "candidate_head_sha": "a9abedb3d08d1b020d310075fc2865ae21397eb8",
-      "candidate_tree": "f736b0ccd81f3f4e34b1cdfc1a35a25e112e5cd8"
+      "candidate_tree": "f736b0ccd81f3f4e34b1cdfc1a35a25e112e5cd8",
+      "timing_quality": "runtime-measured",
+      "outcome": "typed-sampler-source-map-complete",
+      "checks": {
+        "report_sha256": "406c802110a8340e6e9d58d16c25fc722a0591a911848c23c0cf97254088ce5b",
+        "report_lines": 275,
+        "f07_declarations": 11,
+        "repository_writes": 0,
+        "github_write": 0,
+        "network_calls": 0
+      },
+      "notes": "Read-only pinned F07 source/API map for the future sole Types writer; paper ambiguities recorded."
     },
     {
       "id": "i061-scout-a01-f06a-proof",
@@ -27933,7 +27956,7 @@
       "role": "scout",
       "issue_id": "QPBT-064",
       "attempt": 1,
-      "status": "running",
+      "status": "archived",
       "dispatch_condition": "QPBT-061 is dependency-blocked on Stage 4A integration; proof architecture and source obligations can be mapped now without editing Types.lean.",
       "pr_id": null,
       "read_only": true,
@@ -27949,18 +27972,38 @@
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "external_id": "/root/i061_scout_a01_f06a_proof",
       "started_at": "2026-09-03T08:12:09.798502Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-03T08:23:43.937414Z",
+      "elapsed_seconds": 694.139,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
+      "archive_status": "archived",
+      "outcome_path": "/tmp/i061-f06a-proof.md",
       "candidate_head_sha": "a9abedb3d08d1b020d310075fc2865ae21397eb8",
-      "candidate_tree": "f736b0ccd81f3f4e34b1cdfc1a35a25e112e5cd8"
+      "candidate_tree": "f736b0ccd81f3f4e34b1cdfc1a35a25e112e5cd8",
+      "timing_quality": "runtime-measured",
+      "outcome": "f06a-proof-discharge-map-complete",
+      "checks": {
+        "report_sha256": "1fdfd3d750135810ed81cb1d63938339c51fbf3f800e36fc6c7cfddbf4e7565c",
+        "report_lines": 182,
+        "exact_intended_sorries": 2,
+        "source_gap_notes": 3,
+        "repository_writes": 0,
+        "git_writes": 0,
+        "lean": 0,
+        "lake": 0,
+        "builds": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "endpoint": 0,
+        "github": 0,
+        "credentials": 0,
+        "nested_agents": 0
+      },
+      "notes": "Read-only proof/discharge map records C0-C10 obligations, exact two holes, source-fidelity boundaries, and unresolved input-length/resource debt; no repository or network writes."
     },
     {
       "id": "i062-scout-a01-branch-topology",
@@ -27968,7 +28011,7 @@
       "role": "scout",
       "issue_id": "QPBT-066",
       "attempt": 1,
-      "status": "running",
+      "status": "archived",
       "dispatch_condition": "Direct user request requires an evidence-backed audit of current branch/worktree topology before branch-lifecycle policy is written.",
       "pr_id": null,
       "read_only": true,
@@ -27984,18 +28027,33 @@
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "external_id": "/root/i062_scout_a01_branch_topology",
       "started_at": "2026-09-03T08:12:08.022555Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-03T08:19:33.868431Z",
+      "elapsed_seconds": 445.846,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
+      "archive_status": "archived",
+      "outcome_path": "/tmp/i062-branch-topology.md",
       "candidate_head_sha": "64ae83d7760619955eeafc49ff56b09c33e5397e",
-      "candidate_tree": "2bb5bcc4a11982f8ac25e56db20e56832f48945c"
+      "candidate_tree": "2bb5bcc4a11982f8ac25e56db20e56832f48945c",
+      "timing_quality": "runtime-measured",
+      "outcome": "branch-topology-audit-complete",
+      "checks": {
+        "report_sha256": "7c09fa1299dd54ff8d5e5365cd282fc640477e905be1b64fac40e1882512ea2d",
+        "report_lines": 85,
+        "local_branches": 55,
+        "worktrees": 128,
+        "detached_worktrees": 78,
+        "unmerged_refs": 22,
+        "unlinked_refs": 5,
+        "repository_writes": 0,
+        "github_write": 0,
+        "network_calls": 0
+      },
+      "notes": "Read-only audit; found 55 local branches, 128 worktrees, 22 unmerged refs, duplicate tips, five unlinked refs, and missing historical PR refs; recommends non-destructive classification."
     },
     {
       "id": "i062-scout-a02-main-heartbeat",
@@ -28003,7 +28061,7 @@
       "role": "scout",
       "issue_id": "QPBT-066",
       "attempt": 2,
-      "status": "running",
+      "status": "archived",
       "dispatch_condition": "Direct user request asks that the default branch not remain silent; derive the smallest measurable heartbeat policy from existing protocols and ledger semantics.",
       "pr_id": null,
       "read_only": true,
@@ -28019,18 +28077,32 @@
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "external_id": "/root/i062_scout_a02_main_heartbeat",
       "started_at": "2026-09-03T08:12:08.601286Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-03T08:19:31.164099Z",
+      "elapsed_seconds": 442.563,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
+      "archive_status": "archived",
+      "outcome_path": "/tmp/i062-main-heartbeat.md",
       "candidate_head_sha": "64ae83d7760619955eeafc49ff56b09c33e5397e",
-      "candidate_tree": "2bb5bcc4a11982f8ac25e56db20e56832f48945c"
+      "candidate_tree": "2bb5bcc4a11982f8ac25e56db20e56832f48945c",
+      "timing_quality": "runtime-measured",
+      "outcome": "branch-heartbeat-policy-audit-complete",
+      "checks": {
+        "report_sha256": "d1daa8d65d79ddbae3769a94753cf844a883b741dbf0abe8205bb6aae53e88fe",
+        "report_lines": 151,
+        "main_checkpoint": "64ae83d7760619955eeafc49ff56b09c33e5397e",
+        "ahead": 82,
+        "behind": 0,
+        "stale_after_seconds": 3600,
+        "github_write": 0,
+        "network_calls": 0,
+        "repository_writes": 0
+      },
+      "notes": "Read-only audit; observed prior six-hour main silence and proposed 3600-second stale threshold, event-driven non-ceremonial checkpoints, and local-only remote rule."
     }
   ]
 }

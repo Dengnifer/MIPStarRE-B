@@ -221,7 +221,11 @@
         "QPBT-057",
         "QPBT-058",
         "QPBT-059",
-        "QPBT-060"
+        "QPBT-060",
+        "QPBT-062",
+        "QPBT-063",
+        "QPBT-065",
+        "QPBT-066"
       ],
       "started_at": "2026-08-30T19:45:39.120486Z",
       "ended_at": null,
@@ -232,7 +236,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 298,
+      "subagents_issued": 302,
       "max_concurrency": 4,
       "outputs": [
         "research/report.md",
@@ -325,7 +329,8 @@
         "QPBT-007",
         "QPBT-046",
         "QPBT-047",
-        "QPBT-061"
+        "QPBT-061",
+        "QPBT-064"
       ],
       "started_at": "2026-09-02T16:41:58.705117Z",
       "ended_at": null,
@@ -336,7 +341,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate stage tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 1,
+      "subagents_issued": 2,
       "max_concurrency": 1,
       "outputs": [
         "workflow/reviews/qpbt-041-approximation-a01.md",

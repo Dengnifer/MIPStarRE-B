@@ -3232,7 +3232,7 @@
       "title": "scout(QPBT/Game): map typed sampler implementation",
       "kind": "research",
       "execution_category": "preflight",
-      "status": "ready",
+      "status": "done",
       "parent_id": "QPBT-058",
       "dependency_ids": [],
       "labels": [
@@ -3255,7 +3255,7 @@
       ],
       "owned_paths": [],
       "created_at": "2026-09-03T16:05:00+08:00",
-      "updated_at": "2026-09-03T08:12:11.468637Z",
+      "updated_at": "2026-09-03T08:19:50.489426Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3264,7 +3264,7 @@
       "title": "scout(QPBT/Game): prepare sequential Types integration gate",
       "kind": "research",
       "execution_category": "preflight",
-      "status": "ready",
+      "status": "done",
       "parent_id": "QPBT-038",
       "dependency_ids": [],
       "labels": [
@@ -3289,7 +3289,7 @@
       ],
       "owned_paths": [],
       "created_at": "2026-09-03T16:05:00+08:00",
-      "updated_at": "2026-09-03T08:12:12.329887Z",
+      "updated_at": "2026-09-03T08:19:54.319693Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3298,7 +3298,7 @@
       "title": "scout(QPBT/Game): map F06A proof discharge",
       "kind": "research",
       "execution_category": "preflight",
-      "status": "ready",
+      "status": "done",
       "parent_id": "QPBT-061",
       "dependency_ids": [],
       "labels": [
@@ -3321,7 +3321,7 @@
       ],
       "owned_paths": [],
       "created_at": "2026-09-03T16:05:00+08:00",
-      "updated_at": "2026-09-03T08:12:11.874926Z",
+      "updated_at": "2026-09-03T08:19:52.682775Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3330,7 +3330,7 @@
       "title": "scout(workflow): audit branch topology and main heartbeat",
       "kind": "research",
       "execution_category": "preflight",
-      "status": "ready",
+      "status": "done",
       "parent_id": "QPBT-062",
       "dependency_ids": [],
       "labels": [
@@ -3354,7 +3354,7 @@
       ],
       "owned_paths": [],
       "created_at": "2026-09-03T16:05:00+08:00",
-      "updated_at": "2026-09-03T08:12:10.999047Z",
+      "updated_at": "2026-09-03T08:19:56.026848Z",
       "blocked_reason": null,
       "unblock_condition": null
     }
