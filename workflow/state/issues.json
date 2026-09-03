@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 60,
+  "next_sequence": 62,
   "issues": [
     {
       "id": "QPBT-000",
@@ -2933,7 +2933,7 @@
     },
     {
       "id": "QPBT-057",
-      "title": "feat(QPBT/Game): implement executable CL compiler and sampler",
+      "title": "feat(QPBT/Game): implement the executable CL minimal skeleton",
       "kind": "formalization",
       "execution_category": "implementation",
       "status": "in_progress",
@@ -2946,34 +2946,37 @@
         "conditionally-linear",
         "f06a",
         "turing-machine",
-        "proof-complete",
+        "minimal-skeleton",
+        "tracked-sorry",
         "exact-ownership"
       ],
       "acceptance_gates": [
-        "Extend the integrated F06 file with exactly the 56 F06A-EXECUTABLE-CL public declarations from immutable marker SHA-256 cfe433e36d0670c344b29ab5107557842e7d4fc8358fba2713b8ff2ee107a3a1 and preserve the frozen four-import union",
-        "Implement a proof-complete internal FinTM2 lifting, six-tape parser, composition/simulation, and resource layer sufficient for executable downsize; keep helper obligations internal and discharged rather than exposing any bridge, witness, package, producer, Hypotheses, Assumptions, or arbitrary implication input",
-        "Construct all four downsize query modes, the intrinsic exponent program, genuine query-indexed TM2OutputsInTime executions, exact extracted step maxima, canonical F01-derived codec behavior, dimension s(n) * Nat.log 2(q(n)), associated-map equality, exact PMF pushforward, and the global-positive RuntimeBigO theorem",
-        "Do not use Mathlib proof_wanted declarations, fabricate run relations, weaken a frozen public signature, introduce sorry/admit/axiom/constant, or move F06A obligations to F07, F07A, K03, or K04",
-        "Use the QPBT-056 private-cache lineage; pass whole-file elaboration, affected target, exact signature/tape/output/dimension/codec/import/debt scans, blueprint synchronization, one private full build after scoped stability, and fresh immutable compiler/resource and source-fidelity reviews"
+        "Extend the integrated F06 file with exactly the 56 F06A-EXECUTABLE-CL public declarations from immutable QPBT-059 marker SHA-256 368008b7b4ba84ff1dafe842acdb8af7005902a0fe9a376a8f7a690c86ba6b15 and preserve the frozen four-import union.",
+        "Implement the approved dual-rail packSixTapes body and injectivity proof, all mathematical sampler/decomposition/downsize definitions, and all non-operational F06A theorems needed by the minimal skeleton.",
+        "Use exactly two additional tracked theorem-body sorries authorized by QPBT-060: private ExecutableCLSampler.downsizeCompiler_exists for the operational compiler/execution plus exponent-program witness, and public ExecutableCLSampler.downsize_time for the runtime proof. Construct downsize from the chosen existence witness; prove downsize_dimension, downsize_associated, and sample_downsize. Introduce no other sorry/admit/axiom/constant, public declaration, premise, bridge, residual, repair, package, producer, Hypotheses, Assumptions, or arbitrary implication input.",
+        "Preserve the G19 boundary and source-faithful theorem signatures; record both holes explicitly and link their zero-debt Stage 4C discharge to QPBT-061.",
+        "Use the QPBT-056 private-cache lineage; pass whole-file elaboration, affected target, exact 56-name/tape/output/dimension/codec/import/debt scans, blueprint synchronization against QPBT-060, one private full build after scoped stability, and fresh immutable mathematical/API review."
       ],
       "owner_session_id": "i057-orchestrator-a01-f06a",
       "source_refs": [
-        "workflow/reviews/qpbt-054-f06a-repair-a04.md#F06A-A04-SIGNATURES",
-        "workflow/reviews/qpbt-038-types-a03.md#Exact-blocker-and-discharge-plan",
+        "workflow/reviews/qpbt-059-f06a-pack-contract-a01.md#F06A-QPBT059-SIGNATURES",
         "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
         "blueprint/metadata/gaps.json#G19",
+        "docs/paper-gaps/executable-cl-compiler.md",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-712",
         "references/2001.04383v3/sections/top-level/preliminaries.tex:1-143",
-        "references/2001.04383v3/sections/dependencies/finite-fields.tex:234-263,283-307,350-411"
+        "references/2001.04383v3/sections/dependencies/finite-fields.tex:234-263,283-307,350-411",
+        "workflow/state/issues.json#QPBT-061"
       ],
       "owned_paths": [
         "MIPStarRE/QPBT/Game/Types.lean",
         "workflow/reviews/qpbt-057-f06a-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-02T23:24:24.664798Z",
+      "updated_at": "2026-09-03T01:17:20.968562Z",
       "blocked_reason": null,
-      "unblock_condition": null
+      "unblock_condition": null,
+      "proof_completion_issue_id": "QPBT-061"
     },
     {
       "id": "QPBT-058",
@@ -3020,7 +3023,7 @@
       "title": "fix(QPBT/Game): use the paper linear six-tape encoding",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-057",
       "dependency_ids": [
         "QPBT-056"
@@ -3059,9 +3062,112 @@
         "blueprint/src/generated/chapter-02-entries.tex"
       ],
       "created_at": "2026-09-03T00:12:21.251816Z",
-      "updated_at": "2026-09-03T01:01:21.904326Z",
+      "updated_at": "2026-09-03T01:11:30.988053Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
+      "integration_sha": "761777469b22c5d294dc29cdb0fb6cbc2bab18f0",
+      "approved_candidate_sha": "650c53b05664bab4095c9137fccdec6c7fb06f72",
+      "approval_session_id": "i059-reviewer-a05-pack-contract",
+      "approval_report": "/tmp/i059-review-a05.md",
+      "approval_report_sha256": "84646a7eebba5154951bec72d470322615214fe41a9ad296ca18d5723251381d",
+      "integration_checks": [
+        "blueprint tests 35/35 passed",
+        "default checker passed",
+        "pinned-source checker passed",
+        "workflow validation passed"
+      ]
+    },
+    {
+      "id": "QPBT-060",
+      "title": "fix(blueprint): restore the staged F06A skeleton boundary",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "ready",
+      "parent_id": "QPBT-057",
+      "dependency_ids": [
+        "QPBT-059"
+      ],
+      "labels": [
+        "lean-blueprint",
+        "f06a",
+        "minimal-skeleton",
+        "tracked-sorry",
+        "stage-boundary",
+        "direct-user-requirement",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Align the F06A implementation contract with the user-requested Stage 4A minimal skeleton while preserving the approved QPBT-059 public surface: exactly 56 public names, exact four-import union, G19 boundary, dual-rail packSixTapes semantics, and unchanged dependency topology.",
+        "Permit exactly two additional Stage-4A theorem-body holes and no others: private MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists for the operational compiler/execution plus intrinsic exponent program, and public MIPStarRE.QPBT.ExecutableCLSampler.downsize_time for the paper runtime proof; keep downsize itself a definition constructed from the existence theorem and require downsize_dimension, downsize_associated, and sample_downsize to be proved.",
+        "Keep the complete-skeleton rule that sorry occurs only in theorem proof bodies and the proof-complete zero-sorry gate unconditional; forbid axiom, constant, public obligation premises, generic packages, and any addition to the frozen 56-name API.",
+        "Document the exact G19-related operational/resource debt and its Stage 4C discharge plan under docs/paper-gaps, linked to QPBT-061, without claiming a new paper theorem or weakening source fidelity.",
+        "Update checker mutation coverage, metadata, generated graph/chapter entry, and blueprint README; run deterministic generation twice, all blueprint tests, default and pinned-source checks, workflow validation, and diff hygiene, then obtain a fresh independent review."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "protocols/formalization.md#Skeleton-stages",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-712",
+        "references/2001.04383v3/sections/top-level/preliminaries.tex:96-143",
+        "blueprint/metadata/gaps.json#G19",
+        "workflow/reviews/qpbt-059-f06a-pack-contract-a01.md#F06A-QPBT059-SIGNATURES"
+      ],
+      "owned_paths": [
+        "blueprint/README.md",
+        "blueprint/check.py",
+        "blueprint/tests/test_check.py",
+        "blueprint/metadata/nodes.json",
+        "blueprint/generated/graph.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "docs/paper-gaps/executable-cl-compiler.md",
+        "workflow/reviews/qpbt-060-f06a-skeleton-boundary-a01.md"
+      ],
+      "created_at": "2026-09-03T01:16:00.451829Z",
+      "updated_at": "2026-09-03T01:16:00.451829Z",
       "blocked_reason": null,
       "unblock_condition": null
+    },
+    {
+      "id": "QPBT-061",
+      "title": "prove(QPBT/Game): discharge executable downsize compiler debt",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-057",
+      "dependency_ids": [
+        "QPBT-057",
+        "QPBT-060"
+      ],
+      "labels": [
+        "lean",
+        "conditionally-linear",
+        "f06a",
+        "proof-complete",
+        "turing-machine",
+        "stage-04c",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Replace the exact Stage-4A holes MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists and MIPStarRE.QPBT.ExecutableCLSampler.downsize_time with proofs while preserving every frozen public signature and the approved dual-rail six-tape encoding.",
+        "Implement and prove the internal FinTM2 dual-rail parser, query compiler/simulation, all four canonical query executions, intrinsic binary exponent program, and required exact step/resource lemmas; expose no new public assumption, obligation, bridge, witness package, axiom, or constant.",
+        "Prove the global-positive RuntimeBigO compiler-cost theorem with the paper/G19 boundary, including parsing, prefix inversion, simulation, ordered factor-block output, exponent computation charged in TIME_S, and the preserved arithmetic inequalities.",
+        "Reach zero intended sorry/admit/axiom/constant debt in the F06A scope, pass scoped elaboration, target and full builds through the singleton cache protocol, blueprint declaration/source synchronization, exact signature/import/debt scans, and fresh independent mathematical and implementation review."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "docs/paper-gaps/executable-cl-compiler.md",
+        "blueprint/metadata/gaps.json#G19",
+        "workflow/reviews/qpbt-059-f06a-pack-contract-a01.md#F06A-QPBT059-SIGNATURES",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-712",
+        "references/2001.04383v3/sections/top-level/preliminaries.tex:96-143"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-061-f06a-proof-a01.md"
+      ],
+      "created_at": "2026-09-03T01:16:00.451829Z",
+      "updated_at": "2026-09-03T01:16:00.451829Z",
+      "blocked_reason": "Stage 4A skeleton and its exact blueprint debt contract are not yet integrated.",
+      "unblock_condition": "QPBT-057 and QPBT-060 are done."
     }
   ]
 }
