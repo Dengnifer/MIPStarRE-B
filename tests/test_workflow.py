@@ -1415,23 +1415,33 @@ class WorkflowStoreTests(unittest.TestCase):
         )
         self.runtime = self.root / ".workflow-runtime"
         self.store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
-        worktree_stat = self.root.stat()
-        self.git_identity = git_identity.GitIdentity(
-            BASE_SHA,
-            "e" * 40,
-            self.root,
-            worktree_stat.st_dev,
-            worktree_stat.st_ino,
-        )
+        self.git_identity_tree = "e" * 40
+        self.git_identity_proofs: list[git_identity.GitIdentity] = []
+
+        def fake_git_identity(*_arguments: object, **_keywords: object) -> git_identity.GitIdentity:
+            descriptor = git_identity._open_worktree(self.root)
+            worktree_stat = os.fstat(descriptor)
+            identity = git_identity.GitIdentity(
+                BASE_SHA,
+                self.git_identity_tree,
+                self.root,
+                worktree_stat.st_dev,
+                worktree_stat.st_ino,
+                descriptor,
+            )
+            self.git_identity_proofs.append(identity)
+            return identity
+
         self.git_identity_patcher = mock.patch.object(
             workflow,
             "resolve_git_identity",
-            return_value=self.git_identity,
+            side_effect=fake_git_identity,
         )
         self.git_identity_patcher.start()
 
     def tearDown(self) -> None:
         self.git_identity_patcher.stop()
+        self.assertTrue(all(identity._worktree_fd == -1 for identity in self.git_identity_proofs))
         self.temporary.cleanup()
 
     def test_read_only_validation_creates_no_runtime_files(self) -> None:
@@ -1496,7 +1506,7 @@ class WorkflowStoreTests(unittest.TestCase):
         )
         self.assertTrue(
             all(
-                session["base_tree"] == self.git_identity.tree
+                session["base_tree"] == self.git_identity_tree
                 for session in loaded["sessions.json"]["issued"]
             )
         )
@@ -1516,7 +1526,7 @@ class WorkflowStoreTests(unittest.TestCase):
         issuance_events = [event for event in events if event["event"] == "session.issued"]
         self.assertTrue(
             all(
-                event["payload"]["base_tree"] == self.git_identity.tree
+                event["payload"]["base_tree"] == self.git_identity_tree
                 for event in issuance_events
             )
         )
@@ -2505,7 +2515,7 @@ class GitIdentityAdmissionTests(unittest.TestCase):
         def replace_root(*arguments: object, **keywords: object) -> subprocess.CompletedProcess[str]:
             completed = original_run(*arguments, **keywords)
             command = arguments[0]
-            if isinstance(command, list) and command[-2:] == ["rev-parse", "--show-toplevel"]:
+            if isinstance(command, list) and command[-2:] == ["rev-parse", "--show-prefix"]:
                 auth_repo.rename(moved)
                 auth_repo.mkdir()
             return completed
@@ -2523,6 +2533,67 @@ class GitIdentityAdmissionTests(unittest.TestCase):
         self.assertEqual("blocked", result["status"])
         self.assertEqual("git-identity-invalid", result["blocked"][0]["reason"])
         self.assertIn("changed during authentication", result["blocked"][0]["detail"])
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_transient_aba_substitute_tree_is_rejected_without_mutation(self) -> None:
+        substitute = self.root.parent / "aba-substitute-repo"
+        substitute.mkdir()
+        git(substitute, "init", "-b", "main")
+        git(substitute, "config", "user.name", "Workflow Test")
+        git(substitute, "config", "user.email", "workflow@example.invalid")
+        (substitute / "tracked.txt").write_text("substitute\n", encoding="ascii")
+        git(substitute, "add", "tracked.txt")
+        git(substitute, "commit", "-m", "substitute")
+        substitute_tree = git(substitute, "rev-parse", "HEAD^{tree}")
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-aba-substitute",
+            base_revision="main",
+        )
+        candidate["base_tree"] = substitute_tree
+        self.write_planned(candidate)
+        sessions_path = self.state_dir / "sessions.json"
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+        moved = self.root.parent / "aba-original-repo-moved"
+        original_run = subprocess.run
+        bound_calls = 0
+
+        def swap_run_restore(
+            *arguments: object,
+            **keywords: object,
+        ) -> subprocess.CompletedProcess[str]:
+            nonlocal bound_calls
+            cwd = keywords.get("cwd")
+            pass_fds = keywords.get("pass_fds")
+            self.assertIsInstance(cwd, str)
+            self.assertRegex(str(cwd), r"^/proc/self/fd/[0-9]+$")
+            self.assertIsInstance(pass_fds, tuple)
+            self.assertEqual(1, len(pass_fds))
+            self.root.rename(moved)
+            substitute.rename(self.root)
+            try:
+                completed = original_run(*arguments, **keywords)
+                bound_calls += 1
+                return completed
+            finally:
+                self.root.rename(substitute)
+                moved.rename(self.root)
+
+        with mock.patch.object(
+            git_identity.subprocess,
+            "run",
+            side_effect=swap_run_restore,
+        ):
+            result = self.store.dispatch_sessions(
+                capacity=1,
+                session_ids=[candidate["id"]],
+                launch_confirmations=launch_confirmations(candidate),
+            )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual("git-identity-invalid", result["blocked"][0]["reason"])
+        self.assertIn("tree mismatch", result["blocked"][0]["detail"])
+        self.assertGreater(bound_calls, 0)
         self.assertEqual(before_sessions, sessions_path.read_bytes())
         self.assertEqual(before_events, self.events.read_bytes())
 

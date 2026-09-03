@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 import os
 from pathlib import Path
@@ -24,13 +24,48 @@ class GitIdentityError(Exception):
 
 @dataclass(frozen=True)
 class GitIdentity:
-    """A Git-resolved commit, root tree, and bound worktree incarnation."""
+    """A Git-resolved commit, root tree, and live worktree-directory proof."""
 
     commit: str
     tree: str
     worktree: Path
     worktree_device: int
     worktree_inode: int
+    _worktree_fd: int = field(repr=False, compare=False)
+
+    def close(self) -> None:
+        """Release the retained worktree descriptor, idempotently."""
+
+        descriptor = self._worktree_fd
+        if descriptor < 0:
+            return
+        object.__setattr__(self, "_worktree_fd", -1)
+        os.close(descriptor)
+
+    def __enter__(self) -> GitIdentity:
+        return self
+
+    def __exit__(self, *_exception: object) -> None:
+        self.close()
+
+
+class GitIdentityProofs(dict[str, GitIdentity]):
+    """Dispatch-scoped identities whose descriptors close on every exit path."""
+
+    def __enter__(self) -> GitIdentityProofs:
+        return self
+
+    def __setitem__(self, key: str, identity: GitIdentity) -> None:
+        previous = self.get(key)
+        if previous is not None and previous is not identity:
+            previous.close()
+        super().__setitem__(key, identity)
+
+    def __exit__(self, *_exception: object) -> None:
+        identities = list(self.values())
+        self.clear()
+        for identity in identities:
+            identity.close()
 
 
 def _git_environment() -> dict[str, str]:
@@ -50,42 +85,103 @@ def _git_environment() -> dict[str, str]:
     }
 
 
-def _worktree_identity(path: Path) -> tuple[int, int]:
-    """Return the directory identity after rejecting every symlink component."""
+def _directory_flags() -> int:
+    """Return the Linux flags required for a retained directory descriptor."""
 
-    current = Path(path.anchor)
+    required = ("O_DIRECTORY", "O_NOFOLLOW", "O_CLOEXEC")
+    missing = [name for name in required if not hasattr(os, name)]
+    dir_fd_missing = os.open not in os.supports_dir_fd or os.stat not in os.supports_dir_fd
+    nofollow_missing = os.stat not in os.supports_follow_symlinks
+    if missing or dir_fd_missing or nofollow_missing:
+        unavailable = [*missing]
+        if dir_fd_missing:
+            unavailable.append("openat(dir_fd=...) support")
+        if nofollow_missing:
+            unavailable.append("stat(follow_symlinks=False) support")
+        detail = ", ".join(unavailable)
+        raise GitIdentityError(f"secure Git worktree opening is unavailable: {detail}")
+    return os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+
+
+def _open_worktree(path: Path) -> int:
+    """Open an absolute directory path component-wise without following links."""
+
+    if not path.is_absolute() or not path.anchor:
+        raise GitIdentityError(f"Git worktree path is not absolute: {path}")
+    flags = _directory_flags()
+    descriptor = -1
     try:
+        descriptor = os.open(path.anchor, flags)
         for component in path.parts[1:]:
-            current /= component
-            metadata = current.lstat()
+            metadata = os.stat(component, dir_fd=descriptor, follow_symlinks=False)
             if stat.S_ISLNK(metadata.st_mode):
                 raise GitIdentityError(
-                    f"Git worktree path contains a symlink component: {current}"
+                    f"Git worktree path contains a symlink component: {path}"
                 )
-        metadata = path.lstat()
+            next_descriptor = os.open(component, flags, dir_fd=descriptor)
+            try:
+                opened = os.fstat(next_descriptor)
+                if (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino):
+                    raise GitIdentityError(
+                        f"Git worktree changed during authentication: {path}"
+                    )
+            except BaseException:
+                os.close(next_descriptor)
+                raise
+            previous_descriptor = descriptor
+            descriptor = next_descriptor
+            os.close(previous_descriptor)
+        return descriptor
     except OSError as error:
-        raise GitIdentityError(f"could not inspect Git worktree {path}: {error}") from error
-    if not stat.S_ISDIR(metadata.st_mode):
-        raise GitIdentityError(f"Git worktree is not a directory: {path}")
-    return metadata.st_dev, metadata.st_ino
+        if descriptor >= 0:
+            os.close(descriptor)
+        raise GitIdentityError(f"could not securely open Git worktree {path}: {error}") from error
+    except BaseException:
+        if descriptor >= 0:
+            os.close(descriptor)
+        raise
 
 
 def _assert_worktree_identity(
     cwd: Path,
     expected_identity: tuple[int, int],
 ) -> None:
-    actual_identity = _worktree_identity(cwd)
-    if actual_identity != expected_identity:
-        raise GitIdentityError(
-            f"Git worktree changed during authentication: {cwd}"
-        )
+    descriptor = _open_worktree(cwd)
+    try:
+        metadata = os.fstat(descriptor)
+        actual_identity = metadata.st_dev, metadata.st_ino
+        if actual_identity != expected_identity:
+            raise GitIdentityError(
+                f"Git worktree changed during authentication: {cwd}"
+            )
+    finally:
+        os.close(descriptor)
+
+
+def _assert_worktree_binding(
+    cwd: Path,
+    descriptor: int,
+    expected_identity: tuple[int, int],
+) -> None:
+    """Check both the retained directory object and its current canonical name."""
+
+    if descriptor < 0:
+        raise GitIdentityError(f"Git worktree proof is already closed: {cwd}")
+    try:
+        metadata = os.fstat(descriptor)
+    except OSError as error:
+        raise GitIdentityError(f"could not inspect bound Git worktree {cwd}: {error}") from error
+    if (metadata.st_dev, metadata.st_ino) != expected_identity:
+        raise GitIdentityError(f"bound Git worktree identity changed: {cwd}")
+    _assert_worktree_identity(cwd, expected_identity)
 
 
 def recheck_git_identity_worktree(identity: GitIdentity) -> None:
-    """Fail unless ``identity.worktree`` still names the authenticated directory."""
+    """Fail unless the live proof and path still name the authenticated directory."""
 
-    _assert_worktree_identity(
+    _assert_worktree_binding(
         identity.worktree,
+        identity._worktree_fd,
         (identity.worktree_device, identity.worktree_inode),
     )
 
@@ -94,9 +190,10 @@ def _git(
     cwd: Path,
     arguments: Sequence[str],
     *,
+    worktree_fd: int,
     worktree_identity: tuple[int, int],
 ) -> str:
-    _assert_worktree_identity(cwd, worktree_identity)
+    _assert_worktree_binding(cwd, worktree_fd, worktree_identity)
     command = [
         "git",
         "-c",
@@ -108,7 +205,8 @@ def _git(
     try:
         completed = subprocess.run(
             command,
-            cwd=cwd,
+            cwd=f"/proc/self/fd/{worktree_fd}",
+            pass_fds=(worktree_fd,),
             text=True,
             capture_output=True,
             check=False,
@@ -117,7 +215,7 @@ def _git(
         )
     except OSError as error:
         raise GitIdentityError(f"could not run git: {error}") from error
-    _assert_worktree_identity(cwd, worktree_identity)
+    _assert_worktree_binding(cwd, worktree_fd, worktree_identity)
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip()
         if not detail:
@@ -135,14 +233,21 @@ def _full_oid(value: str, label: str) -> str:
 
 def _prove_object(
     cwd: Path,
+    worktree_fd: int,
     worktree_identity: tuple[int, int],
     object_id: str,
     expected_type: str,
 ) -> None:
-    _git(cwd, ["cat-file", "-e", object_id], worktree_identity=worktree_identity)
+    _git(
+        cwd,
+        ["cat-file", "-e", object_id],
+        worktree_fd=worktree_fd,
+        worktree_identity=worktree_identity,
+    )
     actual_type = _git(
         cwd,
         ["cat-file", "-t", object_id],
+        worktree_fd=worktree_fd,
         worktree_identity=worktree_identity,
     )
     if actual_type != expected_type:
@@ -153,6 +258,7 @@ def _prove_object(
 
 def _canonical_ref(
     cwd: Path,
+    worktree_fd: int,
     worktree_identity: tuple[int, int],
     raw_ref: str,
 ) -> str:
@@ -164,18 +270,21 @@ def _canonical_ref(
         _git(
             cwd,
             ["check-ref-format", raw_ref],
+            worktree_fd=worktree_fd,
             worktree_identity=worktree_identity,
         )
         return raw_ref
     _git(
         cwd,
         ["check-ref-format", "--allow-onelevel", raw_ref],
+        worktree_fd=worktree_fd,
         worktree_identity=worktree_identity,
     )
     ref_names = set(
         _git(
             cwd,
             ["for-each-ref", "--format=%(refname)"],
+            worktree_fd=worktree_fd,
             worktree_identity=worktree_identity,
         ).splitlines()
     )
@@ -220,67 +329,83 @@ def resolve_git_identity(
         cwd = Path(os.path.abspath(os.fspath(worktree)))
     except (OSError, TypeError, ValueError) as error:
         raise GitIdentityError(f"could not normalize Git worktree {worktree}: {error}") from error
-    worktree_identity = _worktree_identity(cwd)
-
-    repository_root = _git(
-        cwd,
-        ["rev-parse", "--show-toplevel"],
-        worktree_identity=worktree_identity,
-    )
+    worktree_fd = -1
     try:
-        reported_root = Path(os.path.abspath(repository_root))
-    except (OSError, TypeError, ValueError) as error:
-        raise GitIdentityError(f"Git reported an invalid worktree root: {error}") from error
-    if reported_root != cwd:
-        raise GitIdentityError(
-            f"session worktree must be the Git repository root: expected {cwd}, got {reported_root}"
+        worktree_fd = _open_worktree(cwd)
+        metadata = os.fstat(worktree_fd)
+        worktree_identity = metadata.st_dev, metadata.st_ino
+
+        inside_worktree = _git(
+            cwd,
+            ["rev-parse", "--is-inside-work-tree"],
+            worktree_fd=worktree_fd,
+            worktree_identity=worktree_identity,
         )
-
-    raw_ref = ref.strip()
-    resolved_ref = (
-        raw_ref
-        if FULL_GIT_OID_RE.fullmatch(raw_ref)
-        else _canonical_ref(cwd, worktree_identity, raw_ref)
-    )
-    commit = _full_oid(
-        _git(
+        if inside_worktree != "true":
+            raise GitIdentityError(f"session worktree is not a Git worktree: {cwd}")
+        repository_prefix = _git(
             cwd,
-            ["rev-parse", "--verify", "--end-of-options", f"{resolved_ref}^{{commit}}"],
+            ["rev-parse", "--show-prefix"],
+            worktree_fd=worktree_fd,
             worktree_identity=worktree_identity,
-        ),
-        "commit",
-    )
-    _prove_object(cwd, worktree_identity, commit, "commit")
-    tree = _full_oid(
-        _git(
-            cwd,
-            ["rev-parse", "--verify", "--end-of-options", f"{commit}^{{tree}}"],
-            worktree_identity=worktree_identity,
-        ),
-        "tree",
-    )
-    _prove_object(cwd, worktree_identity, tree, "tree")
+        )
+        if repository_prefix:
+            raise GitIdentityError(
+                f"session worktree must be the Git repository root: {cwd}"
+            )
 
-    if expected_tree is not None:
-        if not isinstance(expected_tree, str):
-            raise GitIdentityError("expected Git tree must be a full object ID string")
-        expected = expected_tree.strip().lower()
-        if not FULL_GIT_OID_RE.fullmatch(expected):
-            raise GitIdentityError(
-                f"expected Git tree must be a full object ID, got {expected_tree!r}"
-            )
-        if expected != tree:
-            raise GitIdentityError(
-                f"Git tree mismatch for {raw_ref!r}: expected {expected}, resolved {tree}"
-            )
-    _assert_worktree_identity(cwd, worktree_identity)
-    return GitIdentity(
-        commit=commit,
-        tree=tree,
-        worktree=cwd,
-        worktree_device=worktree_identity[0],
-        worktree_inode=worktree_identity[1],
-    )
+        raw_ref = ref.strip()
+        resolved_ref = (
+            raw_ref
+            if FULL_GIT_OID_RE.fullmatch(raw_ref)
+            else _canonical_ref(cwd, worktree_fd, worktree_identity, raw_ref)
+        )
+        commit = _full_oid(
+            _git(
+                cwd,
+                ["rev-parse", "--verify", "--end-of-options", f"{resolved_ref}^{{commit}}"],
+                worktree_fd=worktree_fd,
+                worktree_identity=worktree_identity,
+            ),
+            "commit",
+        )
+        _prove_object(cwd, worktree_fd, worktree_identity, commit, "commit")
+        tree = _full_oid(
+            _git(
+                cwd,
+                ["rev-parse", "--verify", "--end-of-options", f"{commit}^{{tree}}"],
+                worktree_fd=worktree_fd,
+                worktree_identity=worktree_identity,
+            ),
+            "tree",
+        )
+        _prove_object(cwd, worktree_fd, worktree_identity, tree, "tree")
+
+        if expected_tree is not None:
+            if not isinstance(expected_tree, str):
+                raise GitIdentityError("expected Git tree must be a full object ID string")
+            expected = expected_tree.strip().lower()
+            if not FULL_GIT_OID_RE.fullmatch(expected):
+                raise GitIdentityError(
+                    f"expected Git tree must be a full object ID, got {expected_tree!r}"
+                )
+            if expected != tree:
+                raise GitIdentityError(
+                    f"Git tree mismatch for {raw_ref!r}: expected {expected}, resolved {tree}"
+                )
+        _assert_worktree_binding(cwd, worktree_fd, worktree_identity)
+        return GitIdentity(
+            commit=commit,
+            tree=tree,
+            worktree=cwd,
+            worktree_device=worktree_identity[0],
+            worktree_inode=worktree_identity[1],
+            _worktree_fd=worktree_fd,
+        )
+    except BaseException:
+        if worktree_fd >= 0:
+            os.close(worktree_fd)
+        raise
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -296,12 +421,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run_cli(arguments: argparse.Namespace) -> dict[str, str]:
-    identity = resolve_git_identity(
+    with resolve_git_identity(
         Path(arguments.worktree),
         arguments.ref,
         expected_tree=arguments.expected_tree,
-    )
-    return {"commit": identity.commit, "tree": identity.tree}
+    ) as identity:
+        return {"commit": identity.commit, "tree": identity.tree}
 
 
 def main(argv: Sequence[str] | None = None) -> int:

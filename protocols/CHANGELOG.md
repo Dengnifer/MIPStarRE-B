@@ -28,6 +28,18 @@ boundary, with byte-exact rollback on replacement. Git also runs with
 `GIT_NO_LAZY_FETCH=1`, so a missing promisor object fails locally without
 invoking the repository's configured transport or credential path.
 
+Independent reviews A06 and A07 then reproduced one remaining high-severity ABA
+gap: pre/post pathname inode checks did not determine the working directory
+used by a Git child while an attacker swapped and restored the repository
+between those checks. The resolver now acquires the worktree component-wise
+with no-follow `openat`, runs every Git child from the retained descriptor via
+`/proc/self/fd`, and keeps that descriptor live through dispatch publication or
+rollback. Dispatch-scoped cleanup closes every proof on every exit path. New
+deterministic resolver and dispatch regressions swap in a repository with a
+different commit/tree only while each subprocess runs; Git remains bound to the
+original directory object, and a substitute expected tree is rejected with
+byte-identical session and event ledgers.
+
 Focused regressions cover symbolic and exact refs, branch/tag ambiguity,
 nonexistent full-looking SHAs, object/tree authentication, expected-tree
 mismatch, detached-head review semantics, symlink retargeting, root
@@ -37,9 +49,9 @@ byte-identical atomic rejection. The partial-clone checks use a sentinel
 transport and prove that neither dry-run nor confirmation invokes it. The
 QPBT-045 contract is exercised without a cache implementation change: an
 invalid exact main reaches zero warm/build, publication, and metric actions.
-The focused resolver suite passes 11/11, the workflow module passes 88/88, the
+The focused resolver suite passes 14/14, the workflow module passes 89/89, the
 canonical checker passes 3/3, compileall and canonical workflow validation pass,
-and the dependency-free aggregate passes 405/405. A fresh immutable independent
+and the dependency-free aggregate passes 409/409. A fresh immutable independent
 review remains required before activation.
 
 ## 0.1.12 (2026-09-03)

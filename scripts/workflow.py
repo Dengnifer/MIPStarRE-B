@@ -24,8 +24,8 @@ import tempfile
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 
 from git_identity import (
-    GitIdentity,
     GitIdentityError,
+    GitIdentityProofs,
     recheck_git_identity_worktree,
     resolve_git_identity,
 )
@@ -1804,7 +1804,7 @@ class WorkflowStore:
         lease and import the real external identity after the runner returns.
         """
 
-        with self._lock(exclusive=True):
+        with self._lock(exclusive=True), GitIdentityProofs() as git_identity_proofs:
             documents = self.load()
             validate_documents(documents)
             # An invalid or reverse-chronological history must never receive a
@@ -1820,7 +1820,6 @@ class WorkflowStore:
                 session_overrides,
                 confirmations,
             )
-            git_identity_proofs: dict[str, GitIdentity] = {}
             plan = plan_dispatch(
                 documents,
                 capacity=capacity,
@@ -2318,7 +2317,7 @@ def plan_dispatch(
     session_ids: Sequence[str] | None = None,
     session_overrides: Mapping[str, Mapping[str, Any]] | None = None,
     authenticate_git: bool = False,
-    git_identity_proofs: MutableMapping[str, GitIdentity] | None = None,
+    git_identity_proofs: GitIdentityProofs | None = None,
 ) -> dict[str, Any]:
     """Plan a deterministic, capacity-bounded dispatch without changing state.
 
@@ -2465,6 +2464,8 @@ def plan_dispatch(
             candidate["worktree"] = str(identity.worktree)
             if git_identity_proofs is not None:
                 git_identity_proofs[session_id] = identity
+            else:
+                identity.close()
             git_identities[session_id] = {
                 "commit": identity.commit,
                 "tree": identity.tree,

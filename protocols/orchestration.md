@@ -46,12 +46,21 @@ planned `base_tree` blocks the complete requested batch before any session or
 event mutation.
 
 The worktree path must contain no symlink component and must name the repository
-root. The resolver binds its canonical absolute path and filesystem device/inode
-before Git inspection, checks that identity around every Git subprocess, and
-checks it again before returning. Dispatch carries that proof through the
+root. On Linux, the resolver opens every absolute path component relative to an
+already-open parent with `O_DIRECTORY | O_NOFOLLOW`, retains the resulting
+directory descriptor, and checks its filesystem device/inode against the
+canonical path. Every Git child starts through `/proc/self/fd/N` with that exact
+descriptor inherited explicitly; it never resolves the registered pathname as
+its working directory. Descriptor-relative `rev-parse --is-inside-work-tree`
+rejects bare repositories, and `rev-parse --show-prefix` proves that the
+registered directory itself is the worktree root.
+
+Dispatch carries the live descriptor proof through the complete locked
 transaction, records only the canonical path in the issued row, rechecks the
-same directory immediately before publication and after event validation, and
-rolls back if the root was renamed or replaced. A collaboration bootstrap must
+descriptor and its current pathname immediately before publication and after
+event validation, and rolls back if the root was renamed or replaced. Every
+success, blocked return, and exceptional rollback closes all retained
+descriptors before releasing the workflow lock. A collaboration bootstrap must
 start in that exact registered canonical directory; confirmation is the task
 release boundary and reauthenticates it before the task packet is sent.
 The generic record-add command cannot add an issued session; all issuance goes
