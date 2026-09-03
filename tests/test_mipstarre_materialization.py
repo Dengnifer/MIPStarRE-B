@@ -392,6 +392,149 @@ class MaterializationTests(unittest.TestCase):
         )
         self.assertTrue((runtime / "attacker-parked").is_dir())
 
+    def test_queued_stage_substitution_after_retention_prevents_success(self) -> None:
+        real_move = source._atomic_move_bound
+        injected = False
+
+        def substitute_after_retention(
+            source_parent: int,
+            source_name: str,
+            source_descriptor: int,
+            destination_parent: int,
+            destination_name: str,
+            label: str,
+            renamed: object = None,
+        ) -> None:
+            nonlocal injected
+            real_move(
+                source_parent,
+                source_name,
+                source_descriptor,
+                destination_parent,
+                destination_name,
+                label,
+                renamed,  # type: ignore[arg-type]
+            )
+            if label == "materialization transaction retention" and not injected:
+                injected = True
+                retained = Path("/proc/self/fd") / str(destination_parent) / destination_name
+                stage = retained / "stage"
+                parked = retained / "attacker-stage-parked"
+                stage.rename(parked)
+                stage.mkdir()
+                (stage / "substitute").write_bytes(b"preserve")
+
+        with mock.patch.object(
+            source, "_atomic_move_bound", side_effect=substitute_after_retention
+        ):
+            with self.assertRaisesRegex(source.MaterializationError, "rollback is incomplete"):
+                source.materialize(self.root, self.pin_path, self.archive)
+
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        evidence = next(runtime.glob("MIPStarRE.transaction.retained-*"))
+        self.assertTrue(injected)
+        self.assertEqual(b"preserve", (evidence / "stage" / "substitute").read_bytes())
+        self.assertTrue((evidence / "attacker-stage-parked").is_dir())
+        self.assertTrue((self.root / "MIPStarRE" / "Quantum" / "Measurement.lean").is_file())
+
+    def test_queued_stage_slot_aba_after_retention_prevents_success(self) -> None:
+        destination = self.root / "MIPStarRE"
+        destination.mkdir()
+        (destination / "original").write_bytes(b"original")
+        real_move = source._atomic_move_bound
+        injected = False
+
+        def aba_after_retention(
+            source_parent: int,
+            source_name: str,
+            source_descriptor: int,
+            destination_parent: int,
+            destination_name: str,
+            label: str,
+            renamed: object = None,
+        ) -> None:
+            nonlocal injected
+            real_move(
+                source_parent,
+                source_name,
+                source_descriptor,
+                destination_parent,
+                destination_name,
+                label,
+                renamed,  # type: ignore[arg-type]
+            )
+            if label == "materialization transaction retention" and not injected:
+                injected = True
+                retained = Path("/proc/self/fd") / str(destination_parent) / destination_name
+                stage = retained / "stage"
+                parked = stage / "attacker-original-parked"
+                substitute = stage / "attacker-substitute"
+                substitute.mkdir()
+                (substitute / "substitute").write_bytes(b"preserve")
+                (stage / "MIPStarRE").rename(parked)
+                substitute.rename(stage / "MIPStarRE")
+                (stage / "MIPStarRE").rename(substitute)
+                parked.rename(stage / "MIPStarRE")
+
+        with mock.patch.object(source, "_atomic_move_bound", side_effect=aba_after_retention):
+            with self.assertRaisesRegex(source.MaterializationError, "rollback is incomplete"):
+                source.materialize(
+                    self.root, self.pin_path, self.archive, replace_existing=True
+                )
+
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        evidence = next(runtime.glob("MIPStarRE.transaction.retained-*"))
+        self.assertTrue(injected)
+        self.assertEqual(
+            b"original", (evidence / "stage" / "MIPStarRE" / "original").read_bytes()
+        )
+        self.assertEqual(
+            b"preserve",
+            (evidence / "stage" / "attacker-substitute" / "substitute").read_bytes(),
+        )
+        self.assertTrue((destination / "Quantum" / "Measurement.lean").is_file())
+
+    def test_retained_marker_and_unexpected_stage_child_prevent_success(self) -> None:
+        real_move = source._atomic_move_bound
+        injected = False
+
+        def contaminate_after_retention(
+            source_parent: int,
+            source_name: str,
+            source_descriptor: int,
+            destination_parent: int,
+            destination_name: str,
+            label: str,
+            renamed: object = None,
+        ) -> None:
+            nonlocal injected
+            real_move(
+                source_parent,
+                source_name,
+                source_descriptor,
+                destination_parent,
+                destination_name,
+                label,
+                renamed,  # type: ignore[arg-type]
+            )
+            if label == "materialization transaction retention" and not injected:
+                injected = True
+                retained = Path("/proc/self/fd") / str(destination_parent) / destination_name
+                (retained / "transaction.json").write_bytes(b"corrupt\n")
+                (retained / "stage" / "unexpected").write_bytes(b"preserve")
+
+        with mock.patch.object(
+            source, "_atomic_move_bound", side_effect=contaminate_after_retention
+        ):
+            with self.assertRaises(source.MaterializationError):
+                source.materialize(self.root, self.pin_path, self.archive)
+
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        evidence = next(runtime.glob("MIPStarRE.transaction.retained-*"))
+        self.assertTrue(injected)
+        self.assertEqual(b"corrupt\n", (evidence / "transaction.json").read_bytes())
+        self.assertEqual(b"preserve", (evidence / "stage" / "unexpected").read_bytes())
+
     def test_post_rename_monitor_failure_is_not_misclassified_as_unpublished(self) -> None:
         destination = self.root / "MIPStarRE"
         destination.mkdir()
@@ -473,22 +616,35 @@ class MaterializationTests(unittest.TestCase):
         self.assertTrue((self.root / "attacker-published").is_dir())
 
     def test_hostile_substitution_during_preparation_error_is_preserved(self) -> None:
-        real_write = source._write_new_file
+        real_create = source._create_new_file
         injected = False
 
-        def fail_transaction_write(path: Path, payload: bytes) -> None:
+        def fail_transaction_write(
+            parent_descriptor: int,
+            name: str,
+            payload: bytes,
+            *,
+            readable: bool = False,
+            monitor: object = None,
+        ) -> int:
             nonlocal injected
-            if path.name == "transaction.json" and not injected:
+            if name == "transaction.json" and not injected:
                 injected = True
-                transaction = Path(os.readlink(path.parent))
+                transaction = Path(os.readlink(f"/proc/self/fd/{parent_descriptor}"))
                 runtime = transaction.parent
                 transaction.rename(runtime / "attacker-preparation")
                 transaction.mkdir()
                 (transaction / "unrelated").write_bytes(b"preserve")
                 raise OSError("injected preparation failure")
-            real_write(path, payload)
+            return real_create(
+                parent_descriptor,
+                name,
+                payload,
+                readable=readable,
+                monitor=monitor,  # type: ignore[arg-type]
+            )
 
-        with mock.patch.object(source, "_write_new_file", side_effect=fail_transaction_write):
+        with mock.patch.object(source, "_create_new_file", side_effect=fail_transaction_write):
             with self.assertRaisesRegex(source.MaterializationError, "ambiguous state"):
                 source.materialize(self.root, self.pin_path, self.archive)
         runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
@@ -533,6 +689,188 @@ class MaterializationTests(unittest.TestCase):
             b"preserve", (runtime / "MIPStarRE.transaction" / "unrelated").read_bytes()
         )
         self.assertTrue((runtime / "attacker-created").is_dir())
+
+    def test_transaction_document_creation_aba_is_detected_before_write(self) -> None:
+        real_open = source.os.open
+        injected = False
+        substitute_path: Path | None = None
+
+        def substitute_after_open(
+            path: object,
+            flags: int,
+            mode: int = 0o777,
+            *,
+            dir_fd: int | None = None,
+        ) -> int:
+            nonlocal injected, substitute_path
+            descriptor = real_open(path, flags, mode, dir_fd=dir_fd)
+            if path == "transaction.json" and dir_fd is not None and not injected:
+                injected = True
+                transaction = Path(os.readlink(f"/proc/self/fd/{dir_fd}"))
+                runtime = transaction.parent
+                parked = transaction / "attacker-document-parked"
+                os.rename(
+                    "transaction.json",
+                    parked.name,
+                    src_dir_fd=dir_fd,
+                    dst_dir_fd=dir_fd,
+                )
+                substitute = real_open(
+                    "transaction.json",
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                    0o600,
+                    dir_fd=dir_fd,
+                )
+                os.write(substitute, b"preserve")
+                os.close(substitute)
+                substitute_path = runtime / "attacker-document-substitute"
+                runtime_descriptor = real_open(runtime, source._directory_flags())
+                try:
+                    os.rename(
+                        "transaction.json",
+                        substitute_path.name,
+                        src_dir_fd=dir_fd,
+                        dst_dir_fd=runtime_descriptor,
+                    )
+                finally:
+                    os.close(runtime_descriptor)
+                os.rename(
+                    parked.name,
+                    "transaction.json",
+                    src_dir_fd=dir_fd,
+                    dst_dir_fd=dir_fd,
+                )
+            return descriptor
+
+        with mock.patch.object(
+            source.os, "open", side_effect=substitute_after_open
+        ), mock.patch.object(source, "_require_transaction_capabilities"):
+            with self.assertRaisesRegex(source.MaterializationError, "ambiguous state"):
+                source.materialize(self.root, self.pin_path, self.archive)
+
+        self.assertTrue(injected)
+        assert substitute_path is not None
+        self.assertEqual(b"preserve", substitute_path.read_bytes())
+
+    def test_archive_descendant_substitution_cannot_receive_output_bytes(self) -> None:
+        external = Path(self.temporary.name) / "external-archive-target"
+        external.mkdir()
+        real_mkdir = source.os.mkdir
+        injected = False
+
+        def substitute_after_mkdir(
+            path: object,
+            mode: int = 0o777,
+            *,
+            dir_fd: int | None = None,
+        ) -> None:
+            nonlocal injected
+            real_mkdir(path, mode, dir_fd=dir_fd)
+            if path == "Quantum" and dir_fd is not None and not injected:
+                injected = True
+                os.rename(
+                    "Quantum",
+                    "attacker-created-Quantum",
+                    src_dir_fd=dir_fd,
+                    dst_dir_fd=dir_fd,
+                )
+                os.symlink(str(external), "Quantum", target_is_directory=True, dir_fd=dir_fd)
+
+        with mock.patch.object(
+            source.os, "mkdir", side_effect=substitute_after_mkdir
+        ), mock.patch.object(source, "_require_transaction_capabilities"):
+            with self.assertRaisesRegex(source.MaterializationError, "could not prepare"):
+                source.materialize(self.root, self.pin_path, self.archive)
+
+        self.assertTrue(injected)
+        self.assertEqual([], list(external.iterdir()))
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        evidence = next(runtime.glob("MIPStarRE.transaction.failed-*"))
+        candidate = evidence / "stage" / "MIPStarRE"
+        self.assertTrue((candidate / "Quantum").is_symlink())
+        self.assertTrue((candidate / "attacker-created-Quantum").is_dir())
+
+    def test_authored_descendant_substitution_cannot_receive_output_bytes(self) -> None:
+        destination = self.root / "MIPStarRE"
+        authored = destination / "QPBT" / "Nested"
+        authored.mkdir(parents=True)
+        (authored / "Owned.lean").write_bytes(b"def owned := true\n")
+        (destination / "untrusted").write_bytes(b"replace")
+        external = Path(self.temporary.name) / "external-authored-target"
+        external.mkdir()
+        real_mkdir = source.os.mkdir
+        injected = False
+
+        def substitute_after_mkdir(
+            path: object,
+            mode: int = 0o777,
+            *,
+            dir_fd: int | None = None,
+        ) -> None:
+            nonlocal injected
+            real_mkdir(path, mode, dir_fd=dir_fd)
+            if path == "Nested" and dir_fd is not None and not injected:
+                injected = True
+                os.rename(
+                    "Nested",
+                    "attacker-created-Nested",
+                    src_dir_fd=dir_fd,
+                    dst_dir_fd=dir_fd,
+                )
+                os.symlink(str(external), "Nested", target_is_directory=True, dir_fd=dir_fd)
+
+        with mock.patch.object(
+            source.os, "mkdir", side_effect=substitute_after_mkdir
+        ), mock.patch.object(source, "_require_transaction_capabilities"):
+            with self.assertRaisesRegex(source.MaterializationError, "could not prepare"):
+                source.materialize(
+                    self.root, self.pin_path, self.archive, replace_existing=True
+                )
+
+        self.assertTrue(injected)
+        self.assertEqual([], list(external.iterdir()))
+        self.assertEqual(b"def owned := true\n", (authored / "Owned.lean").read_bytes())
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        evidence = next(runtime.glob("MIPStarRE.transaction.failed-*"))
+        staged_authored = evidence / "stage" / "MIPStarRE" / "QPBT"
+        self.assertTrue((staged_authored / "Nested").is_symlink())
+        self.assertTrue((staged_authored / "attacker-created-Nested").is_dir())
+
+    def test_authored_source_namespace_substitution_prevents_publication(self) -> None:
+        destination = self.root / "MIPStarRE"
+        authored = destination / "QPBT"
+        authored.mkdir(parents=True)
+        (authored / "Owned.lean").write_bytes(b"def owned := true\n")
+        (destination / "untrusted").write_bytes(b"replace")
+        parked = destination / "attacker-original-QPBT"
+        real_snapshot = source._snapshot_bound_tree
+        injected = False
+
+        def substitute_before_snapshot(
+            descriptor: int,
+        ) -> tuple[list[str], list[tuple[str, bytes]], list[object]]:
+            nonlocal injected
+            if not injected:
+                injected = True
+                authored.rename(parked)
+                authored.mkdir()
+                (authored / "Substitute.lean").write_bytes(b"def substitute := true\n")
+            return real_snapshot(descriptor)  # type: ignore[return-value]
+
+        with mock.patch.object(
+            source, "_snapshot_bound_tree", side_effect=substitute_before_snapshot
+        ):
+            with self.assertRaisesRegex(source.MaterializationError, "could not prepare"):
+                source.materialize(
+                    self.root, self.pin_path, self.archive, replace_existing=True
+                )
+
+        self.assertTrue(injected)
+        self.assertEqual(b"def owned := true\n", (parked / "Owned.lean").read_bytes())
+        self.assertEqual(
+            b"def substitute := true\n", (authored / "Substitute.lean").read_bytes()
+        )
+        self.assertFalse((destination / "Quantum" / "Measurement.lean").exists())
 
     def test_legacy_rollback_refuses_without_live_descriptors(self) -> None:
         transaction = self.root / "transaction"

@@ -170,7 +170,7 @@ disposition.
    writes to destination do not alter source, and fallback reports
    `reflinked=0` with exact copied file/byte counts. Existing regression
    `HotMainCacheTests.test_warm_hits_then_seed_is_private_and_writable`
-   (`tests/test_hot_main_cache.py:766`) covers private writable behavior.
+   (`tests/test_hot_main_cache.py:855`) covers private writable behavior.
 3. **Singleton/leases:** run concurrent warms for one key; assert one build,
    one READY publication, waiter hit metrics, and no staging READY. Register two
    seeds, then run dry-run cleanup; referenced key must not be a candidate.
@@ -179,13 +179,13 @@ disposition.
    tree, displaced and ambiguous objects remain intact, and no success metric
    escapes a precommit failure. Candidate regressions begin at
    `HotMainCacheTests.test_seed_rejects_unowned_backup_decoys_without_mutation`
-   (`tests/test_hot_main_cache.py:3466`), atomic replacement is covered by
+   (`tests/test_hot_main_cache.py:3680`), atomic replacement is covered by
    `HotMainCacheTests.test_seed_atomic_exchange_never_has_absent_destination`
-   (`:3762`), and ancestor ABA is covered symmetrically by
+   (`:3976`), and ancestor ABA is covered symmetrically by
    `HotMainCacheTests.test_seed_and_prepare_reject_ancestor_swap_restore`
-   (`:4132`). Existing failed-build retention is
+   (`:4759`). Existing failed-build retention is
    covered by `HotMainCacheTests.test_failed_build_is_retained_but_never_published`
-   (`:3260`).
+   (`:3474`).
 5. **Capacity guard:** on a filesystem with <10 GB free, dry-run must refuse
    byte-copy seeding before mutation and report required/apparent/physical bytes;
    reflink mode may proceed only after an explicit CoW capability check.

@@ -123,7 +123,18 @@ matching commit markers, and durable success metrics. The live process still
 publishes a digest-bound diagnostic journal before exchange and can use only
 its continuously held descriptors and in-memory bindings to roll back a
 synchronous precommit failure. Journal bytes are never reloaded as mutation
-authority. Successful journal and empty-staging finalization uses atomic
+authority. The journal directory, each journal file, the outer staging root,
+and its `.lake` child are each created under a preinstalled permanent name
+monitor; an exact creation batch, held descriptor, name/descriptor comparison,
+and final clean drain precede the first child write. Every exchange, rollback,
+failed retention, and committed retention consumes exact source and destination
+events, including derived `.lake.failed-*` and `.lake.retained-*` names. Journal
+and commit-marker descriptors are readable; exact type, size, and content are
+rechecked before and after journal retention, with modification and directory
+move events drained before success. Cache seeding creates and opens every
+descendant descriptor-relatively with no-follow handoffs, and both reflink and
+byte-copy paths write only through the held destination file descriptor.
+Successful journal and empty-staging finalization uses atomic
 no-replace moves to uniquely named retained evidence; seed and prepare never
 unlink or `rmdir` transaction objects. After a successful commit, the displaced
 old tree must still match its continuously open descriptor and recorded
@@ -154,12 +165,23 @@ archive/cache input admission and rechecked before materializer invocation; the
 adapter refuses persisted recovery rather than allowing authenticated code to
 interpret same-principal transaction bytes. Live foundation replacement uses
 one descriptor-bound `RENAME_EXCHANGE`, so `MIPStarRE/` is never absent; first
-publication uses `RENAME_NOREPLACE`. Stage, destination, and transaction names
-remain bound by open descriptors and permanent event monitors through
-verification and rollback. Success and unambiguous failure move the transaction
-no-replace to unique evidence. Ambiguous, collided, or substituted objects are
-preserved in place; the materializer never recursively deletes transaction
-objects. The
+publication uses `RENAME_NOREPLACE`. Stage, destination, transaction, marker,
+and backup names remain bound by no-follow descriptors and permanent event
+monitors through verification, retention, and rollback. Archive and
+authored-tree output is created descriptor-relatively with exact
+create/open/drain handoffs, and authored-source directory monitors remain live
+through copying, so an injected intermediate symlink cannot receive foundation
+bytes. Success
+revalidates the exact retained transaction and stage inventories immediately
+before return. Success and unambiguous failure move the transaction no-replace
+to unique evidence; a tracked current transaction name keeps a post-retention
+rollback unambiguous. Ambiguous, collided, or substituted objects are preserved
+in place; the materializer never recursively deletes transaction objects.
+The materializer returns the retained transaction's held inode identity and
+exact control-object inventory. `prepare` requires both while authenticating the
+returned evidence through a no-follow descriptor chain, then rewrites the live
+`/proc/self/fd` spelling to the stable registered-worktree path before closing
+the target binding. The
 authored inventory returned by `prepare` is the post-verifier inventory and
 must equal both the initial inventory and the verifier evidence. It never
 invokes Lean or Lake. Pass `--replace` only to transactionally replace an
@@ -169,6 +191,11 @@ success-metric append completes, and is atomically restored on a later
 unambiguous failure. After commit, a matching displaced tree is moved no-replace
 to retained state and its path is reported without changing a successful
 result; automatic transaction deletion is forbidden.
+
+Dry-run `prepare` performs the same non-mutating materializer-state, archive,
+captured-module, pin, project-validator, and fail-closed-interface admissions as
+live `prepare`, in the same order, before delegating to dry-run `seed`. It does
+not materialize a foundation or publish a cache tree.
 
 The cache record includes key, source SHA, elected owner, hit/miss, lock wait,
 dependency-cache duration, build duration, total duration, exit status, and log

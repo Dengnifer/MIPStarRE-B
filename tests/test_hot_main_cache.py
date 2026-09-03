@@ -178,6 +178,41 @@ def adaptable_materializer(**attributes: object) -> types.SimpleNamespace:
     return types.SimpleNamespace(**defaults)
 
 
+def fake_materializer_evidence(root: Path, retained_name: str) -> dict[str, object]:
+    evidence = root / ".workflow-runtime" / "mipstarre-materialization" / retained_name
+    evidence.mkdir(parents=True)
+    document = b'{"fixture":true}\n'
+    (evidence / "transaction.json").write_bytes(document)
+    (evidence / "stage").mkdir()
+    (evidence / "backup").mkdir()
+
+    def identity(path: Path) -> dict[str, int]:
+        metadata = path.stat(follow_symlinks=False)
+        return {
+            "device": metadata.st_dev,
+            "inode": metadata.st_ino,
+            "type": stat.S_IFMT(metadata.st_mode),
+        }
+
+    return {
+        "status": "published",
+        "transaction_evidence": str(evidence),
+        "transaction_evidence_identity": identity(evidence),
+        "transaction_evidence_inventory": {
+            "schema_version": 1,
+            "transaction_entries": ["backup", "stage", "transaction.json"],
+            "transaction_document": {
+                **identity(evidence / "transaction.json"),
+                "size": len(document),
+                "sha256": hashlib.sha256(document).hexdigest(),
+            },
+            "stage": {**identity(evidence / "stage"), "entries": []},
+            "backup": {**identity(evidence / "backup"), "entries": []},
+            "stage_destination": None,
+        },
+    }
+
+
 def snapshot_subtree(
     snapshot: dict[str, tuple[object, ...]], prefix: str
 ) -> dict[str, tuple[object, ...]]:
@@ -2044,6 +2079,127 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual("prepared", result["result"])
         self.assertEqual(cache_module.authored_tree_facts_on_disk(target), result["authored_qpbt"])
 
+    def test_prepare_returns_stable_materializer_evidence_after_target_close(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("prepare-stable-evidence")
+        archive = self.base / "foundation-stable-evidence.tar.gz"
+        archive.write_bytes(b"authenticated")
+        authored = cache_module.authored_tree_facts_on_disk(target)
+
+        def materialize_with_evidence(
+            root: Path, *_args: object, **_kwargs: object
+        ) -> dict[str, object]:
+            return fake_materializer_evidence(
+                root, "MIPStarRE.transaction.retained-test"
+            )
+
+        fake_module = adaptable_materializer(
+            load_pin=lambda _path: {},
+            validate_project_pins=lambda _root, _pin: None,
+            materialize=materialize_with_evidence,
+            verify_materialized=lambda *_args: {"status": "verified", **authored},
+        )
+        with mock.patch.dict(
+            os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True
+        ), mock.patch.object(
+            manager, "_preflight_authenticated_inputs", return_value={"required": True}
+        ), mock.patch.object(
+            manager, "_load_identity_module", return_value=fake_module
+        ):
+            result = manager.prepare(target)
+
+        evidence = Path(result["foundation"]["transaction_evidence"])
+        self.assertEqual(
+            target
+            / ".workflow-runtime"
+            / "mipstarre-materialization"
+            / "MIPStarRE.transaction.retained-test",
+            evidence,
+        )
+        self.assertNotIn("/proc/self/fd/", str(evidence))
+        self.assertTrue(evidence.is_dir())
+
+    def test_prepare_evidence_normalization_rejects_descendant_symlink_swap(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("prepare-evidence-symlink-swap")
+        archive = self.base / "foundation-evidence-symlink-swap.tar.gz"
+        archive.write_bytes(b"authenticated")
+        authored = cache_module.authored_tree_facts_on_disk(target)
+        retained_name = "MIPStarRE.transaction.retained-test"
+
+        def materialize_with_evidence(
+            root: Path, *_args: object, **_kwargs: object
+        ) -> dict[str, object]:
+            return fake_materializer_evidence(root, retained_name)
+
+        fake_module = adaptable_materializer(
+            load_pin=lambda _path: {},
+            validate_project_pins=lambda _root, _pin: None,
+            materialize=materialize_with_evidence,
+            verify_materialized=lambda *_args: {"status": "verified", **authored},
+        )
+        real_stabilize = manager._stabilize_materializer_evidence
+        parked = target / ".workflow-runtime" / "attacker-parked-materialization"
+        external = self.base / "external-materializer-evidence"
+        (external / retained_name).mkdir(parents=True)
+
+        def swap_before_stabilize(
+            materialized: object, bound: object, module_project: Path
+        ) -> object:
+            runtime = target / ".workflow-runtime" / "mipstarre-materialization"
+            runtime.rename(parked)
+            runtime.symlink_to(external, target_is_directory=True)
+            return real_stabilize(materialized, bound, module_project)
+
+        with mock.patch.dict(
+            os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True
+        ), mock.patch.object(
+            manager, "_preflight_authenticated_inputs", return_value={"required": True}
+        ), mock.patch.object(
+            manager, "_load_identity_module", return_value=fake_module
+        ), mock.patch.object(
+            manager,
+            "_stabilize_materializer_evidence",
+            side_effect=swap_before_stabilize,
+        ):
+            with self.assertRaisesRegex(
+                cache_module.CacheError, "evidence is unavailable|foundation preparation failed"
+            ):
+                manager.prepare(target)
+
+        self.assertTrue((parked / retained_name).is_dir())
+        self.assertTrue((external / retained_name).is_dir())
+
+    def test_prepare_evidence_normalization_rejects_real_directory_replacement(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        target = self.issue_worktree("prepare-evidence-real-replacement")
+        bound = manager._eligible_seed_target(target, check_inputs=False)
+        retained_name = "MIPStarRE.transaction.retained-test"
+        try:
+            materialized = fake_materializer_evidence(bound.access_path, retained_name)
+            bound.refresh_after_project_mutation()
+            evidence = target / ".workflow-runtime" / "mipstarre-materialization" / retained_name
+            parked = evidence.with_name("attacker-parked-retained")
+            evidence.rename(parked)
+            evidence.mkdir()
+            with self.assertRaisesRegex(cache_module.CacheError, "evidence identity changed"):
+                manager._stabilize_materializer_evidence(
+                    materialized, bound, bound.access_path
+                )
+        finally:
+            bound.close()
+
+        self.assertTrue(parked.is_dir())
+        self.assertTrue(evidence.is_dir())
+
     def test_prepare_rejects_authored_drift_before_foundation_verification(self) -> None:
         manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
         manager.warm(
@@ -2235,7 +2391,7 @@ class HotMainCacheTests(unittest.TestCase):
         with mock.patch.object(
             manager,
             "_validate_seeded_destination",
-            side_effect=KeyboardInterrupt("injected post-publication interruption"),
+            side_effect=[None, KeyboardInterrupt("injected post-publication interruption")],
         ):
             with self.assertRaises(KeyboardInterrupt):
                 manager.seed(target, replace=True)
@@ -2245,6 +2401,8 @@ class HotMainCacheTests(unittest.TestCase):
         )
         self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
         self.assertEqual([], list(target.glob(".lake.backup-*")))
+        failed = next(target.glob(".lake.failed-*"))
+        self.assertTrue((failed / ".lake" / "build" / "QPBT.olean").is_file())
         self.assertEqual([], list(target.glob(".lake-seed-*")))
 
     def test_prepare_publisher_handoff_interruption_restores_original(self) -> None:
@@ -3295,8 +3453,10 @@ class HotMainCacheTests(unittest.TestCase):
         target = self.issue_worktree("seed-source-race-target")
         original_copy = cache_module.reflink_copytree
 
-        def copy_then_tamper(source: Path, destination: Path) -> cache_module.CopyStats:
-            copied = original_copy(source, destination)
+        def copy_then_tamper(
+            source: Path, destination: Path, **options: object
+        ) -> cache_module.CopyStats:
+            copied = original_copy(source, destination, **options)
             cache_module.make_owner_writable(manager.snapshot_dir)
             manifest = json.loads(manager.manifest_path.read_text(encoding="utf-8"))
             manifest["source_evidence"]["pin_sha256"] = "0" * 64
@@ -3611,9 +3771,9 @@ class HotMainCacheTests(unittest.TestCase):
         substitute_before = byte_snapshot(substitute)
         real_copy = cache_module.reflink_copytree
 
-        def copy_after_aba(source: Path, destination: Path) -> object:
+        def copy_after_aba(source: Path, destination: Path, **options: object) -> object:
             self._swap_worktree_aba(target, substitute)
-            return real_copy(source, destination)
+            return real_copy(source, destination, **options)
 
         with mock.patch.object(cache_module, "reflink_copytree", side_effect=copy_after_aba):
             with self.assertRaisesRegex(cache_module.CacheError, "identity changed|namespace changed"):
@@ -4026,6 +4186,397 @@ class HotMainCacheTests(unittest.TestCase):
                     self.assertEqual(before, byte_snapshot(target))
                     self.assertFalse(manager._seed_transaction_dir(target).exists())
 
+    def test_dry_prepare_runs_materializer_admission_before_delegated_seed(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        target = self.issue_worktree("dry-prepare-admission-order")
+        events: list[str] = []
+        module = types.SimpleNamespace()
+        delegated = mock.Mock(
+            side_effect=lambda *_args, **_kwargs: (
+                events.append("seed")
+                or {"action": "seed", "dry_run": True, "target": str(target / ".lake")}
+            )
+        )
+
+        with mock.patch.object(
+            manager,
+            "_assert_no_materializer_recovery_state",
+            side_effect=lambda _target: events.append("state"),
+        ), mock.patch.object(
+            manager, "_require_seed_capabilities"
+        ), mock.patch.object(
+            manager,
+            "_preflight_authenticated_inputs",
+            side_effect=lambda: events.append("archive") or {"required": True},
+        ), mock.patch.object(
+            manager,
+            "_load_identity_module",
+            side_effect=lambda *_args: events.append("module") or module,
+        ), mock.patch.object(
+            manager,
+            "_adapt_materializer_to_bound_target",
+            side_effect=lambda *_args: events.append("interface"),
+        ), mock.patch.object(
+            manager,
+            "_load_captured_pin",
+            side_effect=lambda *_args: events.append("pin") or {},
+        ), mock.patch.object(
+            manager,
+            "_validate_captured_project",
+            side_effect=lambda *_args: events.append("validate"),
+        ), mock.patch.object(manager, "seed", delegated):
+            result = manager.prepare(target, dry_run=True)
+
+        self.assertEqual(
+            ["state", "archive", "module", "interface", "pin", "validate", "state", "seed"],
+            events,
+        )
+        self.assertEqual("prepare", result["action"])
+        delegated.assert_called_once_with(target, replace=False, dry_run=True)
+
+    def test_dry_prepare_refuses_materializer_state_and_interface_before_seed(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        target = self.issue_worktree("dry-prepare-materializer-refusal")
+        transaction = (
+            target
+            / ".workflow-runtime"
+            / "mipstarre-materialization"
+            / "MIPStarRE.transaction"
+        )
+        transaction.mkdir(parents=True)
+        archive = mock.Mock(side_effect=AssertionError("archive admission ran"))
+        delegated = mock.Mock(side_effect=AssertionError("delegated seed ran"))
+        with mock.patch.object(
+            manager, "_require_seed_capabilities"
+        ), mock.patch.object(
+            manager, "_preflight_authenticated_inputs", archive
+        ), mock.patch.object(manager, "seed", delegated):
+            with self.assertRaisesRegex(cache_module.CacheError, "persisted materializer state"):
+                manager.prepare(target, dry_run=True)
+        archive.assert_not_called()
+        delegated.assert_not_called()
+
+        interface_target = self.issue_worktree("dry-prepare-interface-refusal")
+        with mock.patch.object(
+            manager, "_require_seed_capabilities"
+        ), mock.patch.object(
+            manager, "_preflight_authenticated_inputs", return_value={"required": True}
+        ), mock.patch.object(
+            manager, "_load_identity_module", return_value=types.SimpleNamespace()
+        ), mock.patch.object(manager, "seed", delegated):
+            with self.assertRaisesRegex(cache_module.CacheError, "lacks the bound fail-closed interface"):
+                manager.prepare(interface_target, dry_run=True)
+        delegated.assert_not_called()
+
+    def test_seed_and_prepare_reject_created_staging_and_journal_substitution(self) -> None:
+        for action in ("seed", "prepare"):
+            for object_kind in ("staging", "journal"):
+                with self.subTest(action=action, object_kind=object_kind):
+                    recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                    manager = self.manager(
+                        runtime=self.base / f"runtime-handoff-{action}-{object_kind}",
+                        recipe=recipe,
+                    )
+                    manager.warm(
+                        _test_command_callback=fake_success,
+                        _test_source_verifier=(
+                            fake_source_verifier if action == "prepare" else None
+                        ),
+                    )
+                    target = self.issue_worktree(f"handoff-{action}-{object_kind}")
+                    if object_kind == "journal":
+                        (target / ".lake").mkdir()
+                        (target / ".lake" / "original").write_bytes(b"preserve")
+                    archive_path = self.base / f"handoff-{action}-{object_kind}.tar.gz"
+                    archive_path.write_bytes(b"authenticated")
+                    authored = cache_module.authored_tree_facts_on_disk(target)
+                    fake_module = adaptable_materializer(
+                        load_pin=lambda _path: {},
+                        validate_project_pins=lambda _root, _pin: None,
+                        materialize=lambda *_args, **_kwargs: {"status": "published"},
+                        verify_materialized=lambda *_args: {
+                            "status": "verified",
+                            **authored,
+                        },
+                    )
+                    journal_name = manager._seed_transaction_dir(target).name
+                    real_mkdir = cache_module.os.mkdir
+                    injected: list[tuple[Path, str, str]] = []
+
+                    def substitute_after_mkdir(
+                        path: object,
+                        mode: int = 0o777,
+                        *,
+                        dir_fd: int | None = None,
+                    ) -> None:
+                        real_mkdir(path, mode, dir_fd=dir_fd)
+                        name = str(path)
+                        selected = (
+                            object_kind == "staging" and name.startswith(".lake-seed-")
+                        ) or (object_kind == "journal" and name == journal_name)
+                        if selected and dir_fd is not None and not injected:
+                            parked = f"attacker-created-{name}"
+                            os.rename(
+                                name,
+                                parked,
+                                src_dir_fd=dir_fd,
+                                dst_dir_fd=dir_fd,
+                            )
+                            real_mkdir(name, mode, dir_fd=dir_fd)
+                            parent = Path(os.readlink(f"/proc/self/fd/{dir_fd}"))
+                            (parent / name / "substitute").write_bytes(b"preserve")
+                            injected.append((parent, parked, name))
+
+                    with mock.patch.dict(
+                        os.environ,
+                        {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive_path)},
+                        clear=True,
+                    ), mock.patch.object(
+                        manager, "_preflight_authenticated_inputs", return_value={"required": True}
+                    ), mock.patch.object(
+                        manager, "_load_identity_module", return_value=fake_module
+                    ), mock.patch.object(
+                        manager, "_require_seed_capabilities"
+                    ), mock.patch.object(
+                        cache_module.os, "mkdir", side_effect=substitute_after_mkdir
+                    ):
+                        with self.assertRaisesRegex(cache_module.CacheError, "exact monitor events"):
+                            if action == "prepare":
+                                manager.prepare(
+                                    target, replace_seed=object_kind == "journal"
+                                )
+                            else:
+                                manager.seed(target, replace=object_kind == "journal")
+
+                    self.assertEqual(1, len(injected))
+                    parent, parked, substitute = injected[0]
+                    self.assertTrue((parent / parked).is_dir())
+                    self.assertEqual(
+                        b"preserve", (parent / substitute / "substitute").read_bytes()
+                    )
+                    if object_kind == "journal":
+                        self.assertFalse((parent / substitute / "journal.json").exists())
+                        self.assertEqual(
+                            b"preserve", (target / ".lake" / "original").read_bytes()
+                        )
+                        self.assertFalse((target / ".lake" / "build").exists())
+                    else:
+                        self.assertFalse((parent / substitute / ".lake").exists())
+
+    def test_seed_and_prepare_reject_inner_staging_and_journal_file_handoffs(self) -> None:
+        for action in ("seed", "prepare"):
+            for child_kind in ("staged_lake", "journal_file"):
+                with self.subTest(action=action, child_kind=child_kind):
+                    recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                    manager = self.manager(
+                        runtime=self.base / f"runtime-inner-handoff-{action}-{child_kind}",
+                        recipe=recipe,
+                    )
+                    manager.warm(
+                        _test_command_callback=fake_success,
+                        _test_source_verifier=(
+                            fake_source_verifier if action == "prepare" else None
+                        ),
+                    )
+                    target = self.issue_worktree(f"inner-handoff-{action}-{child_kind}")
+                    if child_kind == "journal_file":
+                        (target / ".lake").mkdir()
+                        (target / ".lake" / "original").write_bytes(b"preserve")
+                    archive_path = self.base / f"inner-handoff-{action}-{child_kind}.tar.gz"
+                    archive_path.write_bytes(b"authenticated")
+                    authored = cache_module.authored_tree_facts_on_disk(target)
+                    fake_module = adaptable_materializer(
+                        load_pin=lambda _path: {},
+                        validate_project_pins=lambda _root, _pin: None,
+                        materialize=lambda *_args, **_kwargs: {"status": "published"},
+                        verify_materialized=lambda *_args: {
+                            "status": "verified",
+                            **authored,
+                        },
+                    )
+                    real_mkdir = cache_module.os.mkdir
+                    real_open = cache_module.os.open
+                    injected: list[tuple[Path, str, str]] = []
+
+                    def substitute_staged_lake(
+                        path: object,
+                        mode: int = 0o777,
+                        *,
+                        dir_fd: int | None = None,
+                    ) -> None:
+                        real_mkdir(path, mode, dir_fd=dir_fd)
+                        if path == ".lake" and dir_fd is not None and not injected:
+                            parent = Path(os.readlink(f"/proc/self/fd/{dir_fd}"))
+                            if parent.name.startswith(".lake-seed-"):
+                                os.rename(
+                                    ".lake",
+                                    "attacker-created-.lake",
+                                    src_dir_fd=dir_fd,
+                                    dst_dir_fd=dir_fd,
+                                )
+                                real_mkdir(".lake", mode, dir_fd=dir_fd)
+                                injected.append((parent, "attacker-created-.lake", ".lake"))
+
+                    def substitute_journal_file(
+                        path: object,
+                        flags: int,
+                        mode: int = 0o777,
+                        *,
+                        dir_fd: int | None = None,
+                    ) -> int:
+                        descriptor = real_open(path, flags, mode, dir_fd=dir_fd)
+                        if path == "journal.json" and dir_fd is not None and not injected:
+                            parent = Path(os.readlink(f"/proc/self/fd/{dir_fd}"))
+                            os.rename(
+                                "journal.json",
+                                "attacker-created-journal.json",
+                                src_dir_fd=dir_fd,
+                                dst_dir_fd=dir_fd,
+                            )
+                            substitute = real_open(
+                                "journal.json",
+                                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                                0o600,
+                                dir_fd=dir_fd,
+                            )
+                            os.write(substitute, b"preserve")
+                            os.close(substitute)
+                            injected.append(
+                                (parent, "attacker-created-journal.json", "journal.json")
+                            )
+                        return descriptor
+
+                    mkdir_effect = (
+                        substitute_staged_lake if child_kind == "staged_lake" else real_mkdir
+                    )
+                    open_effect = (
+                        substitute_journal_file if child_kind == "journal_file" else real_open
+                    )
+                    with mock.patch.dict(
+                        os.environ,
+                        {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive_path)},
+                        clear=True,
+                    ), mock.patch.object(
+                        manager, "_preflight_authenticated_inputs", return_value={"required": True}
+                    ), mock.patch.object(
+                        manager, "_load_identity_module", return_value=fake_module
+                    ), mock.patch.object(
+                        manager, "_require_seed_capabilities"
+                    ), mock.patch.object(
+                        cache_module.os, "mkdir", side_effect=mkdir_effect
+                    ), mock.patch.object(
+                        cache_module.os, "open", side_effect=open_effect
+                    ):
+                        with self.assertRaisesRegex(cache_module.CacheError, "exact monitor events"):
+                            if action == "prepare":
+                                manager.prepare(
+                                    target, replace_seed=child_kind == "journal_file"
+                                )
+                            else:
+                                manager.seed(target, replace=child_kind == "journal_file")
+
+                    self.assertEqual(1, len(injected))
+                    parent, parked, substitute = injected[0]
+                    self.assertTrue((parent / parked).exists())
+                    if child_kind == "journal_file":
+                        self.assertEqual(b"preserve", (parent / substitute).read_bytes())
+                        self.assertEqual(
+                            b"preserve", (target / ".lake" / "original").read_bytes()
+                        )
+                    else:
+                        self.assertTrue((parent / substitute).is_dir())
+                        self.assertFalse((parent / substitute / "build").exists())
+
+    def test_seed_copy_rejects_descendant_symlink_before_external_write(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("seed-descendant-symlink")
+        external = self.base / "external-cache-copy-target"
+        external.mkdir()
+        real_mkdir = cache_module.os.mkdir
+        injected: list[Path] = []
+
+        def substitute_after_mkdir(
+            path: object,
+            mode: int = 0o777,
+            *,
+            dir_fd: int | None = None,
+        ) -> None:
+            real_mkdir(path, mode, dir_fd=dir_fd)
+            if path == "build" and dir_fd is not None and not injected:
+                parent = Path(os.readlink(f"/proc/self/fd/{dir_fd}"))
+                os.rename(
+                    "build",
+                    "attacker-created-build",
+                    src_dir_fd=dir_fd,
+                    dst_dir_fd=dir_fd,
+                )
+                os.symlink(str(external), "build", target_is_directory=True, dir_fd=dir_fd)
+                injected.append(parent)
+
+        with mock.patch.object(
+            cache_module.os, "mkdir", side_effect=substitute_after_mkdir
+        ), mock.patch.object(manager, "_require_seed_capabilities"):
+            with self.assertRaisesRegex(cache_module.CacheError, "exact monitor events"):
+                manager.seed(target)
+
+        self.assertEqual([], list(external.iterdir()))
+        self.assertEqual(1, len(injected))
+        parked = list(target.rglob("attacker-created-build"))
+        self.assertEqual(1, len(parked))
+        self.assertTrue(parked[0].is_dir())
+        self.assertTrue((parked[0].parent / "build").is_symlink())
+
+    def test_retained_journal_modification_prevents_success(self) -> None:
+        for filename in ("journal.json", "COMMITTED"):
+            with self.subTest(filename=filename):
+                manager = self.manager(runtime=self.base / f"runtime-journal-modify-{filename}")
+                manager.warm(_test_command_callback=fake_success)
+                target = self.issue_worktree(f"journal-modify-{filename}")
+                (target / ".lake").mkdir()
+                (target / ".lake" / "original").write_bytes(b"original")
+                real_move = cache_module.HotMainCache._atomic_move_bound
+                retained_paths: list[Path] = []
+
+                def move_then_modify(
+                    source_parent: int,
+                    source_name: str,
+                    source_descriptor: int,
+                    destination_parent: int,
+                    destination_name: str,
+                    label: str,
+                ) -> None:
+                    real_move(
+                        source_parent,
+                        source_name,
+                        source_descriptor,
+                        destination_parent,
+                        destination_name,
+                        label,
+                    )
+                    if label == "seed transaction journal retention":
+                        retained = Path("/proc/self/fd") / str(destination_parent) / destination_name
+                        (retained / filename).write_bytes(b"corrupt\n")
+                        retained_paths.append(
+                            Path(os.readlink(f"/proc/self/fd/{destination_parent}"))
+                            / destination_name
+                        )
+
+                with mock.patch.object(
+                    cache_module.HotMainCache,
+                    "_atomic_move_bound",
+                    side_effect=move_then_modify,
+                ):
+                    with self.assertRaisesRegex(
+                        cache_module.CacheError,
+                        "exact monitor events|journal file .* changed",
+                    ):
+                        manager.seed(target, replace=True)
+
+                self.assertEqual(1, len(retained_paths))
+                self.assertEqual(b"corrupt\n", (retained_paths[0] / filename).read_bytes())
+                self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
+
     def test_seed_and_prepare_atomic_no_replace_preserve_concurrent_destination(self) -> None:
         for action in ("seed", "prepare"):
             with self.subTest(action=action):
@@ -4228,12 +4779,14 @@ class HotMainCacheTests(unittest.TestCase):
                 parked = self.base / f"ancestor-parked-{action}"
                 real_copy = cache_module.reflink_copytree
 
-                def copy_after_ancestor_aba(source: Path, destination: Path) -> object:
+                def copy_after_ancestor_aba(
+                    source: Path, destination: Path, **options: object
+                ) -> object:
                     os.replace(ancestor, parked)
                     os.replace(substitute, ancestor)
                     os.replace(ancestor, substitute)
                     os.replace(parked, ancestor)
-                    return real_copy(source, destination)
+                    return real_copy(source, destination, **options)
 
                 patches: list[object] = [
                     mock.patch.object(

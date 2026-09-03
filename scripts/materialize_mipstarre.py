@@ -12,7 +12,7 @@ import fcntl
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import secrets
 import stat
 import struct
@@ -40,6 +40,7 @@ _RENAMEAT2_FILESYSTEM_MAGICS = {
     0x794C7630,  # overlayfs
     0xF2F52010,  # F2FS
 }
+_IN_MODIFY = 0x00000002
 _IN_ATTRIB = 0x00000004
 _IN_MOVED_FROM = 0x00000040
 _IN_MOVED_TO = 0x00000080
@@ -137,10 +138,20 @@ def _assert_bound_name(parent: int, name: str, descriptor: int, label: str) -> N
         raise MaterializationError(f"{label} identity changed")
 
 
+def _assert_name_absent(parent: int, name: str, label: str) -> None:
+    try:
+        os.stat(name, dir_fd=parent, follow_symlinks=False)
+    except FileNotFoundError:
+        return
+    except OSError as error:
+        raise MaterializationError(f"could not prove absent {label}") from error
+    raise MaterializationError(f"{label} appeared concurrently")
+
+
 class _BoundNameMonitor:
     """Permanently reject substitution or ABA of selected directory children."""
 
-    def __init__(self, parent_descriptor: int, names: Sequence[str]):
+    def __init__(self, parent_descriptor: int, names: Sequence[str] | None):
         libc = _linux_libc()
         initialize = getattr(libc, "inotify_init1", None)
         add_watch = getattr(libc, "inotify_add_watch", None)
@@ -157,7 +168,8 @@ class _BoundNameMonitor:
                 f"could not initialize materialization monitor: {os.strerror(error_number)}"
             )
         mask = (
-            _IN_ATTRIB
+            _IN_MODIFY
+            | _IN_ATTRIB
             | _IN_MOVED_FROM
             | _IN_MOVED_TO
             | _IN_CREATE
@@ -177,7 +189,7 @@ class _BoundNameMonitor:
             )
         self.descriptor = descriptor
         self.watch = watch
-        self.names = {os.fsencode(name) for name in names}
+        self.names = None if names is None else {os.fsencode(name) for name in names}
         self.poisoned = False
 
     def _drain(self) -> tuple[list[tuple[bytes, int]], bool]:
@@ -207,12 +219,19 @@ class _BoundNameMonitor:
                 name = payload[offset : offset + name_size].split(b"\0", 1)[0]
                 offset += name_size
                 if watch not in {-1, self.watch} or mask & (
-                    _IN_Q_OVERFLOW | _IN_IGNORED | _IN_UNMOUNT | _IN_DELETE_SELF | _IN_MOVE_SELF
+                    _IN_Q_OVERFLOW | _IN_IGNORED | _IN_UNMOUNT | _IN_DELETE_SELF
                 ):
                     fatal = True
-                elif name in self.names:
+                elif mask & _IN_MOVE_SELF:
+                    relevant.append((b"", _IN_MOVE_SELF))
+                elif self.names is None or name in self.names:
                     operation = mask & (
-                        _IN_ATTRIB | _IN_MOVED_FROM | _IN_MOVED_TO | _IN_CREATE | _IN_DELETE
+                        _IN_MODIFY
+                        | _IN_ATTRIB
+                        | _IN_MOVED_FROM
+                        | _IN_MOVED_TO
+                        | _IN_CREATE
+                        | _IN_DELETE
                     )
                     relevant.append((name, operation))
         if fatal:
@@ -969,52 +988,292 @@ def verify_materialized(repo_root: Path, pin: Mapping[str, Any]) -> dict[str, An
     }
 
 
-def _write_new_file(path: Path, payload: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+def _child_name(name: str, label: str) -> str:
+    encoded = os.fsencode(name)
+    if not encoded or encoded in {b".", b".."} or b"/" in encoded or b"\0" in encoded:
+        raise MaterializationError(f"unsafe {label} child name")
+    return name
+
+
+def _open_bound_directory(parent_descriptor: int, name: str, label: str) -> int:
+    name = _child_name(name, label)
+    monitor = _BoundNameMonitor(parent_descriptor, (name,))
+    descriptor: int | None = None
     try:
+        monitor.assert_clean()
+        descriptor = os.open(name, _directory_flags(), dir_fd=parent_descriptor)
+        _assert_bound_name(parent_descriptor, name, descriptor, label)
+        monitor.assert_clean()
+        return descriptor
+    except BaseException:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    finally:
+        monitor.close()
+
+
+def _create_bound_directory(parent_descriptor: int, name: str, label: str) -> int:
+    name = _child_name(name, label)
+    monitor = _BoundNameMonitor(parent_descriptor, (name,))
+    descriptor: int | None = None
+    try:
+        monitor.assert_clean()
+        os.mkdir(name, 0o700, dir_fd=parent_descriptor)
+        monitor.accept_owned_change(((name, _IN_CREATE),))
+        descriptor = os.open(name, _directory_flags(), dir_fd=parent_descriptor)
+        _assert_bound_name(parent_descriptor, name, descriptor, label)
+        monitor.assert_clean()
+        return descriptor
+    except BaseException:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    finally:
+        monitor.close()
+
+
+def _create_new_file(
+    parent_descriptor: int,
+    name: str,
+    payload: bytes,
+    *,
+    readable: bool = False,
+    monitor: _BoundNameMonitor | None = None,
+) -> int:
+    name = _child_name(name, "materialized file")
+    descriptor = os.open(
+        name,
+        (os.O_RDWR if readable else os.O_WRONLY) | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+        0o644,
+        dir_fd=parent_descriptor,
+    )
+    try:
+        if monitor is not None:
+            monitor.accept_owned_change(((name, _IN_CREATE),))
+            _assert_bound_name(
+                parent_descriptor,
+                name,
+                descriptor,
+                "new materialized control file",
+            )
+            monitor.assert_clean()
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise MaterializationError("new materialized output is not a regular file")
         view = memoryview(payload)
         while view:
             written = os.write(descriptor, view)
+            if written <= 0:
+                raise OSError("short materialized file write")
             view = view[written:]
         os.fsync(descriptor)
-    finally:
+        if monitor is not None and payload:
+            monitor.accept_owned_change(((name, _IN_MODIFY),))
+            _assert_bound_name(
+                parent_descriptor,
+                name,
+                descriptor,
+                "new materialized control file",
+            )
+            monitor.assert_clean()
+        return descriptor
+    except BaseException:
         os.close(descriptor)
+        raise
 
 
-def _fsync_directory(path: Path) -> None:
-    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+def _write_new_file(parent_descriptor: int, name: str, payload: bytes) -> None:
+    descriptor = _create_new_file(parent_descriptor, name, payload)
+    os.close(descriptor)
+
+
+def _read_bound_file(parent_descriptor: int, name: str, max_bytes: int) -> bytes:
+    name = _child_name(name, "authored file")
+    monitor = _BoundNameMonitor(parent_descriptor, (name,))
+    descriptor: int | None = None
     try:
-        os.fsync(descriptor)
+        monitor.assert_clean()
+        descriptor = os.open(
+            name,
+            os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0),
+            dir_fd=parent_descriptor,
+        )
+        _assert_bound_name(parent_descriptor, name, descriptor, "project-authored file")
+        monitor.assert_clean()
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or before.st_size > max_bytes:
+            raise MaterializationError("unsafe or oversized project-authored file")
+        chunks: list[bytes] = []
+        total = 0
+        while total <= max_bytes:
+            block = os.read(descriptor, min(1024 * 1024, max_bytes + 1 - total))
+            if not block:
+                break
+            chunks.append(block)
+            total += len(block)
+        after = os.fstat(descriptor)
+        monitor.assert_clean()
+        _assert_bound_name(parent_descriptor, name, descriptor, "project-authored file")
+        if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (
+            after.st_dev,
+            after.st_ino,
+            after.st_size,
+            after.st_mtime_ns,
+        ) or total != before.st_size:
+            raise MaterializationError("project-authored file changed while copied")
+        return b"".join(chunks)
     finally:
-        os.close(descriptor)
+        if descriptor is not None:
+            os.close(descriptor)
+        monitor.close()
 
 
-def _fsync_tree(root: Path) -> None:
-    for directory, _, _ in os.walk(root, topdown=False, followlinks=False):
-        _fsync_directory(Path(directory))
+def _snapshot_bound_tree(
+    root_descriptor: int,
+) -> tuple[list[str], list[tuple[str, bytes]], list[_BoundNameMonitor]]:
+    directories: list[str] = []
+    files: list[tuple[str, bytes]] = []
+    monitors: list[_BoundNameMonitor] = []
 
-
-def _copy_authored_tree(source: Path, destination: Path) -> tuple[int, int, str]:
-    before = _scan_authored_tree(source)
-    if before[0] == 0 and not source.exists():
-        return before
-    destination.mkdir(parents=True)
-    for directory, names, file_names in os.walk(source, followlinks=False):
-        base = Path(directory)
-        relative = base.relative_to(source)
-        target_base = destination / relative
-        names.sort()
-        file_names.sort()
+    def visit(descriptor: int, relative: PurePosixPath) -> None:
+        monitor = _BoundNameMonitor(descriptor, None)
+        monitors.append(monitor)
+        monitor.assert_clean()
+        names = sorted(os.listdir(descriptor))
         for name in names:
-            (target_base / name).mkdir()
-        for name in file_names:
-            payload = _read_output_file(base / name, HARD_MAX_MEMBER_BYTES)
-            _write_new_file(target_base / name, payload)
-    after = _scan_authored_tree(destination)
-    if after != before:
-        raise MaterializationError("project-authored QPBT tree changed while copied")
-    return after
+            monitor.assert_clean()
+            _child_name(name, "project-authored tree")
+            try:
+                metadata = os.stat(name, dir_fd=descriptor, follow_symlinks=False)
+            except OSError as error:
+                raise MaterializationError("project-authored tree changed while copied") from error
+            child_relative = relative / name
+            if stat.S_ISDIR(metadata.st_mode):
+                child = _open_bound_directory(
+                    descriptor, name, "project-authored directory"
+                )
+                monitor.assert_clean()
+                directories.append(child_relative.as_posix())
+                try:
+                    visit(child, child_relative)
+                finally:
+                    os.close(child)
+            elif stat.S_ISREG(metadata.st_mode):
+                files.append(
+                    (
+                        child_relative.as_posix(),
+                        _read_bound_file(descriptor, name, HARD_MAX_MEMBER_BYTES),
+                    )
+                )
+            else:
+                raise MaterializationError("unsafe project-authored tree entry")
+        monitor.assert_clean()
+        if sorted(os.listdir(descriptor)) != names:
+            raise MaterializationError("project-authored directory changed while copied")
+        monitor.assert_clean()
+
+    try:
+        visit(root_descriptor, PurePosixPath())
+    except BaseException:
+        for monitor in reversed(monitors):
+            monitor.close()
+        raise
+    return directories, files, monitors
+
+
+def _populate_bound_tree(
+    root_descriptor: int,
+    directories: Sequence[str],
+    files: Sequence[tuple[str, bytes]],
+) -> None:
+    required_directories: set[str] = set()
+    for relative in (*directories, *(name for name, _ in files)):
+        path = PurePosixPath(relative)
+        if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+            raise MaterializationError("unsafe materialized output path")
+        limit = len(path.parts) if relative in directories else len(path.parts) - 1
+        for depth in range(1, limit + 1):
+            required_directories.add(PurePosixPath(*path.parts[:depth]).as_posix())
+
+    descriptors: dict[str, int] = {"": os.dup(root_descriptor)}
+    try:
+        for relative in sorted(
+            required_directories, key=lambda value: (value.count("/"), value)
+        ):
+            path = PurePosixPath(relative)
+            parent = path.parent.as_posix()
+            if parent == ".":
+                parent = ""
+            descriptors[relative] = _create_bound_directory(
+                descriptors[parent], path.name, f"materialized directory {relative}"
+            )
+        for relative, payload in sorted(files):
+            path = PurePosixPath(relative)
+            parent = path.parent.as_posix()
+            if parent == ".":
+                parent = ""
+            _write_new_file(descriptors[parent], path.name, payload)
+        for relative in sorted(
+            descriptors, key=lambda value: (value.count("/"), value), reverse=True
+        ):
+            os.fsync(descriptors[relative])
+    finally:
+        for descriptor in reversed(tuple(descriptors.values())):
+            os.close(descriptor)
+
+
+def _copy_authored_tree(
+    source_root_descriptor: int, destination_root_descriptor: int
+) -> tuple[int, int, str]:
+    source_name_monitor = _BoundNameMonitor(source_root_descriptor, ("QPBT",))
+    source_descriptor: int | None = None
+    source_monitors: list[_BoundNameMonitor] = []
+    try:
+        source_name_monitor.assert_clean()
+        try:
+            source_descriptor = os.open(
+                "QPBT", _directory_flags(), dir_fd=source_root_descriptor
+            )
+        except FileNotFoundError:
+            source_name_monitor.assert_clean()
+            return 0, 0, hashlib.sha256().hexdigest()
+        _assert_bound_name(
+            source_root_descriptor,
+            "QPBT",
+            source_descriptor,
+            "project-authored QPBT directory",
+        )
+        source_name_monitor.assert_clean()
+        directories, files, source_monitors = _snapshot_bound_tree(source_descriptor)
+        destination_descriptor = _create_bound_directory(
+            destination_root_descriptor, "QPBT", "staged project-authored QPBT directory"
+        )
+        try:
+            _populate_bound_tree(destination_descriptor, directories, files)
+            os.fsync(destination_descriptor)
+        finally:
+            os.close(destination_descriptor)
+        for monitor in source_monitors:
+            monitor.assert_clean()
+        source_name_monitor.assert_clean()
+        _assert_bound_name(
+            source_root_descriptor,
+            "QPBT",
+            source_descriptor,
+            "project-authored QPBT directory",
+        )
+    finally:
+        for monitor in reversed(source_monitors):
+            monitor.close()
+        if source_descriptor is not None:
+            os.close(source_descriptor)
+        source_name_monitor.close()
+    digest = hashlib.sha256()
+    for relative, payload in sorted(files):
+        digest.update(
+            f"{relative}\0{len(payload)}\0{hashlib.sha256(payload).hexdigest()}\n".encode()
+        )
+    return len(files), sum(len(payload) for _, payload in files), digest.hexdigest()
 
 
 def _cleanup_tombstone(transaction: Path) -> Path:
@@ -1055,6 +1314,50 @@ def _transaction_document(destination: Path, original_present: bool) -> bytes:
         )
         + "\n"
     ).encode("ascii")
+
+
+def _descriptor_evidence_identity(descriptor: int) -> dict[str, int]:
+    metadata = os.fstat(descriptor)
+    return {
+        "device": metadata.st_dev,
+        "inode": metadata.st_ino,
+        "type": stat.S_IFMT(metadata.st_mode),
+    }
+
+
+def _retained_transaction_inventory(
+    transaction_descriptor: int,
+    transaction_document_descriptor: int,
+    transaction_document: bytes,
+    stage_descriptor: int,
+    backup_descriptor: int,
+    original_descriptor: int | None,
+) -> dict[str, Any]:
+    document = {
+        **_descriptor_evidence_identity(transaction_document_descriptor),
+        "size": len(transaction_document),
+        "sha256": hashlib.sha256(transaction_document).hexdigest(),
+    }
+    stage_names = sorted(os.listdir(stage_descriptor))
+    backup_names = sorted(os.listdir(backup_descriptor))
+    return {
+        "schema_version": 1,
+        "transaction_entries": sorted(os.listdir(transaction_descriptor)),
+        "transaction_document": document,
+        "stage": {
+            **_descriptor_evidence_identity(stage_descriptor),
+            "entries": stage_names,
+        },
+        "backup": {
+            **_descriptor_evidence_identity(backup_descriptor),
+            "entries": backup_names,
+        },
+        "stage_destination": (
+            _descriptor_evidence_identity(original_descriptor)
+            if original_descriptor is not None
+            else None
+        ),
+    }
 
 
 def _recover(transaction: Path, destination: Path, pin: Mapping[str, Any]) -> None:
@@ -1135,12 +1438,16 @@ def materialize(
     runtime_monitor: _BoundNameMonitor | None = None
     transaction_descriptor: int | None = None
     transaction_monitor: _BoundNameMonitor | None = None
+    transaction_document_descriptor: int | None = None
+    transaction_document: bytes | None = None
     stage_descriptor: int | None = None
+    backup_descriptor: int | None = None
     stage_monitor: _BoundNameMonitor | None = None
     candidate_descriptor: int | None = None
     original_descriptor: int | None = None
     published = False
     original_present = False
+    transaction_current_name: str | None = None
 
     def assert_transaction_current(name: str) -> None:
         assert runtime_descriptor is not None
@@ -1152,10 +1459,18 @@ def materialize(
         )
 
     def retire_transaction(name: str, destination_name: str) -> None:
+        nonlocal transaction_current_name
         assert runtime_descriptor is not None
         assert runtime_monitor is not None
         assert transaction_descriptor is not None
+        if transaction_current_name != name:
+            raise MaterializationError("materialization transaction state is ambiguous")
         assert_transaction_current(name)
+
+        def mark_retired() -> None:
+            nonlocal transaction_current_name
+            transaction_current_name = destination_name
+
         _atomic_move_bound(
             runtime_descriptor,
             name,
@@ -1163,11 +1478,83 @@ def materialize(
             runtime_descriptor,
             destination_name,
             "materialization transaction retention",
+            mark_retired,
         )
         runtime_monitor.accept_owned_change(
             ((name, _IN_MOVED_FROM), (destination_name, _IN_MOVED_TO))
         )
+        if transaction_monitor is not None:
+            transaction_monitor.accept_owned_change((("", _IN_MOVE_SELF),))
         os.fsync(runtime_descriptor)
+        runtime_monitor.assert_clean()
+        _assert_bound_name(
+            runtime_descriptor,
+            destination_name,
+            transaction_descriptor,
+            "retained materialization transaction",
+        )
+
+    def assert_retained_transaction_contents() -> None:
+        assert runtime_descriptor is not None
+        assert runtime_monitor is not None
+        assert transaction_descriptor is not None
+        assert transaction_monitor is not None
+        assert transaction_document_descriptor is not None
+        assert transaction_document is not None
+        assert stage_descriptor is not None
+        assert backup_descriptor is not None
+        assert stage_monitor is not None
+        assert transaction_current_name is not None
+        runtime_monitor.assert_clean()
+        _assert_bound_name(
+            runtime_descriptor,
+            transaction_current_name,
+            transaction_descriptor,
+            "retained materialization transaction",
+        )
+        transaction_monitor.assert_clean()
+        if set(os.listdir(transaction_descriptor)) != {"transaction.json", "stage", "backup"}:
+            raise MaterializationError("retained materialization transaction contents changed")
+        _assert_bound_name(
+            transaction_descriptor,
+            "transaction.json",
+            transaction_document_descriptor,
+            "retained materialization transaction document",
+        )
+        document_stat = os.fstat(transaction_document_descriptor)
+        if (
+            not stat.S_ISREG(document_stat.st_mode)
+            or document_stat.st_size != len(transaction_document)
+            or os.pread(transaction_document_descriptor, len(transaction_document) + 1, 0)
+            != transaction_document
+        ):
+            raise MaterializationError("retained materialization transaction document changed")
+        _assert_bound_name(
+            transaction_descriptor, "stage", stage_descriptor, "retained materialization stage"
+        )
+        _assert_bound_name(
+            transaction_descriptor, "backup", backup_descriptor, "retained materialization backup"
+        )
+        stage_monitor.assert_clean()
+        expected_stage_names = {destination.name} if original_present else set()
+        if set(os.listdir(stage_descriptor)) != expected_stage_names:
+            raise MaterializationError("retained materialization stage contents changed")
+        if original_present:
+            assert original_descriptor is not None
+            _assert_bound_name(
+                stage_descriptor,
+                destination.name,
+                original_descriptor,
+                "retained original MIPStarRE output",
+            )
+        else:
+            _assert_name_absent(
+                stage_descriptor,
+                destination.name,
+                "retained MIPStarRE stage slot",
+            )
+        transaction_monitor.assert_clean()
+        stage_monitor.assert_clean()
 
     def mark_published() -> None:
         nonlocal published
@@ -1268,14 +1655,16 @@ def materialize(
                 "materialization preparation",
             )
             runtime_monitor.assert_clean()
-            transaction_monitor = _BoundNameMonitor(
-                transaction_descriptor, ("stage", "backup", "incomplete-MIPStarRE")
-            )
+            transaction_current_name = transaction_name
+            transaction_monitor = _BoundNameMonitor(transaction_descriptor, None)
             try:
-                transaction_root = Path("/proc/self/fd") / str(transaction_descriptor)
-                _write_new_file(
-                    transaction_root / "transaction.json",
-                    _transaction_document(destination, original_present),
+                transaction_document = _transaction_document(destination, original_present)
+                transaction_document_descriptor = _create_new_file(
+                    transaction_descriptor,
+                    "transaction.json",
+                    transaction_document,
+                    readable=True,
+                    monitor=transaction_monitor,
                 )
                 stage_descriptor = _bind_or_create_directory(
                     transaction_descriptor, "stage", transaction_monitor
@@ -1283,8 +1672,8 @@ def materialize(
                 backup_descriptor = _bind_or_create_directory(
                     transaction_descriptor, "backup", transaction_monitor
                 )
-                os.close(backup_descriptor)
-                stage_monitor = _BoundNameMonitor(stage_descriptor, (destination.name,))
+                os.fsync(backup_descriptor)
+                stage_monitor = _BoundNameMonitor(stage_descriptor, None)
                 try:
                     os.mkdir(destination.name, 0o700, dir_fd=stage_descriptor)
                 except FileExistsError as error:
@@ -1300,19 +1689,13 @@ def materialize(
                     "staged MIPStarRE output",
                 )
                 stage_monitor.assert_clean()
-                stage = Path("/proc/self/fd") / str(candidate_descriptor)
-                for relative in sorted(directories, key=lambda value: (value.count("/"), value)):
-                    if relative:
-                        (stage / relative).mkdir()
-                for relative, payload in sorted(files):
-                    _write_new_file(stage / relative, payload)
+                _populate_bound_tree(candidate_descriptor, directories, files)
                 if original_present:
                     assert original_descriptor is not None
-                    _copy_authored_tree(
-                        Path("/proc/self/fd") / str(original_descriptor) / "QPBT",
-                        stage / "QPBT",
-                    )
-                _fsync_tree(transaction_root)
+                    _copy_authored_tree(original_descriptor, candidate_descriptor)
+                os.fsync(candidate_descriptor)
+                os.fsync(stage_descriptor)
+                os.fsync(transaction_descriptor)
                 os.fsync(runtime_descriptor)
                 assert_transaction_current(transaction_name)
             except BaseException as error:
@@ -1383,6 +1766,19 @@ def materialize(
                     candidate_descriptor,
                     "published MIPStarRE output",
                 )
+                assert_retained_transaction_contents()
+                transaction_evidence_identity = _descriptor_evidence_identity(
+                    transaction_descriptor
+                )
+                transaction_evidence_inventory = _retained_transaction_inventory(
+                    transaction_descriptor,
+                    transaction_document_descriptor,
+                    transaction_document,
+                    stage_descriptor,
+                    backup_descriptor,
+                    original_descriptor if original_present else None,
+                )
+                assert_retained_transaction_contents()
             except BaseException as error:
                 rollback_errors: list[str] = []
                 if published:
@@ -1438,7 +1834,8 @@ def materialize(
                         rollback_errors.append(str(rollback_error))
                 if not rollback_errors:
                     try:
-                        retire_transaction(transaction_name, failed_name)
+                        assert transaction_current_name is not None
+                        retire_transaction(transaction_current_name, failed_name)
                     except BaseException as retention_error:
                         rollback_errors.append(str(retention_error))
                 if rollback_errors:
@@ -1459,6 +1856,8 @@ def materialize(
                         / "mipstarre-materialization"
                         / retained_name
                     ),
+                    "transaction_evidence_identity": transaction_evidence_identity,
+                    "transaction_evidence_inventory": transaction_evidence_inventory,
                     "elapsed_seconds": round(time.monotonic() - started, 6),
                 }
             )
@@ -1480,6 +1879,8 @@ def materialize(
             candidate_descriptor,
             stage_descriptor,
             transaction_descriptor,
+            backup_descriptor,
+            transaction_document_descriptor,
             original_descriptor,
             runtime_descriptor,
             workflow_descriptor,
