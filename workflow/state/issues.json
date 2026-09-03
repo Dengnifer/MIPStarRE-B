@@ -2993,9 +2993,9 @@
         "workflow/reviews/qpbt-057-f06a-a02.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T12:23:01.025568Z",
+      "updated_at": "2026-09-03T12:48:05.385816Z",
       "blocked_reason": null,
-      "unblock_condition": "Obtain fresh immutable mathematical/API approval of exact current-main candidate a67031de before guarded integration.",
+      "unblock_condition": "Repair F057-A07-001 with resource-certified private selection, rerun exact-current-candidate validation for F057-A07-002, then obtain fresh immutable approval.",
       "proof_completion_issue_id": "QPBT-061",
       "candidate_head_sha": "a67031de5a3804360e113dd4a881e94376fc435f",
       "candidate_tree": "71acb8bd5ea77959a03a1124c2fce018457b9605",
@@ -3012,7 +3012,7 @@
         "workflow validation and check_workflow passed",
         "exact two-path diff and content hashes passed"
       ],
-      "review_report": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md",
+      "review_report": "workflow/reviews/qpbt-057-review-a07-current-main.md",
       "review_findings": [
         {
           "id": "F057-A06-001",
@@ -3022,12 +3022,35 @@
           "summary": "Historical candidate a9abedb3 was not descended from its declared base and deleted unrelated history.",
           "disposition": "fixed",
           "resolution_evidence": "Attempt A02 reconstructed the exact Types/report change and root replayed it onto current main 9eb476a as head a67031de with an exact two-path diff."
+        },
+        {
+          "id": "F057-A07-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Types.lean:1559",
+          "summary": "The selected downsized compiler carries correctness only, so Classical.choice does not bind the resource guarantee later claimed by downsize_time."
+        },
+        {
+          "id": "F057-A07-002",
+          "severity": "blocker",
+          "status": "open",
+          "path": "workflow/reviews/qpbt-057-f06a-a02.md:5",
+          "summary": "Scoped, target, full-build, blueprint, and cache evidence is tied to an older base and implementation rather than the authenticated current candidate."
         }
       ],
       "candidate_base_sha": "9eb476a41595fc70060ed9bb2ea91a50c793ede3",
-      "candidate_status": "awaiting-fresh-immutable-review",
+      "candidate_status": "changes-requested",
       "superseded_candidate_head": "a9abedb3d08d1b020d310075fc2865ae21397eb8",
-      "superseded_candidate_review": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md"
+      "superseded_candidate_review": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md",
+      "review_manifest_sha256": "375351b59e2b3ea49682570376acc00180b77d101bbfca2f0cc6f172820fa889",
+      "review_head_sha": "a67031de5a3804360e113dd4a881e94376fc435f",
+      "review_verdict": "request_changes",
+      "paper_review_report": "workflow/reviews/qpbt-057-review-a08-paper-integrity.md",
+      "paper_review_manifest_sha256": "6bb9e448bff47c835e0f3d047bfb441035612c08e732d297c91aad44c8de3474",
+      "paper_review_head_sha": "a67031de5a3804360e113dd4a881e94376fc435f",
+      "paper_review_verdict": "approve",
+      "paper_review_findings": [],
+      "paper_review_scope": "Public statement fidelity and declared Stage-4A proof-debt boundary only; A07 resource-selection and current-head build blockers remain controlling."
     },
     {
       "id": "QPBT-058",
@@ -3258,16 +3281,64 @@
         "workflow/reviews/qpbt-062-branch-lifecycle-a01.md"
       ],
       "created_at": "2026-09-03T16:00:00+08:00",
-      "updated_at": "2026-09-03T12:37:09.138475Z",
+      "updated_at": "2026-09-03T12:43:04.907314Z",
       "blocked_reason": null,
-      "unblock_condition": "Fresh reviewer approval of the exact current-main candidate, followed by the required changelog entry and guarded integration.",
+      "unblock_condition": "Repair F062-A02-001 through F062-A02-006 on a changed head, include the changelog entry before freeze, and obtain a fresh immutable review.",
       "candidate_base_sha": "08b12a8cc7e9f0464f1842d0074884c96ddff832",
       "candidate_head_sha": "889e7f8f16b09e5c6de23b3348508a48c2bc14c6",
       "candidate_tree": "04cad9b46835ab529b849510c853a07b2c8bce27",
       "candidate_patch_sha256": "cfc57ff7a6b7f4542dc09e06c2b1f50a6e66881be8204943a07c573ab9a13557",
       "candidate_report": "workflow/reviews/qpbt-062-branch-lifecycle-a01.md",
       "candidate_report_sha256": "fc8c515d300b2bfe7d7c3f171afd56df8cd599f2fcd9de91f49d1773c84e2795",
-      "candidate_status": "under-fresh-immutable-review"
+      "candidate_status": "changes-requested",
+      "review_report": "workflow/reviews/qpbt-062-review-a02-branch-lifecycle.md",
+      "review_manifest_sha256": "1234ba2cc39058ff033411e7f0263e6ddf5cb4c6f268618eaeea8c85f8810009",
+      "review_head_sha": "889e7f8f16b09e5c6de23b3348508a48c2bc14c6",
+      "review_verdict": "request_changes",
+      "review_findings": [
+        {
+          "id": "F062-A02-001",
+          "severity": "high",
+          "status": "open",
+          "path": "protocols/branch-lifecycle.md:42",
+          "summary": "The policy does not bound or enforce GitHub mirror timeliness; a fresh local main can coexist with an arbitrarily stale remote."
+        },
+        {
+          "id": "F062-A02-002",
+          "severity": "high",
+          "status": "open",
+          "path": "protocols/branch-lifecycle.md:17",
+          "summary": "Claimed duplicate branch/worktree admission checks are neither represented in session authority nor mechanically enforced."
+        },
+        {
+          "id": "F062-A02-003",
+          "severity": "high",
+          "status": "open",
+          "path": "protocols/CHANGELOG.md:3",
+          "summary": "Required protocol revision 0.1.13 is absent; adding it during integration would mutate the reviewed head."
+        },
+        {
+          "id": "F062-A02-004",
+          "severity": "medium",
+          "status": "open",
+          "path": "workflow/reviews/qpbt-062-branch-lifecycle-a01.md:55",
+          "summary": "The A01 topology artifact violates its proposed schema and omits exact command status and durations."
+        },
+        {
+          "id": "F062-A02-005",
+          "severity": "medium",
+          "status": "open",
+          "path": "protocols/branch-lifecycle.md:133",
+          "summary": "Candidate commit retention is asserted without a durable retention reference or failure escalation."
+        },
+        {
+          "id": "F062-A02-006",
+          "severity": "medium",
+          "status": "open",
+          "path": "protocols/branch-lifecycle.md:47",
+          "summary": "Stale-integration clearing is not evaluable and the text names a nonexistent cancelled terminal session state."
+        }
+      ]
     },
     {
       "id": "QPBT-063",
@@ -3559,16 +3630,78 @@
       ],
       "owner_session_id": "i068-orchestrator-a01-cache-safety",
       "blocked_reason": null,
-      "unblock_condition": "Fresh hostile cache-safety approval of the exact six-path candidate, then guarded integration.",
+      "unblock_condition": "Repair F068-A02-001 through F068-A02-008 on a changed head, rerun focused and adversarial tests, and obtain a fresh immutable hostile review.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-03T12:37:09.765612Z",
+      "updated_at": "2026-09-03T12:45:18.123139Z",
       "candidate_base_sha": "b37a33c7c280e29fad2ca2cd12c221b6fc38aa07",
       "candidate_head_sha": "7f7da8438a8ee9b456e22d441e7d0c3284779f22",
       "candidate_tree": "f2eaf03109057bec8dfa46cbf1ecb8315c1742e3",
       "candidate_patch_sha256": "baab726903faed1eb2e903c3116752b6a39b00f389c320f15ff6a05c0573b094",
       "candidate_report": "workflow/reviews/qpbt-068-cache-safety-a01.md",
       "candidate_report_sha256": "d29dd5b2b12a8941041d89a8cc8ed0d1b29cf318b563cf5ef1d9c08fa5fcebb0",
-      "candidate_status": "under-fresh-immutable-review"
+      "candidate_status": "changes-requested",
+      "review_report": "workflow/reviews/qpbt-068-review-a02-cache-safety.md",
+      "review_manifest_sha256": "3c7e8c4b00d4e378c8dd8e477f28cfef79c42ed70d2d794a5312c65563b3dd07",
+      "review_head_sha": "7f7da8438a8ee9b456e22d441e7d0c3284779f22",
+      "review_verdict": "request_changes",
+      "review_findings": [
+        {
+          "id": "F068-A02-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:3204",
+          "summary": "Unauthenticated backup-shaped directories can replace and delete an existing .lake even when replace is false."
+        },
+        {
+          "id": "F068-A02-002",
+          "severity": "high",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:2022",
+          "summary": "Accepted external read-only symlink targets remain mutable by their owner or writable parent and are not inventory-bound."
+        },
+        {
+          "id": "F068-A02-003",
+          "severity": "high",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:3402",
+          "summary": "Shared-cache validation runs before target recovery, stranding a valid sole backup when READY is invalid."
+        },
+        {
+          "id": "F068-A02-004",
+          "severity": "high",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:2642",
+          "summary": "Metric rollback releases and reacquires the lock, allowing it to truncate a competing writer committed append."
+        },
+        {
+          "id": "F068-A02-005",
+          "severity": "high",
+          "status": "open",
+          "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:124",
+          "summary": "QPBT-067 still falsely reports READY quarantine as implemented."
+        },
+        {
+          "id": "F068-A02-006",
+          "severity": "high",
+          "status": "open",
+          "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:163",
+          "summary": "QPBT-067 still omits required parallel-lane and timing evidence plus the ordering exception."
+        },
+        {
+          "id": "F068-A02-007",
+          "severity": "medium",
+          "status": "open",
+          "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:9",
+          "summary": "QPBT-067 implementation anchors remain stale or unrelated."
+        },
+        {
+          "id": "F068-A02-008",
+          "severity": "medium",
+          "status": "open",
+          "path": "workflow/state/issues.json",
+          "summary": "QPBT-062 provenance remains unauthenticated in the QPBT-067 report and review packet."
+        }
+      ]
     }
   ]
 }
