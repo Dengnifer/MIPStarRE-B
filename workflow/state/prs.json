@@ -8990,6 +8990,25 @@
             "F051-A03-003"
           ],
           "integration_gate": "blocked pending transactional append/rollback fix and fresh changed-head review"
+        },
+        {
+          "id": "review-qpbt-051-pr034-a11-security",
+          "reviewer_session_id": "i051-reviewer-a11-cache-transaction",
+          "verdict": "request_changes",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "6f053f79512613f0576245bc9a8cd2a2a8ac7d81",
+          "started_at": "2026-09-03T09:46:55.537704Z",
+          "completed_at": "2026-09-03T09:53:42.192264Z",
+          "result_path": "workflow/reviews/qpbt-051-review-a11-cache-transaction.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "d172bd37b3d40b2b4319f86c88153628b6a0ffd3f8c7a08dfe9b677e76d9d524",
+          "manifest_sha256": "9d6553bdd9e538eee4c8a5df909e85ddf4a49ceabf4648b319f952d52fa7ab4a",
+          "patch_sha256": "81f6943945765efe3b87e5114c58ab1f1205671af17825ea0ab358f072518cca",
+          "retained_open_finding_ids": [
+            "F051-A03-003"
+          ],
+          "integration_gate": "blocked pending post-fsync cleanup handling and deterministic regressions for descriptor and lock cleanup failures"
         }
       ],
       "findings": [
@@ -9045,7 +9064,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T23:07:18.585757Z",
-      "updated_at": "2026-09-03T09:33:14.296340Z",
+      "updated_at": "2026-09-03T09:54:15.389609Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
