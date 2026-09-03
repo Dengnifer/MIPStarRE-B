@@ -4928,3 +4928,8 @@
 {"schema_version":1,"timestamp":"2026-09-03T17:28:59.733014Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"running","session_id":"i044-reviewer-a15-object-format"}}
 {"schema_version":1,"timestamp":"2026-09-03T17:29:00.103010Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"running","session_id":"i044-reviewer-a16-regression"}}
 {"schema_version":1,"timestamp":"2026-09-03T17:29:00.380244Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
+{"schema_version":1,"timestamp":"2026-09-03T17:32:35.345546Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i015-orchestrator-a01-game"}}
+{"schema_version":1,"timestamp":"2026-09-03T17:32:35.721168Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i016-orchestrator-a01-soundness"}}
+{"schema_version":1,"timestamp":"2026-09-03T17:32:48.370208Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i040-reviewer-a02-combined"}}
+{"schema_version":1,"timestamp":"2026-09-03T17:32:48.751519Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i068-reviewer-a11-transaction"}}
+{"schema_version":1,"timestamp":"2026-09-03T17:32:49.136081Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"planned-session","id":"i068-reviewer-a12-regression"}}

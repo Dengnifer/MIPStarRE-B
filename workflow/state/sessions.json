@@ -1,6 +1,57 @@
 {
   "schema_version": 1,
-  "planned": [],
+  "planned": [
+    {
+      "id": "i015-orchestrator-a01-game",
+      "name": "i015-orchestrator-a01-game",
+      "role": "orchestrator",
+      "issue_id": "QPBT-015",
+      "attempt": 1,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1
+    },
+    {
+      "id": "i016-orchestrator-a01-soundness",
+      "name": "i016-orchestrator-a01-soundness",
+      "role": "orchestrator",
+      "issue_id": "QPBT-016",
+      "attempt": 1,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1
+    },
+    {
+      "id": "i040-reviewer-a02-combined",
+      "name": "i040-reviewer-a02-combined",
+      "role": "reviewer",
+      "issue_id": "QPBT-040",
+      "attempt": 2,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1
+    },
+    {
+      "id": "i068-reviewer-a11-transaction",
+      "name": "i068-reviewer-a11-transaction",
+      "role": "reviewer",
+      "issue_id": "QPBT-068",
+      "attempt": 11,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1
+    },
+    {
+      "id": "i068-reviewer-a12-regression",
+      "name": "i068-reviewer-a12-regression",
+      "role": "reviewer",
+      "issue_id": "QPBT-068",
+      "attempt": 12,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 2
+    }
+  ],
   "issued": [
     {
       "id": "i001-coordinator-a01-bootstrap",
