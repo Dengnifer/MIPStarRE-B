@@ -3108,7 +3108,7 @@
       "title": "feat(QPBT/Game): implement typed samplers and deciders",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-057"
@@ -3127,7 +3127,7 @@
         "Preserve every frozen signature and F07/F07A ownership boundary; introduce no sorry, admit, axiom, constant, public obligation, executable claim owned by F06A, or detyping claim owned by F07A",
         "Use the QPBT-057 private-cache lineage; pass whole-file elaboration, affected target, exact name/loop/fiber/import/debt scans, blueprint declaration/source synchronization, one private full build after scoped stability, and fresh immutable mathematical/API review"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i058-orchestrator-a01-typed",
       "source_refs": [
         "workflow/reviews/qpbt-035-q014-contract-a07.md#F07-A07-SIGNATURES",
         "workflow/reviews/qpbt-038-types-a03.md#Mathematical-handoff",
@@ -3139,9 +3139,24 @@
         "workflow/reviews/qpbt-058-f07-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-02T21:17:11Z",
+      "updated_at": "2026-09-03T14:37:36.687508Z",
       "blocked_reason": null,
-      "unblock_condition": null
+      "unblock_condition": "Implement the exact 11-declaration F07 contract proof-complete, validate on the private cache, and obtain fresh immutable review.",
+      "cache_seed": {
+        "session_id": "i058-coordinator-a03-cache-seed",
+        "report": "workflow/reviews/qpbt-058-cache-seed-a03.md",
+        "sha256": "2a9deaa838f8e251bf92c75240b609ca63784696e9b0d877967db489a7e7a080",
+        "source_main": "735a419a0f58fb531eaff04c62bd05e8e846f01e",
+        "cache_key": "e6767da55a90639333fdfbeb2abf87aa45118cc20c18117b55d8de0a0c15bb47",
+        "result": "seeded",
+        "cache_hit": 1,
+        "builds": 0,
+        "elapsed_seconds": 87.083277,
+        "files": 124925,
+        "bytes": 10097592794,
+        "reflinked": 0,
+        "copied": 124925
+      }
     },
     {
       "id": "QPBT-059",
@@ -3290,9 +3305,25 @@
         "workflow/reviews/qpbt-061-f06a-proof-a01.md"
       ],
       "created_at": "2026-09-03T01:16:00.451829Z",
-      "updated_at": "2026-09-03T01:16:00.451829Z",
-      "blocked_reason": "Stage 4A skeleton and its exact blueprint debt contract are not yet integrated.",
-      "unblock_condition": "QPBT-057 and QPBT-060 are done."
+      "updated_at": "2026-09-03T14:37:22.221155Z",
+      "blocked_reason": "Stage 4C proof completion is intentionally deferred until the Stage 4A/4B skeleton is integrated; A17 confirms the compiler theorem needs substantial new verified TM2 infrastructure.",
+      "unblock_condition": "Enter Stage 4C, decide the A17 module-contract split, then implement the FinTM2 compiler/resource DAG before the one-line runtime projection.",
+      "compiler_debt_analysis": {
+        "report": "/tmp/i057-scout-a17-compiler-debt.md",
+        "sha256": "6d2ddc7ce2c1f8db8fe71162dd10ef9b2c4d247f78a19c5fae2823ae49da4853",
+        "verdict": "raw FinTM2 semantics appear sufficient but no proved composition API discharges the claim",
+        "paper_gap": "compiler-cost argument omits parsing, composition, exponent-input construction, cleanup and resource bounds beyond G19",
+        "downsize_time": "direct projection after compiler certificate",
+        "proposed_child_ids": [
+          "QPBT-069",
+          "QPBT-070",
+          "QPBT-071",
+          "QPBT-072",
+          "QPBT-073",
+          "QPBT-074"
+        ],
+        "split_status": "deferred until Stage 4C activation to avoid premature issue inflation"
+      }
     },
     {
       "id": "QPBT-062",
@@ -3558,10 +3589,10 @@
         "workflow/reviews/qpbt-067-cache-layout-a01.md"
       ],
       "created_at": "2026-09-03T09:12:00Z",
-      "updated_at": "2026-09-03T12:13:28.243790Z",
+      "updated_at": "2026-09-03T14:37:48.430773Z",
       "owner_session_id": "i067-orchestrator-a01-cache-layout",
       "blocked_reason": "Fresh immutable A04 review corrected the two original findings but found four new source-fidelity, metric-completeness, and provenance gaps; QPBT-067 remains unapproved.",
-      "unblock_condition": "Repair the false quarantine claim, refresh all source anchors, bind measured parallel-lane and timing metrics with the ordering exception, publish/authenticate the QPBT-062 source artifact, then obtain a fresh immutable approval.",
+      "unblock_condition": "Resolve the active QPBT-068 safety findings, then revise the layout for measured no-reflink hosts so immutable dependencies can be shared without shared writable build output; obtain fresh review.",
       "review_report": "workflow/reviews/qpbt-067-cache-layout-review-a02.md",
       "review_findings": [
         {
@@ -3633,14 +3664,28 @@
           "resolved_by_review": "i067-reviewer-a04-repaired-audit",
           "evidence": "A04 confirms the report distinguishes synchronous exception rollback from the uncovered SIGKILL rename window and does not claim implemented recovery."
         }
-      ]
+      ],
+      "latest_live_seed_observation": {
+        "at": "2026-09-03T14:29:33.281432Z",
+        "issue_id": "QPBT-058",
+        "report": "workflow/reviews/qpbt-058-cache-seed-a03.md",
+        "sha256": "2a9deaa838f8e251bf92c75240b609ca63784696e9b0d877967db489a7e7a080",
+        "cache_hit": 1,
+        "builds": 0,
+        "elapsed_seconds": 87.083277,
+        "files": 124925,
+        "logical_bytes": 10097592794,
+        "reflinked": 0,
+        "copied": 124925,
+        "finding": "This host used the full byte-copy fallback, so compile deduplication succeeds but workspace storage remains unresolved."
+      }
     },
     {
       "id": "QPBT-068",
       "title": "repair(workflow): close cache seed isolation and crash-recovery gaps",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "ready",
       "parent_id": "QPBT-067",
       "dependency_ids": [
         "QPBT-051"
@@ -3680,10 +3725,10 @@
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
       "owner_session_id": "i068-orchestrator-a04-cache-transaction",
-      "blocked_reason": "protocols/CHANGELOG.md remains exclusively owned by active QPBT-044; QPBT-068 cannot complete its required protocol entry concurrently.",
-      "unblock_condition": "After QPBT-044 releases protocols/CHANGELOG.md, bind the QPBT-068 protocol entry on the exact A04 candidate, then obtain a fresh immutable hostile review.",
+      "blocked_reason": null,
+      "unblock_condition": "Read-only hostile pre-review may proceed now; the changelog binder remains serialized until QPBT-044 releases protocols/CHANGELOG.md.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-03T14:18:24.605284Z",
+      "updated_at": "2026-09-03T14:31:52.137121Z",
       "candidate_base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
       "candidate_head_sha": "2820c66f2a9f227cfe2a5da6d1448c6e52cb8262",
       "candidate_tree": "557a0f1bd5af2803a15c1d90417aa5568879161f",
