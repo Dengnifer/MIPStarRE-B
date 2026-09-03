@@ -1,41 +1,37 @@
 # QPBT-068 Cache Safety Transaction Repair Report
 
-Current session: `i068-orchestrator-a10-transaction-repair`
-Prior repair head/tree: `f03c94e074f2ebfd7e99e05394c4116126455895` /
-`1aa8ff42dbf89f78e09d46d3efdf0195e2dd38a6`
+Current session: `i068-orchestrator-a13-materializer-transaction`
+Prior repair head/tree: `650097d3fc65ecb93683dcbd5fbc3071240cf1e8` /
+`9e74df6a4b96beddc547507f3e16020b96075556`
 Owned worktree: `.workflow-runtime/worktrees/qpbt-068-cache-safety-a04`
 
 ## Scope and authenticated inputs
 
-A10 repairs every A08/A09 transaction finding in the five QPBT-068 owned
-paths while preserving the A04 authenticated-input, source-evidence, authored
-QPBT, private-copy, and deep-inventory controls and the A06 metric-lock and
-rollback controls. It does not edit `protocols/CHANGELOG.md`; that remains a
-sequential binder obligation before integration.
+A13 resolves the A11 live-materializer blocker and A12 dry-run ordering finding
+while preserving every A10 cache transaction guarantee. The repair extends the
+owned scope to the authenticated materializer and its focused tests. It does
+not edit `protocols/CHANGELOG.md`; that remains a sequential binder obligation
+before integration.
 
-The two required review artifacts authenticated before implementation:
+The two required A13 review artifacts authenticated before implementation:
 
-- A08: `/tmp/i068-reviewer-a08-security.md`, SHA-256
-  `e2824460afc2657d6695d10c53a2944b2622f85df129114d68822a10ff7cdbf4`.
-- A09: `/tmp/i068-reviewer-a09-regression.md`, SHA-256
-  `65dff9813338a2da76bf2e7ef199d8fc7588bf74037e5ef489347456d2e85963`.
+- A11: `/tmp/i068-reviewer-a11-transaction.md`, SHA-256
+  `a8566ce28fd663578a91baa9700dd6695c9924c90f25871381a57a8baa2605b5`.
+- A12: `/tmp/i068-reviewer-a12-regression.md`, SHA-256
+  `870b45e7b45f11ef5d0c7b96f19a7ea5006194692b09b31eb4d92b2aeb010f5d`.
 
-The A07 repair audit (SHA-256
-`c9791defd746b5432296cff7458c388652c2ec3bb27bdf532fc893de8af5f04c`)
-and both required A10 scouts were also authenticated and inspected. The
-atomic-rename scout report is
-`/tmp/i068-scout-a10-atomic-rename.md`, SHA-256
-`c101c3807b24d6177d5df23265db8e78a42a559aaa1dd97f48942205e6426e17`;
-the continuous-authority report is
-`/tmp/i068-scout-a10-continuous-authority.md`, SHA-256
-`1fe6e7aa89386dd1134abc55199da6bccdb6f76d1b1f8d059eeac7afd366357a`.
+The immutable A11 review manifest authenticated as SHA-256
+`dfc0ccd3674d55ecd927ab74d39bfa996286e04cd4404f41e66437453fefbc70`.
+Two bounded read-only A13 scouts independently analyzed materializer authority
+and dry-run admission ordering before implementation.
 
 ## Transaction contract
 
 Seed and prepare now require Linux `renameat2`, inotify, descriptor-relative
 operations, a conservatively approved local filesystem, and a successful
-same-device disposable semantic probe before input/cache admission or target
-mutation. Non-replacement publication is one `RENAME_NOREPLACE`; replacement
+same-device semantic probe before input/cache admission or target mutation.
+The uniquely named probe tree is retained instead of recursively deleted.
+Non-replacement publication is one `RENAME_NOREPLACE`; replacement
 is one `RENAME_EXCHANGE`, so a crash cannot expose an absent destination and a
 concurrent destination is never replaced. There is no ordinary-rename
 fallback.
@@ -52,6 +48,15 @@ objects and no longer unlink or `rmdir` live journal/staging names; successful
 finalization moves them to unique retained evidence names. A last-instant
 substitution can therefore only be preserved or moved intact before failure.
 
+The authenticated foundation materializer now applies the same contract to
+`MIPStarRE/`: existing output is replaced by one descriptor-bound
+`RENAME_EXCHANGE`, absent output is published by `RENAME_NOREPLACE`, and
+rollback reverses the exchange or retains the failed new tree. Stage,
+destination, and transaction names have exact event accounting and held
+descriptors. Completion moves the active transaction no-replace to unique
+evidence. There is no recursive deletion or ordinary-rename publication,
+rollback, or cleanup path; ambiguous objects remain preserved.
+
 Every fixed seed journal, backup, or active staging object on a later invocation
 causes refusal before cache/input admission. The dead seed-journal recovery
 parser was removed. Prepare likewise rejects a materializer transaction or
@@ -59,6 +64,11 @@ cleanup tombstone before archive/cache admission and immediately before
 invocation. The bound adapter never delegates to the legacy persisted recovery
 routine, refuses a module missing any required private fail-closed operation,
 and provides no lexical target fallback.
+
+Dry-run seed and prepare now bind without checking cache-key inputs, prove the
+atomic capability set, then rebind with input checks and prove capabilities
+again. The capability gate therefore precedes identity, archive, and cache
+admission on dry and live paths.
 
 ## Finding dispositions
 
@@ -72,29 +82,29 @@ and provides no lexical target fallback.
 | A09 ancestor-ABA blocker | Resolved: root-to-leaf held-descriptor inotify construction observes setup-time and live ancestor changes; poison is permanent. |
 | A09 materializer-fallback blocker | Resolved: incomplete materializers fail before seed allocation/publication for both replace modes; no lexical fallback is reachable. |
 | A09 regression-evidence high | Resolved: the hostile matrix is symmetric where applicable, metadata snapshots include root/entries, type, link text, mode, size, device, inode, link count, digest, and payload, and exact metric bytes remain separately checked. |
+| F068-A11-001 | Resolved: live foundation publication, rollback, and transaction retention use held descriptors, exact permanent name monitors, and atomic exchange/no-replace only; cleanup is preserve-only. |
+| F068-A12-001 | Resolved: dry-run gates capabilities before identity, archive, cache-status, or cache-key admission; the regression covers seed/prepare and dry/live combinations. |
 
 ## Validation
 
 | Command | Result | Wall time |
 |---|---|---:|
-| Final hostile 22-test selector | 22/22 passed | 10.097 s |
-| `python3 tests/test_hot_main_cache.py` | 120/120 passed | 42.740 s |
-| `python3 tests/test_workflow.py` | 77/77 passed | 1.023 s |
-| `python3 tests/test_check_workflow.py` | 3/3 passed | 0.003 s |
-| `python3 -m unittest discover -s tests` | 418 run; 416 passed, two unchanged AF_UNIX fixtures blocked by sandbox `EPERM` | 226.958 s |
-| `python3 scripts/check_workflow.py` | workflow valid; 418 run, same 416 passed and two sandbox AF_UNIX errors | 256.335 s |
-| Outside-sandbox focused AF_UNIX command | 2/2 passed | 90.773 s |
+| `python3 tests/test_mipstarre_materialization.py` | 19/19 passed | 1.070 s |
+| `python3 tests/test_hot_main_cache.py` | 122/122 passed | 46.058 s |
+| `python3 tests/test_workflow.py` | 77/77 passed | 1.082 s |
+| `python3 tests/test_check_workflow.py` | 3/3 passed | 0.006 s |
+| `python3 scripts/check_workflow.py --skip-tests` | workflow state valid | below timer resolution |
 | `python3 -m compileall -q scripts tests` | passed | below timer resolution |
 | `python3 scripts/workflow.py validate` | valid: 69 issues, 34 PRs, 541 issued sessions, 7 stages | below timer resolution |
-| `git diff --check` and five-path scope check | passed | below timer resolution |
+| `git diff --check` and seven-path scope check | passed | below timer resolution |
 
-The aggregate was run exactly once after the cache/workflow implementation was
-stable. Its only errors were the two unchanged socket fixtures at
-`listener.bind`; the exact two tests then passed in the focused managed
-outside-sandbox run. The registered checker encountered the same environmental
-pair after validating workflow state; it introduced no distinct failure.
-Commit/tree/patch/report identities are recorded in the terminal A10 report
-after the canonical report is frozen.
+No aggregate suite was needed: both complete owned suites and the complete
+workflow/checker unit suites passed. Commit/tree/patch/report identities are
+recorded in the terminal A13 report after this canonical report is frozen.
+The final bounded security scout authenticated the two script hashes and the
+combined script diff, then reported no remaining blocker or high finding in
+F068-A11-001 scope. Retained evidence growth and dependence on the admitted
+Linux rename/inotify semantics remain explicit non-blocking risks.
 
 No Lean/Lake/full build, real cache warm/seed/prepare, network, GitHub,
 credential, endpoint, canonical workflow-state, or research-metric action ran.
@@ -103,7 +113,7 @@ credential, endpoint, canonical workflow-state, or research-metric action ran.
 
 A coordinator read-only check on 2026-09-04 observed 97% filesystem utilization
 with 164 GB free. Archived QPBT-040 and active QPBT-069 each hold a separate
-approximately 9.8 GB `.lake` after reflink was unsupported. A10 created no
+approximately 9.8 GB `.lake` after reflink was unsupported. A13 created no
 cache copy and deletes neither tree. QPBT-069 remains an active lease. After
 independent review, a separately authorized reclamation pass may dry-run the
 archived QPBT-040 tree, but only after proving terminal session state, no Git
@@ -114,4 +124,4 @@ precede deletion.
 This candidate still requires a fresh immutable security/regression review,
 the existing QPBT-062 evidence inclusion gate, and the sequential
 `protocols/CHANGELOG.md` binder. It is not integration-ready until those gates
-are recorded against the frozen A10 commit.
+are recorded against the frozen A13 commit.

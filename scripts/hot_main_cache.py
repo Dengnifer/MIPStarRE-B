@@ -10,6 +10,7 @@ byte-copy fallback), never a symlink or hardlink to writable build output.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from contextlib import contextmanager
 import ctypes
 from dataclasses import asdict, dataclass
@@ -158,90 +159,125 @@ def _assert_renameat2_kernel_capability(flags: int, label: str) -> None:
 
 def _probe_renameat2_semantics(target_descriptor: int) -> None:
     temporary_descriptor = os.open("/tmp", _authored_directory_flags())
+    root_descriptor: int | None = None
+    root_monitor: _BoundNameMonitor | None = None
+    child_monitor: _BoundNameMonitor | None = None
+    child_descriptors: dict[str, int] = {}
     try:
         if os.fstat(temporary_descriptor).st_dev != os.fstat(target_descriptor).st_dev:
             raise CacheError(
                 "safe seed publication requires a same-device /tmp capability probe"
             )
-    finally:
-        os.close(temporary_descriptor)
-    with tempfile.TemporaryDirectory(prefix="mipstarre-renameat2-probe-", dir="/tmp") as name:
-        root = Path(name)
-        first = root / "first"
-        second = root / "second"
-        moving = root / "moving"
-        first.mkdir()
-        second.mkdir()
-        moving.mkdir()
-        (first / "marker").write_bytes(b"first")
-        (second / "marker").write_bytes(b"second")
-        (moving / "marker").write_bytes(b"moving")
-        root_descriptor = os.open(root, _authored_directory_flags())
-        first_descriptor = os.open(first, _authored_directory_flags())
-        second_descriptor = os.open(second, _authored_directory_flags())
-        moving_descriptor = os.open(moving, _authored_directory_flags())
+        root_name = f"mipstarre-renameat2-probe-retained-{secrets.token_hex(16)}"
+        root_monitor = _BoundNameMonitor(temporary_descriptor, (root_name,))
+        os.mkdir(root_name, 0o700, dir_fd=temporary_descriptor)
+        root_monitor.accept_exact_change(((root_name, _IN_CREATE),))
+        root_descriptor = os.open(
+            root_name, _authored_directory_flags(), dir_fd=temporary_descriptor
+        )
+        HotMainCache._assert_bound_name(
+            temporary_descriptor, root_name, root_descriptor, "semantic probe root"
+        )
+        root_monitor.assert_clean()
+        child_monitor = _BoundNameMonitor(
+            root_descriptor, ("first", "second", "moving", "moved")
+        )
+        for child in ("first", "second", "moving"):
+            child_monitor.assert_clean()
+            os.mkdir(child, 0o700, dir_fd=root_descriptor)
+            child_monitor.accept_exact_change(((child, _IN_CREATE),))
+            descriptor = os.open(child, _authored_directory_flags(), dir_fd=root_descriptor)
+            child_descriptors[child] = descriptor
+            HotMainCache._assert_bound_name(
+                root_descriptor, child, descriptor, f"semantic probe {child}"
+            )
+            child_monitor.assert_clean()
         try:
-            try:
-                _linux_renameat2(
-                    root_descriptor,
-                    "moving",
-                    root_descriptor,
-                    "second",
-                    RENAME_NOREPLACE,
-                )
-            except OSError as error:
-                if error.errno != errno.EEXIST:
-                    raise CacheError("atomic no-replace semantic probe failed") from error
-            else:
-                raise CacheError("atomic no-replace probe replaced an existing object")
-            HotMainCache._assert_bound_name(
-                root_descriptor, "moving", moving_descriptor, "no-replace probe source"
-            )
-            HotMainCache._assert_bound_name(
-                root_descriptor, "second", second_descriptor, "no-replace probe destination"
-            )
             _linux_renameat2(
                 root_descriptor,
                 "moving",
                 root_descriptor,
-                "moved",
+                "second",
                 RENAME_NOREPLACE,
             )
-            HotMainCache._assert_bound_name(
-                root_descriptor, "moved", moving_descriptor, "no-replace probe publication"
+        except OSError as error:
+            if error.errno != errno.EEXIST:
+                raise CacheError("atomic no-replace semantic probe failed") from error
+        else:
+            raise CacheError("atomic no-replace probe replaced an existing object")
+        HotMainCache._assert_bound_name(
+            root_descriptor, "moving", child_descriptors["moving"], "no-replace probe source"
+        )
+        HotMainCache._assert_bound_name(
+            root_descriptor, "second", child_descriptors["second"], "no-replace probe destination"
+        )
+        child_monitor.assert_clean()
+        _linux_renameat2(
+            root_descriptor,
+            "moving",
+            root_descriptor,
+            "moved",
+            RENAME_NOREPLACE,
+        )
+        child_monitor.accept_exact_change(
+            (("moving", _IN_MOVED_FROM), ("moved", _IN_MOVED_TO))
+        )
+        HotMainCache._assert_bound_name(
+            root_descriptor, "moved", child_descriptors["moving"], "no-replace probe publication"
+        )
+        _linux_renameat2(
+            root_descriptor,
+            "first",
+            root_descriptor,
+            "second",
+            RENAME_EXCHANGE,
+        )
+        child_monitor.accept_exact_change(
+            (
+                ("first", _IN_MOVED_FROM),
+                ("second", _IN_MOVED_FROM),
+                ("first", _IN_MOVED_TO),
+                ("second", _IN_MOVED_TO),
             )
-            _linux_renameat2(
-                root_descriptor,
-                "first",
-                root_descriptor,
-                "second",
-                RENAME_EXCHANGE,
+        )
+        HotMainCache._assert_bound_name(
+            root_descriptor, "second", child_descriptors["first"], "exchange probe first"
+        )
+        HotMainCache._assert_bound_name(
+            root_descriptor, "first", child_descriptors["second"], "exchange probe second"
+        )
+        _linux_renameat2(
+            root_descriptor,
+            "first",
+            root_descriptor,
+            "second",
+            RENAME_EXCHANGE,
+        )
+        child_monitor.accept_exact_change(
+            (
+                ("first", _IN_MOVED_FROM),
+                ("second", _IN_MOVED_FROM),
+                ("first", _IN_MOVED_TO),
+                ("second", _IN_MOVED_TO),
             )
-            HotMainCache._assert_bound_name(
-                root_descriptor, "second", first_descriptor, "exchange probe first"
-            )
-            HotMainCache._assert_bound_name(
-                root_descriptor, "first", second_descriptor, "exchange probe second"
-            )
-            _linux_renameat2(
-                root_descriptor,
-                "first",
-                root_descriptor,
-                "second",
-                RENAME_EXCHANGE,
-            )
-            HotMainCache._assert_bound_name(
-                root_descriptor, "first", first_descriptor, "exchange probe restoration"
-            )
-            HotMainCache._assert_bound_name(
-                root_descriptor, "second", second_descriptor, "exchange probe restoration"
-            )
-            os.fsync(root_descriptor)
-        finally:
-            os.close(moving_descriptor)
-            os.close(second_descriptor)
-            os.close(first_descriptor)
+        )
+        HotMainCache._assert_bound_name(
+            root_descriptor, "first", child_descriptors["first"], "exchange probe restoration"
+        )
+        HotMainCache._assert_bound_name(
+            root_descriptor, "second", child_descriptors["second"], "exchange probe restoration"
+        )
+        os.fsync(root_descriptor)
+    finally:
+        if child_monitor is not None:
+            child_monitor.close()
+        if root_monitor is not None:
+            root_monitor.close()
+        for descriptor in child_descriptors.values():
+            os.close(descriptor)
+        if root_descriptor is not None:
             os.close(root_descriptor)
+        os.close(temporary_descriptor)
 
 
 class _NamespaceMonitor:
@@ -416,8 +452,8 @@ class _BoundNameMonitor:
         self.names = {os.fsencode(name) for name in names}
         self.poisoned = False
 
-    def _drain(self) -> tuple[bool, bool]:
-        relevant = False
+    def _drain(self) -> tuple[list[tuple[bytes, int]], bool]:
+        relevant: list[tuple[bytes, int]] = []
         fatal = False
         while True:
             try:
@@ -451,7 +487,10 @@ class _BoundNameMonitor:
                 ):
                     fatal = True
                 elif name in self.names:
-                    relevant = True
+                    operation = mask & (
+                        _IN_ATTRIB | _IN_MOVED_FROM | _IN_MOVED_TO | _IN_CREATE | _IN_DELETE
+                    )
+                    relevant.append((name, operation))
         if fatal:
             self.poisoned = True
         return relevant, fatal
@@ -468,6 +507,13 @@ class _BoundNameMonitor:
         if self.poisoned or fatal or not relevant:
             self.poisoned = True
             raise CacheError("atomic transaction rename lacked an exact monitor event")
+
+    def accept_exact_change(self, expected: Sequence[tuple[str, int]]) -> None:
+        relevant, fatal = self._drain()
+        expected_events = Counter((os.fsencode(name), mask) for name, mask in expected)
+        if self.poisoned or fatal or Counter(relevant) != expected_events:
+            self.poisoned = True
+            raise CacheError("transaction mutation lacked its exact monitor events")
 
     def close(self) -> None:
         os.close(self.descriptor)
@@ -4296,10 +4342,12 @@ class HotMainCache:
 
         required = {
             "MaterializationError",
+            "TRANSACTION_SAFETY_VERSION",
             "_assert_real_directory",
             "_reject_symlink_components",
             "_finish_cleanup",
             "_recover",
+            "_require_transaction_capabilities",
         }
         missing = sorted(name for name in required if not hasattr(module, name))
         if missing:
@@ -4307,11 +4355,11 @@ class HotMainCache:
                 "foundation materializer lacks the bound fail-closed interface: "
                 + ", ".join(missing)
             )
+        if module.TRANSACTION_SAFETY_VERSION != 1:
+            raise CacheError("foundation materializer has an unsupported transaction-safety interface")
         bound_root = target.access_path
         original_assert = module._assert_real_directory
         original_reject = module._reject_symlink_components
-        original_finish_cleanup = module._finish_cleanup
-        first_cleanup = True
 
         def assert_real_directory(path: Path) -> None:
             absolute = Path(os.path.abspath(path))
@@ -4356,16 +4404,12 @@ class HotMainCache:
 
         module._assert_real_directory = assert_real_directory
         module._reject_symlink_components = reject_symlink_components
+
         def finish_cleanup(path: Path) -> None:
-            nonlocal first_cleanup
-            if first_cleanup:
-                first_cleanup = False
-                if path.exists() or path.is_symlink():
-                    raise module.MaterializationError(
-                        "persisted materializer cleanup has no independent ownership proof"
-                    )
-                return
-            original_finish_cleanup(path)
+            if path.exists() or path.is_symlink():
+                raise module.MaterializationError(
+                    "materializer cleanup has no independent ownership proof and was preserved"
+                )
 
         def recover(transaction: Path, destination: Path, pin: Mapping[str, Any]) -> None:
             if transaction.exists() or transaction.is_symlink():
@@ -4373,8 +4417,13 @@ class HotMainCache:
                     "persisted materializer transaction has no independent ownership proof"
                 )
 
+        def require_transaction_capabilities(_descriptor: int) -> None:
+            target.assert_current()
+            HotMainCache._require_seed_capabilities(target)
+
         module._finish_cleanup = finish_cleanup
         module._recover = recover
+        module._require_transaction_capabilities = require_transaction_capabilities
 
     @staticmethod
     def _assert_no_materializer_recovery_state(target: _BoundSeedTarget) -> None:
@@ -4382,7 +4431,12 @@ class HotMainCache:
         runtime = target.access_path / ".workflow-runtime" / "mipstarre-materialization"
         transaction = runtime / "MIPStarRE.transaction"
         cleanup = runtime / "MIPStarRE.transaction.cleanup"
-        retained = [path for path in (transaction, cleanup) if path.exists() or path.is_symlink()]
+        preparation = runtime / "MIPStarRE.transaction.preparing"
+        retained = [
+            path
+            for path in (transaction, cleanup, preparation)
+            if path.exists() or path.is_symlink()
+        ]
         if retained:
             raise CacheError(
                 "persisted materializer state has no independent ownership proof and requires "
@@ -4627,8 +4681,12 @@ class HotMainCache:
     def seed(self, target_project: Path, *, replace: bool = False, dry_run: bool = False) -> dict[str, Any]:
         lexical_target, target_lock_path = self._target_lock_path(target_project)
         if dry_run:
-            target = self._eligible_seed_target(lexical_target)
+            target = self._eligible_seed_target(lexical_target, check_inputs=False)
             try:
+                self._require_seed_capabilities(target)
+                checked_target = self._eligible_seed_target(lexical_target)
+                old_target, target = target, checked_target
+                old_target.close()
                 self._require_seed_capabilities(target)
                 return {
                     **self.status(),
@@ -4648,8 +4706,8 @@ class HotMainCache:
                 self._recover_interrupted_seed(target)
                 self._require_seed_capabilities(target)
                 checked_target = self._eligible_seed_target(lexical_target)
-                target.close()
-                target = checked_target
+                old_target, target = target, checked_target
+                old_target.close()
                 self._require_seed_capabilities(target)
                 destination = target.access_path / ".lake"
                 if destination.exists() and not replace:
@@ -4731,8 +4789,8 @@ class HotMainCache:
                     )
                 inputs = self._preflight_authenticated_inputs()
                 checked_target = self._eligible_seed_target(lexical_target)
-                target.close()
-                target = checked_target
+                old_target, target = target, checked_target
+                old_target.close()
                 self._require_seed_capabilities(target)
                 authored_before = authored_tree_facts_on_disk(target.target_project)
                 target.assert_current()

@@ -142,7 +142,7 @@ The implemented cache-readiness path is fail-closed:
 current command moves that snapshot to quarantine. The quarantine rules above
 remain a proposed cleanup contract. Synchronous seed failures atomically
 exchange a continuously bound displaced tree back before the metric commit
-point. The repaired QPBT-068 A10 candidate publishes a diagnostic digest-bound
+point. The repaired QPBT-068 A13 candidate publishes a diagnostic digest-bound
 journal before exchange, but does not treat that journal or its adjacent
 digest/commit marker as persistent ownership authority. A later process rejects
 all fixed journal/active staging state unchanged for manual disposition. The
@@ -151,8 +151,11 @@ descriptors and permanent event monitors, publishes with atomic exchange or
 no-replace, and retains rather than deletes the journal, staging root, and
 authenticated old tree after commit. These are candidate behaviors, not
 approved live guarantees, until a fresh immutable review approves the final
-head. Cleanup quarantine remains separate from live exception rollback and
-manual crash disposition.
+head. Its foundation materializer separately keeps `MIPStarRE/` continuously
+present during replacement with one descriptor-bound exchange and retains the
+whole live materialization transaction instead of deleting it. Cleanup
+quarantine remains separate from live exception rollback and manual crash
+disposition.
 
 ## Measurable acceptance tests
 

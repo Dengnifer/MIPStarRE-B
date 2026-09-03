@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -171,6 +172,39 @@ class MaterializationTests(unittest.TestCase):
         )
         self.assertEqual("verified", source.verify_materialized(self.root, self.pin)["status"])
 
+    def test_publication_uses_atomic_exchange_or_no_replace_and_retains_evidence(self) -> None:
+        calls: list[tuple[str, str, int]] = []
+        real_rename = source._linux_renameat2
+
+        def recording_rename(
+            source_parent: int,
+            source_name: str,
+            destination_parent: int,
+            destination_name: str,
+            flags: int,
+        ) -> None:
+            calls.append((source_name, destination_name, flags))
+            real_rename(
+                source_parent,
+                source_name,
+                destination_parent,
+                destination_name,
+                flags,
+            )
+
+        with mock.patch.object(source, "_linux_renameat2", side_effect=recording_rename):
+            first = source.materialize(self.root, self.pin_path, self.archive)
+            (self.root / "MIPStarRE" / "untrusted").write_bytes(b"replace")
+            second = source.materialize(
+                self.root, self.pin_path, self.archive, replace_existing=True
+            )
+        self.assertIn(("MIPStarRE", "MIPStarRE", source.RENAME_NOREPLACE), calls)
+        self.assertIn(("MIPStarRE", "MIPStarRE", source.RENAME_EXCHANGE), calls)
+        for result in (first, second):
+            evidence = Path(result["transaction_evidence"])
+            self.assertTrue(evidence.is_dir())
+            self.assertFalse((evidence.parent / "MIPStarRE.transaction").exists())
+
     def test_raw_traversal_duplicate_and_reserved_namespace_are_rejected(self) -> None:
         attacks = [
             [(PREFIX, b"5", b"", ""), (PREFIX + "MIPStarRE/../escape", b"0", b"x", "")],
@@ -241,6 +275,45 @@ class MaterializationTests(unittest.TestCase):
             source.materialize(self.root, self.pin_path, self.archive)
         self.assertEqual([], list(redirected.iterdir()))
 
+    def test_existing_runtime_substitution_is_rejected_before_child_mutation(self) -> None:
+        workflow = self.root / ".workflow-runtime"
+        workflow.mkdir()
+        (workflow / "owned").write_bytes(b"original")
+        parked = self.root / ".workflow-runtime-attacker-parked"
+        real_open = source.os.open
+        injected = False
+
+        def substitute_after_open(
+            path: object,
+            flags: int,
+            mode: int = 0o777,
+            *,
+            dir_fd: int | None = None,
+        ) -> int:
+            nonlocal injected
+            descriptor = real_open(path, flags, mode, dir_fd=dir_fd)
+            if path == ".workflow-runtime" and dir_fd is not None and not injected:
+                injected = True
+                os.rename(
+                    path,
+                    parked.name,
+                    src_dir_fd=dir_fd,
+                    dst_dir_fd=dir_fd,
+                )
+                os.mkdir(path, dir_fd=dir_fd)
+                (self.root / ".workflow-runtime" / "unrelated").write_bytes(b"preserve")
+            return descriptor
+
+        with mock.patch.object(
+            source.os, "open", side_effect=substitute_after_open
+        ), mock.patch.object(source, "_require_transaction_capabilities"):
+            with self.assertRaisesRegex(source.MaterializationError, "identity changed"):
+                source.materialize(self.root, self.pin_path, self.archive)
+        self.assertTrue(injected)
+        self.assertEqual(b"preserve", (workflow / "unrelated").read_bytes())
+        self.assertEqual({"unrelated"}, {path.name for path in workflow.iterdir()})
+        self.assertEqual(b"original", (parked / "owned").read_bytes())
+
     def test_post_publication_failure_rolls_back_existing_tree(self) -> None:
         destination = self.root / "MIPStarRE"
         destination.mkdir()
@@ -255,30 +328,221 @@ class MaterializationTests(unittest.TestCase):
                 raise source.MaterializationError("injected verification failure")
             return real_verify(repo, pin)
 
-        with mock.patch.object(source, "verify_materialized", side_effect=fail_after_publish):
+        rename_flags: list[int] = []
+        real_rename = source._linux_renameat2
+
+        def recording_rename(*args: object) -> None:
+            rename_flags.append(int(args[-1]))
+            real_rename(*args)  # type: ignore[arg-type]
+
+        with mock.patch.object(
+            source, "verify_materialized", side_effect=fail_after_publish
+        ), mock.patch.object(source, "_linux_renameat2", side_effect=recording_rename):
             with self.assertRaisesRegex(source.MaterializationError, "injected"):
                 source.materialize(self.root, self.pin_path, self.archive, replace_existing=True)
         self.assertEqual("original", (destination / "keep").read_text())
+        self.assertGreaterEqual(rename_flags.count(source.RENAME_EXCHANGE), 2)
         runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
         self.assertFalse((runtime / "MIPStarRE.transaction").exists())
 
-    def test_rollback_retains_transaction_if_expected_backup_is_missing(self) -> None:
+    def test_hostile_substitution_during_success_retention_is_preserved(self) -> None:
+        real_move = source._atomic_move_bound
+        injected = False
+
+        def substitute_before_retention(
+            source_parent: int,
+            source_name: str,
+            source_descriptor: int,
+            destination_parent: int,
+            destination_name: str,
+            label: str,
+            renamed: object = None,
+        ) -> None:
+            nonlocal injected
+            if label == "materialization transaction retention" and not injected:
+                injected = True
+                os.rename(
+                    source_name,
+                    "attacker-parked",
+                    src_dir_fd=source_parent,
+                    dst_dir_fd=source_parent,
+                )
+                os.mkdir(source_name, dir_fd=source_parent)
+                substitute = Path("/proc/self/fd") / str(source_parent) / source_name
+                (substitute / "unrelated").write_bytes(b"preserve")
+            real_move(
+                source_parent,
+                source_name,
+                source_descriptor,
+                destination_parent,
+                destination_name,
+                label,
+                renamed,  # type: ignore[arg-type]
+            )
+
+        with mock.patch.object(
+            source, "_atomic_move_bound", side_effect=substitute_before_retention
+        ):
+            with self.assertRaises(source.MaterializationError):
+                source.materialize(self.root, self.pin_path, self.archive)
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        self.assertTrue(injected)
+        self.assertEqual(
+            b"preserve", (runtime / "MIPStarRE.transaction" / "unrelated").read_bytes()
+        )
+        self.assertTrue((runtime / "attacker-parked").is_dir())
+
+    def test_post_rename_monitor_failure_is_not_misclassified_as_unpublished(self) -> None:
+        destination = self.root / "MIPStarRE"
+        destination.mkdir()
+        (destination / "keep").write_bytes(b"original")
+        real_exchange = source._atomic_exchange_bound
+
+        def fail_after_exchange(*args: object) -> None:
+            callback = args[-1]
+            real_exchange(*args)  # type: ignore[arg-type]
+            if callable(callback):
+                raise source.MaterializationError("injected post-rename monitor failure")
+
+        with mock.patch.object(
+            source, "_atomic_exchange_bound", side_effect=fail_after_exchange
+        ):
+            with self.assertRaisesRegex(source.MaterializationError, "rollback is incomplete"):
+                source.materialize(self.root, self.pin_path, self.archive, replace_existing=True)
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        self.assertTrue((runtime / "MIPStarRE.transaction").is_dir())
+        self.assertTrue(destination.is_dir())
+
+    def test_transaction_retention_collision_preserves_both_objects(self) -> None:
+        token = "a" * 32
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        runtime.mkdir(parents=True)
+        collision = runtime / f"MIPStarRE.transaction.retained-{token}"
+        collision.mkdir()
+        (collision / "unrelated").write_bytes(b"preserve")
+        with mock.patch.object(source.secrets, "token_hex", return_value=token):
+            with self.assertRaises(source.MaterializationError):
+                source.materialize(self.root, self.pin_path, self.archive)
+        self.assertEqual(b"preserve", (collision / "unrelated").read_bytes())
+        self.assertFalse((self.root / "MIPStarRE").exists())
+        self.assertTrue((runtime / f"MIPStarRE.transaction.failed-{token}").is_dir())
+
+    def test_hostile_substitution_during_rollback_is_preserved(self) -> None:
+        destination = self.root / "MIPStarRE"
+        destination.mkdir()
+        (destination / "keep").write_bytes(b"original")
+        real_verify = source.verify_materialized
+        verify_calls = 0
+
+        def fail_after_publish(repo: Path, pin: dict[str, object]) -> dict[str, object]:
+            nonlocal verify_calls
+            verify_calls += 1
+            if verify_calls <= 2:
+                raise source.MaterializationError("injected verification failure")
+            return real_verify(repo, pin)
+
+        real_exchange = source._atomic_exchange_bound
+        injected = False
+
+        def substitute_before_rollback(*args: object) -> None:
+            nonlocal injected
+            label = str(args[-1])
+            if label == "MIPStarRE foundation rollback" and not injected:
+                injected = True
+                root_descriptor = int(args[0])
+                os.rename(
+                    "MIPStarRE",
+                    "attacker-published",
+                    src_dir_fd=root_descriptor,
+                    dst_dir_fd=root_descriptor,
+                )
+                os.mkdir("MIPStarRE", dir_fd=root_descriptor)
+                substitute = Path("/proc/self/fd") / str(root_descriptor) / "MIPStarRE"
+                (substitute / "unrelated").write_bytes(b"preserve")
+            real_exchange(*args)  # type: ignore[arg-type]
+
+        with mock.patch.object(
+            source, "verify_materialized", side_effect=fail_after_publish
+        ), mock.patch.object(
+            source, "_atomic_exchange_bound", side_effect=substitute_before_rollback
+        ):
+            with self.assertRaisesRegex(source.MaterializationError, "rollback is incomplete"):
+                source.materialize(self.root, self.pin_path, self.archive, replace_existing=True)
+        self.assertTrue(injected)
+        self.assertEqual(b"preserve", (destination / "unrelated").read_bytes())
+        self.assertTrue((self.root / "attacker-published").is_dir())
+
+    def test_hostile_substitution_during_preparation_error_is_preserved(self) -> None:
+        real_write = source._write_new_file
+        injected = False
+
+        def fail_transaction_write(path: Path, payload: bytes) -> None:
+            nonlocal injected
+            if path.name == "transaction.json" and not injected:
+                injected = True
+                transaction = Path(os.readlink(path.parent))
+                runtime = transaction.parent
+                transaction.rename(runtime / "attacker-preparation")
+                transaction.mkdir()
+                (transaction / "unrelated").write_bytes(b"preserve")
+                raise OSError("injected preparation failure")
+            real_write(path, payload)
+
+        with mock.patch.object(source, "_write_new_file", side_effect=fail_transaction_write):
+            with self.assertRaisesRegex(source.MaterializationError, "ambiguous state"):
+                source.materialize(self.root, self.pin_path, self.archive)
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        self.assertTrue(injected)
+        self.assertEqual(
+            b"preserve", (runtime / "MIPStarRE.transaction" / "unrelated").read_bytes()
+        )
+        self.assertTrue((runtime / "attacker-preparation").is_dir())
+
+    def test_creation_event_batch_rejects_move_and_substitute(self) -> None:
+        real_mkdir = source.os.mkdir
+        injected = False
+
+        def substitute_after_mkdir(
+            path: object,
+            mode: int = 0o777,
+            *,
+            dir_fd: int | None = None,
+        ) -> None:
+            nonlocal injected
+            real_mkdir(path, mode, dir_fd=dir_fd)
+            if path == "MIPStarRE.transaction" and dir_fd is not None and not injected:
+                injected = True
+                os.rename(
+                    path,
+                    "attacker-created",
+                    src_dir_fd=dir_fd,
+                    dst_dir_fd=dir_fd,
+                )
+                real_mkdir(path, mode, dir_fd=dir_fd)
+                substitute = Path("/proc/self/fd") / str(dir_fd) / str(path)
+                (substitute / "unrelated").write_bytes(b"preserve")
+
+        with mock.patch.object(
+            source.os, "mkdir", side_effect=substitute_after_mkdir
+        ), mock.patch.object(source, "_require_transaction_capabilities"):
+            with self.assertRaisesRegex(source.MaterializationError, "exact monitor events"):
+                source.materialize(self.root, self.pin_path, self.archive)
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        self.assertTrue(injected)
+        self.assertEqual(
+            b"preserve", (runtime / "MIPStarRE.transaction" / "unrelated").read_bytes()
+        )
+        self.assertTrue((runtime / "attacker-created").is_dir())
+
+    def test_legacy_rollback_refuses_without_live_descriptors(self) -> None:
         transaction = self.root / "transaction"
         transaction.mkdir()
         errors = source._rollback(transaction, self.root / "MIPStarRE", True)
         self.assertTrue(errors)
         self.assertTrue(transaction.exists())
+        self.assertIn("live rollback requires held descriptors", errors[0])
 
-        linked_transaction = self.root / "linked-transaction"
-        (linked_transaction / "backup").mkdir(parents=True)
-        (linked_transaction / "backup" / "MIPStarRE").symlink_to(self.root)
-        linked_errors = source._rollback(
-            linked_transaction, self.root / "missing-destination", True
-        )
-        self.assertTrue(any("not a real directory" in error for error in linked_errors))
-        self.assertTrue(linked_transaction.exists())
-
-    def test_stale_transaction_restores_then_replaces_deterministically(self) -> None:
+    def test_stale_transaction_is_preserved_and_refused(self) -> None:
         runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
         transaction = runtime / "MIPStarRE.transaction"
         backup = transaction / "backup" / "MIPStarRE" / "QPBT"
@@ -289,15 +553,11 @@ class MaterializationTests(unittest.TestCase):
             source._transaction_document(self.root / "MIPStarRE", True)
         )
 
-        result = source.materialize(
-            self.root, self.pin_path, self.archive, replace_existing=True
-        )
-        self.assertEqual("published", result["status"])
-        self.assertEqual(
-            "def recovered := true\n",
-            (self.root / "MIPStarRE" / "QPBT" / "Owned.lean").read_text(),
-        )
-        self.assertFalse(transaction.exists())
+        before = (transaction / "transaction.json").read_bytes()
+        with self.assertRaisesRegex(source.MaterializationError, "no live authority"):
+            source.materialize(self.root, self.pin_path, self.archive, replace_existing=True)
+        self.assertEqual(before, (transaction / "transaction.json").read_bytes())
+        self.assertFalse((self.root / "MIPStarRE").exists())
 
     def test_verify_rejects_symlink_inside_authored_tree(self) -> None:
         source.materialize(self.root, self.pin_path, self.archive)

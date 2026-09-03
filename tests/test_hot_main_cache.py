@@ -167,10 +167,12 @@ def byte_snapshot(root: Path) -> dict[str, tuple[object, ...]]:
 def adaptable_materializer(**attributes: object) -> types.SimpleNamespace:
     defaults: dict[str, object] = {
         "MaterializationError": RuntimeError,
+        "TRANSACTION_SAFETY_VERSION": 1,
         "_assert_real_directory": lambda _path: None,
         "_reject_symlink_components": lambda _path: None,
         "_finish_cleanup": lambda _path: None,
         "_recover": lambda *_args: None,
+        "_require_transaction_capabilities": lambda _descriptor: None,
     }
     defaults.update(attributes)
     return types.SimpleNamespace(**defaults)
@@ -588,6 +590,58 @@ class HotMainCacheTests(unittest.TestCase):
                     "destination",
                     cache_module.RENAME_NOREPLACE,
                 )
+
+    def test_renameat2_semantic_probe_retains_evidence_without_recursive_delete(self) -> None:
+        target_descriptor = os.open(self.repo, cache_module._authored_directory_flags())
+        before = set(Path("/tmp").glob("mipstarre-renameat2-probe-retained-*"))
+        try:
+            with mock.patch.object(
+                cache_module.shutil,
+                "rmtree",
+                side_effect=AssertionError("semantic probe recursively deleted a pathname"),
+            ):
+                cache_module._probe_renameat2_semantics(target_descriptor)
+        finally:
+            os.close(target_descriptor)
+        retained = set(Path("/tmp").glob("mipstarre-renameat2-probe-retained-*")) - before
+        self.assertEqual(1, len(retained))
+        evidence = retained.pop()
+        self.assertEqual({"first", "second", "moved"}, {path.name for path in evidence.iterdir()})
+
+    def test_renameat2_probe_rejects_root_substitution_before_child_writes(self) -> None:
+        token = hashlib.sha256(str(self.base).encode("utf-8")).hexdigest()[:32]
+        root_name = f"mipstarre-renameat2-probe-retained-{token}"
+        parked_name = f"{root_name}-attacker-parked"
+        real_mkdir = cache_module.os.mkdir
+        injected = False
+
+        def substitute_after_root_create(
+            path: object,
+            mode: int = 0o777,
+            *,
+            dir_fd: int | None = None,
+        ) -> None:
+            nonlocal injected
+            real_mkdir(path, mode, dir_fd=dir_fd)
+            if path == root_name and dir_fd is not None and not injected:
+                injected = True
+                os.rename(path, parked_name, src_dir_fd=dir_fd, dst_dir_fd=dir_fd)
+                real_mkdir(path, mode, dir_fd=dir_fd)
+                substitute = Path("/tmp") / root_name
+                (substitute / "unrelated").write_bytes(b"preserve")
+
+        target_descriptor = os.open(self.repo, cache_module._authored_directory_flags())
+        try:
+            with mock.patch.object(
+                cache_module.secrets, "token_hex", return_value=token
+            ), mock.patch.object(cache_module.os, "mkdir", side_effect=substitute_after_root_create):
+                with self.assertRaisesRegex(cache_module.CacheError, "exact monitor events"):
+                    cache_module._probe_renameat2_semantics(target_descriptor)
+        finally:
+            os.close(target_descriptor)
+        self.assertTrue(injected)
+        self.assertEqual(b"preserve", (Path("/tmp") / root_name / "unrelated").read_bytes())
+        self.assertEqual([], list((Path("/tmp") / parked_name).iterdir()))
 
     def test_identity_comes_from_exact_main_not_dirty_worktree(self) -> None:
         first = self.manager().identity
@@ -3922,33 +3976,55 @@ class HotMainCacheTests(unittest.TestCase):
 
     def test_seed_and_prepare_refuse_missing_atomic_capability_before_mutation(self) -> None:
         for action in ("seed", "prepare"):
-            with self.subTest(action=action):
-                recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
-                manager = self.manager(
-                    runtime=self.base / f"runtime-capability-{action}", recipe=recipe
-                )
-                manager.warm(
-                    _test_command_callback=fake_success,
-                    _test_source_verifier=fake_source_verifier if action == "prepare" else None,
-                )
-                target = self.issue_worktree(f"capability-{action}")
-                before = byte_snapshot(target)
-                admission = mock.Mock(side_effect=AssertionError("input admission ran"))
-                with mock.patch.object(
-                    cache_module,
-                    "_probe_renameat2_semantics",
-                    side_effect=cache_module.CacheError("atomic capability unavailable"),
-                ), mock.patch.object(
-                    manager, "_preflight_authenticated_inputs", admission
-                ):
-                    with self.assertRaisesRegex(cache_module.CacheError, "capability unavailable"):
-                        if action == "seed":
-                            manager.seed(target)
-                        else:
-                            manager.prepare(target)
-                admission.assert_not_called()
-                self.assertEqual(before, byte_snapshot(target))
-                self.assertFalse(manager._seed_transaction_dir(target).exists())
+            for dry_run in (False, True):
+                with self.subTest(action=action, dry_run=dry_run):
+                    recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                    manager = self.manager(
+                        runtime=self.base / f"runtime-capability-{action}-{dry_run}",
+                        recipe=recipe,
+                    )
+                    manager.warm(
+                        _test_command_callback=fake_success,
+                        _test_source_verifier=fake_source_verifier if action == "prepare" else None,
+                    )
+                    target = self.issue_worktree(f"capability-{action}-{dry_run}")
+                    before = byte_snapshot(target)
+                    identity_admission = mock.Mock(
+                        side_effect=AssertionError("identity input admission ran")
+                    )
+                    archive_admission = mock.Mock(
+                        side_effect=AssertionError("archive input admission ran")
+                    )
+                    status_admission = mock.Mock(
+                        side_effect=AssertionError("cache status admission ran")
+                    )
+                    readiness_admission = mock.Mock(
+                        side_effect=AssertionError("cache readiness admission ran")
+                    )
+                    with mock.patch.object(
+                        cache_module,
+                        "_probe_renameat2_semantics",
+                        side_effect=cache_module.CacheError("atomic capability unavailable"),
+                    ), mock.patch.object(
+                        manager, "_capture_identity_inputs", identity_admission
+                    ), mock.patch.object(
+                        manager, "_preflight_authenticated_inputs", archive_admission
+                    ), mock.patch.object(
+                        manager, "status", status_admission
+                    ), mock.patch.object(manager, "is_ready", readiness_admission):
+                        with self.assertRaisesRegex(
+                            cache_module.CacheError, "capability unavailable"
+                        ):
+                            if action == "seed":
+                                manager.seed(target, dry_run=dry_run)
+                            else:
+                                manager.prepare(target, dry_run=dry_run)
+                    identity_admission.assert_not_called()
+                    archive_admission.assert_not_called()
+                    status_admission.assert_not_called()
+                    readiness_admission.assert_not_called()
+                    self.assertEqual(before, byte_snapshot(target))
+                    self.assertFalse(manager._seed_transaction_dir(target).exists())
 
     def test_seed_and_prepare_atomic_no_replace_preserve_concurrent_destination(self) -> None:
         for action in ("seed", "prepare"):

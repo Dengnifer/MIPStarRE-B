@@ -4,17 +4,21 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from contextlib import contextmanager
+import ctypes
+import errno
 import fcntl
 import hashlib
 import json
 import os
 from pathlib import Path
-import shutil
+import secrets
 import stat
+import struct
 import sys
 import time
-from typing import Any, Iterator, Mapping, Sequence
+from typing import Any, Callable, Iterator, Mapping, Sequence
 import zlib
 
 
@@ -25,10 +29,363 @@ HARD_MAX_MEMBERS = 5000
 HARD_MAX_MEMBER_BYTES = 2 * 1024 * 1024
 HARD_MAX_REGULAR_BYTES = 64 * 1024 * 1024
 BLOCK = 512
+TRANSACTION_SAFETY_VERSION = 1
+RENAME_NOREPLACE = 1
+RENAME_EXCHANGE = 2
+_RENAMEAT2_FILESYSTEM_MAGICS = {
+    0xEF53,  # ext2/ext3/ext4
+    0x58465342,  # XFS
+    0x9123683E,  # Btrfs
+    0x01021994,  # tmpfs
+    0x794C7630,  # overlayfs
+    0xF2F52010,  # F2FS
+}
+_IN_ATTRIB = 0x00000004
+_IN_MOVED_FROM = 0x00000040
+_IN_MOVED_TO = 0x00000080
+_IN_CREATE = 0x00000100
+_IN_DELETE = 0x00000200
+_IN_DELETE_SELF = 0x00000400
+_IN_MOVE_SELF = 0x00000800
+_IN_UNMOUNT = 0x00002000
+_IN_Q_OVERFLOW = 0x00004000
+_IN_IGNORED = 0x00008000
+_INOTIFY_EVENT = struct.Struct("iIII")
 
 
 class MaterializationError(Exception):
     """A pinned-source operation failed without making upstream bytes canonical."""
+
+
+def _directory_flags() -> int:
+    return os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+
+
+def _linux_libc() -> Any:
+    if sys.platform != "linux":
+        raise MaterializationError("safe materialization requires Linux renameat2 and inotify")
+    return ctypes.CDLL(None, use_errno=True)
+
+
+def _linux_renameat2(
+    source_parent: int,
+    source_name: str,
+    destination_parent: int,
+    destination_name: str,
+    flags: int,
+) -> None:
+    if flags not in {RENAME_NOREPLACE, RENAME_EXCHANGE}:
+        raise MaterializationError("materialization rename requires no-replace or exchange")
+    for name in (source_name, destination_name):
+        encoded = os.fsencode(name)
+        if not encoded or encoded in {b".", b".."} or b"/" in encoded or b"\0" in encoded:
+            raise MaterializationError("materialization rename operands must be child names")
+    for descriptor in (source_parent, destination_parent):
+        if not stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            raise MaterializationError("materialization rename parent is not a directory")
+    renameat2 = getattr(_linux_libc(), "renameat2", None)
+    if renameat2 is None:
+        raise MaterializationError("safe materialization requires Linux renameat2")
+    renameat2.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    ]
+    renameat2.restype = ctypes.c_int
+    ctypes.set_errno(0)
+    if renameat2(
+        source_parent,
+        os.fsencode(source_name),
+        destination_parent,
+        os.fsencode(destination_name),
+        flags,
+    ) != 0:
+        error_number = ctypes.get_errno()
+        raise OSError(error_number, os.strerror(error_number))
+
+
+def _linux_filesystem_magic(descriptor: int) -> int:
+    fstatfs = getattr(_linux_libc(), "fstatfs", None)
+    if fstatfs is None:
+        raise MaterializationError("safe materialization requires Linux fstatfs")
+    buffer = ctypes.create_string_buffer(256)
+    fstatfs.argtypes = [ctypes.c_int, ctypes.c_void_p]
+    fstatfs.restype = ctypes.c_int
+    ctypes.set_errno(0)
+    if fstatfs(descriptor, ctypes.byref(buffer)) != 0:
+        error_number = ctypes.get_errno()
+        raise MaterializationError(
+            f"could not identify materialization filesystem: {os.strerror(error_number)}"
+        )
+    width = ctypes.sizeof(ctypes.c_long)
+    return int.from_bytes(buffer.raw[:width], sys.byteorder, signed=False)
+
+
+def _assert_bound_name(parent: int, name: str, descriptor: int, label: str) -> None:
+    try:
+        lexical = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        bound = os.fstat(descriptor)
+    except OSError as error:
+        raise MaterializationError(f"{label} identity changed") from error
+    if (
+        stat.S_ISLNK(lexical.st_mode)
+        or (lexical.st_dev, lexical.st_ino, stat.S_IFMT(lexical.st_mode))
+        != (bound.st_dev, bound.st_ino, stat.S_IFMT(bound.st_mode))
+    ):
+        raise MaterializationError(f"{label} identity changed")
+
+
+class _BoundNameMonitor:
+    """Permanently reject substitution or ABA of selected directory children."""
+
+    def __init__(self, parent_descriptor: int, names: Sequence[str]):
+        libc = _linux_libc()
+        initialize = getattr(libc, "inotify_init1", None)
+        add_watch = getattr(libc, "inotify_add_watch", None)
+        if initialize is None or add_watch is None:
+            raise MaterializationError("safe materialization requires Linux inotify")
+        initialize.argtypes = [ctypes.c_int]
+        initialize.restype = ctypes.c_int
+        add_watch.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
+        add_watch.restype = ctypes.c_int
+        descriptor = initialize(os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0))
+        if descriptor < 0:
+            error_number = ctypes.get_errno()
+            raise MaterializationError(
+                f"could not initialize materialization monitor: {os.strerror(error_number)}"
+            )
+        mask = (
+            _IN_ATTRIB
+            | _IN_MOVED_FROM
+            | _IN_MOVED_TO
+            | _IN_CREATE
+            | _IN_DELETE
+            | _IN_DELETE_SELF
+            | _IN_MOVE_SELF
+            | _IN_UNMOUNT
+            | _IN_Q_OVERFLOW
+        )
+        ctypes.set_errno(0)
+        watch = add_watch(descriptor, os.fsencode(f"/proc/self/fd/{parent_descriptor}"), mask)
+        if watch < 0:
+            error_number = ctypes.get_errno()
+            os.close(descriptor)
+            raise MaterializationError(
+                f"could not bind materialization monitor: {os.strerror(error_number)}"
+            )
+        self.descriptor = descriptor
+        self.watch = watch
+        self.names = {os.fsencode(name) for name in names}
+        self.poisoned = False
+
+    def _drain(self) -> tuple[list[tuple[bytes, int]], bool]:
+        relevant: list[tuple[bytes, int]] = []
+        fatal = False
+        while True:
+            try:
+                payload = os.read(self.descriptor, 64 * 1024)
+            except BlockingIOError:
+                break
+            except OSError:
+                self.poisoned = True
+                return relevant, True
+            if not payload:
+                self.poisoned = True
+                return relevant, True
+            offset = 0
+            while offset < len(payload):
+                if len(payload) - offset < _INOTIFY_EVENT.size:
+                    fatal = True
+                    break
+                watch, mask, _cookie, name_size = _INOTIFY_EVENT.unpack_from(payload, offset)
+                offset += _INOTIFY_EVENT.size
+                if len(payload) - offset < name_size:
+                    fatal = True
+                    break
+                name = payload[offset : offset + name_size].split(b"\0", 1)[0]
+                offset += name_size
+                if watch not in {-1, self.watch} or mask & (
+                    _IN_Q_OVERFLOW | _IN_IGNORED | _IN_UNMOUNT | _IN_DELETE_SELF | _IN_MOVE_SELF
+                ):
+                    fatal = True
+                elif name in self.names:
+                    operation = mask & (
+                        _IN_ATTRIB | _IN_MOVED_FROM | _IN_MOVED_TO | _IN_CREATE | _IN_DELETE
+                    )
+                    relevant.append((name, operation))
+        if fatal:
+            self.poisoned = True
+        return relevant, fatal
+
+    def assert_clean(self) -> None:
+        relevant, fatal = self._drain()
+        if relevant or fatal:
+            self.poisoned = True
+        if self.poisoned:
+            raise MaterializationError("materialization object changed or monitor became ambiguous")
+
+    def accept_owned_change(self, expected: Sequence[tuple[str, int]]) -> None:
+        relevant, fatal = self._drain()
+        expected_events = Counter((os.fsencode(name), mask) for name, mask in expected)
+        if self.poisoned or fatal or Counter(relevant) != expected_events:
+            self.poisoned = True
+            raise MaterializationError("materialization mutation lacked its exact monitor events")
+
+    def close(self) -> None:
+        os.close(self.descriptor)
+
+
+def _atomic_move_bound(
+    source_parent: int,
+    source_name: str,
+    source_descriptor: int,
+    destination_parent: int,
+    destination_name: str,
+    label: str,
+    renamed: Callable[[], None] | None = None,
+) -> None:
+    _assert_bound_name(source_parent, source_name, source_descriptor, label)
+    try:
+        _linux_renameat2(
+            source_parent,
+            source_name,
+            destination_parent,
+            destination_name,
+            RENAME_NOREPLACE,
+        )
+    except OSError as error:
+        if error.errno == errno.EEXIST:
+            raise MaterializationError(
+                f"{label} destination appeared concurrently; source retained"
+            ) from error
+        raise MaterializationError(f"atomic no-replace move failed for {label}: {error}") from error
+    if renamed is not None:
+        renamed()
+    _assert_bound_name(destination_parent, destination_name, source_descriptor, label)
+
+
+def _atomic_exchange_bound(
+    first_parent: int,
+    first_name: str,
+    first_descriptor: int,
+    second_parent: int,
+    second_name: str,
+    second_descriptor: int,
+    label: str,
+    renamed: Callable[[], None] | None = None,
+) -> None:
+    _assert_bound_name(first_parent, first_name, first_descriptor, label)
+    _assert_bound_name(second_parent, second_name, second_descriptor, label)
+    try:
+        _linux_renameat2(
+            first_parent,
+            first_name,
+            second_parent,
+            second_name,
+            RENAME_EXCHANGE,
+        )
+    except OSError as error:
+        raise MaterializationError(f"atomic exchange failed for {label}: {error}") from error
+    if renamed is not None:
+        renamed()
+    _assert_bound_name(second_parent, second_name, first_descriptor, label)
+    _assert_bound_name(first_parent, first_name, second_descriptor, label)
+
+
+def _require_transaction_capabilities(target_descriptor: int) -> None:
+    required = (os.open, os.mkdir, os.stat)
+    if any(operation not in os.supports_dir_fd for operation in required):
+        raise MaterializationError("safe materialization requires descriptor-relative calls")
+    if not hasattr(os, "O_DIRECTORY") or not hasattr(os, "O_NOFOLLOW"):
+        raise MaterializationError("safe materialization requires no-follow directory opens")
+    if _linux_filesystem_magic(target_descriptor) not in _RENAMEAT2_FILESYSTEM_MAGICS:
+        raise MaterializationError("target filesystem is not approved for atomic materialization")
+    for flags, label in ((RENAME_NOREPLACE, "no-replace"), (RENAME_EXCHANGE, "exchange")):
+        try:
+            _linux_renameat2(-1, "probe-source", -1, "probe-destination", flags)
+        except OSError as error:
+            if error.errno != errno.EBADF:
+                raise MaterializationError(
+                    f"kernel does not provide atomic {label} materialization"
+                ) from error
+        else:
+            raise MaterializationError(f"atomic {label} probe unexpectedly mutated a name")
+
+
+def _bind_or_create_directory(
+    parent_descriptor: int,
+    name: str,
+    monitor: _BoundNameMonitor,
+    *,
+    mode: int = 0o700,
+) -> int:
+    monitor.assert_clean()
+    try:
+        descriptor = os.open(name, _directory_flags(), dir_fd=parent_descriptor)
+    except FileNotFoundError:
+        try:
+            os.mkdir(name, mode, dir_fd=parent_descriptor)
+        except FileExistsError as error:
+            raise MaterializationError(f"directory appeared concurrently: {name}") from error
+        monitor.accept_owned_change(((name, _IN_CREATE),))
+        try:
+            descriptor = os.open(name, _directory_flags(), dir_fd=parent_descriptor)
+        except BaseException:
+            raise
+    except OSError as error:
+        try:
+            metadata = os.stat(name, dir_fd=parent_descriptor, follow_symlinks=False)
+        except OSError:
+            metadata = None
+        if metadata is not None and stat.S_ISLNK(metadata.st_mode):
+            raise MaterializationError(f"path contains a symlink component: {name}") from error
+        raise MaterializationError(f"unsafe materialization directory: {name}") from error
+    try:
+        _assert_bound_name(parent_descriptor, name, descriptor, f"materialization directory {name}")
+        monitor.assert_clean()
+    except BaseException:
+        os.close(descriptor)
+        raise
+    return descriptor
+
+
+@contextmanager
+def _locked_at(
+    parent_descriptor: int,
+    name: str,
+    monitor: _BoundNameMonitor,
+) -> Iterator[None]:
+    flags = os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+    existed = True
+    try:
+        descriptor = os.open(name, flags | os.O_EXCL, 0o600, dir_fd=parent_descriptor)
+        existed = False
+    except FileExistsError:
+        descriptor = os.open(name, flags, 0o600, dir_fd=parent_descriptor)
+    if not existed:
+        try:
+            monitor.accept_owned_change(((name, _IN_CREATE),))
+        except BaseException:
+            os.close(descriptor)
+            raise
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise MaterializationError("materialization lock is not a regular file")
+        _assert_bound_name(parent_descriptor, name, descriptor, "materialization lock")
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        monitor.assert_clean()
+        _assert_bound_name(parent_descriptor, name, descriptor, "materialization lock")
+        yield
+        monitor.assert_clean()
+        _assert_bound_name(parent_descriptor, name, descriptor, "materialization lock")
+    finally:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(descriptor)
 
 
 def _object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -665,59 +1022,24 @@ def _cleanup_tombstone(transaction: Path) -> Path:
 
 
 def _finish_cleanup(cleanup: Path) -> None:
-    if not cleanup.exists() and not cleanup.is_symlink():
-        return
-    mode = cleanup.stat(follow_symlinks=False).st_mode
-    if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
-        raise MaterializationError(f"unsafe cleanup tombstone: {cleanup}")
-    shutil.rmtree(cleanup)
-    _fsync_directory(cleanup.parent)
+    if cleanup.exists() or cleanup.is_symlink():
+        raise MaterializationError(
+            f"cleanup state has no continuous live binding and was preserved: {cleanup}"
+        )
 
 
 def _commit_cleanup(transaction: Path) -> None:
-    cleanup = _cleanup_tombstone(transaction)
-    if cleanup.exists() or cleanup.is_symlink():
-        raise MaterializationError(f"cleanup tombstone already exists: {cleanup}")
-    os.replace(transaction, cleanup)
-    _fsync_directory(cleanup.parent)
-    _finish_cleanup(cleanup)
+    raise MaterializationError(
+        f"legacy pathname cleanup is disabled; transaction preserved: {transaction}"
+    )
 
 
 def _rollback(transaction: Path, destination: Path, original_present: bool) -> list[str]:
-    errors: list[str] = []
-    backup = transaction / "backup" / "MIPStarRE"
-    incomplete = transaction / "incomplete-MIPStarRE"
-    try:
-        backup_present = backup.exists() or backup.is_symlink()
-        if backup_present:
-            backup_mode = backup.stat(follow_symlinks=False).st_mode
-            if stat.S_ISLNK(backup_mode) or not stat.S_ISDIR(backup_mode):
-                raise MaterializationError("rollback backup is not a real directory")
-        if original_present and not backup_present:
-            if not destination.exists():
-                raise MaterializationError("rollback expected a backup, but neither copy exists")
-        elif original_present and backup_present:
-            if destination.exists() or destination.is_symlink():
-                mode = destination.stat(follow_symlinks=False).st_mode
-                if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
-                    raise MaterializationError("unsafe destination during rollback")
-                os.replace(destination, incomplete)
-            os.replace(backup, destination)
-        elif not original_present and (destination.exists() or destination.is_symlink()):
-            mode = destination.stat(follow_symlinks=False).st_mode
-            if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
-                raise MaterializationError("unsafe new destination during rollback")
-            os.replace(destination, incomplete)
-    except (OSError, MaterializationError) as error:
-        errors.append(str(error))
-    if errors:
-        return errors
-    try:
-        _fsync_directory(destination.parent)
-        _commit_cleanup(transaction)
-    except (OSError, MaterializationError) as error:
-        errors.append(str(error))
-    return errors
+    return [
+        "legacy pathname rollback is disabled; live rollback requires held descriptors "
+        f"(transaction preserved: {transaction}, destination: {destination}, "
+        f"original_present: {original_present})"
+    ]
 
 
 def _transaction_document(destination: Path, original_present: bool) -> bytes:
@@ -736,33 +1058,10 @@ def _transaction_document(destination: Path, original_present: bool) -> bytes:
 
 
 def _recover(transaction: Path, destination: Path, pin: Mapping[str, Any]) -> None:
-    if not transaction.exists() and not transaction.is_symlink():
-        return
-    mode = transaction.stat(follow_symlinks=False).st_mode
-    if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
-        raise MaterializationError(f"unsafe materialization transaction: {transaction}")
-    try:
-        marker = json.loads(_read_output_file(transaction / "transaction.json", 4096))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, MaterializationError) as error:
-        raise MaterializationError(f"invalid materialization transaction marker: {transaction}") from error
-    if (
-        not isinstance(marker, dict)
-        or set(marker) != {"schema_version", "destination", "original_present"}
-        or marker["schema_version"] != SCHEMA_VERSION
-        or marker["destination"] != str(destination.resolve())
-        or not isinstance(marker["original_present"], bool)
-    ):
-        raise MaterializationError(f"unauthorized materialization transaction: {transaction}")
-    try:
-        verify_materialized(destination.parent, pin)
-    except (OSError, MaterializationError):
-        errors = _rollback(transaction, destination, marker["original_present"])
-        if errors:
-            raise MaterializationError(
-                f"stale transaction recovery failed; preserved {transaction}: {'; '.join(errors)}"
-            )
-    else:
-        _commit_cleanup(transaction)
+    if transaction.exists() or transaction.is_symlink():
+        raise MaterializationError(
+            f"persisted materialization state has no live authority and was preserved: {transaction}"
+        )
 
 
 @contextmanager
@@ -820,87 +1119,377 @@ def materialize(
     pin = load_pin(pin_path)
     validate_project_pins(repo_root, pin)
     destination = repo_root / pin["output"]["path"]
-    runtime = repo_root / ".workflow-runtime" / "mipstarre-materialization"
-    _reject_symlink_components(runtime.parent)
-    runtime.mkdir(parents=True, exist_ok=True)
-    _assert_real_directory(runtime)
-    if repo_root.stat().st_dev != runtime.stat().st_dev:
-        raise MaterializationError("runtime and destination must share one filesystem")
-    transaction = runtime / "MIPStarRE.transaction"
-    with _locked(runtime / "MIPStarRE.lock"):
-        _finish_cleanup(_cleanup_tombstone(transaction))
-        _recover(transaction, destination, pin)
-        existing = destination.exists() or destination.is_symlink()
-        if existing:
-            try:
-                evidence = verify_materialized(repo_root, pin)
-            except (OSError, MaterializationError) as error:
-                mode = destination.stat(follow_symlinks=False).st_mode
-                if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
-                    raise MaterializationError("unsafe existing MIPStarRE output was preserved") from error
-                if not replace_existing:
-                    raise MaterializationError("invalid existing MIPStarRE output was preserved") from error
-            else:
-                evidence.update({"status": "cached", "elapsed_seconds": round(time.monotonic() - started, 6)})
-                return evidence
-        facts, directories, files = inspect_archive(archive_path, pin)
-        preparation = _cleanup_tombstone(transaction)
-        original_present = existing
-        try:
-            preparation.mkdir(mode=0o700)
-            _write_new_file(preparation / "transaction.json", _transaction_document(destination, original_present))
-            stage = preparation / "stage" / "MIPStarRE"
-            backup = preparation / "backup"
-            stage.mkdir(parents=True)
-            backup.mkdir()
-            for relative in sorted(directories, key=lambda value: (value.count("/"), value)):
-                if relative:
-                    (stage / relative).mkdir()
-            for relative, payload in sorted(files):
-                _write_new_file(stage / relative, payload)
-            if existing:
-                _copy_authored_tree(destination / "QPBT", stage / "QPBT")
-            _fsync_tree(preparation)
-            _fsync_directory(runtime)
-            os.replace(preparation, transaction)
-            _fsync_directory(runtime)
-        except (OSError, MaterializationError) as error:
-            try:
-                if transaction.exists():
-                    _commit_cleanup(transaction)
-                else:
-                    _finish_cleanup(preparation)
-            except (OSError, MaterializationError) as cleanup_error:
-                raise MaterializationError(
-                    f"could not prepare transaction; cleanup state preserved: {preparation}"
-                ) from cleanup_error
-            raise MaterializationError("could not prepare materialization transaction") from error
-        try:
-            if existing:
-                os.replace(destination, transaction / "backup" / "MIPStarRE")
-                _fsync_directory(transaction / "backup")
-                _fsync_directory(repo_root)
-            os.replace(transaction / "stage" / "MIPStarRE", destination)
-            _fsync_directory(repo_root)
-            verified = verify_materialized(repo_root, pin)
-        except BaseException as error:
-            rollback_errors = _rollback(transaction, destination, original_present)
-            if rollback_errors:
-                raise MaterializationError(
-                    f"publication failed and rollback is incomplete; preserved {transaction}: "
-                    + "; ".join(rollback_errors)
-                ) from error
-            raise
-        _commit_cleanup(transaction)
-        verified.update(
-            {
-                "status": "published",
-                "archive_sha256": facts["archive"]["sha256"],
-                "source_commit": pin["source"]["commit"],
-                "elapsed_seconds": round(time.monotonic() - started, 6),
-            }
+    facts, directories, files = inspect_archive(archive_path, pin)
+    token = secrets.token_hex(16)
+    transaction_name = "MIPStarRE.transaction"
+    preparation_name = "MIPStarRE.transaction.preparing"
+    cleanup_name = "MIPStarRE.transaction.cleanup"
+    retained_name = f"MIPStarRE.transaction.retained-{token}"
+    failed_name = f"MIPStarRE.transaction.failed-{token}"
+
+    root_descriptor = os.open(repo_root, _directory_flags())
+    root_monitor: _BoundNameMonitor | None = None
+    workflow_descriptor: int | None = None
+    workflow_monitor: _BoundNameMonitor | None = None
+    runtime_descriptor: int | None = None
+    runtime_monitor: _BoundNameMonitor | None = None
+    transaction_descriptor: int | None = None
+    transaction_monitor: _BoundNameMonitor | None = None
+    stage_descriptor: int | None = None
+    stage_monitor: _BoundNameMonitor | None = None
+    candidate_descriptor: int | None = None
+    original_descriptor: int | None = None
+    published = False
+    original_present = False
+
+    def assert_transaction_current(name: str) -> None:
+        assert runtime_descriptor is not None
+        assert runtime_monitor is not None
+        assert transaction_descriptor is not None
+        runtime_monitor.assert_clean()
+        _assert_bound_name(
+            runtime_descriptor, name, transaction_descriptor, "materialization transaction"
         )
-        return verified
+
+    def retire_transaction(name: str, destination_name: str) -> None:
+        assert runtime_descriptor is not None
+        assert runtime_monitor is not None
+        assert transaction_descriptor is not None
+        assert_transaction_current(name)
+        _atomic_move_bound(
+            runtime_descriptor,
+            name,
+            transaction_descriptor,
+            runtime_descriptor,
+            destination_name,
+            "materialization transaction retention",
+        )
+        runtime_monitor.accept_owned_change(
+            ((name, _IN_MOVED_FROM), (destination_name, _IN_MOVED_TO))
+        )
+        os.fsync(runtime_descriptor)
+
+    def mark_published() -> None:
+        nonlocal published
+        published = True
+
+    try:
+        _require_transaction_capabilities(root_descriptor)
+        root_monitor = _BoundNameMonitor(root_descriptor, (".workflow-runtime", destination.name))
+        workflow_descriptor = _bind_or_create_directory(
+            root_descriptor, ".workflow-runtime", root_monitor
+        )
+        workflow_monitor = _BoundNameMonitor(
+            workflow_descriptor, ("mipstarre-materialization",)
+        )
+        runtime_descriptor = _bind_or_create_directory(
+            workflow_descriptor, "mipstarre-materialization", workflow_monitor
+        )
+        if os.fstat(root_descriptor).st_dev != os.fstat(runtime_descriptor).st_dev:
+            raise MaterializationError("runtime and destination must share one filesystem")
+        runtime_monitor = _BoundNameMonitor(
+            runtime_descriptor,
+            (
+                "MIPStarRE.lock",
+                transaction_name,
+                preparation_name,
+                cleanup_name,
+                retained_name,
+                failed_name,
+            ),
+        )
+        with _locked_at(runtime_descriptor, "MIPStarRE.lock", runtime_monitor):
+            for stale_name in (transaction_name, preparation_name, cleanup_name):
+                try:
+                    os.stat(stale_name, dir_fd=runtime_descriptor, follow_symlinks=False)
+                except FileNotFoundError:
+                    continue
+                raise MaterializationError(
+                    f"persisted materialization state has no live authority and was preserved: "
+                    f"{repo_root / '.workflow-runtime' / 'mipstarre-materialization' / stale_name}"
+                )
+
+            root_monitor.assert_clean()
+            try:
+                original_descriptor = os.open(
+                    destination.name, _directory_flags(), dir_fd=root_descriptor
+                )
+            except FileNotFoundError:
+                original_present = False
+            else:
+                original_present = True
+                _assert_bound_name(
+                    root_descriptor,
+                    destination.name,
+                    original_descriptor,
+                    "existing MIPStarRE output",
+                )
+                root_monitor.assert_clean()
+                try:
+                    evidence = verify_materialized(
+                        Path("/proc/self/fd") / str(root_descriptor), pin
+                    )
+                except (OSError, MaterializationError) as error:
+                    root_monitor.assert_clean()
+                    _assert_bound_name(
+                        root_descriptor,
+                        destination.name,
+                        original_descriptor,
+                        "existing MIPStarRE output",
+                    )
+                    if not replace_existing:
+                        raise MaterializationError(
+                            "invalid existing MIPStarRE output was preserved"
+                        ) from error
+                else:
+                    root_monitor.assert_clean()
+                    evidence.update(
+                        {
+                            "status": "cached",
+                            "elapsed_seconds": round(time.monotonic() - started, 6),
+                        }
+                    )
+                    return evidence
+
+            try:
+                os.mkdir(transaction_name, 0o700, dir_fd=runtime_descriptor)
+            except FileExistsError as error:
+                raise MaterializationError(
+                    "materialization preparation appeared concurrently"
+                ) from error
+            runtime_monitor.accept_owned_change(((transaction_name, _IN_CREATE),))
+            transaction_descriptor = os.open(
+                transaction_name, _directory_flags(), dir_fd=runtime_descriptor
+            )
+            _assert_bound_name(
+                runtime_descriptor,
+                transaction_name,
+                transaction_descriptor,
+                "materialization preparation",
+            )
+            runtime_monitor.assert_clean()
+            transaction_monitor = _BoundNameMonitor(
+                transaction_descriptor, ("stage", "backup", "incomplete-MIPStarRE")
+            )
+            try:
+                transaction_root = Path("/proc/self/fd") / str(transaction_descriptor)
+                _write_new_file(
+                    transaction_root / "transaction.json",
+                    _transaction_document(destination, original_present),
+                )
+                stage_descriptor = _bind_or_create_directory(
+                    transaction_descriptor, "stage", transaction_monitor
+                )
+                backup_descriptor = _bind_or_create_directory(
+                    transaction_descriptor, "backup", transaction_monitor
+                )
+                os.close(backup_descriptor)
+                stage_monitor = _BoundNameMonitor(stage_descriptor, (destination.name,))
+                try:
+                    os.mkdir(destination.name, 0o700, dir_fd=stage_descriptor)
+                except FileExistsError as error:
+                    raise MaterializationError("staged foundation appeared concurrently") from error
+                stage_monitor.accept_owned_change(((destination.name, _IN_CREATE),))
+                candidate_descriptor = os.open(
+                    destination.name, _directory_flags(), dir_fd=stage_descriptor
+                )
+                _assert_bound_name(
+                    stage_descriptor,
+                    destination.name,
+                    candidate_descriptor,
+                    "staged MIPStarRE output",
+                )
+                stage_monitor.assert_clean()
+                stage = Path("/proc/self/fd") / str(candidate_descriptor)
+                for relative in sorted(directories, key=lambda value: (value.count("/"), value)):
+                    if relative:
+                        (stage / relative).mkdir()
+                for relative, payload in sorted(files):
+                    _write_new_file(stage / relative, payload)
+                if original_present:
+                    assert original_descriptor is not None
+                    _copy_authored_tree(
+                        Path("/proc/self/fd") / str(original_descriptor) / "QPBT",
+                        stage / "QPBT",
+                    )
+                _fsync_tree(transaction_root)
+                os.fsync(runtime_descriptor)
+                assert_transaction_current(transaction_name)
+            except BaseException as error:
+                try:
+                    retire_transaction(transaction_name, failed_name)
+                except BaseException as retention_error:
+                    raise MaterializationError(
+                        "could not prepare transaction; ambiguous state was preserved"
+                    ) from retention_error
+                raise MaterializationError("could not prepare materialization transaction") from error
+
+            try:
+                assert stage_descriptor is not None
+                assert stage_monitor is not None
+                assert candidate_descriptor is not None
+                assert_transaction_current(transaction_name)
+                transaction_monitor.assert_clean()
+                stage_monitor.assert_clean()
+                root_monitor.assert_clean()
+                if original_present:
+                    assert original_descriptor is not None
+                    _atomic_exchange_bound(
+                        stage_descriptor,
+                        destination.name,
+                        candidate_descriptor,
+                        root_descriptor,
+                        destination.name,
+                        original_descriptor,
+                        "MIPStarRE foundation publication",
+                        mark_published,
+                    )
+                    stage_monitor.accept_owned_change(
+                        (
+                            (destination.name, _IN_MOVED_FROM),
+                            (destination.name, _IN_MOVED_TO),
+                        )
+                    )
+                    root_monitor.accept_owned_change(
+                        (
+                            (destination.name, _IN_MOVED_FROM),
+                            (destination.name, _IN_MOVED_TO),
+                        )
+                    )
+                else:
+                    _atomic_move_bound(
+                        stage_descriptor,
+                        destination.name,
+                        candidate_descriptor,
+                        root_descriptor,
+                        destination.name,
+                        "MIPStarRE foundation publication",
+                        mark_published,
+                    )
+                    stage_monitor.accept_owned_change(
+                        ((destination.name, _IN_MOVED_FROM),)
+                    )
+                    root_monitor.accept_owned_change(
+                        ((destination.name, _IN_MOVED_TO),)
+                    )
+                os.fsync(root_descriptor)
+                verified = verify_materialized(Path("/proc/self/fd") / str(root_descriptor), pin)
+                root_monitor.assert_clean()
+                retire_transaction(transaction_name, retained_name)
+                root_monitor.assert_clean()
+                _assert_bound_name(
+                    root_descriptor,
+                    destination.name,
+                    candidate_descriptor,
+                    "published MIPStarRE output",
+                )
+            except BaseException as error:
+                rollback_errors: list[str] = []
+                if published:
+                    try:
+                        assert stage_descriptor is not None
+                        assert stage_monitor is not None
+                        assert candidate_descriptor is not None
+                        stage_monitor.assert_clean()
+                        root_monitor.assert_clean()
+                        if original_present:
+                            assert original_descriptor is not None
+                            _atomic_exchange_bound(
+                                root_descriptor,
+                                destination.name,
+                                candidate_descriptor,
+                                stage_descriptor,
+                                destination.name,
+                                original_descriptor,
+                                "MIPStarRE foundation rollback",
+                            )
+                            root_monitor.accept_owned_change(
+                                (
+                                    (destination.name, _IN_MOVED_FROM),
+                                    (destination.name, _IN_MOVED_TO),
+                                )
+                            )
+                            stage_monitor.accept_owned_change(
+                                (
+                                    (destination.name, _IN_MOVED_FROM),
+                                    (destination.name, _IN_MOVED_TO),
+                                )
+                            )
+                        else:
+                            assert transaction_monitor is not None
+                            transaction_monitor.assert_clean()
+                            _atomic_move_bound(
+                                root_descriptor,
+                                destination.name,
+                                candidate_descriptor,
+                                transaction_descriptor,
+                                "incomplete-MIPStarRE",
+                                "failed MIPStarRE foundation retention",
+                            )
+                            root_monitor.accept_owned_change(
+                                ((destination.name, _IN_MOVED_FROM),)
+                            )
+                            transaction_monitor.accept_owned_change(
+                                (("incomplete-MIPStarRE", _IN_MOVED_TO),)
+                            )
+                        published = False
+                        os.fsync(root_descriptor)
+                    except BaseException as rollback_error:
+                        rollback_errors.append(str(rollback_error))
+                if not rollback_errors:
+                    try:
+                        retire_transaction(transaction_name, failed_name)
+                    except BaseException as retention_error:
+                        rollback_errors.append(str(retention_error))
+                if rollback_errors:
+                    raise MaterializationError(
+                        "publication failed and rollback is incomplete; all ambiguous objects were "
+                        "preserved: " + "; ".join(rollback_errors)
+                    ) from error
+                raise
+
+            verified.update(
+                {
+                    "status": "published",
+                    "archive_sha256": facts["archive"]["sha256"],
+                    "source_commit": pin["source"]["commit"],
+                    "transaction_evidence": str(
+                        repo_root
+                        / ".workflow-runtime"
+                        / "mipstarre-materialization"
+                        / retained_name
+                    ),
+                    "elapsed_seconds": round(time.monotonic() - started, 6),
+                }
+            )
+            return verified
+    finally:
+        for monitor in (
+            stage_monitor,
+            transaction_monitor,
+            runtime_monitor,
+            workflow_monitor,
+            root_monitor,
+        ):
+            if monitor is not None:
+                try:
+                    monitor.close()
+                except OSError:
+                    pass
+        for descriptor in (
+            candidate_descriptor,
+            stage_descriptor,
+            transaction_descriptor,
+            original_descriptor,
+            runtime_descriptor,
+            workflow_descriptor,
+            root_descriptor,
+        ):
+            if descriptor is not None:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    pass
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -90,8 +90,10 @@ uses one Linux `renameat2(RENAME_EXCHANGE)` operation; non-replacement uses
 has an absent-destination interval. Before cache/input admission or target
 mutation, seed requires descriptor-relative calls, inotify, a conservatively
 approved local filesystem, kernel support for both flags, and successful
-no-replace/exchange semantics on a disposable same-device directory under
-`/tmp`. If `/tmp` is not on the target device, seed and prepare refuse.
+no-replace/exchange semantics on a uniquely named same-device directory under
+`/tmp`. The small probe directory is retained as evidence rather than removed
+through a mutable pathname. If `/tmp` is not on the target device, seed and
+prepare refuse.
 
 Publication, validation, and the success-metric append share one rollback
 boundary; the original is atomically exchanged back on any unambiguous
@@ -144,12 +146,20 @@ foundation. One target-operation lock spans admission, seed, authenticated
 target-module and pin capture, materialization, final foundation and authored
 `MIPStarRE/QPBT/` verification, and final target/cache identity checks. The
 authenticated materializer must expose the exact private descriptor-bound
-adaptation surface; a module missing any required no-follow, cleanup, recovery,
-or error interface is refused before seed publication. There is no lexical-path
-fallback. Existing `MIPStarRE.transaction` or cleanup state is rejected before
+transaction-safety surface; a module missing the versioned capability gate,
+no-follow traversal, preserve-only cleanup/recovery, or error interface is
+refused before seed publication. There is no lexical-path fallback. Existing
+`MIPStarRE.transaction`, preparing, or cleanup state is rejected before
 archive/cache input admission and rechecked before materializer invocation; the
 adapter refuses persisted recovery rather than allowing authenticated code to
-interpret same-principal transaction bytes. The
+interpret same-principal transaction bytes. Live foundation replacement uses
+one descriptor-bound `RENAME_EXCHANGE`, so `MIPStarRE/` is never absent; first
+publication uses `RENAME_NOREPLACE`. Stage, destination, and transaction names
+remain bound by open descriptors and permanent event monitors through
+verification and rollback. Success and unambiguous failure move the transaction
+no-replace to unique evidence. Ambiguous, collided, or substituted objects are
+preserved in place; the materializer never recursively deletes transaction
+objects. The
 authored inventory returned by `prepare` is the post-verifier inventory and
 must equal both the initial inventory and the verifier evidence. It never
 invokes Lean or Lake. Pass `--replace` only to transactionally replace an
