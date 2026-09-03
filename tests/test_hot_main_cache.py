@@ -1620,6 +1620,7 @@ class HotMainCacheTests(unittest.TestCase):
         )
         manager._load_identity_module = mock.Mock(side_effect=[mip_module, package_module])
         captured_inputs = {
+            "lean-toolchain": b"leanprover/lean4:v4.19.0\n",
             "lake-manifest.json": b"{}\n",
             "references/mipstarre-upstream.json": b"{}\n",
             "scripts/materialize_mipstarre.py": b"# captured\n",
@@ -1715,6 +1716,86 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertFalse(marker.exists())
         with self.assertRaisesRegex(cache_module.CacheError, "exact main cache identity"):
             manager._capture_identity_inputs(self.repo)
+
+    def test_captured_pins_and_manifests_never_cross_a_temporary_pathname(self) -> None:
+        source_root = Path(__file__).resolve().parents[1]
+        relative_paths = (
+            "lean-toolchain",
+            "lake-manifest.json",
+            "references/mipstarre-upstream.json",
+            "scripts/materialize_mipstarre.py",
+            "references/lake-packages.json",
+            "references/mathlib-lake-manifest.json",
+            "scripts/materialize_lake_packages.py",
+        )
+        captured = {
+            relative: (source_root / relative).read_bytes()
+            for relative in relative_paths
+        }
+        display_root = self.base / "substituted-captured-inputs"
+        for relative in relative_paths:
+            path = display_root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"later source substitution\n")
+
+        mip_module = cache_module.HotMainCache._load_identity_module(
+            "scripts/materialize_mipstarre.py",
+            "_captured_mipstarre_regression",
+            captured["scripts/materialize_mipstarre.py"],
+            display_root,
+        )
+        package_module = cache_module.HotMainCache._load_identity_module(
+            "scripts/materialize_lake_packages.py",
+            "_captured_packages_regression",
+            captured["scripts/materialize_lake_packages.py"],
+            display_root,
+        )
+        original_load_json = package_module._load_json
+        original_file_sha256 = package_module._file_sha256
+        with mock.patch.object(
+            cache_module.tempfile,
+            "TemporaryDirectory",
+            side_effect=AssertionError("temporary pathname boundary opened"),
+        ):
+            mip_pin = cache_module.HotMainCache._load_captured_pin(
+                mip_module,
+                "references/mipstarre-upstream.json",
+                captured["references/mipstarre-upstream.json"],
+            )
+            cache_module.HotMainCache._validate_captured_project(
+                mip_module, "validate_project_pins", captured, mip_pin
+            )
+            package_pin = cache_module.HotMainCache._load_captured_pin(
+                package_module,
+                "references/lake-packages.json",
+                captured["references/lake-packages.json"],
+            )
+            cache_module.HotMainCache._validate_captured_project(
+                package_module, "validate_manifests", captured, package_pin
+            )
+
+        self.assertIs(original_load_json, package_module._load_json)
+        self.assertIs(original_file_sha256, package_module._file_sha256)
+        self.assertEqual(
+            json.loads(captured["references/mipstarre-upstream.json"])["source"]["commit"],
+            mip_pin["source"]["commit"],
+        )
+        self.assertEqual(
+            json.loads(captured["references/lake-packages.json"])["packages"],
+            package_pin["packages"],
+        )
+
+    def test_captured_project_adapter_rejects_unadmitted_paths(self) -> None:
+        module = types.SimpleNamespace(
+            validate_project_pins=lambda root, _pin: (root / "unadmitted.json").read_text()
+        )
+        with self.assertRaisesRegex(cache_module.CacheError, "unauthenticated path"):
+            cache_module.HotMainCache._validate_captured_project(
+                module,
+                "validate_project_pins",
+                {"lean-toolchain": b"toolchain\n", "lake-manifest.json": b"{}\n"},
+                {},
+            )
 
     def test_prepare_sequences_seed_replace_materialize_verify_and_preserves_authored(self) -> None:
         manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
@@ -1869,6 +1950,109 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
         self.assertEqual([], list(target.glob(".lake.backup-*")))
         self.assertEqual([], list(target.glob(".lake-prepare-rollback-*")))
+
+    def test_prepare_metric_failure_restores_replaced_seed(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("prepare-metric-failure")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
+        archive = self.base / "foundation-metric-failure.tar.gz"
+        archive.write_bytes(b"authenticated")
+        authored = cache_module.authored_tree_facts_on_disk(target)
+        fake_module = types.SimpleNamespace(
+            load_pin=lambda _path: {},
+            validate_project_pins=lambda _root, _pin: None,
+            materialize=lambda *_args, **_kwargs: {"status": "published"},
+            verify_materialized=lambda *_args: {"status": "verified", **authored},
+        )
+
+        def fail_metric(_metric: object) -> None:
+            self.assertEqual(1, len(list(target.glob(".lake.backup-*"))))
+            raise OSError("injected metric failure")
+
+        with mock.patch.dict(
+            os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True
+        ), mock.patch.object(
+            manager, "_preflight_authenticated_inputs", return_value={"required": True}
+        ), mock.patch.object(
+            manager, "_load_identity_module", return_value=fake_module
+        ), mock.patch.object(manager, "_append_metric", side_effect=fail_metric):
+            with self.assertRaisesRegex(cache_module.CacheError, "injected metric failure"):
+                manager.prepare(target, replace_seed=True)
+
+        self.assertEqual(
+            "preserve\n", (original_lake / "original-marker").read_text(encoding="ascii")
+        )
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+
+    def test_seed_interruption_immediately_after_publication_restores_original(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("seed-publication-interruption")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
+
+        with mock.patch.object(
+            manager,
+            "_validate_seeded_destination",
+            side_effect=KeyboardInterrupt("injected post-publication interruption"),
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                manager.seed(target, replace=True)
+
+        self.assertEqual(
+            "preserve\n", (original_lake / "original-marker").read_text(encoding="ascii")
+        )
+        self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertEqual([], list(target.glob(".lake-seed-*")))
+
+    def test_prepare_backup_cleanup_interruption_is_nonfatal_after_commit(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("prepare-backup-cleanup-interruption")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original-marker").write_text("old\n", encoding="ascii")
+        archive = self.base / "foundation-backup-cleanup.tar.gz"
+        archive.write_bytes(b"authenticated")
+        authored = cache_module.authored_tree_facts_on_disk(target)
+        fake_module = types.SimpleNamespace(
+            load_pin=lambda _path: {},
+            validate_project_pins=lambda _root, _pin: None,
+            materialize=lambda *_args, **_kwargs: {"status": "published"},
+            verify_materialized=lambda *_args: {"status": "verified", **authored},
+        )
+        real_rmtree = shutil.rmtree
+
+        def interrupt_backup_cleanup(path: object, *args: object, **kwargs: object) -> None:
+            if Path(path).name.startswith(".lake.backup-"):
+                raise KeyboardInterrupt("injected backup cleanup interruption")
+            real_rmtree(path, *args, **kwargs)
+
+        with mock.patch.dict(
+            os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True
+        ), mock.patch.object(
+            manager, "_preflight_authenticated_inputs", return_value={"required": True}
+        ), mock.patch.object(
+            manager, "_load_identity_module", return_value=fake_module
+        ), mock.patch.object(cache_module.shutil, "rmtree", side_effect=interrupt_backup_cleanup):
+            result = manager.prepare(target, replace_seed=True)
+
+        self.assertEqual("prepared", result["result"])
+        retained = result["seed"]["backup_retained"]
+        self.assertIsNotNone(retained)
+        self.assertTrue(Path(retained).is_dir())
+        self.assertFalse((target / ".lake" / "original-marker").exists())
 
     def test_prepare_target_lock_excludes_distinct_identity_seed_until_final_checks(self) -> None:
         manager = self.manager(

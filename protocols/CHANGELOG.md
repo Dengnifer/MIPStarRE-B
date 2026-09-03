@@ -20,6 +20,14 @@ manifest bytes. `prepare` now holds one target lock and replacement rollback
 boundary through final deep identity checks, compares initial, verifier, and
 post-verifier authored evidence, and returns only the final inventory.
 
+Follow-up review A05 found that captured pins and manifests still crossed
+mutable temporary pathnames and that replacement rollback ended before a
+fallible success-metric append. The follow-up repair passes authenticated bytes
+through exact-path in-memory verifier adapters, restores temporary module hooks,
+catches interruptions across seed replacement, and retains the old `.lake`
+through successful metric publication. Post-commit backup cleanup is
+best-effort and cannot turn a successful preparation into a failure.
+
 ## 0.1.10 candidate (QPBT-045) - 2026-09-02
 
 INC-060 is the second occurrence of

@@ -10,6 +10,7 @@ byte-copy fallback), never a symlink or hardlink to writable build output.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 import datetime as dt
 import errno
@@ -57,6 +58,42 @@ REFLINK_FALLBACK_ERRNOS = {
 
 class CacheError(Exception):
     """A cache operation failed in a way suitable for concise CLI output."""
+
+
+@dataclass(frozen=True)
+class _CapturedInputPath:
+    """An exact virtual path whose content is an authenticated byte payload."""
+
+    relative_path: str
+    payload: bytes
+
+    def read_text(self, encoding: str | None = None, errors: str | None = None) -> str:
+        return self.payload.decode(encoding or "utf-8", errors or "strict")
+
+    def __str__(self) -> str:
+        return f"<captured:{self.relative_path}>"
+
+
+@dataclass(frozen=True)
+class _CapturedInputRoot:
+    """Resolve only an explicitly admitted set of captured project paths."""
+
+    payloads: Mapping[str, bytes]
+
+    def __truediv__(self, requested: object) -> _CapturedInputPath:
+        relative = PurePosixPath(str(requested))
+        if (
+            relative.is_absolute()
+            or not relative.parts
+            or any(part in {"", ".", ".."} for part in relative.parts)
+        ):
+            raise CacheError(f"captured verifier requested an unsafe path: {requested}")
+        key = relative.as_posix()
+        try:
+            payload = self.payloads[key]
+        except KeyError as error:
+            raise CacheError(f"captured verifier requested an unauthenticated path: {key}") from error
+        return _CapturedInputPath(key, payload)
 
 
 LAKE_OVERRIDE_ARGUMENT = "--packages=.lake/package-overrides.json"
@@ -2253,10 +2290,56 @@ class HotMainCache:
     def _load_captured_pin(module: Any, relative_path: str, payload: bytes) -> dict[str, Any]:
         """Parse only captured pin bytes through the identity-bound verifier."""
 
-        with tempfile.TemporaryDirectory(prefix="hot-cache-pin-") as temporary:
-            path = Path(temporary) / Path(relative_path).name
-            path.write_bytes(payload)
+        path = _CapturedInputPath(relative_path, payload)
+        with HotMainCache._captured_module_io(module):
             return module.load_pin(path)
+
+    @staticmethod
+    @contextmanager
+    def _captured_module_io(module: Any) -> Any:
+        """Adapt private path helpers to captured payloads, then restore them."""
+
+        replacements: dict[str, Any] = {}
+        if hasattr(module, "_load_json"):
+            object_pairs_hook = getattr(module, "_object_without_duplicates", None)
+            materialization_error = getattr(module, "MaterializationError", CacheError)
+
+            def load_json(path: object, label: str) -> dict[str, Any]:
+                if not isinstance(path, _CapturedInputPath):
+                    raise CacheError(
+                        f"captured verifier requested JSON through an unauthenticated path: {path}"
+                    )
+                try:
+                    value = json.loads(
+                        path.payload.decode("utf-8"),
+                        object_pairs_hook=object_pairs_hook,
+                    )
+                except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+                    raise materialization_error(f"could not load {label}: {error}") from error
+                if not isinstance(value, dict):
+                    raise materialization_error(f"{label} must be a JSON object")
+                return value
+
+            replacements["_load_json"] = load_json
+        if hasattr(module, "_file_sha256"):
+
+            def file_sha256(path: object) -> str:
+                if not isinstance(path, _CapturedInputPath):
+                    raise CacheError(
+                        f"captured verifier requested hashing through an unauthenticated path: {path}"
+                    )
+                return hashlib.sha256(path.payload).hexdigest()
+
+            replacements["_file_sha256"] = file_sha256
+
+        originals = {name: getattr(module, name) for name in replacements}
+        try:
+            for name, replacement in replacements.items():
+                setattr(module, name, replacement)
+            yield
+        finally:
+            for name, original in originals.items():
+                setattr(module, name, original)
 
     @staticmethod
     def _validate_captured_project(
@@ -2265,14 +2348,24 @@ class HotMainCache:
         captured_inputs: Mapping[str, bytes],
         pin: Mapping[str, Any],
     ) -> None:
-        """Run path-oriented validation against a private captured-byte tree."""
+        """Run path-oriented validation against exact captured byte payloads."""
 
-        with tempfile.TemporaryDirectory(prefix="hot-cache-inputs-") as temporary:
-            root = Path(temporary)
-            for relative_path, payload in captured_inputs.items():
-                destination = root / relative_path
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                destination.write_bytes(payload)
+        admitted_paths = {
+            "validate_project_pins": ("lean-toolchain", "lake-manifest.json"),
+            "validate_manifests": (
+                "lake-manifest.json",
+                "references/mathlib-lake-manifest.json",
+            ),
+        }
+        try:
+            required = admitted_paths[validator_name]
+            payloads = {relative: captured_inputs[relative] for relative in required}
+        except KeyError as error:
+            raise CacheError(
+                f"unsupported or incomplete captured verifier request: {validator_name}"
+            ) from error
+        root = _CapturedInputRoot(payloads)
+        with HotMainCache._captured_module_io(module):
             getattr(module, validator_name)(root, pin)
 
     @staticmethod
@@ -3040,13 +3133,31 @@ class HotMainCache:
             staging_lake = staging_root / ".lake"
             copy_stats = reflink_copytree(self.lake_dir, staging_lake)
             make_owner_writable(staging_lake)
-            if destination.exists():
-                os.replace(destination, backup)
-                moved_old = True
             try:
+                if destination.exists():
+                    os.replace(destination, backup)
+                    moved_old = True
                 os.replace(staging_lake, destination)
                 self._validate_seeded_destination(destination)
-            except Exception as error:
+                result = {
+                    **self.status(),
+                    "action": "seed",
+                    "result": "seeded",
+                    "target": str(destination),
+                    "worktree_root": str(worktree_root),
+                    "replaced": moved_old,
+                    "backup_retained": None,
+                    "cache_hit": 1,
+                    "cache_miss": 0,
+                    "lock_waited": int(cache_lock.waited or target_lock.waited),
+                    "lock_wait_seconds": round(cache_lock.wait_seconds + target_lock.wait_seconds, 6),
+                    "builds": 0,
+                    "build_seconds": 0.0,
+                    "elapsed_seconds": round(time.monotonic() - started, 6),
+                    "copy": asdict(copy_stats),
+                }
+            except BaseException as error:
+                moved_old = moved_old or backup.exists() or backup.is_symlink()
                 rollback_errors = self._rollback_seed_replacement(
                     destination,
                     backup,
@@ -3057,28 +3168,14 @@ class HotMainCache:
                     details = "; ".join(rollback_errors)
                     raise CacheError(f"seed failed ({error}); rollback incomplete: {details}") from error
                 raise
-            result = {
-                **self.status(),
-                "action": "seed",
-                "result": "seeded",
-                "target": str(destination),
-                "worktree_root": str(worktree_root),
-                "replaced": moved_old,
-                "backup_retained": None,
-                "cache_hit": 1,
-                "cache_miss": 0,
-                "lock_waited": int(cache_lock.waited or target_lock.waited),
-                "lock_wait_seconds": round(cache_lock.wait_seconds + target_lock.wait_seconds, 6),
-                "builds": 0,
-                "build_seconds": 0.0,
-                "elapsed_seconds": round(time.monotonic() - started, 6),
-                "copy": asdict(copy_stats),
-            }
             return result, backup, moved_old
         finally:
-            if staging_root.exists():
-                make_owner_writable(staging_root)
-                shutil.rmtree(staging_root)
+            try:
+                if staging_root.exists():
+                    make_owner_writable(staging_root)
+                    shutil.rmtree(staging_root)
+            except BaseException:
+                pass
 
     @staticmethod
     def _discard_seed_backup(backup: Path, moved_old: bool) -> str | None:
@@ -3087,8 +3184,8 @@ class HotMainCache:
         try:
             make_owner_writable(backup)
             shutil.rmtree(backup)
-        except OSError:
-            return str(backup)
+        except BaseException:
+            return str(backup) if backup.exists() or backup.is_symlink() else None
         return None
 
     def _rollback_prepared_seed(
@@ -3241,19 +3338,20 @@ class HotMainCache:
                 if checked_target != target_project or checked_root != worktree_root:
                     raise CacheError("target worktree identity changed during issue-worktree preparation")
                 self._validate_seeded_destination(target_project / ".lake")
+                seeded["elapsed_seconds"] = round(time.monotonic() - started, 6)
+                prepared = {
+                    "action": "prepare", "result": "prepared", "inputs": inputs,
+                    "seed": seeded, "foundation": materialized, "verification": verified,
+                    "authored_qpbt": authored_final,
+                }
+                self._append_metric(seeded)
             except BaseException as error:
                 self._rollback_prepared_seed(target_project, backup, moved_old, error)
                 if isinstance(error, CacheError):
                     raise
                 raise CacheError(f"issue-worktree foundation preparation failed: {error}") from error
             seeded["backup_retained"] = self._discard_seed_backup(backup, moved_old)
-            seeded["elapsed_seconds"] = round(time.monotonic() - started, 6)
-            self._append_metric(seeded)
-            return {
-                "action": "prepare", "result": "prepared", "inputs": inputs,
-                "seed": seeded, "foundation": materialized, "verification": verified,
-                "authored_qpbt": authored_final,
-            }
+            return prepared
 
 
 def _resolve(root: Path, value: str) -> Path:

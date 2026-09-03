@@ -98,7 +98,9 @@ authored inventory returned by `prepare` is the post-verifier inventory and
 must equal both the initial inventory and the verifier evidence. It never
 invokes Lean or Lake. Pass `--replace` only to transactionally replace an
 existing private `.lake`; its backup is retained until every preparation check
-succeeds and is restored on a later failure.
+succeeds and the success-metric append completes, and is restored on a later
+failure. Backup deletion is best-effort after that commit point and a retained
+backup is reported without changing a successful result.
 
 The cache record includes key, source SHA, elected owner, hit/miss, lock wait,
 dependency-cache duration, build duration, total duration, exit status, and log
