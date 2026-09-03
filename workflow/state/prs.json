@@ -8544,7 +8544,7 @@
       "base": "main",
       "head": "issue/qpbt-051-preflight-a01",
       "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
-      "head_sha": "9ce7c45a95b7e771082a32f0f59ecb16b9afd6c2",
+      "head_sha": "7ed086c834f41525cff78d1fc42ee22bcd7852e2",
       "implementer_session_ids": [
         "i051-integrator-a02-pr034-bind",
         "i051-fixer-a04-security",
@@ -8726,6 +8726,22 @@
           "completed_at": "2026-09-03T00:54:36.615439Z",
           "result_path": "/tmp/i051-repair-a06.md",
           "result": "3/3 checker and 77/77 workflow tests passed; workflow, exact five-path scope, diff hygiene, clean worktree, and authored-QPBT preservation passed"
+        },
+        {
+          "id": "check-qpbt-051-a08-repair",
+          "name": "QPBT-051 A08 retained transaction repair",
+          "command": "py_compile; 80/80 hot-cache tests; 3/3 checker tests; 77/77 workflow tests; aggregate with host socket rerun; exact five-path identity",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "7ed086c834f41525cff78d1fc42ee22bcd7852e2",
+          "completed_at": "2026-09-03T08:28:44Z",
+          "result_path": "/tmp/i051-repair-a08.md",
+          "report_sha256": "ce84be48d1b90a8b6787ac6842516a62285ba41b97565dca096ee718936828a0",
+          "patch_sha256": "cecd35cb5f4c1213c8b935448b9d85c295f140604456a7f8531df4a61fec9149",
+          "repair_paths": "5/5",
+          "focused_tests": "80/80",
+          "workflow_tests": "77/77",
+          "aggregate_tests": "376/378 sandbox + 2 host socket reruns"
         }
       ],
       "reviews": [
@@ -8795,6 +8811,24 @@
             "F051-A03-003"
           ],
           "integration_gate": "blocked pending old-moved/new-published rollback state and seed metric/handoff transaction closure"
+        },
+        {
+          "id": "review-qpbt-051-pr034-a09-security",
+          "reviewer_session_id": "i051-reviewer-a09-cache-transaction",
+          "verdict": "request_changes",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "7ed086c834f41525cff78d1fc42ee22bcd7852e2",
+          "started_at": "2026-09-03T08:28:45Z",
+          "completed_at": "2026-09-03T08:40:59.421588Z",
+          "result_path": "/tmp/i051-review-a09.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "f0fda445610e14707d8f5604cd7526f2b8db6dd7f3afda6cb49d2ca610d4a5f3",
+          "manifest_sha256": "4c388fd80282363af3088597aa12f7103eb9382bc1aff53dbb409ea73dbecd72",
+          "retained_open_finding_ids": [
+            "F051-A03-003"
+          ],
+          "integration_gate": "blocked pending transactional append/rollback fix and fresh changed-head review"
         }
       ],
       "findings": [
@@ -8850,7 +8884,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T23:07:18.585757Z",
-      "updated_at": "2026-09-03T01:27:05.758926Z",
+      "updated_at": "2026-09-03T08:44:29.799641Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -8861,7 +8895,7 @@
       ],
       "motivation": "Eliminate the third recurrence of cache work beginning without a complete authenticated local input tuple and provide a deterministic no-build preparation path for private issue worktrees.",
       "description": "Preflight every canonical warm input before cache-hit handling or builder election, and add a prepare command that privately seeds, replacement-materializes, and verifies the pinned foundation while preserving authored QPBT bytes.",
-      "testing": "A06 exact identity and five-path scope authenticated; 77/77 focused cache tests, 3/3 checker tests, 77/77 workflow tests, Python compilation, diff hygiene, workflow validation, and authored-QPBT preservation passed. The aggregate sandbox run passed 373/375; only two unrelated Unix-socket fixtures were denied by sandbox permissions.",
+      "testing": "A08: 80/80 focused, 3/3 checker, 77/77 workflow, aggregate sandbox 376/378 plus two host socket reruns; exact repair identity authenticated",
       "addresses": "QPBT-051",
       "provenance_session_ids": [
         "i051-orchestrator-a01-preflight",
@@ -8870,7 +8904,7 @@
         "i051-fixer-a06-cache-security"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "A08 must repair the sole retained F051-A03-003 blocker on a changed head, pass scoped gates, and receive one fresh immutable review before integration."
+      "unexecuted_gate": "Repair partial metric append rollback for F051-A03-003 on a changed head, then obtain a fresh immutable review before integration."
     }
   ]
 }

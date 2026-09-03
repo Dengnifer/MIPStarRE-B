@@ -74,7 +74,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; available external-session usage is recorded per session"
       },
-      "subagents_issued": 112,
+      "subagents_issued": 113,
       "max_concurrency": 4,
       "outputs": [
         "workflow/reviews/stage-02-split-design-recon.md",
@@ -236,7 +236,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 302,
+      "subagents_issued": 303,
       "max_concurrency": 4,
       "outputs": [
         "research/report.md",

@@ -2652,7 +2652,7 @@
         "Add focused regressions for each missing warm input, conflicting selectors, malformed paths, successful preflight, source-absent seeded worktrees, mandatory replace-existing materialization, and successful verified preparation, proving no lock-held build, snapshot, READY, or authored-source drift on failure.",
         "Update the local build/orchestration protocol and changelog with the preflight and preparation commands, run focused and aggregate workflow/checker/diff gates, obtain a fresh immutable review, and record the third-occurrence incident disposition."
       ],
-      "owner_session_id": "i051-reviewer-a09-cache-transaction",
+      "owner_session_id": null,
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-052",
         "research/metrics/incidents.jsonl#INC-065",
@@ -2674,7 +2674,7 @@
         "workflow/reviews/qpbt-051-input-preflight.md"
       ],
       "created_at": "2026-09-01T19:00:00Z",
-      "updated_at": "2026-09-03T07:53:06.760119Z",
+      "updated_at": "2026-09-03T08:44:13.044696Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -2959,7 +2959,7 @@
         "Preserve the G19 boundary and source-faithful theorem signatures; record both holes explicitly and link their zero-debt Stage 4C discharge to QPBT-061.",
         "Use the QPBT-056 private-cache lineage; pass whole-file elaboration, affected target, exact 56-name/tape/output/dimension/codec/import/debt scans, blueprint synchronization against QPBT-060, one private full build after scoped stability, and fresh immutable mathematical/API review."
       ],
-      "owner_session_id": "i057-reviewer-a05-f06a-skeleton",
+      "owner_session_id": null,
       "source_refs": [
         "workflow/reviews/qpbt-059-f06a-pack-contract-a01.md#F06A-QPBT059-SIGNATURES",
         "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
@@ -2975,7 +2975,7 @@
         "workflow/reviews/qpbt-057-f06a-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T07:43:27.157475Z",
+      "updated_at": "2026-09-03T08:44:13.425858Z",
       "blocked_reason": null,
       "unblock_condition": "Fresh immutable review and QPBT-060 blueprint integration are required before candidate integration.",
       "proof_completion_issue_id": "QPBT-061",
@@ -3119,7 +3119,7 @@
         "Document the exact G19-related operational/resource debt and its Stage 4C discharge plan under docs/paper-gaps, linked to QPBT-061, without claiming a new paper theorem or weakening source fidelity.",
         "Update checker mutation coverage, metadata, generated graph/chapter entry, and blueprint README; run deterministic generation twice, all blueprint tests, default and pinned-source checks, workflow validation, and diff hygiene, then obtain a fresh independent review."
       ],
-      "owner_session_id": "i060-reviewer-a02-skeleton-boundary",
+      "owner_session_id": null,
       "source_refs": [
         "protocols/formalization.md#Skeleton-stages",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-712",
@@ -3138,7 +3138,7 @@
         "workflow/reviews/qpbt-060-f06a-skeleton-boundary-a01.md"
       ],
       "created_at": "2026-09-03T01:16:00.451829Z",
-      "updated_at": "2026-09-03T07:53:06.592535Z",
+      "updated_at": "2026-09-03T08:44:13.838413Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
