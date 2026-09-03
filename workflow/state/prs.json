@@ -9131,7 +9131,7 @@
     {
       "id": "LPR-035",
       "title": "feat(QPBT/Game): implement executable CL sampler skeleton",
-      "status": "draft",
+      "status": "approved",
       "issue_ids": [
         "QPBT-057"
       ],
@@ -9139,7 +9139,9 @@
       "head": "issue/qpbt-057-resource-repair-a03",
       "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
       "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
-      "implementer_session_ids": [],
+      "implementer_session_ids": [
+        "i057-integrator-a11-pr035-bind"
+      ],
       "checks": [
         {
           "id": "check-qpbt-057-auth",
@@ -9206,14 +9208,44 @@
           "completed_at": "2026-09-03T13:24:08.910235Z",
           "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
           "result": "All source-boundary, proof-debt, workflow, and diff gates passed."
+        },
+        {
+          "id": "check-qpbt-057-pr-bind",
+          "name": "LPR-035 no-byte-change adoption",
+          "command": "Authenticate exact candidate identity, two-path manifest, six registered checks, writer evidence, and clean worktree; make zero repository changes",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:51:41.737281Z",
+          "result_path": "/tmp/i057-integrator-a11-pr035-bind.md",
+          "result": "Exact candidate and 6/6 registered checks authenticated; zero candidate-byte changes; report SHA-256 25fcee63."
         }
       ],
-      "reviews": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-057-pr035-a12-formal",
+          "reviewer_session_id": "i057-reviewer-a12-formal-pr",
+          "verdict": "approve",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "started_at": "2026-09-03T13:51:41.737281Z",
+          "completed_at": "2026-09-03T13:52:49.053109Z",
+          "result_path": "/tmp/i057-reviewer-a12-formal-pr.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "09555427420724f0c6d554525d69a635d7c0c52ff588b8c6d62650eceb1f066e",
+          "manifest_sha256": "ab9899e35ea31039af95dfa577b2df15de25543ce96e124cf89c755e55e94a99",
+          "patch_sha256": "076394ff295e71fb72285fe0588c2968990c39c3cd24fbc1914779c21ae810b6",
+          "integration_gate": "approved for exact guarded integration",
+          "prereview_session_started_at": "2026-09-03T13:47:45.175465Z",
+          "formal_review_start_basis": "PR binder check completed; earlier session time was manifest authentication and pre-review"
+        }
+      ],
       "findings": [],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-03T13:45:00.454064Z",
-      "updated_at": "2026-09-03T13:45:00.454064Z",
+      "updated_at": "2026-09-03T13:55:18.125672Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Types.lean",
         "workflow/reviews/qpbt-057-f06a-a02.md"
@@ -9229,7 +9261,7 @@
         "i057-reviewer-a10-build-api"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "PR-bound no-byte-change adoption and one fresh immutable formal PR review remain before guarded integration."
+      "unexecuted_gate": "Exact guarded no-ff integration and one post-integration current-main validation remain."
     }
   ]
 }
