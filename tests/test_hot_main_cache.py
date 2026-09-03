@@ -1990,6 +1990,31 @@ class HotMainCacheTests(unittest.TestCase):
         )
         self.assertEqual([], list(target.glob(".lake.backup-*")))
 
+    def test_seed_failed_old_to_backup_rename_preserves_original(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("seed-old-rename-failure")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
+        real_replace = os.replace
+
+        def fail_old_move(source: object, destination: object) -> None:
+            if Path(source) == original_lake and Path(destination).name.startswith(".lake.backup-"):
+                raise OSError("injected old-to-backup rename failure")
+            real_replace(source, destination)
+
+        with mock.patch.object(cache_module.os, "replace", side_effect=fail_old_move):
+            with self.assertRaisesRegex(OSError, "old-to-backup rename failure"):
+                manager.seed(target, replace=True)
+
+        self.assertEqual(
+            "preserve\n", (original_lake / "original-marker").read_text(encoding="ascii")
+        )
+        self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertEqual([], list(target.glob(".lake-seed-*")))
+
     def test_seed_interruption_immediately_after_publication_restores_original(self) -> None:
         manager = self.manager()
         manager.warm(_test_command_callback=fake_success)
@@ -2004,6 +2029,63 @@ class HotMainCacheTests(unittest.TestCase):
             side_effect=KeyboardInterrupt("injected post-publication interruption"),
         ):
             with self.assertRaises(KeyboardInterrupt):
+                manager.seed(target, replace=True)
+
+        self.assertEqual(
+            "preserve\n", (original_lake / "original-marker").read_text(encoding="ascii")
+        )
+        self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertEqual([], list(target.glob(".lake-seed-*")))
+
+    def test_prepare_publisher_handoff_interruption_restores_original(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("prepare-publication-handoff-interruption")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
+        publish = manager._publish_seed_locked
+
+        def publish_then_interrupt(*args: object, **kwargs: object) -> object:
+            publish(*args, **kwargs)
+            raise KeyboardInterrupt("injected publisher handoff interruption")
+
+        with mock.patch.object(
+            manager, "_preflight_authenticated_inputs", return_value={"required": True}
+        ), mock.patch.object(
+            manager,
+            "_publish_seed_locked",
+            side_effect=publish_then_interrupt,
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "publisher handoff interruption"):
+                manager.prepare(target, replace_seed=True)
+
+        self.assertEqual(
+            "preserve\n", (original_lake / "original-marker").read_text(encoding="ascii")
+        )
+        self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertEqual([], list(target.glob(".lake-seed-*")))
+        self.assertEqual([], list(target.glob(".lake-prepare-rollback-*")))
+
+    def test_seed_metric_failure_restores_replaced_seed(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("seed-metric-failure")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
+
+        def fail_metric(_metric: object) -> None:
+            self.assertEqual(1, len(list(target.glob(".lake.backup-*"))))
+            raise OSError("injected seed metric failure")
+
+        with mock.patch.object(manager, "_append_metric", side_effect=fail_metric):
+            with self.assertRaisesRegex(OSError, "injected seed metric failure"):
                 manager.seed(target, replace=True)
 
         self.assertEqual(

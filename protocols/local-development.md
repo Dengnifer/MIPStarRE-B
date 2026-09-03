@@ -85,7 +85,10 @@ key, verifies that the target is a live compatible registered Git worktree, and
 copies `.lake` with copy-on-write reflinks when available. Every issue worktree
 receives a private writable copy. Hard-linked or directly shared `.lake/build`
 trees are forbidden because Lean processes can update artifacts. Replacement
-uses a private backup and rolls back if publication or validation fails.
+uses a private backup and distinct old-moved/new-published transaction state.
+Publication, validation, and the success-metric append share one rollback
+boundary; the original is restored on any precommit failure. Backup deletion
+is best-effort only after that commit point.
 
 Before issue-worktree compilation, run `python3 scripts/hot_main_cache.py
 prepare --worktree /absolute/issue-worktree` with the same three environment

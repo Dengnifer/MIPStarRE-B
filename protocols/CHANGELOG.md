@@ -28,6 +28,14 @@ catches interruptions across seed replacement, and retains the old `.lake`
 through successful metric publication. Post-commit backup cleanup is
 best-effort and cannot turn a successful preparation into a failure.
 
+Review A07 retained the replacement finding because a failed first
+old-to-backup rename could withdraw the untouched destination, publisher return
+preceded caller rollback ownership, and standalone `seed` discarded its backup
+before its metric append. The transaction now records old-moved and
+new-published states separately in caller-owned state, so both `seed` and
+`prepare` cover publication through the success metric. Only post-commit backup
+and rollback-staging cleanup are nonfatal.
+
 ## 0.1.10 candidate (QPBT-045) - 2026-09-02
 
 INC-060 is the second occurrence of

@@ -60,6 +60,17 @@ class CacheError(Exception):
     """A cache operation failed in a way suitable for concise CLI output."""
 
 
+@dataclass
+class _SeedReplacement:
+    """Caller-owned state for one rollback-capable seed publication."""
+
+    destination: Path
+    backup: Path
+    rollback_root: Path
+    old_moved: bool = False
+    new_published: bool = False
+
+
 @dataclass(frozen=True)
 class _CapturedInputPath:
     """An exact virtual path whose content is an authenticated byte payload."""
@@ -3074,19 +3085,18 @@ class HotMainCache:
 
     @staticmethod
     def _rollback_seed_replacement(
-        destination: Path,
-        backup: Path,
-        rollback_new: Path,
-        *,
-        moved_old: bool,
+        replacement: _SeedReplacement,
     ) -> list[str]:
         errors: list[str] = []
-        if destination.exists() or destination.is_symlink():
+        destination = replacement.destination
+        backup = replacement.backup
+        rollback_new = replacement.rollback_root / ".lake-failed-publication"
+        if replacement.new_published and (destination.exists() or destination.is_symlink()):
             try:
                 os.replace(destination, rollback_new)
             except OSError as error:
                 errors.append(f"could not withdraw failed publication: {error}")
-        if moved_old and (backup.exists() or backup.is_symlink()):
+        if replacement.old_moved and (backup.exists() or backup.is_symlink()):
             if destination.exists() or destination.is_symlink():
                 errors.append(f"original cache remains recoverable at {backup}")
             else:
@@ -3094,9 +3104,28 @@ class HotMainCache:
                     os.replace(backup, destination)
                 except OSError as error:
                     errors.append(f"could not restore original cache from {backup}: {error}")
-        elif moved_old:
+        elif replacement.old_moved:
             errors.append(f"original cache backup disappeared: {backup}")
         return errors
+
+    @staticmethod
+    def _new_seed_replacement(
+        target_project: Path, *, rollback_prefix: str
+    ) -> _SeedReplacement:
+        return _SeedReplacement(
+            destination=target_project / ".lake",
+            backup=target_project / f".lake.backup-{os.getpid()}-{time.monotonic_ns()}",
+            rollback_root=Path(tempfile.mkdtemp(prefix=rollback_prefix, dir=target_project)),
+        )
+
+    @staticmethod
+    def _discard_seed_rollback_root(replacement: _SeedReplacement) -> None:
+        try:
+            if replacement.rollback_root.exists():
+                make_owner_writable(replacement.rollback_root)
+                shutil.rmtree(replacement.rollback_root)
+        except BaseException:
+            pass
 
     def _target_lock_path(self, supplied_target: Path) -> tuple[Path, Path]:
         lexical_target = reject_symlink_components(supplied_target)
@@ -3113,10 +3142,13 @@ class HotMainCache:
         cache_lock: ExclusiveLock,
         target_lock: ExclusiveLock,
         started: float,
-    ) -> tuple[dict[str, Any], Path, bool]:
+        replacement: _SeedReplacement,
+    ) -> dict[str, Any]:
         """Publish a seed while the caller retains the target operation lock."""
 
-        destination = target_project / ".lake"
+        destination = replacement.destination
+        if destination != target_project / ".lake":
+            raise CacheError("seed replacement state does not match the target project")
         if destination.is_symlink():
             raise CacheError(f"refusing to replace symlinked .lake directory: {destination}")
         if destination.exists() and not destination.is_dir():
@@ -3126,49 +3158,43 @@ class HotMainCache:
                 f"target .lake already exists; pass --replace to replace it: {destination}"
             )
         staging_root = Path(tempfile.mkdtemp(prefix=".lake-seed-", dir=target_project))
-        backup = target_project / f".lake.backup-{os.getpid()}-{time.monotonic_ns()}"
-        rollback_new = staging_root / ".lake-failed-publication"
-        moved_old = False
         try:
             staging_lake = staging_root / ".lake"
             copy_stats = reflink_copytree(self.lake_dir, staging_lake)
             make_owner_writable(staging_lake)
+            if destination.exists():
+                try:
+                    os.replace(destination, replacement.backup)
+                finally:
+                    replacement.old_moved = (
+                        replacement.backup.exists() or replacement.backup.is_symlink()
+                    )
             try:
-                if destination.exists():
-                    os.replace(destination, backup)
-                    moved_old = True
                 os.replace(staging_lake, destination)
-                self._validate_seeded_destination(destination)
-                result = {
-                    **self.status(),
-                    "action": "seed",
-                    "result": "seeded",
-                    "target": str(destination),
-                    "worktree_root": str(worktree_root),
-                    "replaced": moved_old,
-                    "backup_retained": None,
-                    "cache_hit": 1,
-                    "cache_miss": 0,
-                    "lock_waited": int(cache_lock.waited or target_lock.waited),
-                    "lock_wait_seconds": round(cache_lock.wait_seconds + target_lock.wait_seconds, 6),
-                    "builds": 0,
-                    "build_seconds": 0.0,
-                    "elapsed_seconds": round(time.monotonic() - started, 6),
-                    "copy": asdict(copy_stats),
-                }
-            except BaseException as error:
-                moved_old = moved_old or backup.exists() or backup.is_symlink()
-                rollback_errors = self._rollback_seed_replacement(
-                    destination,
-                    backup,
-                    rollback_new,
-                    moved_old=moved_old,
+            finally:
+                replacement.new_published = (
+                    not staging_lake.exists()
+                    and not staging_lake.is_symlink()
+                    and (destination.exists() or destination.is_symlink())
                 )
-                if rollback_errors:
-                    details = "; ".join(rollback_errors)
-                    raise CacheError(f"seed failed ({error}); rollback incomplete: {details}") from error
-                raise
-            return result, backup, moved_old
+            self._validate_seeded_destination(destination)
+            return {
+                **self.status(),
+                "action": "seed",
+                "result": "seeded",
+                "target": str(destination),
+                "worktree_root": str(worktree_root),
+                "replaced": replacement.old_moved,
+                "backup_retained": None,
+                "cache_hit": 1,
+                "cache_miss": 0,
+                "lock_waited": int(cache_lock.waited or target_lock.waited),
+                "lock_wait_seconds": round(cache_lock.wait_seconds + target_lock.wait_seconds, 6),
+                "builds": 0,
+                "build_seconds": 0.0,
+                "elapsed_seconds": round(time.monotonic() - started, 6),
+                "copy": asdict(copy_stats),
+            }
         finally:
             try:
                 if staging_root.exists():
@@ -3188,26 +3214,15 @@ class HotMainCache:
             return str(backup) if backup.exists() or backup.is_symlink() else None
         return None
 
-    def _rollback_prepared_seed(
-        self, target_project: Path, backup: Path, moved_old: bool, error: BaseException
+    def _rollback_seed_transaction(
+        self, replacement: _SeedReplacement, error: BaseException, *, action: str
     ) -> None:
-        rollback_root = Path(tempfile.mkdtemp(prefix=".lake-prepare-rollback-", dir=target_project))
-        try:
-            rollback_errors = self._rollback_seed_replacement(
-                target_project / ".lake",
-                backup,
-                rollback_root / ".lake-failed-publication",
-                moved_old=moved_old,
-            )
-            if rollback_errors:
-                details = "; ".join(rollback_errors)
-                raise CacheError(
-                    f"issue-worktree preparation failed ({error}); rollback incomplete: {details}"
-                ) from error
-        finally:
-            if rollback_root.exists():
-                make_owner_writable(rollback_root)
-                shutil.rmtree(rollback_root)
+        rollback_errors = self._rollback_seed_replacement(replacement)
+        if rollback_errors:
+            details = "; ".join(rollback_errors)
+            raise CacheError(
+                f"{action} failed ({error}); rollback incomplete: {details}"
+            ) from error
 
     def seed(self, target_project: Path, *, replace: bool = False, dry_run: bool = False) -> dict[str, Any]:
         lexical_target, target_lock_path = self._target_lock_path(target_project)
@@ -3229,16 +3244,30 @@ class HotMainCache:
                     raise CacheError(
                         "hot-main cache is missing or failed deep artifact verification"
                     )
-            result, backup, moved_old = self._publish_seed_locked(
-                target_project,
-                worktree_root,
-                replace=replace,
-                cache_lock=cache_lock,
-                target_lock=target_lock,
-                started=started,
+            replacement = self._new_seed_replacement(
+                target_project, rollback_prefix=".lake-seed-rollback-"
             )
-            result["backup_retained"] = self._discard_seed_backup(backup, moved_old)
-            self._append_metric(result)
+            try:
+                result = self._publish_seed_locked(
+                    target_project,
+                    worktree_root,
+                    replace=replace,
+                    cache_lock=cache_lock,
+                    target_lock=target_lock,
+                    started=started,
+                    replacement=replacement,
+                )
+                self._append_metric(result)
+            except BaseException as error:
+                try:
+                    self._rollback_seed_transaction(replacement, error, action="seed")
+                finally:
+                    self._discard_seed_rollback_root(replacement)
+                raise
+            result["backup_retained"] = self._discard_seed_backup(
+                replacement.backup, replacement.old_moved
+            )
+            self._discard_seed_rollback_root(replacement)
             return result
 
     def prepare(self, target_project: Path, *, replace_seed: bool = False, dry_run: bool = False) -> dict[str, Any]:
@@ -3262,15 +3291,19 @@ class HotMainCache:
                     raise CacheError(
                         "hot-main cache is missing or failed deep artifact verification"
                     )
-            seeded, backup, moved_old = self._publish_seed_locked(
-                target_project,
-                worktree_root,
-                replace=replace_seed,
-                cache_lock=cache_lock,
-                target_lock=target_lock,
-                started=started,
+            replacement = self._new_seed_replacement(
+                target_project, rollback_prefix=".lake-prepare-rollback-"
             )
             try:
+                seeded = self._publish_seed_locked(
+                    target_project,
+                    worktree_root,
+                    replace=replace_seed,
+                    cache_lock=cache_lock,
+                    target_lock=target_lock,
+                    started=started,
+                    replacement=replacement,
+                )
                 target_inputs = self._capture_identity_inputs(target_project)
                 module_relative = "scripts/materialize_mipstarre.py"
                 pin_relative = "references/mipstarre-upstream.json"
@@ -3346,11 +3379,19 @@ class HotMainCache:
                 }
                 self._append_metric(seeded)
             except BaseException as error:
-                self._rollback_prepared_seed(target_project, backup, moved_old, error)
+                try:
+                    self._rollback_seed_transaction(
+                        replacement, error, action="issue-worktree preparation"
+                    )
+                finally:
+                    self._discard_seed_rollback_root(replacement)
                 if isinstance(error, CacheError):
                     raise
                 raise CacheError(f"issue-worktree foundation preparation failed: {error}") from error
-            seeded["backup_retained"] = self._discard_seed_backup(backup, moved_old)
+            seeded["backup_retained"] = self._discard_seed_backup(
+                replacement.backup, replacement.old_moved
+            )
+            self._discard_seed_rollback_root(replacement)
             return prepared
 
 

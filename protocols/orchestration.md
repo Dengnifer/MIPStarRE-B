@@ -225,7 +225,8 @@ captured-byte loading, materialization, post-verifier authored/source checks,
 and final deep cache/target identity checks; a replaced `.lake` remains
 rollback-capable until those checks pass and the success-metric append
 completes. A bare `seed` is not a build-readiness gate because it intentionally
-copies only `.lake`.
+copies only `.lake`; its publication remains rollback-capable through its own
+success-metric append, with backup cleanup best-effort only after commit.
 
 `MATHLIB_SOURCE` must name a standalone, clean, non-bare Git worktree. The
 cache checks `HEAD`, the root tree, local `git fsck --full`, the shallow
