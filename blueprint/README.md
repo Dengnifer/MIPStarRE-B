@@ -43,13 +43,20 @@ arbitrary POVMs, bundled normalization, sigma codecs into uniform outcome
 alphabets, Euclidean/`WithLp`/operator adapters, transparent bipartite
 isometries, separate `SquaredRealizes` and public `Realizes` certificates, and
 `Real.rpow`. Carrier universes and required finite/decidable instances are
-explicit. The minimal-skeleton stage plan declares exactly two `sorry`s:
-`MIPStarRE.QPBT.fieldDataOfOddExponent` for paper gap `G16`, and
-`MIPStarRE.QPBT.pauliSoundness` for the main theorem. In the complete-skeleton
-stage, a `sorry` is permitted only as the proof body of a blueprint theorem;
-it is forbidden in definitions or statements and may not be replaced or
-hidden by a new `axiom`, `constant`, or public assumption. The proof-complete
-stage permits zero `sorry`s.
+explicit. The Stage-4A minimal-skeleton plan declares exactly four theorem-body
+`sorry`s: `MIPStarRE.QPBT.fieldDataOfOddExponent` for paper gap `G16`, private
+`MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists` for the `G19`
+compiler/execution construction, public
+`MIPStarRE.QPBT.ExecutableCLSampler.downsize_time` for its paper runtime proof,
+and `MIPStarRE.QPBT.pauliSoundness` for the main theorem. The private helper is
+not part of F06A's frozen 56-name public API. In the complete-skeleton stage, a
+`sorry` is permitted only as the proof body of a blueprint theorem; the F06A
+definitions, including `ExecutableCLSampler.downsize`, must be constructed and
+remain `sorry`-free. The three public structural downsizing theorems
+`downsize_dimension`, `downsize_associated`, and `sample_downsize` must also be
+proved. No hole may be replaced or hidden by a new `axiom`, `constant`, or public
+assumption. QPBT-061 discharges both F06A holes at Stage 4C; the proof-complete
+stage permits zero `sorry`s unconditionally.
 
 The PDF is written to `blueprint/build/main.pdf`. Build products and the
 Graphviz SVG are ignored. The PDF target verifies that all planned Lean

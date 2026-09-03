@@ -281,6 +281,13 @@ EXECUTABLE_CL_LEAN_NAMES = [
     "MIPStarRE.QPBT.ExecutableCLSampler.sample_downsize",
     "MIPStarRE.QPBT.ExecutableCLSampler.downsize_time",
 ]
+EXECUTABLE_CL_PRIVATE_STAGE_4A_SORRIES = [
+    "MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists",
+]
+EXECUTABLE_CL_STAGE_4A_SORRIES = [
+    *EXECUTABLE_CL_PRIVATE_STAGE_4A_SORRIES,
+    "MIPStarRE.QPBT.ExecutableCLSampler.downsize_time",
+]
 EXECUTABLE_CL_IMPLEMENTATION_CONTRACT = {
     "writer_lane": "types",
     "owned_file": "MIPStarRE/QPBT/Game/Types.lean",
@@ -311,7 +318,7 @@ EXECUTABLE_CL_IMPLEMENTATION_CONTRACT = {
         "MIPStarRE.QPBT.downsizeVector",
     ],
     "validation_commands": ["lake env lean MIPStarRE/QPBT/Game/Types.lean"],
-    "allowed_minimal_sorries": [],
+    "allowed_minimal_sorries": EXECUTABLE_CL_STAGE_4A_SORRIES,
     "proof_complete_sorry_count": 0,
 }
 EXECUTABLE_CL_HISTORICAL_REPORT_PATH = Path(
@@ -647,13 +654,18 @@ EXPECTED_TARGET_SPINES = {
 }
 MINIMAL_SKELETON_PLAN = {
     "stage": "minimal",
-    "sorry_count": 2,
+    "sorry_count": 4,
     "sorry_declarations": [
         "MIPStarRE.QPBT.fieldDataOfOddExponent",
+        *EXECUTABLE_CL_STAGE_4A_SORRIES,
         "MIPStarRE.QPBT.pauliSoundness",
     ],
     "sorry_reasons": {
         "MIPStarRE.QPBT.fieldDataOfOddExponent": "G16",
+        "MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists":
+            "G19/QPBT-061 compiler-execution debt",
+        "MIPStarRE.QPBT.ExecutableCLSampler.downsize_time":
+            "G19/QPBT-061 runtime-proof debt",
         "MIPStarRE.QPBT.pauliSoundness": "main-theorem",
     },
     "proof_complete_sorry_count": 0,
@@ -845,7 +857,11 @@ def _implementation_contract_errors(node: dict[str, Any],
         unknown = set(allowed_sorries) - declared_sorries
         if unknown:
             errors.append(f"{node_id}: implementation permits undeclared sorries {sorted(unknown)}")
-        foreign = set(allowed_sorries) - set(node["lean"]["names"])
+        private_sorries = (
+            set(EXECUTABLE_CL_PRIVATE_STAGE_4A_SORRIES)
+            if node_id == EXECUTABLE_CL_OWNER_ID else set()
+        )
+        foreign = set(allowed_sorries) - set(node["lean"]["names"]) - private_sorries
         if foreign:
             errors.append(f"{node_id}: implementation permits foreign sorries {sorted(foreign)}")
     if contract["proof_complete_sorry_count"] != 0:

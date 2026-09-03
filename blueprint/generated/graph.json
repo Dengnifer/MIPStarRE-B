@@ -2427,7 +2427,10 @@
       ],
       "id": "F06A-EXECUTABLE-CL",
       "implementation_contract": {
-        "allowed_minimal_sorries": [],
+        "allowed_minimal_sorries": [
+          "MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists",
+          "MIPStarRE.QPBT.ExecutableCLSampler.downsize_time"
+        ],
         "imports": [
           "Mathlib.Computability.TuringMachine.Computable",
           "Mathlib.Data.Nat.Log",
@@ -3928,7 +3931,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "f9c4297c1ec1594731d6a3e11b04cd6bcaf33974d864d84adac09f7e7fdcdf52",
+  "source_sha256": "dba17ecb0eda9759386ef66eb671263a4d83229ffd12b2aabde66bd3b6e7010b",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",

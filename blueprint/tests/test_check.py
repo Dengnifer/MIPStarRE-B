@@ -93,16 +93,22 @@ class BlueprintCheckTests(unittest.TestCase):
                     for error in self.errors(nodes=bad)
                 ))
 
-    def test_minimal_skeleton_proof_debt_is_exact(self) -> None:
+    def test_stage_4a_skeleton_proof_debt_is_exact(self) -> None:
         expected = {
             "stage": "minimal",
-            "sorry_count": 2,
+            "sorry_count": 4,
             "sorry_declarations": [
                 "MIPStarRE.QPBT.fieldDataOfOddExponent",
+                "MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists",
+                "MIPStarRE.QPBT.ExecutableCLSampler.downsize_time",
                 "MIPStarRE.QPBT.pauliSoundness",
             ],
             "sorry_reasons": {
                 "MIPStarRE.QPBT.fieldDataOfOddExponent": "G16",
+                "MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists":
+                    "G19/QPBT-061 compiler-execution debt",
+                "MIPStarRE.QPBT.ExecutableCLSampler.downsize_time":
+                    "G19/QPBT-061 runtime-proof debt",
                 "MIPStarRE.QPBT.pauliSoundness": "main-theorem",
             },
             "proof_complete_sorry_count": 0,
@@ -110,7 +116,7 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertEqual(expected, self.nodes["skeleton_plan"])
         for mutation in (
             {**expected, "stage": "complete"},
-            {**expected, "sorry_count": 1},
+            {**expected, "sorry_count": 3},
             {**expected, "sorry_declarations": ["MIPStarRE.QPBT.helper"]},
             {**expected, "sorry_reasons": {
                 "MIPStarRE.QPBT.fieldDataOfOddExponent": "untracked",
@@ -123,6 +129,61 @@ class BlueprintCheckTests(unittest.TestCase):
                 bad["skeleton_plan"] = mutation
                 self.assertTrue(any("exact minimal-skeleton proof debt" in error
                                     for error in self.errors(nodes=bad)))
+
+    def test_executable_cl_stage_4a_debt_is_exact_and_private_helper_stays_private(
+            self) -> None:
+        node = next(item for item in self.nodes["nodes"]
+                    if item["id"] == check.EXECUTABLE_CL_OWNER_ID)
+        public_names = node["lean"]["names"]
+        allowed = node["implementation_contract"]["allowed_minimal_sorries"]
+
+        self.assertEqual(check.EXECUTABLE_CL_STAGE_4A_SORRIES, allowed)
+        self.assertEqual(56, len(public_names))
+        self.assertNotIn(
+            "MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists",
+            public_names,
+        )
+        for proved_declaration in (
+            "MIPStarRE.QPBT.ExecutableCLSampler.downsize",
+            "MIPStarRE.QPBT.ExecutableCLSampler.downsize_dimension",
+            "MIPStarRE.QPBT.ExecutableCLSampler.downsize_associated",
+            "MIPStarRE.QPBT.ExecutableCLSampler.sample_downsize",
+        ):
+            self.assertNotIn(proved_declaration, allowed)
+
+        mutations = (
+            [],
+            ["MIPStarRE.QPBT.ExecutableCLSampler.downsize_time"],
+            [
+                "MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists",
+                "MIPStarRE.QPBT.ExecutableCLSampler.downsize_dimension",
+            ],
+            [
+                *check.EXECUTABLE_CL_STAGE_4A_SORRIES,
+                "MIPStarRE.QPBT.ExecutableCLSampler.sample_downsize",
+            ],
+        )
+        for mutation in mutations:
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(self.nodes)
+                target = next(item for item in bad["nodes"]
+                              if item["id"] == check.EXECUTABLE_CL_OWNER_ID)
+                target["implementation_contract"]["allowed_minimal_sorries"] = mutation
+                self.assertTrue(any(
+                    "implementation contract must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        exposed = copy.deepcopy(self.nodes)
+        target = next(item for item in exposed["nodes"]
+                      if item["id"] == check.EXECUTABLE_CL_OWNER_ID)
+        target["lean"]["names"].append(
+            "MIPStarRE.QPBT.ExecutableCLSampler.downsizeCompiler_exists"
+        )
+        self.assertTrue(any(
+            "executable CL callable names must remain exact" in error
+            for error in self.errors(nodes=exposed)
+        ))
 
     def test_duplicate_ids_and_lean_names_are_rejected(self) -> None:
         bad = copy.deepcopy(self.nodes)
