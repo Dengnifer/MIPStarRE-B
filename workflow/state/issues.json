@@ -2141,7 +2141,7 @@
       "title": "Prevent guessed full SHAs in local workflow admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "ready",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-026",
@@ -2169,6 +2169,7 @@
         "research/metrics/incidents.jsonl#INC-050",
         "research/metrics/incidents.jsonl#INC-058",
         "research/metrics/incidents.jsonl#INC-059",
+        "research/metrics/incidents.jsonl#INC-078",
         "workflow/state/issues.json#QPBT-045",
         "workflow/reviews/qpbt-026-final-activation-a26.md",
         "workflow/reviews/qpbt-035-issue-graph-a09.md",
@@ -2184,9 +2185,9 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:46:00Z",
-      "updated_at": "2026-09-01T15:58:38.131173Z",
-      "blocked_reason": "QPBT-045 must first restore and freeze the hot-cache exact-ref and materialization contract.",
-      "unblock_condition": "QPBT-045 done."
+      "updated_at": "2026-09-03T12:26:40.867094Z",
+      "blocked_reason": null,
+      "unblock_condition": "Dependencies QPBT-026, QPBT-034, and QPBT-045 are complete; issue is ready for dispatch."
     },
     {
       "id": "QPBT-041",
@@ -2955,7 +2956,7 @@
       "title": "feat(QPBT/Game): implement the executable CL minimal skeleton",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-056"
@@ -2989,37 +2990,44 @@
       ],
       "owned_paths": [
         "MIPStarRE/QPBT/Game/Types.lean",
-        "workflow/reviews/qpbt-057-f06a-a01.md"
+        "workflow/reviews/qpbt-057-f06a-a02.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T11:43:49.193960Z",
-      "blocked_reason": "Fresh immutable review found candidate a9abedb3 is based on 20745fe, not declared base 6b43c72, and its diff includes 8,143 unrelated deletions.",
-      "unblock_condition": "Reconstruct/rebase the exact Types.lean implementation onto current main 6b43c72, regenerate immutable head/tree/patch/report, and obtain a fresh review.",
+      "updated_at": "2026-09-03T12:23:01.025568Z",
+      "blocked_reason": null,
+      "unblock_condition": "Obtain fresh immutable mathematical/API approval of exact current-main candidate a67031de before guarded integration.",
       "proof_completion_issue_id": "QPBT-061",
-      "candidate_head_sha": "a9abedb3d08d1b020d310075fc2865ae21397eb8",
-      "candidate_tree": "f736b0ccd81f3f4e34b1cdfc1a35a25e112e5cd8",
-      "candidate_patch_sha256": "611f09855c6e35da2c1c3cb44dae8c8a1a8325d050504cce2b850de430693721",
-      "candidate_report": "workflow/reviews/qpbt-057-f06a-a01.md",
-      "candidate_report_sha256": "3d89315bfbfd16c90742a7b5e11e6d40da76c878349f6028a6e3b1482e8aa16b",
+      "candidate_head_sha": "a67031de5a3804360e113dd4a881e94376fc435f",
+      "candidate_tree": "71acb8bd5ea77959a03a1124c2fce018457b9605",
+      "candidate_patch_sha256": "d13454544557b44a38e7c2b3cb2c992dd5551cab3e14aa274269772ae36bfa2f",
+      "candidate_report": "workflow/reviews/qpbt-057-f06a-a02.md",
+      "candidate_report_sha256": "e21f427c08518d035fac38ce8ea73b0618030a42cd60e23a7f99127fc8cbe0d7",
       "candidate_checks": [
-        "scoped Lean passed with exactly two declared warnings",
-        "affected target passed 3101 jobs",
-        "56-name signature probe passed",
-        "blueprint default and pinned-source checks passed",
-        "authenticated foundation materialized and verified",
+        "scoped Lean passed with exactly two authorized sorry warnings",
+        "Field target passed 2357 jobs",
+        "Types target passed 3101 jobs",
         "full build passed 8992 jobs",
-        "exact two-path scope and diff hygiene passed"
+        "blueprint default and pinned-source checks passed",
+        "blueprint tests passed 36/36",
+        "workflow validation and check_workflow passed",
+        "exact two-path diff and content hashes passed"
       ],
       "review_report": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md",
       "review_findings": [
         {
           "id": "F057-A06-001",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md:11-20",
-          "summary": "Candidate is not descended from the declared immutable review base; unrelated canonical-history deletions prevent attribution and integration."
+          "summary": "Historical candidate a9abedb3 was not descended from its declared base and deleted unrelated history.",
+          "disposition": "fixed",
+          "resolution_evidence": "Attempt A02 reconstructed the exact Types/report change and root replayed it onto current main 9eb476a as head a67031de with an exact two-path diff."
         }
-      ]
+      ],
+      "candidate_base_sha": "9eb476a41595fc70060ed9bb2ea91a50c793ede3",
+      "candidate_status": "awaiting-fresh-immutable-review",
+      "superseded_candidate_head": "a9abedb3d08d1b020d310075fc2865ae21397eb8",
+      "superseded_candidate_review": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md"
     },
     {
       "id": "QPBT-058",
