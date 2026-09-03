@@ -16,7 +16,6 @@ import errno
 import fcntl
 import hashlib
 import io
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -29,6 +28,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import types
 from typing import Any, Callable, Mapping, Sequence
 import zlib
 
@@ -87,6 +87,7 @@ MATHLIB_TAR_MAX_MEMBERS = 20_000
 # bounded margin for that exact artifact while retaining the aggregate tar
 # limit below.
 MATHLIB_TAR_MAX_MEMBER_BYTES = 32 * 1024 * 1024
+IDENTITY_INPUT_MAX_BYTES = 16 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -1120,6 +1121,29 @@ def _absolute_local_path(value: str, label: str, *, must_exist: bool = True) -> 
     return absolute
 
 
+def _read_bounded_descriptor(descriptor: int, maximum: int, label: str) -> bytes:
+    before = os.fstat(descriptor)
+    if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+        raise CacheError(f"{label} must be one regular file")
+    if before.st_size > maximum:
+        raise CacheError(f"{label} exceeds the {maximum}-byte bound")
+    chunks: list[bytes] = []
+    total = 0
+    while total <= before.st_size:
+        chunk = os.read(descriptor, min(1024 * 1024, before.st_size + 1 - total))
+        if not chunk:
+            break
+        chunks.append(chunk)
+        total += len(chunk)
+    after = os.fstat(descriptor)
+    identity = lambda item: (
+        item.st_dev, item.st_ino, item.st_size, item.st_mtime_ns, item.st_nlink
+    )
+    if identity(before) != identity(after) or total != before.st_size:
+        raise CacheError(f"{label} changed while read")
+    return b"".join(chunks)
+
+
 def _read_bounded_regular_file(path: Path, maximum: int, label: str) -> bytes:
     """Read one regular file while checking its identity before and after I/O."""
 
@@ -1129,28 +1153,46 @@ def _read_bounded_regular_file(path: Path, maximum: int, label: str) -> bytes:
     except OSError as error:
         raise CacheError(f"could not open {label}: {error}") from error
     try:
-        before = os.fstat(descriptor)
-        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
-            raise CacheError(f"{label} must be one regular file")
-        if before.st_size > maximum:
-            raise CacheError(f"{label} exceeds the {maximum}-byte bound")
-        chunks: list[bytes] = []
-        total = 0
-        while total <= before.st_size:
-            chunk = os.read(descriptor, min(1024 * 1024, before.st_size + 1 - total))
-            if not chunk:
-                break
-            chunks.append(chunk)
-            total += len(chunk)
-        after = os.fstat(descriptor)
-        identity = lambda item: (
-            item.st_dev, item.st_ino, item.st_size, item.st_mtime_ns, item.st_nlink
-        )
-        if identity(before) != identity(after) or total != before.st_size:
-            raise CacheError(f"{label} changed while read")
-        return b"".join(chunks)
+        return _read_bounded_descriptor(descriptor, maximum, label)
     finally:
         os.close(descriptor)
+
+
+def _read_bounded_project_file(
+    project: Path, relative_path: str, maximum: int, label: str
+) -> bytes:
+    """Read a project-relative file through a no-follow directory chain."""
+
+    relative = PurePosixPath(relative_path)
+    if relative.is_absolute() or any(part in {"", ".", ".."} for part in relative.parts):
+        raise CacheError(f"{label} has an unsafe project-relative path")
+    directory_flags = (
+        os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
+    )
+    descriptors: list[int] = []
+    try:
+        descriptor = os.open(project, directory_flags)
+        descriptors.append(descriptor)
+        for component in relative.parts[:-1]:
+            descriptor = os.open(component, directory_flags, dir_fd=descriptor)
+            descriptors.append(descriptor)
+        file_flags = (
+            os.O_RDONLY
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_NONBLOCK", 0)
+        )
+        file_descriptor = os.open(relative.parts[-1], file_flags, dir_fd=descriptor)
+        try:
+            return _read_bounded_descriptor(file_descriptor, maximum, label)
+        finally:
+            os.close(file_descriptor)
+    except CacheError:
+        raise
+    except OSError as error:
+        raise CacheError(f"could not open {label} without following links: {error}") from error
+    finally:
+        for descriptor in reversed(descriptors):
+            os.close(descriptor)
 
 
 def _json_object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -2023,14 +2065,12 @@ class HotMainCache:
         return environment
 
     @staticmethod
-    def _validate_project_mathlib_pin(project: Path) -> dict[str, str]:
-        """Read the detached project's Mathlib pin and bind it to the known contract."""
+    def _validate_project_mathlib_pin_payload(payload: bytes) -> dict[str, str]:
+        """Parse captured root-manifest bytes and bind the Mathlib contract."""
 
         try:
             document = json.loads(
-                _read_bounded_regular_file(
-                    project / "lake-manifest.json", 16 * 1024 * 1024, "root Lake manifest"
-                ).decode("utf-8"),
+                payload.decode("utf-8"),
                 object_pairs_hook=_json_object_without_duplicates,
             )
         except CacheError:
@@ -2066,12 +2106,24 @@ class HotMainCache:
             "tree": MATHLIB_TREE,
         }
 
+    @classmethod
+    def _validate_project_mathlib_pin(cls, project: Path) -> dict[str, str]:
+        """Read one stable root manifest and bind it to the Mathlib contract."""
+
+        payload = _read_bounded_regular_file(
+            project / "lake-manifest.json", IDENTITY_INPUT_MAX_BYTES, "root Lake manifest"
+        )
+        return cls._validate_project_mathlib_pin_payload(payload)
+
     def _prepare_mathlib_source(self, staging: Path, project: Path) -> MathlibSourceBinding:
         """Resolve and authenticate the local Mathlib source before Lake runs."""
 
         if not self._requires_mathlib_source():
             raise CacheError("Mathlib source preparation is only valid for the canonical recipe")
-        pin = self._validate_project_mathlib_pin(project)
+        captured_inputs = self._capture_identity_inputs(project)
+        pin = self._validate_project_mathlib_pin_payload(
+            captured_inputs["lake-manifest.json"]
+        )
         source_value = os.environ.get(MATHLIB_SOURCE_ENV)
         archive_value = os.environ.get(MATHLIB_ARCHIVE_ENV)
         if bool(source_value) == bool(archive_value):
@@ -2134,12 +2186,18 @@ class HotMainCache:
         if hashlib.sha256(payload).hexdigest() != MATHLIB_ARCHIVE_SHA256:
             raise CacheError("Mathlib archive checksum differs from the pinned digest")
 
-    def _preflight_mathlib_input(self) -> None:
+    def _preflight_mathlib_input(
+        self, captured_inputs: Mapping[str, bytes] | None = None
+    ) -> None:
         """Fail closed when the canonical warm input is absent or malformed."""
 
         if not self._requires_mathlib_source():
             return
-        pin = self._validate_project_mathlib_pin(self.project_dir)
+        pin = (
+            self._validate_project_mathlib_pin_payload(captured_inputs["lake-manifest.json"])
+            if captured_inputs is not None
+            else self._validate_project_mathlib_pin(self.project_dir)
+        )
         source_value = os.environ.get(MATHLIB_SOURCE_ENV)
         archive_value = os.environ.get(MATHLIB_ARCHIVE_ENV)
         if bool(source_value) == bool(archive_value):
@@ -2156,17 +2214,66 @@ class HotMainCache:
             archive = _absolute_local_path(archive_value or "", MATHLIB_ARCHIVE_ENV)
             self._validate_mathlib_archive_input(archive)
 
-    def _load_identity_module(self, relative_path: str, name: str) -> Any:
-        path = self.project_dir / relative_path
-        spec = importlib.util.spec_from_file_location(name, path)
-        if spec is None or spec.loader is None:
-            raise CacheError(f"could not load identity-bound input verifier {relative_path}")
-        module = importlib.util.module_from_spec(spec)
+    def _capture_identity_inputs(self, project: Path) -> dict[str, bytes]:
+        """Capture and authenticate every commit-bound input without reopening it."""
+
+        captured: dict[str, bytes] = {}
+        for relative_path, expected_sha256 in self.identity.inputs.items():
+            payload = _read_bounded_project_file(
+                project,
+                relative_path,
+                IDENTITY_INPUT_MAX_BYTES,
+                f"identity input {relative_path}",
+            )
+            if hashlib.sha256(payload).hexdigest() != expected_sha256:
+                raise CacheError(
+                    f"identity input {relative_path} differs from the exact main cache identity"
+                )
+            captured[relative_path] = payload
+        return captured
+
+    @staticmethod
+    def _load_identity_module(
+        relative_path: str, name: str, payload: bytes, display_root: Path
+    ) -> Any:
+        """Execute only the already authenticated module payload."""
+
+        path = display_root / relative_path
+        module = types.ModuleType(name)
+        module.__file__ = str(path)
+        module.__package__ = ""
         try:
-            spec.loader.exec_module(module)
+            code = compile(payload, str(path), "exec", dont_inherit=True)
+            exec(code, module.__dict__)
         except Exception as error:
             raise CacheError(f"could not load identity-bound input verifier {relative_path}: {error}") from error
         return module
+
+    @staticmethod
+    def _load_captured_pin(module: Any, relative_path: str, payload: bytes) -> dict[str, Any]:
+        """Parse only captured pin bytes through the identity-bound verifier."""
+
+        with tempfile.TemporaryDirectory(prefix="hot-cache-pin-") as temporary:
+            path = Path(temporary) / Path(relative_path).name
+            path.write_bytes(payload)
+            return module.load_pin(path)
+
+    @staticmethod
+    def _validate_captured_project(
+        module: Any,
+        validator_name: str,
+        captured_inputs: Mapping[str, bytes],
+        pin: Mapping[str, Any],
+    ) -> None:
+        """Run path-oriented validation against a private captured-byte tree."""
+
+        with tempfile.TemporaryDirectory(prefix="hot-cache-inputs-") as temporary:
+            root = Path(temporary)
+            for relative_path, payload in captured_inputs.items():
+                destination = root / relative_path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(payload)
+            getattr(module, validator_name)(root, pin)
 
     @staticmethod
     def _authenticate_pinned_file(path: Path, expected_bytes: int, expected_sha256: str, label: str) -> None:
@@ -2179,9 +2286,11 @@ class HotMainCache:
     def _preflight_authenticated_inputs(self) -> dict[str, Any]:
         """Authenticate the complete canonical local-input tuple before election."""
 
-        self._preflight_mathlib_input()
         if not self._requires_mathlib_source():
+            self._preflight_mathlib_input()
             return {"required": False}
+        captured_inputs = self._capture_identity_inputs(self.project_dir)
+        self._preflight_mathlib_input(captured_inputs)
         mip_value = os.environ.get(MIPSTARRE_ARCHIVE_ENV)
         packages_value = os.environ.get(LAKE_PACKAGE_ARCHIVES_ENV)
         if not mip_value:
@@ -2199,19 +2308,37 @@ class HotMainCache:
 
         try:
             mip_module = self._load_identity_module(
-                "scripts/materialize_mipstarre.py", "_hot_cache_input_mipstarre"
+                "scripts/materialize_mipstarre.py",
+                "_hot_cache_input_mipstarre",
+                captured_inputs["scripts/materialize_mipstarre.py"],
+                self.project_dir,
             )
-            mip_pin = mip_module.load_pin(self.project_dir / "references/mipstarre-upstream.json")
-            mip_module.validate_project_pins(self.project_dir, mip_pin)
+            mip_pin = self._load_captured_pin(
+                mip_module,
+                "references/mipstarre-upstream.json",
+                captured_inputs["references/mipstarre-upstream.json"],
+            )
+            self._validate_captured_project(
+                mip_module, "validate_project_pins", captured_inputs, mip_pin
+            )
             self._authenticate_pinned_file(
                 mip_archive, mip_pin["archive"]["bytes"], mip_pin["archive"]["sha256"],
                 "MIPStarRE archive",
             )
             package_module = self._load_identity_module(
-                "scripts/materialize_lake_packages.py", "_hot_cache_input_packages"
+                "scripts/materialize_lake_packages.py",
+                "_hot_cache_input_packages",
+                captured_inputs["scripts/materialize_lake_packages.py"],
+                self.project_dir,
             )
-            package_pin = package_module.load_pin(self.project_dir / "references/lake-packages.json")
-            package_module.validate_manifests(self.project_dir, package_pin)
+            package_pin = self._load_captured_pin(
+                package_module,
+                "references/lake-packages.json",
+                captured_inputs["references/lake-packages.json"],
+            )
+            self._validate_captured_project(
+                package_module, "validate_manifests", captured_inputs, package_pin
+            )
             for package in package_pin["packages"]:
                 archive = package_directory / f"{package['name']}-{package['revision']}.tar.gz"
                 self._authenticate_pinned_file(
@@ -2414,15 +2541,21 @@ class HotMainCache:
         else:
             if self.recipe.test_only:
                 raise CacheError("a materializing test recipe requires an exact test source verifier")
-            module_path = detached_project / "scripts" / "materialize_mipstarre.py"
-            spec = importlib.util.spec_from_file_location("_hot_cache_materializer", module_path)
-            if spec is None or spec.loader is None:
-                raise CacheError("could not load the identity-bound foundation verifier")
-            module = importlib.util.module_from_spec(spec)
             try:
-                spec.loader.exec_module(module)
-                pin = module.load_pin(detached_project / pin_relative)
-                module.validate_project_pins(detached_project, pin)
+                captured_inputs = self._capture_identity_inputs(detached_project)
+                module_relative = "scripts/materialize_mipstarre.py"
+                module = self._load_identity_module(
+                    module_relative,
+                    "_hot_cache_materializer",
+                    captured_inputs[module_relative],
+                    detached_project,
+                )
+                pin = self._load_captured_pin(
+                    module, pin_relative, captured_inputs[pin_relative]
+                )
+                self._validate_captured_project(
+                    module, "validate_project_pins", captured_inputs, pin
+                )
                 verified = module.verify_materialized(detached_project, pin)
                 raw_evidence = {
                     "schema_version": SOURCE_EVIDENCE_SCHEMA_VERSION,
@@ -2823,12 +2956,12 @@ class HotMainCache:
         ):
             raise CacheError("target worktree is not attached to the main repository")
 
-        target_inputs = discover_inputs(target_project, self.recipe)
-        symlinked_inputs = [str(path) for path in target_inputs if path.is_symlink()]
-        if symlinked_inputs:
-            raise CacheError("target cache-key inputs cannot be symlinks: " + ", ".join(symlinked_inputs))
-        if hash_inputs(target_project, self.recipe) != self.identity.inputs:
-            raise CacheError("target worktree has cache-key inputs incompatible with this cache")
+        try:
+            self._capture_identity_inputs(target_project)
+        except CacheError as error:
+            raise CacheError(
+                f"target worktree has cache-key inputs incompatible with this cache: {error}"
+            ) from error
         return target_project, matched_root
 
     def _validate_seeded_destination(self, destination: Path) -> None:
@@ -2872,137 +3005,255 @@ class HotMainCache:
             errors.append(f"original cache backup disappeared: {backup}")
         return errors
 
-    def seed(self, target_project: Path, *, replace: bool = False, dry_run: bool = False) -> dict[str, Any]:
-        target_project, worktree_root = self._eligible_seed_target(target_project)
-        destination = target_project / ".lake"
+    def _target_lock_path(self, supplied_target: Path) -> tuple[Path, Path]:
+        lexical_target = reject_symlink_components(supplied_target)
+        destination = lexical_target / ".lake"
         target_digest = hashlib.sha256(str(destination).encode("utf-8")).hexdigest()
-        target_lock = self.runtime_dir / "locks" / f"seed-{target_digest}.lock"
+        return lexical_target, self.runtime_dir / "locks" / f"seed-{target_digest}.lock"
+
+    def _publish_seed_locked(
+        self,
+        target_project: Path,
+        worktree_root: Path,
+        *,
+        replace: bool,
+        cache_lock: ExclusiveLock,
+        target_lock: ExclusiveLock,
+        started: float,
+    ) -> tuple[dict[str, Any], Path, bool]:
+        """Publish a seed while the caller retains the target operation lock."""
+
+        destination = target_project / ".lake"
+        if destination.is_symlink():
+            raise CacheError(f"refusing to replace symlinked .lake directory: {destination}")
+        if destination.exists() and not destination.is_dir():
+            raise CacheError(f"target .lake must be a real directory: {destination}")
+        if destination.exists() and not replace:
+            raise CacheError(
+                f"target .lake already exists; pass --replace to replace it: {destination}"
+            )
+        staging_root = Path(tempfile.mkdtemp(prefix=".lake-seed-", dir=target_project))
+        backup = target_project / f".lake.backup-{os.getpid()}-{time.monotonic_ns()}"
+        rollback_new = staging_root / ".lake-failed-publication"
+        moved_old = False
+        try:
+            staging_lake = staging_root / ".lake"
+            copy_stats = reflink_copytree(self.lake_dir, staging_lake)
+            make_owner_writable(staging_lake)
+            if destination.exists():
+                os.replace(destination, backup)
+                moved_old = True
+            try:
+                os.replace(staging_lake, destination)
+                self._validate_seeded_destination(destination)
+            except Exception as error:
+                rollback_errors = self._rollback_seed_replacement(
+                    destination,
+                    backup,
+                    rollback_new,
+                    moved_old=moved_old,
+                )
+                if rollback_errors:
+                    details = "; ".join(rollback_errors)
+                    raise CacheError(f"seed failed ({error}); rollback incomplete: {details}") from error
+                raise
+            result = {
+                **self.status(),
+                "action": "seed",
+                "result": "seeded",
+                "target": str(destination),
+                "worktree_root": str(worktree_root),
+                "replaced": moved_old,
+                "backup_retained": None,
+                "cache_hit": 1,
+                "cache_miss": 0,
+                "lock_waited": int(cache_lock.waited or target_lock.waited),
+                "lock_wait_seconds": round(cache_lock.wait_seconds + target_lock.wait_seconds, 6),
+                "builds": 0,
+                "build_seconds": 0.0,
+                "elapsed_seconds": round(time.monotonic() - started, 6),
+                "copy": asdict(copy_stats),
+            }
+            return result, backup, moved_old
+        finally:
+            if staging_root.exists():
+                make_owner_writable(staging_root)
+                shutil.rmtree(staging_root)
+
+    @staticmethod
+    def _discard_seed_backup(backup: Path, moved_old: bool) -> str | None:
+        if not moved_old or not backup.exists():
+            return None
+        try:
+            make_owner_writable(backup)
+            shutil.rmtree(backup)
+        except OSError:
+            return str(backup)
+        return None
+
+    def _rollback_prepared_seed(
+        self, target_project: Path, backup: Path, moved_old: bool, error: BaseException
+    ) -> None:
+        rollback_root = Path(tempfile.mkdtemp(prefix=".lake-prepare-rollback-", dir=target_project))
+        try:
+            rollback_errors = self._rollback_seed_replacement(
+                target_project / ".lake",
+                backup,
+                rollback_root / ".lake-failed-publication",
+                moved_old=moved_old,
+            )
+            if rollback_errors:
+                details = "; ".join(rollback_errors)
+                raise CacheError(
+                    f"issue-worktree preparation failed ({error}); rollback incomplete: {details}"
+                ) from error
+        finally:
+            if rollback_root.exists():
+                make_owner_writable(rollback_root)
+                shutil.rmtree(rollback_root)
+
+    def seed(self, target_project: Path, *, replace: bool = False, dry_run: bool = False) -> dict[str, Any]:
+        lexical_target, target_lock_path = self._target_lock_path(target_project)
         if dry_run:
+            target_project, worktree_root = self._eligible_seed_target(lexical_target)
             return {
                 **self.status(),
                 "action": "seed",
                 "dry_run": True,
-                "target": str(destination),
+                "target": str(target_project / ".lake"),
                 "worktree_root": str(worktree_root),
                 "replace": replace,
             }
         started = time.monotonic()
-        # Join the cache election before taking the target lock.  A seed racing
-        # an elected builder waits and consumes its publication.
-        with ExclusiveLock(self.lock_path) as cache_lock:
-            if not self.is_ready(deep=True):
-                raise CacheError(
-                    "hot-main cache is missing or failed deep artifact verification"
-                )
-        with ExclusiveLock(target_lock) as seed_lock:
-            checked_target, checked_root = self._eligible_seed_target(target_project)
-            if checked_target != target_project or checked_root != worktree_root:
-                raise CacheError("target worktree identity changed while waiting for the seed lock")
-            if destination.is_symlink():
-                raise CacheError(f"refusing to replace symlinked .lake directory: {destination}")
-            if destination.exists() and not destination.is_dir():
-                raise CacheError(f"target .lake must be a real directory: {destination}")
-            if destination.exists() and not replace:
-                raise CacheError(
-                    f"target .lake already exists; pass --replace to replace it: {destination}"
-                )
-            staging_root = Path(tempfile.mkdtemp(prefix=".lake-seed-", dir=target_project))
-            backup = target_project / f".lake.backup-{os.getpid()}-{time.monotonic_ns()}"
-            rollback_new = staging_root / ".lake-failed-publication"
-            moved_old = False
-            try:
-                staging_lake = staging_root / ".lake"
-                copy_stats = reflink_copytree(self.lake_dir, staging_lake)
-                make_owner_writable(staging_lake)
-                if destination.exists():
-                    os.replace(destination, backup)
-                    moved_old = True
-                try:
-                    os.replace(staging_lake, destination)
-                    self._validate_seeded_destination(destination)
-                except Exception as error:
-                    rollback_errors = self._rollback_seed_replacement(
-                        destination,
-                        backup,
-                        rollback_new,
-                        moved_old=moved_old,
+        with ExclusiveLock(target_lock_path) as target_lock:
+            target_project, worktree_root = self._eligible_seed_target(lexical_target)
+            with ExclusiveLock(self.lock_path) as cache_lock:
+                if not self.is_ready(deep=True):
+                    raise CacheError(
+                        "hot-main cache is missing or failed deep artifact verification"
                     )
-                    if rollback_errors:
-                        details = "; ".join(rollback_errors)
-                        raise CacheError(f"seed failed ({error}); rollback incomplete: {details}") from error
-                    raise
-                backup_retained: str | None = None
-                if moved_old and backup.exists():
-                    try:
-                        make_owner_writable(backup)
-                        shutil.rmtree(backup)
-                    except OSError:
-                        backup_retained = str(backup)
-                result = {
-                    **self.status(),
-                    "action": "seed",
-                    "result": "seeded",
-                    "target": str(destination),
-                    "worktree_root": str(worktree_root),
-                    "replaced": moved_old,
-                    "backup_retained": backup_retained,
-                    "cache_hit": 1,
-                    "cache_miss": 0,
-                    "lock_waited": int(cache_lock.waited or seed_lock.waited),
-                    "lock_wait_seconds": round(cache_lock.wait_seconds + seed_lock.wait_seconds, 6),
-                    "builds": 0,
-                    "build_seconds": 0.0,
-                    "elapsed_seconds": round(time.monotonic() - started, 6),
-                    "copy": asdict(copy_stats),
-                }
-                self._append_metric(result)
-                return result
-            finally:
-                if staging_root.exists():
-                    make_owner_writable(staging_root)
-                    shutil.rmtree(staging_root)
+            result, backup, moved_old = self._publish_seed_locked(
+                target_project,
+                worktree_root,
+                replace=replace,
+                cache_lock=cache_lock,
+                target_lock=target_lock,
+                started=started,
+            )
+            result["backup_retained"] = self._discard_seed_backup(backup, moved_old)
+            self._append_metric(result)
+            return result
 
     def prepare(self, target_project: Path, *, replace_seed: bool = False, dry_run: bool = False) -> dict[str, Any]:
         """Seed and verify a build-ready issue worktree without compiling it."""
 
-        target_project, _ = self._eligible_seed_target(target_project)
+        lexical_target, target_lock_path = self._target_lock_path(target_project)
         if dry_run:
             return {
-                **self.seed(target_project, replace=replace_seed, dry_run=True),
+                **self.seed(lexical_target, replace=replace_seed, dry_run=True),
                 "action": "prepare",
                 "foundation_replace_existing": True,
                 "foundation_verify": True,
             }
         inputs = self._preflight_authenticated_inputs()
-        authored_before = authored_tree_facts_on_disk(target_project)
-        seeded = self.seed(target_project, replace=replace_seed)
-        try:
-            module_path = target_project / "scripts" / "materialize_mipstarre.py"
-            spec = importlib.util.spec_from_file_location("_hot_cache_prepare_mipstarre", module_path)
-            if spec is None or spec.loader is None:
-                raise CacheError("could not load issue-worktree foundation materializer")
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            pin_path = target_project / "references" / "mipstarre-upstream.json"
-            pin = module.load_pin(pin_path)
-            module.validate_project_pins(target_project, pin)
-            materialized = module.materialize(
-                target_project, pin_path, Path(os.environ[MIPSTARRE_ARCHIVE_ENV]),
-                replace_existing=True,
+        started = time.monotonic()
+        with ExclusiveLock(target_lock_path) as target_lock:
+            target_project, worktree_root = self._eligible_seed_target(lexical_target)
+            authored_before = authored_tree_facts_on_disk(target_project)
+            with ExclusiveLock(self.lock_path) as cache_lock:
+                if not self.is_ready(deep=True):
+                    raise CacheError(
+                        "hot-main cache is missing or failed deep artifact verification"
+                    )
+            seeded, backup, moved_old = self._publish_seed_locked(
+                target_project,
+                worktree_root,
+                replace=replace_seed,
+                cache_lock=cache_lock,
+                target_lock=target_lock,
+                started=started,
             )
-            authored_after = authored_tree_facts_on_disk(target_project)
-            if authored_after != authored_before:
-                raise CacheError("authored QPBT inventory changed during issue-worktree preparation")
-            verified = module.verify_materialized(target_project, pin)
-        except CacheError:
-            raise
-        except Exception as error:
-            raise CacheError(f"issue-worktree foundation preparation failed: {error}") from error
-        return {
-            "action": "prepare", "result": "prepared", "inputs": inputs,
-            "seed": seeded, "foundation": materialized, "verification": verified,
-            "authored_qpbt": authored_after,
-        }
+            try:
+                target_inputs = self._capture_identity_inputs(target_project)
+                module_relative = "scripts/materialize_mipstarre.py"
+                pin_relative = "references/mipstarre-upstream.json"
+                module = self._load_identity_module(
+                    module_relative,
+                    "_hot_cache_prepare_mipstarre",
+                    target_inputs[module_relative],
+                    target_project,
+                )
+                pin = self._load_captured_pin(
+                    module, pin_relative, target_inputs[pin_relative]
+                )
+                self._validate_captured_project(
+                    module, "validate_project_pins", target_inputs, pin
+                )
+                pin_path = target_project / pin_relative
+
+                def captured_pin_loader(requested: Path) -> Mapping[str, Any]:
+                    if Path(os.path.abspath(requested)) != pin_path:
+                        raise CacheError("foundation materializer requested an unauthenticated pin path")
+                    return pin
+
+                def captured_project_validator(
+                    requested_root: Path, requested_pin: Mapping[str, Any]
+                ) -> None:
+                    if Path(os.path.abspath(requested_root)) != target_project or requested_pin is not pin:
+                        raise CacheError("foundation materializer changed its authenticated project inputs")
+                    if self._capture_identity_inputs(target_project) != target_inputs:
+                        raise CacheError("target cache-key inputs changed during foundation materialization")
+
+                module.load_pin = captured_pin_loader
+                module.validate_project_pins = captured_project_validator
+                materialized = module.materialize(
+                    target_project,
+                    pin_path,
+                    Path(os.environ[MIPSTARRE_ARCHIVE_ENV]),
+                    replace_existing=True,
+                )
+                authored_after_materialize = authored_tree_facts_on_disk(target_project)
+                if authored_after_materialize != authored_before:
+                    raise CacheError("authored QPBT inventory changed during issue-worktree preparation")
+                if self._capture_identity_inputs(target_project) != target_inputs:
+                    raise CacheError("target cache-key inputs changed during foundation materialization")
+                verified = module.verify_materialized(target_project, pin)
+                authored_final = authored_tree_facts_on_disk(target_project)
+                verifier_authored = {
+                    key: verified.get(key)
+                    for key in (
+                        "authored_qpbt_files",
+                        "authored_qpbt_bytes",
+                        "authored_qpbt_sha256",
+                    )
+                }
+                if (
+                    authored_final != authored_before
+                    or authored_final != authored_after_materialize
+                    or verifier_authored != authored_final
+                ):
+                    raise CacheError(
+                        "authored QPBT inventory changed or verifier evidence differs during issue-worktree preparation"
+                    )
+                if self._capture_identity_inputs(target_project) != target_inputs:
+                    raise CacheError("target cache-key inputs changed during foundation verification")
+                checked_target, checked_root = self._eligible_seed_target(target_project)
+                if checked_target != target_project or checked_root != worktree_root:
+                    raise CacheError("target worktree identity changed during issue-worktree preparation")
+                self._validate_seeded_destination(target_project / ".lake")
+            except BaseException as error:
+                self._rollback_prepared_seed(target_project, backup, moved_old, error)
+                if isinstance(error, CacheError):
+                    raise
+                raise CacheError(f"issue-worktree foundation preparation failed: {error}") from error
+            seeded["backup_retained"] = self._discard_seed_backup(backup, moved_old)
+            seeded["elapsed_seconds"] = round(time.monotonic() - started, 6)
+            self._append_metric(seeded)
+            return {
+                "action": "prepare", "result": "prepared", "inputs": inputs,
+                "seed": seeded, "foundation": materialized, "verification": verified,
+                "authored_qpbt": authored_final,
+            }
 
 
 def _resolve(root: Path, value: str) -> Path:

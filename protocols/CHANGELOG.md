@@ -11,6 +11,15 @@ cache key. The new `prepare` path combines deep private seed with mandatory
 replacement-mode foundation materialization, authored-QPBT preservation, and
 final verification without invoking Lean or Lake.
 
+Security review A03 found that preflight reopened mutable verifier/pin bytes,
+`prepare` returned an authored inventory captured before verification, and its
+seed lock/backup lifetime ended before materialization. The repair captures
+every identity input with bounded no-follow reads, authenticates it against the
+cache identity, and executes or parses only the captured verifier, pin, and
+manifest bytes. `prepare` now holds one target lock and replacement rollback
+boundary through final deep identity checks, compares initial, verifier, and
+post-verifier authored evidence, and returns only the final inventory.
+
 ## 0.1.10 candidate (QPBT-045) - 2026-09-02
 
 INC-060 is the second occurrence of

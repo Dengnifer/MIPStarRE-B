@@ -40,9 +40,11 @@ The cache key contains:
 input tuple: exactly one of `MATHLIB_SOURCE` or `MATHLIB_ARCHIVE`, the
 `MIPSTARRE_ARCHIVE`, and the directory named by `LAKE_PACKAGE_ARCHIVES` with
 all eight pinned archives. Paths must be absolute, present, and free of symlink
-components; regular-file sizes, SHA-256 digests, and pinned manifest shapes are
-checked before cache-hit handling or lock acquisition. These locations remain
-excluded from cache identity.
+components. Every verifier, pin, and manifest is captured through a bounded
+no-follow descriptor, authenticated against the commit-bound cache inputs, and
+executed or parsed only from those captured bytes. Regular-file sizes, SHA-256
+digests, and pinned manifest shapes are checked before cache-hit handling or
+lock acquisition. These locations remain excluded from cache identity.
 
 After that preflight, `python3 scripts/hot_main_cache.py warm` takes an exclusive `flock`. The elected
 owner builds a detached local clone in a key-specific staging directory, runs
@@ -88,10 +90,15 @@ uses a private backup and rolls back if publication or validation fails.
 Before issue-worktree compilation, run `python3 scripts/hot_main_cache.py
 prepare --worktree /absolute/issue-worktree` with the same three environment
 bindings. `prepare` deep-seeds private `.lake`, invokes foundation
-materialization with replacement/preservation mandatory, rechecks authored
-`MIPStarRE/QPBT/` bytes, and verifies the foundation. It never invokes Lean or
-Lake. Pass `--replace` only to transactionally replace an existing private
-`.lake`.
+materialization with replacement/preservation mandatory, and verifies the
+foundation. One target-operation lock spans admission, seed, authenticated
+target-module and pin capture, materialization, final foundation and authored
+`MIPStarRE/QPBT/` verification, and final target/cache identity checks. The
+authored inventory returned by `prepare` is the post-verifier inventory and
+must equal both the initial inventory and the verifier evidence. It never
+invokes Lean or Lake. Pass `--replace` only to transactionally replace an
+existing private `.lake`; its backup is retained until every preparation check
+succeeds and is restored on a later failure.
 
 The cache record includes key, source SHA, elected owner, hit/miss, lock wait,
 dependency-cache duration, build duration, total duration, exit status, and log

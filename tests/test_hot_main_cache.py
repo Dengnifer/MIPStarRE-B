@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import time
 import types
 import unittest
@@ -1618,11 +1619,21 @@ class HotMainCacheTests(unittest.TestCase):
             validate_manifests=lambda _root, _pin: None,
         )
         manager._load_identity_module = mock.Mock(side_effect=[mip_module, package_module])
+        captured_inputs = {
+            "lake-manifest.json": b"{}\n",
+            "references/mipstarre-upstream.json": b"{}\n",
+            "scripts/materialize_mipstarre.py": b"# captured\n",
+            "references/lake-packages.json": b"{}\n",
+            "references/mathlib-lake-manifest.json": b"{}\n",
+            "scripts/materialize_lake_packages.py": b"# captured\n",
+        }
         with mock.patch.dict(os.environ, {
             cache_module.MATHLIB_ARCHIVE_ENV: str(self.base / "mathlib.tar.gz"),
             cache_module.MIPSTARRE_ARCHIVE_ENV: str(mip),
             cache_module.LAKE_PACKAGE_ARCHIVES_ENV: str(packages),
-        }, clear=True):
+        }, clear=True), mock.patch.object(
+            manager, "_capture_identity_inputs", return_value=captured_inputs
+        ):
             result = manager._preflight_authenticated_inputs()
         self.assertTrue(result["required"])
         self.assertEqual(1, result["lake_package_count"])
@@ -1632,39 +1643,114 @@ class HotMainCacheTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {
             cache_module.MIPSTARRE_ARCHIVE_ENV: str(mip),
             cache_module.LAKE_PACKAGE_ARCHIVES_ENV: str(packages),
-        }, clear=True):
+        }, clear=True), mock.patch.object(
+            manager, "_capture_identity_inputs", return_value=captured_inputs
+        ):
             manager._load_identity_module = mock.Mock(side_effect=[mip_module, package_module])
             with self.assertRaisesRegex(cache_module.CacheError, "symlink|Too many levels"):
                 manager._preflight_authenticated_inputs()
 
+    def test_identity_capture_rejects_every_verifier_pin_and_manifest_substitution(self) -> None:
+        manager = cache_module.HotMainCache(self.repo, self.repo, self.runtime)
+        for relative in manager.identity.inputs:
+            with self.subTest(relative=relative):
+                path = self.repo / relative
+                original = path.read_bytes()
+                substitute = path.with_name(path.name + ".substitute")
+                substitute.write_bytes(b"substituted identity input\n")
+                os.replace(substitute, path)
+                try:
+                    with self.assertRaisesRegex(cache_module.CacheError, "exact main cache identity"):
+                        manager._capture_identity_inputs(self.repo)
+                finally:
+                    path.write_bytes(original)
+        scripts = self.repo / "scripts"
+        real_scripts = self.repo / "scripts.real"
+        external_scripts = self.base / "external-scripts"
+        shutil.copytree(scripts, external_scripts)
+        scripts.rename(real_scripts)
+        scripts.symlink_to(external_scripts, target_is_directory=True)
+        try:
+            with self.assertRaisesRegex(cache_module.CacheError, "without following links"):
+                manager._capture_identity_inputs(self.repo)
+        finally:
+            scripts.unlink()
+            real_scripts.rename(scripts)
+
+    def test_warm_rejects_substituted_identity_input_before_hit_or_lock(self) -> None:
+        manager = cache_module.HotMainCache(self.repo, self.repo, self.runtime)
+        (self.repo / "scripts" / "materialize_mipstarre.py").write_text(
+            "raise RuntimeError('must not execute')\n", encoding="ascii"
+        )
+        with mock.patch.object(
+            cache_module.ExclusiveLock,
+            "__enter__",
+            side_effect=AssertionError("cache lock acquired"),
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "exact main cache identity"):
+                manager.warm()
+        self.assertFalse(manager.snapshot_dir.exists())
+
+    def test_identity_module_executes_only_captured_authenticated_bytes(self) -> None:
+        path = self.repo / "scripts" / "materialize_mipstarre.py"
+        path.write_text("VALUE = 'trusted'\n", encoding="ascii")
+        run_git(self.repo, "add", "scripts/materialize_mipstarre.py")
+        run_git(self.repo, "commit", "-m", "add captured module fixture")
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        captured = manager._capture_identity_inputs(self.repo)
+        marker = self.base / "mutable-module-executed"
+        path.write_text(
+            f"VALUE = 'substituted'\nopen({str(marker)!r}, 'w').write('bad')\n",
+            encoding="ascii",
+        )
+
+        module = manager._load_identity_module(
+            "scripts/materialize_mipstarre.py",
+            "_captured_module_regression",
+            captured["scripts/materialize_mipstarre.py"],
+            self.repo,
+        )
+
+        self.assertEqual("trusted", module.VALUE)
+        self.assertFalse(marker.exists())
+        with self.assertRaisesRegex(cache_module.CacheError, "exact main cache identity"):
+            manager._capture_identity_inputs(self.repo)
+
     def test_prepare_sequences_seed_replace_materialize_verify_and_preserves_authored(self) -> None:
-        manager = self.manager()
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
         target = self.issue_worktree("prepare-worktree")
         archive = self.base / "foundation.tar.gz"
         archive.write_bytes(b"authenticated")
         calls: list[object] = []
+        authored = cache_module.authored_tree_facts_on_disk(target)
         fake_module = types.SimpleNamespace(
             load_pin=lambda _path: {"source": {"commit": "1" * 40}},
             validate_project_pins=lambda _root, _pin: calls.append("pins"),
             materialize=lambda _root, _pin_path, _archive, *, replace_existing: (
                 calls.append(("materialize", replace_existing)) or {"status": "published"}
             ),
-            verify_materialized=lambda _root, _pin: calls.append("verify") or {"status": "verified"},
+            verify_materialized=lambda _root, _pin: (
+                calls.append("verify") or {"status": "verified", **authored}
+            ),
         )
-        loader = types.SimpleNamespace(exec_module=lambda module: module.__dict__.update(fake_module.__dict__))
-        spec = types.SimpleNamespace(loader=loader)
         with mock.patch.dict(os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True), \
              mock.patch.object(manager, "_preflight_authenticated_inputs", return_value={"required": True}), \
-             mock.patch.object(manager, "seed", side_effect=lambda *_args, **_kwargs: calls.append("seed") or {"result": "seeded"}), \
-             mock.patch.object(cache_module.importlib.util, "spec_from_file_location", return_value=spec), \
-             mock.patch.object(cache_module.importlib.util, "module_from_spec", return_value=types.SimpleNamespace()):
+             mock.patch.object(manager, "_load_identity_module", return_value=fake_module):
             result = manager.prepare(target)
-        self.assertEqual(["seed", "pins", ("materialize", True), "verify"], calls)
+        self.assertEqual(["pins", ("materialize", True), "verify"], calls)
         self.assertEqual("prepared", result["result"])
         self.assertEqual(cache_module.authored_tree_facts_on_disk(target), result["authored_qpbt"])
 
     def test_prepare_rejects_authored_drift_before_foundation_verification(self) -> None:
-        manager = self.manager()
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
         target = self.issue_worktree("prepare-drift-worktree")
         archive = self.base / "foundation-drift.tar.gz"
         archive.write_bytes(b"authenticated")
@@ -1682,16 +1768,194 @@ class HotMainCacheTests(unittest.TestCase):
             materialize=drift,
             verify_materialized=verified,
         )
-        loader = types.SimpleNamespace(exec_module=lambda module: module.__dict__.update(fake_module.__dict__))
-        spec = types.SimpleNamespace(loader=loader)
         with mock.patch.dict(os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True), \
              mock.patch.object(manager, "_preflight_authenticated_inputs", return_value={"required": True}), \
-             mock.patch.object(manager, "seed", return_value={"result": "seeded"}), \
-             mock.patch.object(cache_module.importlib.util, "spec_from_file_location", return_value=spec), \
-             mock.patch.object(cache_module.importlib.util, "module_from_spec", return_value=types.SimpleNamespace()):
+             mock.patch.object(manager, "_load_identity_module", return_value=fake_module):
             with self.assertRaisesRegex(cache_module.CacheError, "authored QPBT inventory changed"):
                 manager.prepare(target)
         verified.assert_not_called()
+        self.assertFalse((target / ".lake").exists())
+
+    def test_prepare_rejects_target_module_and_pin_substitution_before_load(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        archive = self.base / "foundation-target-input.tar.gz"
+        archive.write_bytes(b"authenticated")
+        original_publish = manager._publish_seed_locked
+        for index, relative in enumerate(
+            ("scripts/materialize_mipstarre.py", "references/mipstarre-upstream.json")
+        ):
+            with self.subTest(relative=relative):
+                target = self.issue_worktree(f"prepare-target-input-substitution-{index}")
+
+                def publish_then_substitute(*args: object, **kwargs: object) -> object:
+                    result = original_publish(*args, **kwargs)
+                    path = target / relative
+                    substitute = path.with_name(path.name + ".substitute")
+                    substitute.write_bytes(b"substituted target input\n")
+                    os.replace(substitute, path)
+                    return result
+
+                with mock.patch.dict(
+                    os.environ,
+                    {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+                    clear=True,
+                ), mock.patch.object(
+                    manager,
+                    "_preflight_authenticated_inputs",
+                    return_value={"required": True},
+                ), mock.patch.object(
+                    manager,
+                    "_publish_seed_locked",
+                    side_effect=publish_then_substitute,
+                ), mock.patch.object(
+                    manager,
+                    "_load_identity_module",
+                    side_effect=AssertionError("substituted target module was loaded"),
+                ):
+                    with self.assertRaisesRegex(
+                        cache_module.CacheError, "exact main cache identity"
+                    ):
+                        manager.prepare(target)
+                self.assertFalse((target / ".lake").exists())
+
+    def test_prepare_rejects_verifier_authored_mutation_and_restores_replaced_seed(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("prepare-verifier-mutation")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
+        archive = self.base / "foundation-verifier-mutation.tar.gz"
+        archive.write_bytes(b"authenticated")
+
+        def mutate_after_snapshot(root: Path, _pin: object) -> dict[str, object]:
+            evidence = cache_module.authored_tree_facts_on_disk(root)
+            authored = root / "MIPStarRE" / "QPBT"
+            authored.mkdir(parents=True, exist_ok=True)
+            (authored / "VerifierDrift.lean").write_text(
+                "def verifierDrift := true\n", encoding="ascii"
+            )
+            return {"status": "verified", **evidence}
+
+        fake_module = types.SimpleNamespace(
+            load_pin=lambda _path: {},
+            validate_project_pins=lambda _root, _pin: None,
+            materialize=lambda *_args, **_kwargs: {"status": "published"},
+            verify_materialized=mutate_after_snapshot,
+        )
+        with mock.patch.dict(
+            os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True
+        ), mock.patch.object(
+            manager, "_preflight_authenticated_inputs", return_value={"required": True}
+        ), mock.patch.object(
+            manager, "_load_identity_module", return_value=fake_module
+        ):
+            with self.assertRaisesRegex(
+                cache_module.CacheError, "authored QPBT inventory changed|verifier evidence differs"
+            ):
+                manager.prepare(target, replace_seed=True)
+
+        self.assertEqual(
+            "preserve\n",
+            (original_lake / "original-marker").read_text(encoding="ascii"),
+        )
+        self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertEqual([], list(target.glob(".lake-prepare-rollback-*")))
+
+    def test_prepare_target_lock_excludes_distinct_identity_seed_until_final_checks(self) -> None:
+        manager = self.manager(
+            runtime=self.base / "runtime-prepare-interleave",
+            recipe=MATERIALIZING_TEST_RECIPE,
+        )
+        alternate_recipe = cache_module.BuildRecipe.for_testing(
+            materialize_command=MATERIALIZING_TEST_RECIPE.materialize_command,
+            dependency_command=MATERIALIZING_TEST_RECIPE.dependency_command,
+            build_command=MATERIALIZING_TEST_RECIPE.build_command,
+            additional_identity_files=MATERIALIZING_TEST_RECIPE.additional_identity_files,
+            recipe_id="test-distinct-interleaving-cache",
+            version=2,
+        )
+        alternate = self.manager(
+            runtime=self.base / "runtime-prepare-interleave",
+            recipe=alternate_recipe,
+        )
+        for cache in (manager, alternate):
+            cache.warm(
+                _test_command_callback=fake_success,
+                _test_source_verifier=fake_source_verifier,
+            )
+        self.assertNotEqual(manager.identity.cache_key, alternate.identity.cache_key)
+        target = self.issue_worktree("prepare-interleave-target")
+        archive = self.base / "foundation-interleave.tar.gz"
+        archive.write_bytes(b"authenticated")
+        verifier_entered = threading.Event()
+        release_verifier = threading.Event()
+        seed_finished = threading.Event()
+        failures: list[BaseException] = []
+        seed_results: list[dict[str, object]] = []
+
+        def blocking_verify(root: Path, _pin: object) -> dict[str, object]:
+            evidence = cache_module.authored_tree_facts_on_disk(root)
+            verifier_entered.set()
+            if not release_verifier.wait(5):
+                raise AssertionError("interleaving regression timed out")
+            return {"status": "verified", **evidence}
+
+        fake_module = types.SimpleNamespace(
+            load_pin=lambda _path: {},
+            validate_project_pins=lambda _root, _pin: None,
+            materialize=lambda *_args, **_kwargs: {"status": "published"},
+            verify_materialized=blocking_verify,
+        )
+
+        def run_prepare() -> None:
+            try:
+                with mock.patch.dict(
+                    os.environ,
+                    {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+                    clear=True,
+                ), mock.patch.object(
+                    manager,
+                    "_preflight_authenticated_inputs",
+                    return_value={"required": True},
+                ), mock.patch.object(
+                    manager, "_load_identity_module", return_value=fake_module
+                ):
+                    manager.prepare(target)
+            except BaseException as error:
+                failures.append(error)
+
+        def run_seed() -> None:
+            try:
+                seed_results.append(alternate.seed(target, replace=True))
+            except BaseException as error:
+                failures.append(error)
+            finally:
+                seed_finished.set()
+
+        prepare_thread = threading.Thread(target=run_prepare)
+        seed_thread = threading.Thread(target=run_seed)
+        prepare_thread.start()
+        self.assertTrue(verifier_entered.wait(5))
+        seed_thread.start()
+        self.assertFalse(seed_finished.wait(0.2))
+        release_verifier.set()
+        prepare_thread.join(5)
+        seed_thread.join(5)
+
+        self.assertFalse(prepare_thread.is_alive())
+        self.assertFalse(seed_thread.is_alive())
+        self.assertEqual([], failures)
+        self.assertTrue(seed_finished.is_set())
+        self.assertEqual("seeded", seed_results[0]["result"])
 
     def test_mathlib_source_rejects_symlinked_git_internals_before_object_reads(self) -> None:
         source, commit, tree = self.mathlib_fixture()

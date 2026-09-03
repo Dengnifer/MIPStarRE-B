@@ -219,9 +219,12 @@ MATHLIB_ARCHIVE=/absolute/path/to/mathlib-81a5d257-shallow-repo.tar.gz
 It must also receive absolute authenticated `MIPSTARRE_ARCHIVE` and
 `LAKE_PACKAGE_ARCHIVES` bindings. Writer dispatches use `prepare`, which
 deep-seeds private `.lake`, mandates `--replace-existing` foundation
-materialization, and verifies source before any target or full build. A bare
-`seed` is not a build-readiness gate because it intentionally copies only
-`.lake`.
+materialization, and verifies source before any target or full build. Its one
+per-target operation lock remains held through admission, authenticated
+captured-byte loading, materialization, post-verifier authored/source checks,
+and final deep cache/target identity checks; a replaced `.lake` remains
+rollback-capable until those checks pass. A bare `seed` is not a build-readiness
+gate because it intentionally copies only `.lake`.
 
 `MATHLIB_SOURCE` must name a standalone, clean, non-bare Git worktree. The
 cache checks `HEAD`, the root tree, local `git fsck --full`, the shallow
