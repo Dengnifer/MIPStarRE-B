@@ -24050,7 +24050,7 @@
       "name": "i041-orchestrator-a12-f04-closeout",
       "backend": "codex-collaboration",
       "role": "orchestrator",
-      "status": "running",
+      "status": "archived",
       "issue_id": "QPBT-041",
       "pr_id": "LPR-029",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
@@ -24066,15 +24066,15 @@
       "validation_command": "Authenticate base/head/tree/manifest, bind exact checks and independent review, close issues, and warm final main once.",
       "result_envelope_path": "workflow/reviews/qpbt-041-approximation-a01.md",
       "started_at": "2026-09-02T16:29:47.417461Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-03T00:27:54.468002Z",
+      "elapsed_seconds": 28687.051,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "archive_status": "active",
+      "archive_status": "archived",
       "outcome_path": "workflow/reviews/qpbt-041-approximation-a01.md",
       "timing_quality": "runtime-exact",
       "outcome": "f04-integrated-proof-complete",
@@ -24099,7 +24099,10 @@
         "network": 0,
         "github": 0,
         "credentials": 0
-      }
+      },
+      "run_outcome": "f04-integrated-proof-complete-lifecycle-reconciled",
+      "report_sha256": "64544c2466e62d00d0a7b626851f0ca9dd5af0740ad75c0e3cb2c7b890e23c96",
+      "timing_note": "The implementation outcome was recorded by 2026-09-02T16:52:54.851526Z, but the logical session was inadvertently left running. The exact lifecycle elapsed measures registration-to-late reconciliation and materially overstates active work."
     },
     {
       "id": "i041-reviewer-a13-f04-final",

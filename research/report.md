@@ -1596,3 +1596,31 @@ names, has no `sorry` or forbidden assumptions, passes the scoped, target, full
 build, blueprint, source, declaration, and axiom gates, and received a fresh
 immutable approval. The only simplification suggestion was deferred as
 `QPBT-053`.
+
+#### Complexity correction update (2026-09-03 00:28 UTC)
+
+The answer to whether the session had become over-complex is yes for workflow
+coordination, but not for the mathematical dependency split. The current
+ledger has 483 issued session attempts across 60 issues and 34 local PRs,
+whereas authored `MIPStarRE/QPBT` contains 3,588 Lean lines. A narrower count
+of the two principal workflow/cache programs, their two main test files, and
+the two operative protocol documents is 11,465 lines; the blueprint is another
+9,419 lines. These raw counts do not compare semantic value, but they make the
+coordination imbalance explicit.
+
+The audit also found `i041-orchestrator-a12-f04-closeout` still marked running
+7.58 hours after its completed F04 outcome was recorded. Its issue was done,
+its PR merged, and all 19 descendants archived. Closing that stale lifecycle
+record restored one dispatch slot. `INC-075` preserves the exact 28,687.051
+second ledger lifetime separately from the 1,387.434 second evidence-completion
+upper bound, so the idle interval is not counted as productive work.
+
+The operational correction remains deliberately small: no new workflow
+feature was added. Current parallel work is limited to the source-faithful
+dual-rail encoding repair, the dependent Lean compiler implementation, and one
+independent cache-safety review. Builds, integrations, and finding dispositions
+remain singleton gates. The immediate encoding contract and review are
+estimated at 1-3 hours; the dependent F06A Lean machine is estimated at 1-3
+working days if the frozen contract is approved. The broader stage estimates
+remain 6-16 weeks for Stage 4A, 4-10 weeks for Stage 4B, 18-48 months for Stage
+4C, and 3-8 weeks for the final audit.
