@@ -29577,6 +29577,145 @@
         "nested_agents": 0
       },
       "notes": "Fresh immutable review found the candidate is not based on its declared review base; source inspection otherwise matched the frozen dual-rail contract."
+    },
+    {
+      "id": "i014-orchestrator-a01-lean-coordination",
+      "name": "i014-orchestrator-a01-lean-coordination",
+      "role": "orchestrator",
+      "issue_id": "QPBT-014",
+      "attempt": 1,
+      "backend": "codex-collaboration",
+      "read_only": false,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "pr_id": null,
+      "base_revision": "038d878f6e1929d592846edd68a93cc0717d5b02",
+      "base_revision_reason": "Current validated main checkpoint 038d878; immutable authority captured before launch.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-014-lean-coordination-a01",
+      "owned_paths": [
+        "workflow/reviews/qpbt-014-coordination-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-014 and its children, blueprint metadata, current Lean tree, and local protocols. Coordinate the remaining minimal-skeleton lanes, dispatch bounded child roles only after canonical confirmation, inspect reports and diffs, and write workflow/reviews/qpbt-014-coordination-a01.md. Do not edit canonical state or metrics; preserve exact source contracts; no GitHub writes.",
+      "result_envelope_path": "/tmp/i014-orchestrator-a01-lean-coordination.md",
+      "started_at": "2026-09-03T11:40:44.772955Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "external_id": "/root/i014_orchestrator_a01_lean_coordination",
+      "status": "running"
+    },
+    {
+      "id": "i057-orchestrator-a02-types-rebase",
+      "name": "i057-orchestrator-a02-types-rebase",
+      "role": "orchestrator",
+      "issue_id": "QPBT-057",
+      "attempt": 2,
+      "backend": "codex-collaboration",
+      "read_only": false,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "pr_id": null,
+      "base_revision": "038d878f6e1929d592846edd68a93cc0717d5b02",
+      "base_revision_reason": "Current validated main checkpoint 038d878; immutable authority captured before launch.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-057-types-rebase-a02",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-057-f06a-a02.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-057, QPBT-056, QPBT-060, the frozen F06A contract, and the prior stale candidate report. Reconstruct the exact Types.lean implementation on current main 038d878 without unrelated deletions, preserve exactly the authorized two sorries and four-import union, run the registered scoped checks and private build through the hot-cache protocol, commit only owned paths, and write workflow/reviews/qpbt-057-f06a-a02.md. Do not edit canonical state or metrics; no GitHub writes.",
+      "result_envelope_path": "/tmp/i057-orchestrator-a02-types-rebase.md",
+      "started_at": "2026-09-03T11:43:21.806124Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "external_id": "/root/i057_orchestrator_a02_types_rebase",
+      "status": "running"
+    },
+    {
+      "id": "i062-orchestrator-a01-branch-heartbeat",
+      "name": "i062-orchestrator-a01-branch-heartbeat",
+      "role": "orchestrator",
+      "issue_id": "QPBT-062",
+      "attempt": 1,
+      "backend": "codex-collaboration",
+      "read_only": false,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 2,
+      "pr_id": null,
+      "base_revision": "038d878f6e1929d592846edd68a93cc0717d5b02",
+      "base_revision_reason": "Current validated main checkpoint 038d878; immutable authority captured before launch.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-062-branch-heartbeat-a01",
+      "owned_paths": [
+        "protocols/branch-lifecycle.md",
+        "workflow/reviews/qpbt-062-branch-lifecycle-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-062, protocols/meta.md, protocols/orchestration.md, current state schemas and branch inventory. Implement the branch/worktree identity, visible main-heartbeat, archival, topology-audit, and timely root-push protocol in owned paths only; add focused tests or scripts only if within accepted scope, preserve local-ledger authority, and write workflow/reviews/qpbt-062-branch-lifecycle-a01.md. Do not edit canonical state or metrics; no GitHub writes.",
+      "result_envelope_path": "/tmp/i062-orchestrator-a01-branch-heartbeat.md",
+      "started_at": "2026-09-03T11:45:12.567784Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "external_id": "/root/i062_orchestrator_a01_branch_heartbeat",
+      "status": "running"
+    },
+    {
+      "id": "i068-orchestrator-a01-cache-safety",
+      "name": "i068-orchestrator-a01-cache-safety",
+      "role": "orchestrator",
+      "issue_id": "QPBT-068",
+      "attempt": 1,
+      "backend": "codex-collaboration",
+      "read_only": false,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "pr_id": null,
+      "base_revision": "038d878f6e1929d592846edd68a93cc0717d5b02",
+      "base_revision_reason": "Current validated main checkpoint 038d878; immutable authority captured before launch.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-068-cache-safety-a01",
+      "owned_paths": [
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "protocols/local-development.md",
+        "protocols/CHANGELOG.md",
+        "workflow/reviews/qpbt-067-cache-layout-a01.md",
+        "workflow/reviews/qpbt-068-cache-safety-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, QPBT-067 and QPBT-068, the repaired audit/report, QPBT-068 scout memo, hot_main_cache.py, and its tests. Implement fail-closed external-symlink/package isolation and SIGKILL-safe prior-or-replacement recovery with deterministic and subprocess regressions, preserving singleton locks, READY/authentication, private writable output, no deletion, and exact source evidence. Run focused and aggregate tests and owned-scope gates, commit only owned paths, and write workflow/reviews/qpbt-068-cache-safety-a01.md. Do not edit canonical state or metrics; no GitHub writes.",
+      "result_envelope_path": "/tmp/i068-orchestrator-a01-cache-safety.md",
+      "started_at": "2026-09-03T11:47:26.081875Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "external_id": "/root/i068_orchestrator_a01_cache_safety",
+      "status": "running"
     }
   ]
 }

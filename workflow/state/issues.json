@@ -716,7 +716,7 @@
       "id": "QPBT-014",
       "title": "Coordinate minimal algebra and typed-game interfaces",
       "kind": "formalization",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-005",
       "dependency_ids": [
         "QPBT-013"
@@ -736,7 +736,7 @@
         "Every child introduces no unauthorized sorry, axiom, constant, public obligation input, or incompatible LDT parameter boundary",
         "All four local PRs pass scoped checks, private builds, declaration synchronization, independent immutable review, and guarded integration; QPBT-040 alone runs the final combined-snapshot build before this parent closes"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i014-orchestrator-a01-lean-coordination",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md",
         "blueprint/metadata/nodes.json#F02-CODE",
@@ -747,7 +747,7 @@
       ],
       "owned_paths": [],
       "created_at": "2026-08-30T23:54:39.078758Z",
-      "updated_at": "2026-09-01T13:00:57.077995Z",
+      "updated_at": "2026-09-03T11:41:50.004071Z",
       "blocked_reason": "QPBT-035 contract freeze is required before the four Lean writers can dispatch.",
       "unblock_condition": "QPBT-035 done, then dispatch QPBT-036/QPBT-037/QPBT-038 concurrently and queue QPBT-039."
     },
@@ -2955,7 +2955,7 @@
       "title": "feat(QPBT/Game): implement the executable CL minimal skeleton",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-056"
@@ -2976,7 +2976,7 @@
         "Preserve the G19 boundary and source-faithful theorem signatures; record both holes explicitly and link their zero-debt Stage 4C discharge to QPBT-061.",
         "Use the QPBT-056 private-cache lineage; pass whole-file elaboration, affected target, exact 56-name/tape/output/dimension/codec/import/debt scans, blueprint synchronization against QPBT-060, one private full build after scoped stability, and fresh immutable mathematical/API review."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i057-orchestrator-a02-types-rebase",
       "source_refs": [
         "workflow/reviews/qpbt-059-f06a-pack-contract-a01.md#F06A-QPBT059-SIGNATURES",
         "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
@@ -2992,7 +2992,7 @@
         "workflow/reviews/qpbt-057-f06a-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T11:26:17.879364Z",
+      "updated_at": "2026-09-03T11:43:49.193960Z",
       "blocked_reason": "Fresh immutable review found candidate a9abedb3 is based on 20745fe, not declared base 6b43c72, and its diff includes 8,143 unrelated deletions.",
       "unblock_condition": "Reconstruct/rebase the exact Types.lean implementation onto current main 6b43c72, regenerate immutable head/tree/patch/report, and obtain a fresh review.",
       "proof_completion_issue_id": "QPBT-061",
@@ -3217,7 +3217,7 @@
       "title": "chore(workflow): make branch lifecycle and main heartbeat explicit",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-051"
@@ -3237,7 +3237,7 @@
         "Add a deterministic branch-topology audit artifact and focused validation for duplicate worktree/branch ownership, untracked active branches, stale default-branch checkpoints, and candidate heads not reachable from their recorded base.",
         "Obtain an independent immutable review and record branch-age/parallelism metrics and protocol revision in the changelog."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i062-orchestrator-a01-branch-heartbeat",
       "source_refs": [
         "AGENTS.md#Ownership and delegation",
         "protocols/orchestration.md",
@@ -3250,7 +3250,7 @@
         "workflow/reviews/qpbt-062-branch-lifecycle-a01.md"
       ],
       "created_at": "2026-09-03T16:00:00+08:00",
-      "updated_at": "2026-09-03T11:18:55.259220Z",
+      "updated_at": "2026-09-03T11:45:39.061513Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3454,7 +3454,7 @@
       "title": "repair(workflow): close cache seed isolation and crash-recovery gaps",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-067",
       "dependency_ids": [
         "QPBT-051"
@@ -3493,11 +3493,11 @@
         "workflow/reviews/qpbt-067-cache-layout-a01.md",
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i068-orchestrator-a01-cache-safety",
       "blocked_reason": "Awaiting QPBT-051 completion so cache transaction fixes are based on the final reviewed head; then repair the two QPBT-067 findings.",
       "unblock_condition": "QPBT-051 done and a clean current main checkpoint is available for one orchestrator with disjoint ownership.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-03T09:42:00Z"
+      "updated_at": "2026-09-03T11:48:19.349021Z"
     }
   ]
 }
