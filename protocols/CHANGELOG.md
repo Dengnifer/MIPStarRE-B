@@ -19,15 +19,28 @@ distinct from a detached candidate worktree `HEAD`. Collaboration confirmation
 and atomic rollback are unchanged, and governed CLI rows retain their null-ID
 issue-first lease behavior.
 
-Focused regressions cover symbolic and exact refs, nonexistent full-looking
-SHAs, object/tree authentication, expected-tree mismatch, detached-head review
-semantics, exact issued/event identity, governed launch behavior, and
-byte-identical atomic rejection. The QPBT-045 contract is exercised without a
-cache implementation change: an invalid exact main reaches zero warm/build,
-publication, and metric actions. The focused resolver suite passes 7/7, the
-workflow module passes 83/83, the canonical checker passes 3/3, compileall
-passes, and the dependency-free aggregate passes 396/396. A fresh immutable
-independent review remains required before activation.
+Independent reviews A02 and A03 identified three remaining admission gaps, all
+fixed in the candidate. Unqualified symbolic names now require exactly one
+canonical ref match, while fully qualified refs remain explicit authority.
+Symlinked worktree components are rejected; the canonical root's device/inode
+is checked around each Git process and again at the dispatch publication
+boundary, with byte-exact rollback on replacement. Git also runs with
+`GIT_NO_LAZY_FETCH=1`, so a missing promisor object fails locally without
+invoking the repository's configured transport or credential path.
+
+Focused regressions cover symbolic and exact refs, branch/tag ambiguity,
+nonexistent full-looking SHAs, object/tree authentication, expected-tree
+mismatch, detached-head review semantics, symlink retargeting, root
+rename/replacement, publication-boundary rollback, partial-clone missing-object
+behavior, exact issued/event identity, governed launch behavior, and
+byte-identical atomic rejection. The partial-clone checks use a sentinel
+transport and prove that neither dry-run nor confirmation invokes it. The
+QPBT-045 contract is exercised without a cache implementation change: an
+invalid exact main reaches zero warm/build, publication, and metric actions.
+The focused resolver suite passes 11/11, the workflow module passes 88/88, the
+canonical checker passes 3/3, compileall and canonical workflow validation pass,
+and the dependency-free aggregate passes 405/405. A fresh immutable independent
+review remains required before activation.
 
 ## 0.1.12 (2026-09-03)
 

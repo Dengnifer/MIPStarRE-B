@@ -31,14 +31,29 @@ inferring readiness from list order.
 
 Every dispatch dry-run and confirmation resolves each non-null planned
 `base_revision` through `scripts/git_identity.py` in the session's registered
-worktree. The resolver accepts a symbolic ref or exact object ID, obtains the
-full commit and root tree from Git, and proves with `cat-file` that both objects
-exist with the required types. Git plumbing runs with inherited repository and
-configuration selectors removed, replacements disabled, hooks/fsmonitor
-disabled, and no interactive prompt. A missing worktree, nonexistent
-full-looking SHA, wrong object type, malformed Git result, or mismatch with an
-optional planned `base_tree` blocks the complete requested batch before any
-session or event mutation.
+worktree. The resolver accepts a full object ID, a fully qualified ref, `HEAD`,
+or shorthand that has exactly one canonical ref interpretation. A shorthand
+collision such as same-named branch and tag is rejected; callers use the
+desired `refs/heads/...` or `refs/tags/...` name explicitly. The resolver obtains
+the full commit and root tree from Git and proves with `cat-file` that both
+objects exist with the required types. Git plumbing runs with inherited
+repository and configuration selectors removed, replacements disabled,
+hooks/fsmonitor disabled, lazy promisor fetching disabled, and no interactive
+prompt. Missing objects therefore fail locally without invoking a transport or
+credential helper. A missing worktree, nonexistent full-looking SHA, ambiguous
+ref, wrong object type, malformed Git result, or mismatch with an optional
+planned `base_tree` blocks the complete requested batch before any session or
+event mutation.
+
+The worktree path must contain no symlink component and must name the repository
+root. The resolver binds its canonical absolute path and filesystem device/inode
+before Git inspection, checks that identity around every Git subprocess, and
+checks it again before returning. Dispatch carries that proof through the
+transaction, records only the canonical path in the issued row, rechecks the
+same directory immediately before publication and after event validation, and
+rolls back if the root was renamed or replaced. A collaboration bootstrap must
+start in that exact registered canonical directory; confirmation is the task
+release boundary and reauthenticates it before the task packet is sent.
 The generic record-add command cannot add an issued session; all issuance goes
 through `dispatch` or its single-session compatibility wrapper.
 For other read-only identity capture, run `python3 scripts/git_identity.py REF
@@ -47,7 +62,8 @@ without manual completion or transcription.
 
 Dry-run output reports the resolved commit/tree pair for each admitted
 candidate. Successful dispatch replaces any symbolic planned ref with the full
-commit and records `base_tree` in both the issued row and issuance event.
+commit, canonicalizes `worktree`, and records `base_tree` in both the issued row
+and issuance event.
 Historical rows remain structurally validated without reopening their object
 databases. The declared base is not required to equal worktree `HEAD`: a review
 session remains bound to the PR base while its registered worktree may be

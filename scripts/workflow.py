@@ -23,7 +23,12 @@ import sys
 import tempfile
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 
-from git_identity import GitIdentityError, resolve_git_identity
+from git_identity import (
+    GitIdentity,
+    GitIdentityError,
+    recheck_git_identity_worktree,
+    resolve_git_identity,
+)
 
 
 SCHEMA_VERSION = 1
@@ -1815,6 +1820,7 @@ class WorkflowStore:
                 session_overrides,
                 confirmations,
             )
+            git_identity_proofs: dict[str, GitIdentity] = {}
             plan = plan_dispatch(
                 documents,
                 capacity=capacity,
@@ -1822,6 +1828,7 @@ class WorkflowStore:
                 session_ids=session_ids,
                 session_overrides=effective_overrides,
                 authenticate_git=True,
+                git_identity_proofs=git_identity_proofs,
             )
             # A blocked candidate invalidates the requested batch.  Capacity-only
             # queueing is different: issue the deterministic available prefix as
@@ -1842,10 +1849,11 @@ class WorkflowStore:
                 for session_id in selected_ids
             ]
             for session in materialized:
-                identity = plan["git_identities"].get(session["id"])
+                identity = git_identity_proofs.get(session["id"])
                 if identity is not None:
-                    session["base_revision"] = identity["commit"]
-                    session["base_tree"] = identity["tree"]
+                    session["base_revision"] = identity.commit
+                    session["base_tree"] = identity.tree
+                    session["worktree"] = str(identity.worktree)
             materialized_by_id = {session["id"]: session for session in materialized}
             confirmation_required_ids = {
                 session["id"]
@@ -1875,6 +1883,29 @@ class WorkflowStore:
                 plan["issued"] = []
                 return plan
 
+            try:
+                for session_id in selected_ids:
+                    identity = git_identity_proofs.get(session_id)
+                    if identity is not None:
+                        recheck_git_identity_worktree(identity)
+            except GitIdentityError as error:
+                plan["status"] = "blocked"
+                plan["blocked"] = sorted(
+                    [
+                        *plan["blocked"],
+                        {
+                            "id": session_id,
+                            "reason": "git-worktree-changed",
+                            "detail": str(error),
+                        },
+                    ],
+                    key=lambda item: (str(item.get("id")), str(item.get("reason"))),
+                )
+                plan["blocked_batch_unchanged"] = True
+                plan["dry_run"] = False
+                plan["issued"] = []
+                return plan
+
             issued = copy.deepcopy(documents["sessions.json"]["issued"])
             batch_timestamp = self._batch_event_timestamp()
             remaining_planned = [
@@ -1896,6 +1927,10 @@ class WorkflowStore:
             events_offset = self.events_path.stat().st_size if events_existed else 0
             events_bytes = self.events_path.read_bytes() if events_existed else None
             try:
+                for session_id in selected_ids:
+                    identity = git_identity_proofs.get(session_id)
+                    if identity is not None:
+                        recheck_git_identity_worktree(identity)
                 atomic_write_json(sessions_path, documents["sessions.json"])
                 for session_id in selected_ids:
                     self.append_event(
@@ -1939,6 +1974,34 @@ class WorkflowStore:
                 # Check the post-append lifecycle while the lock is still held;
                 # an injected or malformed writer is handled by the rollback.
                 validate_event_log(self.events_path, documents)
+                for session_id in selected_ids:
+                    identity = git_identity_proofs.get(session_id)
+                    if identity is not None:
+                        recheck_git_identity_worktree(identity)
+            except GitIdentityError as error:
+                self._restore_dispatch_transaction(
+                    sessions_path=sessions_path,
+                    sessions_bytes=sessions_bytes,
+                    events_existed=events_existed,
+                    events_offset=events_offset,
+                    events_bytes=events_bytes,
+                )
+                plan["status"] = "blocked"
+                plan["blocked"] = sorted(
+                    [
+                        *plan["blocked"],
+                        {
+                            "id": session_id,
+                            "reason": "git-worktree-changed",
+                            "detail": str(error),
+                        },
+                    ],
+                    key=lambda item: (str(item.get("id")), str(item.get("reason"))),
+                )
+                plan["blocked_batch_unchanged"] = True
+                plan["dry_run"] = False
+                plan["issued"] = []
+                return plan
             except BaseException:
                 self._restore_dispatch_transaction(
                     sessions_path=sessions_path,
@@ -2255,6 +2318,7 @@ def plan_dispatch(
     session_ids: Sequence[str] | None = None,
     session_overrides: Mapping[str, Mapping[str, Any]] | None = None,
     authenticate_git: bool = False,
+    git_identity_proofs: MutableMapping[str, GitIdentity] | None = None,
 ) -> dict[str, Any]:
     """Plan a deterministic, capacity-bounded dispatch without changing state.
 
@@ -2398,6 +2462,9 @@ def plan_dispatch(
                 continue
             candidate["base_revision"] = identity.commit
             candidate["base_tree"] = identity.tree
+            candidate["worktree"] = str(identity.worktree)
+            if git_identity_proofs is not None:
+                git_identity_proofs[session_id] = identity
             git_identities[session_id] = {
                 "commit": identity.commit,
                 "tree": identity.tree,

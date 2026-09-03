@@ -1415,7 +1415,14 @@ class WorkflowStoreTests(unittest.TestCase):
         )
         self.runtime = self.root / ".workflow-runtime"
         self.store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
-        self.git_identity = git_identity.GitIdentity(BASE_SHA, "e" * 40)
+        worktree_stat = self.root.stat()
+        self.git_identity = git_identity.GitIdentity(
+            BASE_SHA,
+            "e" * 40,
+            self.root,
+            worktree_stat.st_dev,
+            worktree_stat.st_ino,
+        )
         self.git_identity_patcher = mock.patch.object(
             workflow,
             "resolve_git_identity",
@@ -2414,6 +2421,195 @@ class GitIdentityAdmissionTests(unittest.TestCase):
         record = self.store.validate()["sessions.json"]["issued"][0]
         self.assertEqual(self.head_commit, record["base_revision"])
         self.assertEqual(self.head_tree, record["base_tree"])
+        self.assertEqual(str(self.root), record["worktree"])
+
+    def test_ambiguous_ref_blocks_dry_run_and_confirmation_without_mutation(self) -> None:
+        git(self.root, "tag", "main", self.base_commit)
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-ambiguous-git-ref",
+            base_revision="main",
+        )
+        self.write_planned(candidate)
+        sessions_path = self.state_dir / "sessions.json"
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+
+        for dry_run in (True, False):
+            with self.subTest(dry_run=dry_run):
+                result = self.store.dispatch_sessions(
+                    capacity=1,
+                    session_ids=[candidate["id"]],
+                    launch_confirmations=None if dry_run else launch_confirmations(candidate),
+                    dry_run=dry_run,
+                )
+                self.assertEqual("blocked", result["status"])
+                self.assertEqual("git-identity-invalid", result["blocked"][0]["reason"])
+                self.assertIn("ambiguous", result["blocked"][0]["detail"])
+                self.assertEqual(before_sessions, sessions_path.read_bytes())
+                self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_symlink_retarget_blocks_dispatch_without_mutation(self) -> None:
+        alias = self.root.parent / "worktree-alias"
+        alias.symlink_to(self.root, target_is_directory=True)
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-symlink-worktree",
+            base_revision=self.base_commit,
+        )
+        candidate["worktree"] = str(alias)
+        self.write_planned(candidate)
+        sessions_path = self.state_dir / "sessions.json"
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+
+        preflight = self.store.dispatch_sessions(
+            capacity=1,
+            session_ids=[candidate["id"]],
+            dry_run=True,
+        )
+        self.assertEqual("blocked", preflight["status"])
+        alias.unlink()
+        alternate = self.root.parent / "alternate"
+        alternate.mkdir()
+        alias.symlink_to(alternate, target_is_directory=True)
+        confirmation = self.store.dispatch_sessions(
+            capacity=1,
+            session_ids=[candidate["id"]],
+            launch_confirmations=launch_confirmations(candidate),
+        )
+        self.assertEqual("blocked", confirmation["status"])
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_root_replacement_during_resolution_blocks_without_mutation(self) -> None:
+        auth_repo = self.root.parent / "auth-repo"
+        auth_repo.mkdir()
+        git(auth_repo, "init", "-b", "main")
+        git(auth_repo, "config", "user.name", "Workflow Test")
+        git(auth_repo, "config", "user.email", "workflow@example.invalid")
+        (auth_repo / "tracked.txt").write_text("auth\n", encoding="ascii")
+        git(auth_repo, "add", "tracked.txt")
+        git(auth_repo, "commit", "-m", "auth")
+        auth_commit = git(auth_repo, "rev-parse", "HEAD")
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-replaced-worktree",
+            base_revision=auth_commit,
+        )
+        candidate["worktree"] = str(auth_repo)
+        self.write_planned(candidate)
+        sessions_path = self.state_dir / "sessions.json"
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+        original_run = subprocess.run
+        moved = self.root.parent / "moved-auth-repo"
+
+        def replace_root(*arguments: object, **keywords: object) -> subprocess.CompletedProcess[str]:
+            completed = original_run(*arguments, **keywords)
+            command = arguments[0]
+            if isinstance(command, list) and command[-2:] == ["rev-parse", "--show-toplevel"]:
+                auth_repo.rename(moved)
+                auth_repo.mkdir()
+            return completed
+
+        with mock.patch.object(
+            git_identity.subprocess,
+            "run",
+            side_effect=replace_root,
+        ):
+            result = self.store.dispatch_sessions(
+                capacity=1,
+                session_ids=[candidate["id"]],
+                launch_confirmations=launch_confirmations(candidate),
+            )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual("git-identity-invalid", result["blocked"][0]["reason"])
+        self.assertIn("changed during authentication", result["blocked"][0]["detail"])
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_root_replacement_at_publication_boundary_rolls_back_without_mutation(self) -> None:
+        auth_repo = self.root.parent / "publication-auth-repo"
+        auth_repo.mkdir()
+        git(auth_repo, "init", "-b", "main")
+        git(auth_repo, "config", "user.name", "Workflow Test")
+        git(auth_repo, "config", "user.email", "workflow@example.invalid")
+        (auth_repo / "tracked.txt").write_text("auth\n", encoding="ascii")
+        git(auth_repo, "add", "tracked.txt")
+        git(auth_repo, "commit", "-m", "auth")
+        auth_commit = git(auth_repo, "rev-parse", "HEAD")
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-publication-replaced-worktree",
+            base_revision=auth_commit,
+        )
+        candidate["worktree"] = str(auth_repo)
+        self.write_planned(candidate)
+        sessions_path = self.state_dir / "sessions.json"
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+        original_recheck = workflow.recheck_git_identity_worktree
+        moved = self.root.parent / "moved-publication-auth-repo"
+        rechecks = 0
+
+        def replace_after_second_recheck(identity: git_identity.GitIdentity) -> None:
+            nonlocal rechecks
+            rechecks += 1
+            original_recheck(identity)
+            if rechecks == 2:
+                auth_repo.rename(moved)
+                auth_repo.mkdir()
+
+        with mock.patch.object(
+            workflow,
+            "recheck_git_identity_worktree",
+            side_effect=replace_after_second_recheck,
+        ):
+            result = self.store.dispatch_sessions(
+                capacity=1,
+                session_ids=[candidate["id"]],
+                launch_confirmations=launch_confirmations(candidate),
+            )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual("git-worktree-changed", result["blocked"][0]["reason"])
+        self.assertEqual(3, rechecks)
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_missing_promisor_object_never_fetches_or_mutates_dispatch(self) -> None:
+        sentinel = self.root.parent / "transport-invoked"
+        remote = self.root.parent / "sentinel-remote"
+        remote.write_text(
+            f"#!/bin/sh\nprintf invoked > {sentinel}\nexit 1\n",
+            encoding="ascii",
+        )
+        remote.chmod(0o755)
+        git(self.root, "config", "remote.origin.url", f"ext::{remote}")
+        git(self.root, "config", "remote.origin.promisor", "true")
+        git(self.root, "config", "remote.origin.partialclonefilter", "blob:none")
+        git(self.root, "config", "protocol.ext.allow", "always")
+        object_path = self.root / ".git" / "objects" / self.base_commit[:2] / self.base_commit[2:]
+        self.assertTrue(object_path.is_file())
+        object_path.unlink()
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-missing-promisor-object",
+            base_revision=self.base_commit,
+        )
+        self.write_planned(candidate)
+        sessions_path = self.state_dir / "sessions.json"
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+
+        for dry_run in (True, False):
+            with self.subTest(dry_run=dry_run):
+                result = self.store.dispatch_sessions(
+                    capacity=1,
+                    session_ids=[candidate["id"]],
+                    launch_confirmations=None if dry_run else launch_confirmations(candidate),
+                    dry_run=dry_run,
+                )
+                self.assertEqual("blocked", result["status"])
+                self.assertEqual("git-identity-invalid", result["blocked"][0]["reason"])
+                self.assertFalse(sentinel.exists())
+                self.assertEqual(before_sessions, sessions_path.read_bytes())
+                self.assertEqual(before_events, self.events.read_bytes())
 
     def test_pr_base_remains_distinct_from_detached_worktree_head(self) -> None:
         git(self.root, "checkout", "--detach", self.head_commit)

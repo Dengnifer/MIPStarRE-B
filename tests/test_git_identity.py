@@ -60,11 +60,19 @@ class GitIdentityTests(unittest.TestCase):
     def test_symbolic_and_exact_refs_resolve_to_proven_commit_and_tree(self) -> None:
         symbolic = git_identity.resolve_git_identity(self.repo, "main")
         exact = git_identity.resolve_git_identity(self.repo, self.head_commit)
-        self.assertEqual(
-            git_identity.GitIdentity(self.head_commit, self.head_tree),
-            symbolic,
-        )
+        self.assertEqual(self.head_commit, symbolic.commit)
+        self.assertEqual(self.head_tree, symbolic.tree)
+        self.assertEqual(self.repo, symbolic.worktree)
         self.assertEqual(symbolic, exact)
+
+    def test_ambiguous_shorthand_ref_requires_a_fully_qualified_name(self) -> None:
+        git(self.repo, "tag", "main", self.base_commit)
+        with self.assertRaisesRegex(git_identity.GitIdentityError, "ambiguous"):
+            git_identity.resolve_git_identity(self.repo, "main")
+        branch = git_identity.resolve_git_identity(self.repo, "refs/heads/main")
+        tag = git_identity.resolve_git_identity(self.repo, "refs/tags/main")
+        self.assertEqual(self.head_commit, branch.commit)
+        self.assertEqual(self.base_commit, tag.commit)
 
     def test_cli_returns_the_same_exact_identity(self) -> None:
         arguments = git_identity.build_parser().parse_args(
@@ -101,6 +109,76 @@ class GitIdentityTests(unittest.TestCase):
         child.mkdir()
         with self.assertRaisesRegex(git_identity.GitIdentityError, "repository root"):
             git_identity.resolve_git_identity(child, "main")
+
+    def test_symlink_alias_is_rejected_before_and_after_retarget(self) -> None:
+        alias = self.root / "worktree-alias"
+        alias.symlink_to(self.repo, target_is_directory=True)
+        with self.assertRaisesRegex(git_identity.GitIdentityError, "symlink component"):
+            git_identity.resolve_git_identity(alias, "main")
+        alias.unlink()
+        alternate = self.root / "alternate"
+        alternate.mkdir()
+        alias.symlink_to(alternate, target_is_directory=True)
+        with self.assertRaisesRegex(git_identity.GitIdentityError, "symlink component"):
+            git_identity.resolve_git_identity(alias, "main")
+
+    def test_root_replacement_during_git_call_is_rejected(self) -> None:
+        original_run = subprocess.run
+        moved = self.root / "moved-repo"
+
+        def replace_root(*arguments: object, **keywords: object) -> subprocess.CompletedProcess[str]:
+            completed = original_run(*arguments, **keywords)
+            command = arguments[0]
+            if isinstance(command, list) and command[-2:] == ["rev-parse", "--show-toplevel"]:
+                self.repo.rename(moved)
+                self.repo.mkdir()
+            return completed
+
+        with (
+            mock.patch.object(git_identity.subprocess, "run", side_effect=replace_root),
+            self.assertRaisesRegex(git_identity.GitIdentityError, "changed during authentication"),
+        ):
+            git_identity.resolve_git_identity(self.repo, "main")
+
+    def test_missing_promisor_object_never_invokes_lazy_fetch_transport(self) -> None:
+        sentinel = self.root / "transport-invoked"
+        remote = self.root / "sentinel-remote"
+        remote.write_text(
+            f"#!/bin/sh\nprintf invoked > {sentinel}\nexit 1\n",
+            encoding="ascii",
+        )
+        remote.chmod(0o755)
+        git(self.repo, "config", "remote.origin.url", f"ext::{remote}")
+        git(self.repo, "config", "remote.origin.promisor", "true")
+        git(self.repo, "config", "remote.origin.partialclonefilter", "blob:none")
+        git(self.repo, "config", "protocol.ext.allow", "always")
+        object_path = self.repo / ".git" / "objects" / self.base_commit[:2] / self.base_commit[2:]
+        self.assertTrue(object_path.is_file())
+        object_path.unlink()
+
+        probe = subprocess.run(
+            ["git", "cat-file", "-e", self.base_commit],
+            cwd=self.repo,
+            text=True,
+            capture_output=True,
+            check=False,
+            env={
+                "GIT_CONFIG_GLOBAL": os.devnull,
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "GIT_CONFIG_SYSTEM": os.devnull,
+                "GIT_TERMINAL_PROMPT": "0",
+                "LANG": "C",
+                "LC_ALL": "C",
+                "PATH": os.defpath,
+            },
+        )
+        self.assertNotEqual(0, probe.returncode)
+        self.assertTrue(sentinel.is_file())
+        sentinel.unlink()
+
+        with self.assertRaises(git_identity.GitIdentityError):
+            git_identity.resolve_git_identity(self.repo, self.base_commit)
+        self.assertFalse(sentinel.exists())
 
     def test_invalid_cache_main_has_zero_build_publication_or_metric_effects(self) -> None:
         runtime = self.root / "runtime"
