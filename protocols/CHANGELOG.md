@@ -51,6 +51,13 @@ proof cleanup. The deterministic two-proof regression injects the first close
 failure, proves both
 real descriptors closed and exact rollback, then proves a clean retry commits.
 
+Independent regression review A13 found that the syntactic direct-object test
+accepted either supported hash width without consulting the repository, so Git
+could expand a 40-hex prefix in a SHA-256 repository. Direct hexadecimal
+identities are now admitted only when their width matches an input object format
+advertised by the bound repository. Resolver and dispatch regressions reject a
+40-hex SHA-256 prefix without mutation and accept the exact 64-hex commit.
+
 Focused regressions cover symbolic and exact refs, branch/tag ambiguity,
 nonexistent full-looking SHAs, object/tree authentication, expected-tree
 mismatch, detached-head review semantics, symlink retargeting, root
@@ -60,9 +67,9 @@ byte-identical atomic rejection. The partial-clone checks use a sentinel
 transport and prove that neither dry-run nor confirmation invokes it. The
 QPBT-045 contract is exercised without a cache implementation change: an
 invalid exact main reaches zero warm/build, publication, and metric actions.
-The focused resolver suite passes 14/14, the workflow module passes 90/90, the
+The focused resolver suite passes 15/15, the workflow module passes 91/91, the
 canonical checker passes 3/3, compileall and canonical workflow validation pass,
-and the dependency-free aggregate passes 410/410. A fresh immutable independent
+and the dependency-free aggregate passes 412/412. A fresh immutable independent
 review remains required before activation.
 
 ## 0.1.12 (2026-09-03)

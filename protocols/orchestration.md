@@ -32,7 +32,10 @@ inferring readiness from list order.
 Every dispatch dry-run and confirmation resolves each non-null planned
 `base_revision` through `scripts/git_identity.py` in the session's registered
 worktree. The resolver accepts a full object ID, a fully qualified ref, `HEAD`,
-or shorthand that has exactly one canonical ref interpretation. A shorthand
+or shorthand that has exactly one canonical ref interpretation. A hexadecimal
+token is a full object ID only when its length matches an input object format
+advertised by that repository; a SHA-256 repository therefore rejects a
+40-hex abbreviation and accepts the exact 64-hex identity. A shorthand
 collision such as same-named branch and tag is rejected; callers use the
 desired `refs/heads/...` or `refs/tags/...` name explicitly. The resolver obtains
 the full commit and root tree from Git and proves with `cat-file` that both

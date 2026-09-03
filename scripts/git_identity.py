@@ -16,6 +16,7 @@ from typing import Sequence
 
 
 FULL_GIT_OID_RE = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+GIT_OBJECT_FORMAT_LENGTHS = {"sha1": 40, "sha256": 64}
 
 
 class GitIdentityError(Exception):
@@ -243,6 +244,27 @@ def _full_oid(value: str, label: str) -> str:
     return normalized
 
 
+def _repository_input_oid_lengths(
+    cwd: Path,
+    worktree_fd: int,
+    worktree_identity: tuple[int, int],
+) -> set[int]:
+    """Return full object-ID lengths accepted by the bound repository."""
+
+    advertised = _git(
+        cwd,
+        ["rev-parse", "--show-object-format=input"],
+        worktree_fd=worktree_fd,
+        worktree_identity=worktree_identity,
+    ).split()
+    if not advertised or any(name not in GIT_OBJECT_FORMAT_LENGTHS for name in advertised):
+        detail = " ".join(advertised) or "<empty>"
+        raise GitIdentityError(
+            f"Git advertised unsupported input object format(s): {detail}"
+        )
+    return {GIT_OBJECT_FORMAT_LENGTHS[name] for name in advertised}
+
+
 def _prove_object(
     cwd: Path,
     worktree_fd: int,
@@ -367,11 +389,21 @@ def resolve_git_identity(
             )
 
         raw_ref = ref.strip()
-        resolved_ref = (
-            raw_ref
-            if FULL_GIT_OID_RE.fullmatch(raw_ref)
-            else _canonical_ref(cwd, worktree_fd, worktree_identity, raw_ref)
-        )
+        if FULL_GIT_OID_RE.fullmatch(raw_ref):
+            accepted_lengths = _repository_input_oid_lengths(
+                cwd,
+                worktree_fd,
+                worktree_identity,
+            )
+            if len(raw_ref) not in accepted_lengths:
+                lengths = ", ".join(str(length) for length in sorted(accepted_lengths))
+                raise GitIdentityError(
+                    f"Git object ID length {len(raw_ref)} does not match repository "
+                    f"input object format length(s): {lengths}"
+                )
+            resolved_ref = raw_ref
+        else:
+            resolved_ref = _canonical_ref(cwd, worktree_fd, worktree_identity, raw_ref)
         commit = _full_oid(
             _git(
                 cwd,

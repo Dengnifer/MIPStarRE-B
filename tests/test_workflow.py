@@ -2510,6 +2510,55 @@ class GitIdentityAdmissionTests(unittest.TestCase):
         self.assertEqual(self.head_tree, record["base_tree"])
         self.assertEqual(str(self.root), record["worktree"])
 
+    def test_sha256_exact_commit_admission_rejects_sha1_length_prefix(self) -> None:
+        repository = self.root.parent / "sha256-repo"
+        repository.mkdir()
+        git(repository, "init", "--object-format=sha256", "-b", "main")
+        git(repository, "config", "user.name", "Workflow Test")
+        git(repository, "config", "user.email", "workflow@example.invalid")
+        (repository / "tracked.txt").write_text("sha256\n", encoding="ascii")
+        git(repository, "add", "tracked.txt")
+        git(repository, "commit", "-m", "sha256 base")
+        commit = git(repository, "rev-parse", "HEAD")
+        tree = git(repository, "rev-parse", "HEAD^{tree}")
+        self.assertEqual(64, len(commit))
+
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-sha256-identity",
+            base_revision=commit[:40],
+        )
+        candidate["worktree"] = str(repository)
+        self.write_planned(candidate)
+        sessions_path = self.state_dir / "sessions.json"
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+        for dry_run in (True, False):
+            with self.subTest(dry_run=dry_run):
+                result = self.store.dispatch_sessions(
+                    capacity=1,
+                    session_ids=[candidate["id"]],
+                    launch_confirmations=None if dry_run else launch_confirmations(candidate),
+                    dry_run=dry_run,
+                )
+                self.assertEqual("blocked", result["status"])
+                self.assertEqual("git-identity-invalid", result["blocked"][0]["reason"])
+                self.assertIn("object format length", result["blocked"][0]["detail"])
+                self.assertEqual(before_sessions, sessions_path.read_bytes())
+                self.assertEqual(before_events, self.events.read_bytes())
+
+        candidate["base_revision"] = commit
+        self.write_planned(candidate)
+        result = self.store.dispatch_sessions(
+            capacity=1,
+            session_ids=[candidate["id"]],
+            launch_confirmations=launch_confirmations(candidate),
+        )
+        self.assertEqual("issued", result["status"])
+        record = self.store.validate()["sessions.json"]["issued"][0]
+        self.assertEqual(commit, record["base_revision"])
+        self.assertEqual(tree, record["base_tree"])
+        self.assertEqual(str(repository), record["worktree"])
+
     def test_ambiguous_ref_blocks_dry_run_and_confirmation_without_mutation(self) -> None:
         git(self.root, "tag", "main", self.base_commit)
         candidate = self.real_candidate(

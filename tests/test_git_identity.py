@@ -93,6 +93,25 @@ class GitIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(git_identity.GitIdentityError, "rev-parse"):
             git_identity.resolve_git_identity(self.repo, guessed)
 
+    def test_sha256_repository_rejects_sha1_length_prefix_and_accepts_full_id(self) -> None:
+        repository = self.root / "sha256-repo"
+        repository.mkdir()
+        git(repository, "init", "--object-format=sha256", "-b", "main")
+        git(repository, "config", "user.name", "Git Identity Test")
+        git(repository, "config", "user.email", "git-identity@example.invalid")
+        (repository / "tracked.txt").write_text("sha256\n", encoding="ascii")
+        git(repository, "add", "tracked.txt")
+        git(repository, "commit", "-m", "sha256 base")
+        commit = git(repository, "rev-parse", "HEAD")
+        tree = git(repository, "rev-parse", "HEAD^{tree}")
+        self.assertEqual(64, len(commit))
+
+        with self.assertRaisesRegex(git_identity.GitIdentityError, "object format length"):
+            git_identity.resolve_git_identity(repository, commit[:40])
+        with git_identity.resolve_git_identity(repository, commit) as identity:
+            self.assertEqual(commit, identity.commit)
+            self.assertEqual(tree, identity.tree)
+
     def test_tree_mismatch_is_rejected_after_object_resolution(self) -> None:
         with self.assertRaisesRegex(git_identity.GitIdentityError, "tree mismatch"):
             git_identity.resolve_git_identity(
