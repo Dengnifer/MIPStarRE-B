@@ -2141,7 +2141,7 @@
       "title": "Prevent guessed full SHAs in local workflow admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "ready",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-026",
@@ -2164,7 +2164,7 @@
         "Add focused and aggregate regressions for valid symbolic refs, exact commits, nonexistent full-looking SHAs, tree mismatch, PR-base versus detached-head identity, and atomic no-mutation failure",
         "Make the smallest sufficient tooling/protocol change, update protocols/CHANGELOG.md with evidence and measured impact, and obtain a fresh independent immutable review before integration"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i044-orchestrator-a01-git-identity",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-050",
         "research/metrics/incidents.jsonl#INC-058",
@@ -2185,7 +2185,7 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:46:00Z",
-      "updated_at": "2026-09-03T12:26:40.867094Z",
+      "updated_at": "2026-09-03T12:35:22.709792Z",
       "blocked_reason": null,
       "unblock_condition": "Dependencies QPBT-026, QPBT-034, and QPBT-045 are complete; issue is ready for dispatch."
     },
@@ -3258,9 +3258,16 @@
         "workflow/reviews/qpbt-062-branch-lifecycle-a01.md"
       ],
       "created_at": "2026-09-03T16:00:00+08:00",
-      "updated_at": "2026-09-03T12:11:23.058249Z",
+      "updated_at": "2026-09-03T12:37:09.138475Z",
       "blocked_reason": null,
-      "unblock_condition": null
+      "unblock_condition": "Fresh reviewer approval of the exact current-main candidate, followed by the required changelog entry and guarded integration.",
+      "candidate_base_sha": "08b12a8cc7e9f0464f1842d0074884c96ddff832",
+      "candidate_head_sha": "889e7f8f16b09e5c6de23b3348508a48c2bc14c6",
+      "candidate_tree": "04cad9b46835ab529b849510c853a07b2c8bce27",
+      "candidate_patch_sha256": "cfc57ff7a6b7f4542dc09e06c2b1f50a6e66881be8204943a07c573ab9a13557",
+      "candidate_report": "workflow/reviews/qpbt-062-branch-lifecycle-a01.md",
+      "candidate_report_sha256": "fc8c515d300b2bfe7d7c3f171afd56df8cd599f2fcd9de91f49d1773c84e2795",
+      "candidate_status": "under-fresh-immutable-review"
     },
     {
       "id": "QPBT-063",
@@ -3551,10 +3558,17 @@
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
       "owner_session_id": "i068-orchestrator-a01-cache-safety",
-      "blocked_reason": "Awaiting QPBT-051 completion so cache transaction fixes are based on the final reviewed head; then repair the two QPBT-067 findings.",
-      "unblock_condition": "QPBT-051 done and a clean current main checkpoint is available for one orchestrator with disjoint ownership.",
+      "blocked_reason": null,
+      "unblock_condition": "Fresh hostile cache-safety approval of the exact six-path candidate, then guarded integration.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-03T12:16:21.718264Z"
+      "updated_at": "2026-09-03T12:37:09.765612Z",
+      "candidate_base_sha": "b37a33c7c280e29fad2ca2cd12c221b6fc38aa07",
+      "candidate_head_sha": "7f7da8438a8ee9b456e22d441e7d0c3284779f22",
+      "candidate_tree": "f2eaf03109057bec8dfa46cbf1ecb8315c1742e3",
+      "candidate_patch_sha256": "baab726903faed1eb2e903c3116752b6a39b00f389c320f15ff6a05c0573b094",
+      "candidate_report": "workflow/reviews/qpbt-068-cache-safety-a01.md",
+      "candidate_report_sha256": "d29dd5b2b12a8941041d89a8cc8ed0d1b29cf318b563cf5ef1d9c08fa5fcebb0",
+      "candidate_status": "under-fresh-immutable-review"
     }
   ]
 }
