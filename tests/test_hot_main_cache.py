@@ -2093,6 +2093,69 @@ class HotMainCacheTests(unittest.TestCase):
         )
         self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
         self.assertEqual([], list(target.glob(".lake.backup-*")))
+
+    def test_seed_metric_fsync_failure_rolls_back_metric_and_replaced_seed(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("seed-metric-fsync-failure")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
+        real_fsync = cache_module.os.fsync
+        calls = 0
+
+        def fail_metric_fsync(descriptor: int) -> None:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise OSError("injected metric fsync failure")
+            real_fsync(descriptor)
+
+        with mock.patch.object(cache_module.os, "fsync", side_effect=fail_metric_fsync):
+            with self.assertRaisesRegex(OSError, "injected metric fsync failure"):
+                manager.seed(target, replace=True)
+
+        self.assertEqual("preserve\n", (original_lake / "original-marker").read_text(encoding="ascii"))
+        self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertEqual([], list(target.glob(".lake-seed-*")))
+        metrics = [
+            json.loads(line)
+            for line in (self.runtime / "metrics" / "hot-main.jsonl").read_text(encoding="utf-8").splitlines()
+        ]
+        self.assertEqual([], [item for item in metrics if item.get("result") == "seeded"])
+
+    def test_seed_metric_short_write_rolls_back_metric_and_replaced_seed(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("seed-metric-short-write")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
+        real_write = cache_module.os.write
+        injected = False
+
+        def short_metric_write(descriptor: int, payload: bytes) -> int:
+            nonlocal injected
+            if not injected:
+                injected = True
+                partial = max(1, len(payload) // 2)
+                real_write(descriptor, payload[:partial])
+                return partial
+            return real_write(descriptor, payload)
+
+        with mock.patch.object(cache_module.os, "write", side_effect=short_metric_write):
+            with self.assertRaisesRegex(OSError, "short hot-cache metric write"):
+                manager.seed(target, replace=True)
+
+        self.assertEqual("preserve\n", (original_lake / "original-marker").read_text(encoding="ascii"))
+        self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        metrics = [
+            json.loads(line)
+            for line in (self.runtime / "metrics" / "hot-main.jsonl").read_text(encoding="utf-8").splitlines()
+        ]
+        self.assertEqual([], [item for item in metrics if item.get("result") == "seeded"])
         self.assertEqual([], list(target.glob(".lake-seed-*")))
 
     def test_prepare_backup_cleanup_interruption_is_nonfatal_after_commit(self) -> None:

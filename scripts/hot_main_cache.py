@@ -2560,9 +2560,24 @@ class HotMainCache:
         with ExclusiveLock(self.metrics_lock_path):
             self.metrics_path.parent.mkdir(parents=True, exist_ok=True)
             descriptor = os.open(self.metrics_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+            checkpoint: int | None = None
             try:
-                os.write(descriptor, encoded)
+                checkpoint = os.fstat(descriptor).st_size
+                written = os.write(descriptor, encoded)
+                if written != len(encoded):
+                    raise OSError(errno.EIO, "short hot-cache metric write")
                 os.fsync(descriptor)
+            except BaseException as error:
+                if checkpoint is None:
+                    raise
+                try:
+                    os.ftruncate(descriptor, checkpoint)
+                    os.fsync(descriptor)
+                except BaseException as rollback_error:
+                    raise OSError(
+                        f"hot-cache metric append failed ({error}); rollback failed: {rollback_error}"
+                    ) from error
+                raise
             finally:
                 os.close(descriptor)
 
