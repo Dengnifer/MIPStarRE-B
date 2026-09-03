@@ -784,7 +784,17 @@
         "MIPStarRE/QPBT/Game/Verifier.lean"
       ],
       "created_at": "2026-08-30T23:54:39.078758Z",
-      "updated_at": "2026-08-30T23:54:39.078758Z"
+      "updated_at": "2026-09-03T17:49:31.057076Z",
+      "contract_audit_report": "/tmp/i005-scout-a39-game-contract.md",
+      "contract_audit_report_sha256": "d6cfc37a310fe7df2b16a5232f1f9cb47c0c8d4fae70930be6a549cb7be9c14f",
+      "contract_audit_verdict": "block",
+      "missing_prerequisite_surfaces": [
+        "canonical-line-conditionally-linear-maps",
+        "level-one-low-degree-decider",
+        "magic-square-tensor-measurement-construction"
+      ],
+      "blocked_reason": "The exact two-file game surface needs canonical-line CL maps, the level-one low-degree decider, and a Magic Square tensor-measurement construction not provided by current dependencies.",
+      "unblock_condition": "Split and discharge exact prerequisite issues, preserve F08/G02 source contracts without obligation inputs, then dispatch the two-file QPBT-015 writer."
     },
     {
       "id": "QPBT-016",
@@ -2178,7 +2188,7 @@
       "title": "Prevent guessed full SHAs in local workflow admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-026",
@@ -2201,7 +2211,7 @@
         "Add focused and aggregate regressions for valid symbolic refs, exact commits, nonexistent full-looking SHAs, tree mismatch, PR-base versus detached-head identity, and atomic no-mutation failure",
         "Make the smallest sufficient tooling/protocol change, update protocols/CHANGELOG.md with evidence and measured impact, and obtain a fresh independent immutable review before integration"
       ],
-      "owner_session_id": "i044-orchestrator-a14-sha256-length",
+      "owner_session_id": "i044-orchestrator-a17-repository-binding",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-050",
         "research/metrics/incidents.jsonl#INC-058",
@@ -2222,7 +2232,7 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:46:00Z",
-      "updated_at": "2026-09-03T17:42:47.530221Z",
+      "updated_at": "2026-09-03T17:48:51.513679Z",
       "blocked_reason": null,
       "unblock_condition": "Repair F044-A15-001 and F044-A16-001 on exact head 546e6dc, preserve all prior identity and transaction guarantees, rerun focused and aggregate tests, then obtain fresh immutable reviews.",
       "candidate_base_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
@@ -3990,7 +4000,7 @@
       "title": "fix(QPBT): disambiguate local Galois-field instances",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "ready",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-037",
@@ -4010,7 +4020,7 @@
         "The candidate changes only MIPStarRE/QPBT/Game/Types.lean, records exact base/head/tree/patch identities, and receives fresh immutable independent review before guarded integration.",
         "After guarded integration, QPBT-040 reruns the combined import and snapshot gates before QPBT-014 may close."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i069-orchestrator-a01-instance-names",
       "source_refs": [
         "workflow/reviews/qpbt-040-q014-combined-a01.md",
         "MIPStarRE/QPBT/Basic/Pauli.lean:22",
@@ -4020,7 +4030,7 @@
         "MIPStarRE/QPBT/Game/Types.lean"
       ],
       "created_at": "2026-09-03T17:38:00Z",
-      "updated_at": "2026-09-03T17:38:00Z",
+      "updated_at": "2026-09-03T17:48:52.167162Z",
       "blocked_reason": null,
       "unblock_condition": "Dispatch the exact one-file repair from current main and pass independent immutable review."
     },
