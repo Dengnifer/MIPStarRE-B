@@ -3626,7 +3626,7 @@
       "title": "repair(workflow): close cache seed isolation and crash-recovery gaps",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-067",
       "dependency_ids": [
         "QPBT-051"
@@ -3665,11 +3665,11 @@
         "workflow/reviews/qpbt-067-cache-layout-a01.md",
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
-      "owner_session_id": "i068-orchestrator-a01-cache-safety",
+      "owner_session_id": "i068-orchestrator-a04-cache-transaction",
       "blocked_reason": null,
       "unblock_condition": "Repair F068-A02-001 through F068-A02-008 on a changed head, rerun focused and adversarial tests, and obtain a fresh immutable hostile review.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-03T12:45:18.123139Z",
+      "updated_at": "2026-09-03T13:41:56.474776Z",
       "candidate_base_sha": "b37a33c7c280e29fad2ca2cd12c221b6fc38aa07",
       "candidate_head_sha": "7f7da8438a8ee9b456e22d441e7d0c3284779f22",
       "candidate_tree": "f2eaf03109057bec8dfa46cbf1ecb8315c1742e3",

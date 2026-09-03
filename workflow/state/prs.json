@@ -9127,6 +9127,109 @@
       ],
       "requested_external_review": true,
       "unexecuted_gate": "none; guarded integration report and singleton validation complete"
+    },
+    {
+      "id": "LPR-035",
+      "title": "feat(QPBT/Game): implement executable CL sampler skeleton",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-057"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-057-resource-repair-a03",
+      "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+      "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-057-auth",
+          "name": "QPBT-057 immutable candidate authentication",
+          "command": "Authenticate exact base, three-commit candidate head/tree, exact two-path binary patch, file hashes, and clean worktree",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "Exact head/tree and two-path patch authenticated; patch SHA-256 076394ff."
+        },
+        {
+          "id": "check-qpbt-057-scoped",
+          "name": "QPBT-057 scoped Lean elaboration",
+          "command": "lake env lean MIPStarRE/QPBT/Game/Types.lean",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "Passed on final candidate with exactly two authorized Stage-4A sorry warnings."
+        },
+        {
+          "id": "check-qpbt-057-targets",
+          "name": "QPBT-057 affected target builds",
+          "command": "lake build MIPStarRE.QPBT.Basic.Field; lake build MIPStarRE.QPBT.Game.Types",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "Passed 2,357-job Field and 3,101-job Types targets."
+        },
+        {
+          "id": "check-qpbt-057-full",
+          "name": "QPBT-057 private full build",
+          "command": "lake build",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "Passed 8,992 jobs in the isolated candidate worktree."
+        },
+        {
+          "id": "check-qpbt-057-blueprint",
+          "name": "QPBT-057 blueprint synchronization",
+          "command": "python3 blueprint/check.py --check; pinned-source check; blueprint unit tests",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "Both 54-node synchronization checks and 36/36 blueprint tests passed."
+        },
+        {
+          "id": "check-qpbt-057-hygiene",
+          "name": "QPBT-057 API/import/debt and workflow hygiene",
+          "command": "Exact 56-name API, four imports, two-hole debt, forbidden-assumption, workflow and diff scans",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "All source-boundary, proof-debt, workflow, and diff gates passed."
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-03T13:45:00.454064Z",
+      "updated_at": "2026-09-03T13:45:00.454064Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-057-f06a-a02.md"
+      ],
+      "motivation": "Land the executable conditionally-linear sampler boundary required by the QPBT game skeleton while keeping operational construction and runtime proof as the two explicitly tracked Stage-4A holes.",
+      "description": "Define executable machines, query encodings, exponent programs, samplers, exact downsize maps and sample laws, and bind correctness/resource evidence for one selected compiler without changing the frozen public API.",
+      "testing": "Scoped Lean, affected targets, one private full build, blueprint synchronization, exact API/import/debt scans, workflow checks, and two independent immutable pre-PR reviews passed.",
+      "addresses": "QPBT-057",
+      "provenance_session_ids": [
+        "i057-orchestrator-a03-resource-evidence",
+        "i057-prover-a05-resource-certificate",
+        "i057-reviewer-a09-resource-binding",
+        "i057-reviewer-a10-build-api"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": "PR-bound no-byte-change adoption and one fresh immutable formal PR review remain before guarded integration."
     }
   ]
 }
