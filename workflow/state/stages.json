@@ -249,7 +249,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 417,
+      "subagents_issued": 422,
       "max_concurrency": 9,
       "outputs": [
         "research/report.md",
