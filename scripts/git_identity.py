@@ -1,0 +1,188 @@
+#!/usr/bin/env python3
+"""Resolve and authenticate immutable Git commit/tree identities."""
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+from typing import Sequence
+
+
+FULL_GIT_OID_RE = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+
+
+class GitIdentityError(Exception):
+    """Git could not authenticate the requested commit and tree."""
+
+
+@dataclass(frozen=True)
+class GitIdentity:
+    """A Git-resolved commit and its exact root tree."""
+
+    commit: str
+    tree: str
+
+
+def _git_environment() -> dict[str, str]:
+    """Return a minimal environment for non-interactive Git plumbing."""
+
+    return {
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_SYSTEM": os.devnull,
+        "GIT_NO_REPLACE_OBJECTS": "1",
+        "GIT_PAGER": "cat",
+        "GIT_TERMINAL_PROMPT": "0",
+        "LANG": "C",
+        "LC_ALL": "C",
+        "PATH": os.defpath,
+    }
+
+
+def _git(cwd: Path, arguments: Sequence[str]) -> str:
+    command = [
+        "git",
+        "-c",
+        f"core.hooksPath={os.devnull}",
+        "-c",
+        "core.fsmonitor=false",
+        *arguments,
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=cwd,
+            text=True,
+            capture_output=True,
+            check=False,
+            shell=False,
+            env=_git_environment(),
+        )
+    except OSError as error:
+        raise GitIdentityError(f"could not run git: {error}") from error
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        if not detail:
+            detail = f"exit code {completed.returncode}"
+        raise GitIdentityError(f"git {' '.join(arguments)} failed: {detail}")
+    return completed.stdout.strip()
+
+
+def _full_oid(value: str, label: str) -> str:
+    normalized = value.strip().lower()
+    if not FULL_GIT_OID_RE.fullmatch(normalized):
+        raise GitIdentityError(f"Git resolved an invalid {label} object id {value!r}")
+    return normalized
+
+
+def _prove_object(cwd: Path, object_id: str, expected_type: str) -> None:
+    _git(cwd, ["cat-file", "-e", object_id])
+    actual_type = _git(cwd, ["cat-file", "-t", object_id])
+    if actual_type != expected_type:
+        raise GitIdentityError(
+            f"Git object {object_id} has type {actual_type!r}, expected {expected_type!r}"
+        )
+
+
+def resolve_git_identity(
+    worktree: Path,
+    ref: str,
+    *,
+    expected_tree: str | None = None,
+) -> GitIdentity:
+    """Resolve ``ref`` and prove its commit and root-tree objects exist.
+
+    ``ref`` may be a symbolic ref or an exact object ID.  A supplied expected
+    tree is treated as admission authority and must match Git's result exactly.
+    The current worktree ``HEAD`` is deliberately not compared with ``ref``:
+    reviewers bind the PR base while inspecting a detached candidate head.
+    """
+
+    if not isinstance(ref, str) or not ref.strip():
+        raise GitIdentityError("Git commit ref must be a non-empty string")
+    if "\x00" in ref or "\n" in ref or "\r" in ref:
+        raise GitIdentityError("Git commit ref contains a forbidden control character")
+    try:
+        cwd = worktree.resolve(strict=True)
+    except (OSError, RuntimeError) as error:
+        raise GitIdentityError(f"could not resolve Git worktree {worktree}: {error}") from error
+    if not cwd.is_dir():
+        raise GitIdentityError(f"Git worktree is not a directory: {cwd}")
+
+    repository_root = _git(cwd, ["rev-parse", "--show-toplevel"])
+    try:
+        resolved_root = Path(repository_root).resolve(strict=True)
+    except (OSError, RuntimeError) as error:
+        raise GitIdentityError(f"Git reported an invalid worktree root: {error}") from error
+    if resolved_root != cwd:
+        raise GitIdentityError(
+            f"session worktree must be the Git repository root: expected {cwd}, got {resolved_root}"
+        )
+
+    raw_ref = ref.strip()
+    commit = _full_oid(
+        _git(cwd, ["rev-parse", "--verify", "--end-of-options", f"{raw_ref}^{{commit}}"]),
+        "commit",
+    )
+    _prove_object(cwd, commit, "commit")
+    tree = _full_oid(
+        _git(cwd, ["rev-parse", "--verify", "--end-of-options", f"{commit}^{{tree}}"]),
+        "tree",
+    )
+    _prove_object(cwd, tree, "tree")
+
+    if expected_tree is not None:
+        if not isinstance(expected_tree, str):
+            raise GitIdentityError("expected Git tree must be a full object ID string")
+        expected = expected_tree.strip().lower()
+        if not FULL_GIT_OID_RE.fullmatch(expected):
+            raise GitIdentityError(
+                f"expected Git tree must be a full object ID, got {expected_tree!r}"
+            )
+        if expected != tree:
+            raise GitIdentityError(
+                f"Git tree mismatch for {raw_ref!r}: expected {expected}, resolved {tree}"
+            )
+    return GitIdentity(commit=commit, tree=tree)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("ref", help="symbolic ref or exact commit object ID")
+    parser.add_argument(
+        "--worktree",
+        default=".",
+        help="Git worktree root (default: current directory)",
+    )
+    parser.add_argument("--expected-tree", help="optional exact expected root-tree ID")
+    return parser
+
+
+def run_cli(arguments: argparse.Namespace) -> dict[str, str]:
+    identity = resolve_git_identity(
+        Path(arguments.worktree),
+        arguments.ref,
+        expected_tree=arguments.expected_tree,
+    )
+    return {"commit": identity.commit, "tree": identity.tree}
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    arguments = build_parser().parse_args(argv)
+    try:
+        result = run_cli(arguments)
+    except GitIdentityError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2, ensure_ascii=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

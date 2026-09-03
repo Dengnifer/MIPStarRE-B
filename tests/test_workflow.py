@@ -3,7 +3,9 @@ from __future__ import annotations
 import copy
 import itertools
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -15,6 +17,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 import workflow  # noqa: E402
 import check_workflow  # noqa: E402
+import git_identity  # noqa: E402
 
 
 NOW = "2026-08-30T00:00:00Z"
@@ -30,6 +33,25 @@ BASE_SHA = "a" * 40
 HEAD_SHA = "b" * 40
 RESOLUTION_HEAD_SHA = "c" * 40
 ADVANCED_HEAD_SHA = "d" * 40
+
+
+def git(cwd: Path, *arguments: str) -> str:
+    completed = subprocess.run(
+        ["git", *arguments],
+        cwd=cwd,
+        text=True,
+        capture_output=True,
+        check=True,
+        env={
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "LANG": "C",
+            "LC_ALL": "C",
+            "PATH": os.defpath,
+        },
+    )
+    return completed.stdout.strip()
 
 
 def unavailable_tokens() -> dict[str, object]:
@@ -1393,8 +1415,16 @@ class WorkflowStoreTests(unittest.TestCase):
         )
         self.runtime = self.root / ".workflow-runtime"
         self.store = workflow.WorkflowStore(self.state_dir, self.runtime, self.events)
+        self.git_identity = git_identity.GitIdentity(BASE_SHA, "e" * 40)
+        self.git_identity_patcher = mock.patch.object(
+            workflow,
+            "resolve_git_identity",
+            return_value=self.git_identity,
+        )
+        self.git_identity_patcher.start()
 
     def tearDown(self) -> None:
+        self.git_identity_patcher.stop()
         self.temporary.cleanup()
 
     def test_read_only_validation_creates_no_runtime_files(self) -> None:
@@ -1457,6 +1487,12 @@ class WorkflowStoreTests(unittest.TestCase):
             [first["id"], second["id"]],
             [session["id"] for session in loaded["sessions.json"]["issued"]],
         )
+        self.assertTrue(
+            all(
+                session["base_tree"] == self.git_identity.tree
+                for session in loaded["sessions.json"]["issued"]
+            )
+        )
         events = [
             json.loads(line)
             for line in self.events.read_text(encoding="utf-8").splitlines()
@@ -1471,6 +1507,12 @@ class WorkflowStoreTests(unittest.TestCase):
             ],
         )
         issuance_events = [event for event in events if event["event"] == "session.issued"]
+        self.assertTrue(
+            all(
+                event["payload"]["base_tree"] == self.git_identity.tree
+                for event in issuance_events
+            )
+        )
         self.assertEqual(1, len({event["timestamp"] for event in issuance_events}))
         self.assertEqual("sessions.dispatched", events[-1]["event"])
         self.assertEqual(issuance_events[0]["timestamp"], events[-1]["timestamp"])
@@ -1977,6 +2019,25 @@ class WorkflowStoreTests(unittest.TestCase):
                 ]
             )
 
+    def test_direct_issued_session_add_cannot_bypass_dispatch_identity(self) -> None:
+        parser = workflow.build_parser()
+        before_sessions = (self.state_dir / "sessions.json").read_bytes()
+        before_events = self.events.read_bytes()
+        arguments = parser.parse_args(
+            [
+                "--root",
+                str(self.root),
+                "add",
+                "issued-session",
+                "--json",
+                json.dumps(issued_session("i002-reviewer-a01-direct-add", read_only=True)),
+            ]
+        )
+        with self.assertRaisesRegex(workflow.WorkflowError, "admitted through dispatch"):
+            workflow.run_cli(arguments)
+        self.assertEqual(before_sessions, (self.state_dir / "sessions.json").read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
     def test_atomic_mutation_preserves_metadata_and_appends_event(self) -> None:
         def mutate(document: dict[str, object]) -> None:
             document["issues"][1]["title"] = "updated"
@@ -2257,6 +2318,183 @@ class WorkflowStoreTests(unittest.TestCase):
             )
             workflow.run_cli(transition)
         self.store.validate()
+
+
+class GitIdentityAdmissionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name) / "repo"
+        self.root.mkdir()
+        git(self.root, "init", "-b", "main")
+        git(self.root, "config", "user.name", "Workflow Test")
+        git(self.root, "config", "user.email", "workflow@example.invalid")
+        (self.root / "tracked.txt").write_text("base\n", encoding="ascii")
+        git(self.root, "add", "tracked.txt")
+        git(self.root, "commit", "-m", "base")
+        self.base_commit = git(self.root, "rev-parse", "HEAD")
+        self.base_tree = git(self.root, "rev-parse", "HEAD^{tree}")
+        (self.root / "tracked.txt").write_text("head\n", encoding="ascii")
+        git(self.root, "commit", "-am", "head")
+        self.head_commit = git(self.root, "rev-parse", "HEAD")
+        self.head_tree = git(self.root, "rev-parse", "HEAD^{tree}")
+
+        state = documents()
+        review_pr = pull_request(status="draft", checks=[], reviews=[])
+        review_pr["base_sha"] = self.base_commit
+        review_pr["head_sha"] = self.head_commit
+        review_pr["implementer_session_ids"] = []
+        state["prs.json"]["pull_requests"] = [review_pr]
+        self.state_dir = self.root / "workflow" / "state"
+        self.state_dir.mkdir(parents=True)
+        for filename, value in state.items():
+            (self.state_dir / filename).write_text(json.dumps(value), encoding="utf-8")
+        self.events = self.root / "workflow" / "events.jsonl"
+        self.events.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "timestamp": NOW,
+                    "event": "bootstrap",
+                    "actor": "test",
+                    "pid": 1,
+                    "payload": {},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        self.store = workflow.WorkflowStore(
+            self.state_dir,
+            self.root / ".workflow-runtime",
+            self.events,
+        )
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def write_planned(self, *sessions: dict[str, object]) -> None:
+        document = json.loads((self.state_dir / "sessions.json").read_text(encoding="utf-8"))
+        document["planned"] = list(sessions)
+        (self.state_dir / "sessions.json").write_text(json.dumps(document), encoding="utf-8")
+
+    def real_candidate(
+        self,
+        session_id: str,
+        *,
+        base_revision: str,
+        backend: str = "codex-collaboration",
+    ) -> dict[str, object]:
+        candidate = collaboration_planned_session(session_id)
+        candidate["worktree"] = str(self.root)
+        candidate["base_revision"] = base_revision
+        candidate["backend"] = backend
+        return candidate
+
+    def test_symbolic_ref_is_recorded_as_exact_commit_and_tree(self) -> None:
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-symbolic-identity",
+            base_revision="main",
+        )
+        self.write_planned(candidate)
+        preflight = self.store.dispatch_sessions(
+            capacity=1,
+            session_ids=[candidate["id"]],
+            dry_run=True,
+        )
+        self.assertEqual(
+            {"commit": self.head_commit, "tree": self.head_tree},
+            preflight["git_identities"][candidate["id"]],
+        )
+        issued = self.store.dispatch_sessions(
+            capacity=1,
+            session_ids=[candidate["id"]],
+            launch_confirmations=launch_confirmations(candidate),
+        )
+        self.assertEqual("issued", issued["status"])
+        record = self.store.validate()["sessions.json"]["issued"][0]
+        self.assertEqual(self.head_commit, record["base_revision"])
+        self.assertEqual(self.head_tree, record["base_tree"])
+
+    def test_pr_base_remains_distinct_from_detached_worktree_head(self) -> None:
+        git(self.root, "checkout", "--detach", self.head_commit)
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-detached-review-base",
+            base_revision=self.base_commit,
+        )
+        candidate["pr_id"] = "LPR-001"
+        self.write_planned(candidate)
+        result = self.store.dispatch_sessions(
+            capacity=1,
+            session_ids=[candidate["id"]],
+            launch_confirmations=launch_confirmations(candidate),
+        )
+        self.assertEqual("issued", result["status"])
+        record = self.store.validate()["sessions.json"]["issued"][0]
+        self.assertEqual(self.base_commit, record["base_revision"])
+        self.assertEqual(self.base_tree, record["base_tree"])
+        self.assertEqual(self.head_commit, git(self.root, "rev-parse", "HEAD"))
+
+    def test_exact_commit_keeps_governed_cli_launch_unconfirmed(self) -> None:
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-governed-cli-identity",
+            base_revision=self.base_commit,
+            backend="codex-cli",
+        )
+        self.write_planned(candidate)
+        result = self.store.dispatch_sessions(capacity=1, session_ids=[candidate["id"]])
+        self.assertEqual("issued", result["status"])
+        record = self.store.validate()["sessions.json"]["issued"][0]
+        self.assertIsNone(record["external_id"])
+        self.assertEqual(self.base_commit, record["base_revision"])
+        self.assertEqual(self.base_tree, record["base_tree"])
+
+    def test_tree_mismatch_blocks_without_session_or_event_mutation(self) -> None:
+        candidate = self.real_candidate(
+            "i002-reviewer-a01-tree-mismatch",
+            base_revision=self.base_commit,
+        )
+        candidate["base_tree"] = self.head_tree
+        self.write_planned(candidate)
+        before_sessions = (self.state_dir / "sessions.json").read_bytes()
+        before_events = self.events.read_bytes()
+        result = self.store.dispatch_sessions(
+            capacity=1,
+            session_ids=[candidate["id"]],
+            launch_confirmations=launch_confirmations(candidate),
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual("git-identity-invalid", result["blocked"][0]["reason"])
+        self.assertIn("tree mismatch", result["blocked"][0]["detail"])
+        self.assertEqual(before_sessions, (self.state_dir / "sessions.json").read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+
+    def test_invalid_full_sha_blocks_the_complete_requested_batch_atomically(self) -> None:
+        valid = self.real_candidate(
+            "i002-reviewer-a01-valid-batch-identity",
+            base_revision=self.base_commit,
+        )
+        guessed = self.head_commit[:7] + ("0" * 33)
+        invalid = self.real_candidate(
+            "i002-reviewer-a02-invalid-batch-identity",
+            base_revision=guessed,
+        )
+        self.write_planned(valid, invalid)
+        before_sessions = (self.state_dir / "sessions.json").read_bytes()
+        before_events = self.events.read_bytes()
+        result = self.store.dispatch_sessions(
+            capacity=2,
+            session_ids=[valid["id"], invalid["id"]],
+            launch_confirmations=launch_confirmations(valid, invalid),
+        )
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual(
+            [(invalid["id"], "git-identity-invalid")],
+            [(entry["id"], entry["reason"]) for entry in result["blocked"]],
+        )
+        self.assertTrue(result["blocked_batch_unchanged"])
+        self.assertEqual([], result["issued"])
+        self.assertEqual(before_sessions, (self.state_dir / "sessions.json").read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
 
 
 class ResearchReconciliationTests(unittest.TestCase):

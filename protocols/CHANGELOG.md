@@ -1,5 +1,34 @@
 # Protocol Changelog
 
+## 0.1.13 candidate (QPBT-044) - 2026-09-03
+
+INC-050, INC-058, and INC-059 are the three occurrences of
+`session-base-full-sha-guessed-from-abbreviation`: a displayed abbreviation was
+manually extended into a syntactically valid but nonexistent 40-hex value.
+INC-078 independently reached the third occurrence of the same transcription
+failure at a read-only candidate comparison. The prior manual preflight rule
+did not prevent recurrence.
+
+QPBT-044 adds one Git identity resolver to workflow admission. Every dispatch
+dry-run and confirmation resolves the planned base in its registered worktree,
+proves the full commit and exact root-tree object and type, compares an optional
+expected tree, and records the resolved commit/tree pair. A guessed SHA,
+missing object, or tree mismatch blocks the complete requested batch before
+session/event mutation. The resolver deliberately keeps a PR review base
+distinct from a detached candidate worktree `HEAD`. Collaboration confirmation
+and atomic rollback are unchanged, and governed CLI rows retain their null-ID
+issue-first lease behavior.
+
+Focused regressions cover symbolic and exact refs, nonexistent full-looking
+SHAs, object/tree authentication, expected-tree mismatch, detached-head review
+semantics, exact issued/event identity, governed launch behavior, and
+byte-identical atomic rejection. The QPBT-045 contract is exercised without a
+cache implementation change: an invalid exact main reaches zero warm/build,
+publication, and metric actions. The focused resolver suite passes 7/7, the
+workflow module passes 83/83, the canonical checker passes 3/3, compileall
+passes, and the dependency-free aggregate passes 396/396. A fresh immutable
+independent review remains required before activation.
+
 ## 0.1.12 (2026-09-03)
 
 The user-authorized repository mirror is now explicit. The root coordinator may

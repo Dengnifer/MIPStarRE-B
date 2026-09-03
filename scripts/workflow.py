@@ -23,6 +23,8 @@ import sys
 import tempfile
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 
+from git_identity import GitIdentityError, resolve_git_identity
+
 
 SCHEMA_VERSION = 1
 STATE_FILES = {
@@ -79,6 +81,7 @@ DISPATCH_IMMUTABLE_FIELDS = {
     "read_only",
     "base_revision",
     "base_revision_reason",
+    "base_tree",
     "worktree",
     "owned_paths",
     "validation_command",
@@ -1101,13 +1104,18 @@ def validate_documents(documents: Mapping[str, Any]) -> None:
         if not isinstance(read_only, bool):
             errors.append(f"{loc}.read_only: expected a boolean")
         base_revision = session.get("base_revision")
+        base_tree = session.get("base_tree")
         if base_revision is None:
             _nonempty_string(session.get("base_revision_reason"), f"{loc}.base_revision_reason", errors)
+            if base_tree is not None:
+                errors.append(f"{loc}.base_tree: requires a non-null base_revision")
             issue = issue_by_id.get(session_issue_id, {}) if isinstance(session_issue_id, str) else {}
             if _issue_execution_category(issue) == "implementation":
                 errors.append(f"{loc}.base_revision: implementation sessions require an immutable Git SHA")
         else:
             _validate_sha(base_revision, f"{loc}.base_revision", errors)
+            if base_tree is not None:
+                _validate_sha(base_tree, f"{loc}.base_tree", errors)
         worktree = session.get("worktree")
         _nonempty_string(worktree, f"{loc}.worktree", errors)
         if isinstance(worktree, str) and worktree.strip() and not Path(worktree).is_absolute():
@@ -1813,6 +1821,7 @@ class WorkflowStore:
                 stage_id=stage_id,
                 session_ids=session_ids,
                 session_overrides=effective_overrides,
+                authenticate_git=True,
             )
             # A blocked candidate invalidates the requested batch.  Capacity-only
             # queueing is different: issue the deterministic available prefix as
@@ -1832,6 +1841,11 @@ class WorkflowStore:
                 _dispatch_record(planned_by_id[session_id], overrides.get(session_id))
                 for session_id in selected_ids
             ]
+            for session in materialized:
+                identity = plan["git_identities"].get(session["id"])
+                if identity is not None:
+                    session["base_revision"] = identity["commit"]
+                    session["base_tree"] = identity["tree"]
             materialized_by_id = {session["id"]: session for session in materialized}
             confirmation_required_ids = {
                 session["id"]
@@ -1894,6 +1908,8 @@ class WorkflowStore:
                             "dispatch_stage_id": stage_id,
                             "dispatch_batch_timestamp": batch_timestamp,
                             "external_id": materialized_by_id[session_id]["external_id"],
+                            "base_revision": materialized_by_id[session_id]["base_revision"],
+                            "base_tree": materialized_by_id[session_id].get("base_tree"),
                         },
                         lock_held=True,
                         timestamp=batch_timestamp,
@@ -2238,6 +2254,7 @@ def plan_dispatch(
     stage_id: str | None = None,
     session_ids: Sequence[str] | None = None,
     session_overrides: Mapping[str, Mapping[str, Any]] | None = None,
+    authenticate_git: bool = False,
 ) -> dict[str, Any]:
     """Plan a deterministic, capacity-bounded dispatch without changing state.
 
@@ -2307,6 +2324,7 @@ def plan_dispatch(
 
     blocked: list[dict[str, Any]] = []
     candidates: list[dict[str, Any]] = []
+    git_identities: dict[str, dict[str, str]] = {}
     for session_id in selected_ids:
         session = planned.get(session_id)
         if session is None:
@@ -2362,6 +2380,28 @@ def plan_dispatch(
                 {"id": session_id, "reason": "invalid-dispatch-override", "detail": str(error)}
             )
             continue
+        if authenticate_git and candidate.get("base_revision") is not None:
+            try:
+                identity = resolve_git_identity(
+                    Path(str(candidate.get("worktree", ""))),
+                    str(candidate["base_revision"]),
+                    expected_tree=candidate.get("base_tree"),
+                )
+            except GitIdentityError as error:
+                blocked.append(
+                    {
+                        "id": session_id,
+                        "reason": "git-identity-invalid",
+                        "detail": str(error),
+                    }
+                )
+                continue
+            candidate["base_revision"] = identity.commit
+            candidate["base_tree"] = identity.tree
+            git_identities[session_id] = {
+                "commit": identity.commit,
+                "tree": identity.tree,
+            }
         duplicate_orchestrators = _duplicate_orchestrator_ids(documents, candidate)
         if duplicate_orchestrators:
             blocked.append(
@@ -2539,6 +2579,11 @@ def plan_dispatch(
             candidate.get("backend") == "codex-collaboration"
             for candidate in hypothetical
         ),
+        "git_identities": {
+            session_id: git_identities[session_id]
+            for session_id in sorted(git_identities)
+            if session_id in {candidate["id"] for candidate in hypothetical}
+        },
     }
 
 
@@ -2726,6 +2771,7 @@ def _check_session_update(record: Mapping[str, Any], assignments: Sequence[tuple
         "read_only",
         "base_revision",
         "base_revision_reason",
+        "base_tree",
         "worktree",
         "owned_paths",
         "validation_command",
@@ -3055,6 +3101,10 @@ def run_cli(arguments: argparse.Namespace) -> Any:
             raise WorkflowError(f"unknown record {arguments.id!r} in {collection}")
         return record
     if arguments.command == "add":
+        if arguments.kind == "issued-session":
+            raise WorkflowError(
+                "issued sessions must be admitted through dispatch or issue-session"
+            )
         filename, collection = _record_spec(arguments.kind)
         record = _load_json_argument(arguments.json, arguments.file)
 

@@ -27,6 +27,39 @@ mathematical or operational result, not merely "cleanup", "phase", or
 Run `python3 scripts/workflow.py ready` to compute dispatchable work rather than
 inferring readiness from list order.
 
+### Git identity admission
+
+Every dispatch dry-run and confirmation resolves each non-null planned
+`base_revision` through `scripts/git_identity.py` in the session's registered
+worktree. The resolver accepts a symbolic ref or exact object ID, obtains the
+full commit and root tree from Git, and proves with `cat-file` that both objects
+exist with the required types. Git plumbing runs with inherited repository and
+configuration selectors removed, replacements disabled, hooks/fsmonitor
+disabled, and no interactive prompt. A missing worktree, nonexistent
+full-looking SHA, wrong object type, malformed Git result, or mismatch with an
+optional planned `base_tree` blocks the complete requested batch before any
+session or event mutation.
+The generic record-add command cannot add an issued session; all issuance goes
+through `dispatch` or its single-session compatibility wrapper.
+For other read-only identity capture, run `python3 scripts/git_identity.py REF
+--worktree /absolute/worktree`; reuse its JSON `commit` and `tree` values
+without manual completion or transcription.
+
+Dry-run output reports the resolved commit/tree pair for each admitted
+candidate. Successful dispatch replaces any symbolic planned ref with the full
+commit and records `base_tree` in both the issued row and issuance event.
+Historical rows remain structurally validated without reopening their object
+databases. The declared base is not required to equal worktree `HEAD`: a review
+session remains bound to the PR base while its registered worktree may be
+detached at the candidate head. Governed `codex-cli` rows still issue with a
+null external ID for later lease import, while collaboration rows still require
+the backend-returned confirmation.
+
+The resolved main commit supplied to the QPBT-045 hot-cache interface remains
+an exact-object admission boundary. A nonexistent full-looking
+`--main-commit` must fail during identity construction, before warm/build
+execution, cache or `READY` publication, lock creation, or metric append.
+
 For `codex-collaboration` session admission, use the following spawn-first,
 confirm-at-dispatch sequence. The workflow CLI has no collaboration-tool access
 and must never pretend that it launched or independently verified an external
