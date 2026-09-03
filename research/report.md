@@ -1624,3 +1624,44 @@ estimated at 1-3 hours; the dependent F06A Lean machine is estimated at 1-3
 working days if the frozen contract is approved. The broader stage estimates
 remain 6-16 weeks for Stage 4A, 4-10 weeks for Stage 4B, 18-48 months for Stage
 4C, and 3-8 weeks for the final audit.
+
+### Lake footprint and low-copy design checkpoint (2026-09-03)
+
+The cache-layout audit measured the immediate storage problem rather than
+assuming that logical file size represents reclaimable space. The local
+runtime cache contains 13 published snapshots occupying `136,463,261,696`
+physical bytes, and 18 registered issue worktrees contain
+`158,283,636,736` physical bytes of `.lake` trees. The ext4 volume was 97%
+full with about `185,000,000,000` bytes free. A complete seed copied 124,925
+files and about 10.5 GB of physical blocks because this host returned
+`ENOTSUP` for `FICLONE`; all 13 authenticated artifact inventories were
+distinct, so artifact-hash deduplication had no measured savings. Packages
+accounted for about 95.85 GB in the snapshots and 112.68 GB in the issue
+trees, making them the largest potential target, but not a safe sharing target
+yet. The exact inventories and capability probes are retained in
+`workflow/reviews/qpbt-067-cache-layout-a01.md`,
+`/tmp/i067-scout-a03-storage-architecture.md`,
+`/tmp/i067-scout-a05-reflink-capability.md`, and
+`/tmp/i067-scout-a06-migration-cost.md`.
+
+The resulting design has four deliberately separate layers. The main cache
+remains an immutable, authenticated, content-addressed snapshot with one
+elected builder. A writable implementation attempt receives a private build
+projection; no hard link or shared writable `.lake/build` is permitted. A
+future package/object layer may be shared only when its manifest and digest
+are authenticated, its target is demonstrably read-only and in-root, and a
+capability pilot proves source immutability and equivalent Lean output. Lease
+and reference records, a journaled prior-or-replacement recovery path, and a
+quarantine-first retention pass govern reclamation. Unsupported filesystems
+continue to use the byte-copy fallback. The current host has neither usable
+reflinks nor an available privileged overlay mount, so this layer-sharing
+pilot is explicitly deferred until those gates pass.
+
+The immediate low-risk reduction is operational: read-only scouts and
+reviewers should not materialize a `.lake` tree at all, and terminal issue
+worktrees should be candidates for metadata-only worktree pruning only after
+their leases and result envelopes are audited. Existing cache and worktree
+bytes remain untouched until a dry-run retention record, two observations, and
+the QPBT-068 isolation/crash-recovery repair are complete. This keeps storage
+reduction measurable without trading away rollback, source authentication, or
+the singleton-build invariant.
