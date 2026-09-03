@@ -2141,7 +2141,7 @@
       "title": "Prevent guessed full SHAs in local workflow admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-026",
@@ -2164,7 +2164,7 @@
         "Add focused and aggregate regressions for valid symbolic refs, exact commits, nonexistent full-looking SHAs, tree mismatch, PR-base versus detached-head identity, and atomic no-mutation failure",
         "Make the smallest sufficient tooling/protocol change, update protocols/CHANGELOG.md with evidence and measured impact, and obtain a fresh independent immutable review before integration"
       ],
-      "owner_session_id": "i044-orchestrator-a01-git-identity",
+      "owner_session_id": "i044-orchestrator-a05-git-boundary",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-050",
         "research/metrics/incidents.jsonl#INC-058",
@@ -2185,16 +2185,46 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:46:00Z",
-      "updated_at": "2026-09-03T13:06:35.170865Z",
+      "updated_at": "2026-09-03T13:30:15.516693Z",
       "blocked_reason": null,
-      "unblock_condition": "Fresh immutable independent review must approve unchanged head 78f382ffa48216373d7e75ecfc1651091803fc17 before integration.",
+      "unblock_condition": "Repair all three unique immutable-review findings on a changed head, rerun focused and aggregate gates, then obtain a fresh independent review.",
       "candidate_base_sha": "08b12a8cc7e9f0464f1842d0074884c96ddff832",
       "candidate_head_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
       "candidate_tree": "be838788587d092d1be7671467deee2e2b7d3644",
       "candidate_patch_sha256": "3ea932d2ccf0dffd0df312e7f2fa6fe8b548c29b36351a0408841cdab43ca927",
       "candidate_report": "/tmp/i044-orchestrator-a01-git-identity.md",
       "candidate_report_sha256": "e29321cf266dfb580335ef223d5ac6f9be44ab866f2f18622925a5547f11309b",
-      "candidate_status": "awaiting-review"
+      "candidate_status": "changes-requested",
+      "review_report": "/tmp/i044-reviewer-a02-git-identity.md",
+      "review_manifest_sha256": "559f0ddaa9a40cc80f54fc73f5f521e7cdb0605d89808dacb38dad892ae7167b",
+      "review_head_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
+      "review_verdict": "request_changes",
+      "secondary_review_report": "/tmp/i044-reviewer-a03-regression.md",
+      "secondary_review_manifest_sha256": "aeb5452bf27b5187f21fff8441cc9684fcdbe21015e27f4cc02047b2f354eefd",
+      "secondary_review_verdict": "request_changes",
+      "review_findings": [
+        {
+          "id": "F044-A02-001",
+          "severity": "high",
+          "status": "open",
+          "path": "scripts/git_identity.py:128",
+          "summary": "Unqualified symbolic refs can be ambiguous across branch and tag namespaces while successful Git stderr warnings are discarded."
+        },
+        {
+          "id": "F044-A02-002",
+          "severity": "high",
+          "status": "open",
+          "path": "scripts/git_identity.py:112",
+          "summary": "The resolver authenticates a transient symlink-resolved root but the issued row retains the mutable lexical worktree path without a stable filesystem-identity recheck."
+        },
+        {
+          "id": "F044-A03-001",
+          "severity": "medium",
+          "status": "open",
+          "path": "scripts/git_identity.py:32",
+          "summary": "Object proof in a partial clone can trigger unpinned lazy fetch and credential-helper activity because GIT_NO_LAZY_FETCH is not set."
+        }
+      ]
     },
     {
       "id": "QPBT-041",
@@ -2963,7 +2993,7 @@
       "title": "feat(QPBT/Game): implement the executable CL minimal skeleton",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-056"
@@ -3000,15 +3030,15 @@
         "workflow/reviews/qpbt-057-f06a-a02.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T12:54:57.047361Z",
+      "updated_at": "2026-09-03T13:23:59.203042Z",
       "blocked_reason": null,
-      "unblock_condition": "Repair F057-A07-001 with resource-certified private selection, rerun exact-current-candidate validation for F057-A07-002, then obtain fresh immutable approval.",
+      "unblock_condition": "Fresh immutable reviewers must approve the unchanged resource-bound head 0c99181746a73b6dd442c9890fb8e2a8982e70ab before integration.",
       "proof_completion_issue_id": "QPBT-061",
-      "candidate_head_sha": "a67031de5a3804360e113dd4a881e94376fc435f",
-      "candidate_tree": "71acb8bd5ea77959a03a1124c2fce018457b9605",
-      "candidate_patch_sha256": "d13454544557b44a38e7c2b3cb2c992dd5551cab3e14aa274269772ae36bfa2f",
+      "candidate_head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+      "candidate_tree": "6d7a6c951fef932c011bb38ea4788e760bc72cc4",
+      "candidate_patch_sha256": "076394ff295e71fb72285fe0588c2968990c39c3cd24fbc1914779c21ae810b6",
       "candidate_report": "workflow/reviews/qpbt-057-f06a-a02.md",
-      "candidate_report_sha256": "e21f427c08518d035fac38ce8ea73b0618030a42cd60e23a7f99127fc8cbe0d7",
+      "candidate_report_sha256": "6eaf4986b4832d6cef9afb001cee296968e13d1769d0332dc9be50477f417063",
       "candidate_checks": [
         "scoped Lean passed with exactly two authorized sorry warnings",
         "Field target passed 2357 jobs",
@@ -3045,8 +3075,8 @@
           "summary": "Scoped, target, full-build, blueprint, and cache evidence is tied to an older base and implementation rather than the authenticated current candidate."
         }
       ],
-      "candidate_base_sha": "9eb476a41595fc70060ed9bb2ea91a50c793ede3",
-      "candidate_status": "changes-requested",
+      "candidate_base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+      "candidate_status": "awaiting-review",
       "superseded_candidate_head": "a9abedb3d08d1b020d310075fc2865ae21397eb8",
       "superseded_candidate_review": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md",
       "review_manifest_sha256": "375351b59e2b3ea49682570376acc00180b77d101bbfca2f0cc6f172820fa889",
