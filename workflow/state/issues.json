@@ -2956,7 +2956,7 @@
       "title": "feat(QPBT/Game): implement the executable CL minimal skeleton",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-056"
@@ -2977,7 +2977,7 @@
         "Preserve the G19 boundary and source-faithful theorem signatures; record both holes explicitly and link their zero-debt Stage 4C discharge to QPBT-061.",
         "Use the QPBT-056 private-cache lineage; pass whole-file elaboration, affected target, exact 56-name/tape/output/dimension/codec/import/debt scans, blueprint synchronization against QPBT-060, one private full build after scoped stability, and fresh immutable mathematical/API review."
       ],
-      "owner_session_id": "i057-orchestrator-a02-types-rebase",
+      "owner_session_id": "i057-orchestrator-a03-resource-evidence",
       "source_refs": [
         "workflow/reviews/qpbt-059-f06a-pack-contract-a01.md#F06A-QPBT059-SIGNATURES",
         "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
@@ -2993,7 +2993,7 @@
         "workflow/reviews/qpbt-057-f06a-a02.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T12:48:05.385816Z",
+      "updated_at": "2026-09-03T12:54:57.047361Z",
       "blocked_reason": null,
       "unblock_condition": "Repair F057-A07-001 with resource-certified private selection, rerun exact-current-candidate validation for F057-A07-002, then obtain fresh immutable approval.",
       "proof_completion_issue_id": "QPBT-061",
