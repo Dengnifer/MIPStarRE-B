@@ -2071,13 +2071,15 @@
         "f06",
         "f06a",
         "f07",
+        "minimal-skeleton",
         "sequential-integration-parent"
       ],
       "acceptance_gates": [
-        "Integrate QPBT-056, QPBT-057, and QPBT-058 strictly in dependency order into the single MIPStarRE/QPBT/Game/Types.lean history",
-        "Require each child to preserve its immutable F06, F06A, or F07 public signature manifest and to pass proof-complete scoped, target, debt, synchronization, private full-build, and immutable review gates",
-        "Do not close this parent until all three direct children are done and the combined 81-name Types surface passes exact import, declaration, source-fidelity, and clean private full-build checks",
-        "Retain the QPBT-038 A01 rejected candidate and A03 compiler blocker only as negative evidence; never reuse degenerate definitions or expose compiler obligations publicly"
+        "Integrate QPBT-056, QPBT-057, and QPBT-058 strictly in dependency order into the single MIPStarRE/QPBT/Game/Types.lean history.",
+        "Require each child to preserve its immutable F06, F06A, or F07 public signature manifest and to pass scoped, target, source-fidelity, synchronization, private full-build, and immutable review gates appropriate to the Stage 4A minimal skeleton.",
+        "Permit only the exact QPBT-060 F06A theorem-body debt at ExecutableCLSampler.downsizeCompiler_exists and ExecutableCLSampler.downsize_time; require every other Types declaration proof-complete and forbid axiom, constant, public obligation, or signature drift.",
+        "Do not close this parent until all three direct children are done and the combined 81-name Types surface passes exact import, declaration, source-fidelity, and clean private full-build checks; QPBT-061 separately discharges the two F06A holes in Stage 4C.",
+        "Retain the QPBT-038 A01 rejected candidate and A03 compiler blocker only as negative evidence; never reuse degenerate definitions or expose compiler obligations publicly."
       ],
       "owner_session_id": null,
       "source_refs": [
@@ -2094,9 +2096,9 @@
       ],
       "owned_paths": [],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-02T21:20:20.634950Z",
-      "blocked_reason": "The original 81-name single attempt is decomposed after the frozen F06A compiler gate proved unavailable in the pinned API; child issues now isolate the mathematical F06, internal compiler plus F06A, and F07 proof surfaces.",
-      "unblock_condition": "Complete and independently review QPBT-056, QPBT-057, and QPBT-058 in order, then run the combined Types integration gate."
+      "updated_at": "2026-09-03T01:30:21.567619Z",
+      "blocked_reason": "The sequential Types parent awaits the reviewed QPBT-057 minimal F06A skeleton, followed by QPBT-058.",
+      "unblock_condition": "Complete and independently review QPBT-057 and QPBT-060, then implement QPBT-058 and run the combined Types gate; discharge the exact F06A proof debt later under QPBT-061."
     },
     {
       "id": "QPBT-040",
@@ -2119,10 +2121,10 @@
         "exact-ownership"
       ],
       "acceptance_gates": [
-        "Bind all four approved immutable candidate heads and authenticate their blobs on the current main integration snapshot",
-        "Own no Lean or blueprint source; root alone performs guarded integrations and canonical state changes",
-        "Seed one private integration worktree, run four scoped checks, four target builds, declaration/source synchronization, complete proof-debt and forbidden-assumption scans, and exactly one combined lake build",
-        "Record cache key, hit or miss, lock wait, build count and duration, candidate identity, statement-integrity summary, and independent review disposition"
+        "Bind all four approved immutable candidate heads and authenticate their blobs on the current main integration snapshot.",
+        "Own no Lean or blueprint source; root alone performs guarded integrations and canonical state changes.",
+        "Seed one private integration worktree, run four scoped checks, four target builds, declaration/source synchronization, an exact Stage-4A debt scan permitting only the four blueprint-declared theorem-body holes, and exactly one combined lake build.",
+        "Record cache key, hit or miss, lock wait, build count and duration, candidate identity, statement-integrity summary, exact allowed-debt inventory, and independent review disposition."
       ],
       "owner_session_id": null,
       "source_refs": [
@@ -2130,7 +2132,7 @@
       ],
       "owned_paths": [],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-01T12:59:00Z",
+      "updated_at": "2026-09-03T01:30:30.099718Z",
       "blocked_reason": "All four QPBT-014 Lean child issues must be reviewed and integrated first.",
       "unblock_condition": "QPBT-036, QPBT-037, QPBT-038, and QPBT-039 done."
     },

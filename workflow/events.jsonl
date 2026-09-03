@@ -4055,3 +4055,5 @@
 {"schema_version":1,"timestamp":"2026-09-03T01:23:12.591254Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
 {"schema_version":1,"timestamp":"2026-09-03T01:25:43.673725Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-034","fields":["reviews","unexecuted_gate"]}}
 {"schema_version":1,"timestamp":"2026-09-03T01:27:05.835145Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-034","fields":["findings"]}}
+{"schema_version":1,"timestamp":"2026-09-03T01:30:21.630243Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-038","fields":["labels","acceptance_gates","blocked_reason","unblock_condition"]}}
+{"schema_version":1,"timestamp":"2026-09-03T01:30:30.164847Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-040","fields":["acceptance_gates"]}}
