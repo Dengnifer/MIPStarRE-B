@@ -29442,6 +29442,75 @@
         "nested_agents": 0
       },
       "notes": "Read-only QPBT-068 design scout mapped exact implementation and test seams. Deterministic exception injection cannot establish SIGKILL safety; a killed subprocess test is required. Token usage unavailable and agent timing is approximate."
+    },
+    {
+      "id": "i053-orchestrator-a01-refactor",
+      "role": "orchestrator",
+      "issue_id": "QPBT-053",
+      "name": "i053-orchestrator-a01-refactor",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i053_orchestrator_a01_refactor",
+      "attempt": 1,
+      "read_only": false,
+      "base_revision": "6b43c72ab382fa53ee7cfd259a56ec2fbe41b623",
+      "base_revision_reason": "Current clean main checkpoint; QPBT-053 owns only the three listed Lean files and its evidence report.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-053-refactor-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean",
+        "MIPStarRE/LDT/Test/StrategyRole/Algebra.lean",
+        "MIPStarRE/LDT/Preliminaries/ComparisonCore.lean",
+        "workflow/reviews/qpbt-053-refactor-a01.md"
+      ],
+      "validation_command": "Read AGENTS.md, the pinned QPBT-053 source anchors and QPBT-041 report. Implement only the generic measurement-completeness relocation in the three owned Lean files; preserve public F04 statements and imports, add no proof debt. Run scoped Lean checks, affected targets, declaration/source synchronization, exact debt/import scans, and one private full build through the hot-main cache protocol. Freeze the candidate, write the owned report, and commit only owned paths. Do not edit canonical state/metrics, use GitHub or endpoint credentials, or spawn nested agents.",
+      "result_envelope_path": "/tmp/i053-refactor-a01.md",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "archive_status": "active",
+      "status": "running",
+      "started_at": "2026-09-03T11:06:07.708601Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "outcome_path": null
+    },
+    {
+      "id": "i057-reviewer-a06-source-fidelity",
+      "role": "reviewer",
+      "issue_id": "QPBT-057",
+      "name": "i057-reviewer-a06-source-fidelity",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "external_id": "/root/i057_reviewer_a06_source_fidelity",
+      "attempt": 6,
+      "read_only": true,
+      "base_revision": "6b43c72ab382fa53ee7cfd259a56ec2fbe41b623",
+      "base_revision_reason": "Current clean main checkpoint; review evidence is bound to the immutable QPBT-057 candidate head and manifest.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-057-f06a-a01",
+      "owned_paths": [],
+      "validation_command": "Authenticate the immutable QPBT-057 candidate head a9abedb3d08d1b020d310075fc2865ae21397eb8, its tree/patch and exact review manifest before reading. Review paper preliminaries.tex and conditionally-linear.tex against the frozen F06A marker, blueprint metadata, candidate Types.lean, prior A05 findings, and all consumers. Decide whether the dual-rail codec, resource-selection boundary, sampler semantics, dimensions, runtime clauses, and exactly two Stage-4A sorries are source-faithful. Findings first with severity and path:line; explicitly APPROVE or REQUEST CHANGES. Write only /tmp/i057-review-a06-source-fidelity.md. Do not edit repository/Git/state/metrics/protocols or run tests, compilation, Lean, Lake, build, cache, materialization, network, endpoint, GitHub, credentials, or nested agents.",
+      "result_envelope_path": "/tmp/i057-review-a06-source-fidelity.md",
+      "priority": 1,
+      "requested_model": "gpt-5.6-sol",
+      "archive_status": "active",
+      "status": "running",
+      "started_at": "2026-09-03T11:06:08.184300Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "outcome_path": null
     }
   ]
 }
