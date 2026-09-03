@@ -249,8 +249,8 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 422,
-      "max_concurrency": 9,
+      "subagents_issued": 429,
+      "max_concurrency": 10,
       "outputs": [
         "research/report.md",
         "workflow/reviews/qpbt-018-021-closure-evidence-a18.md",
@@ -309,7 +309,8 @@
         "INC-078",
         "INC-079",
         "INC-080",
-        "INC-081"
+        "INC-081",
+        "INC-082"
       ]
     },
     {
@@ -330,8 +331,8 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate stage tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 3,
-      "max_concurrency": 1,
+      "subagents_issued": 6,
+      "max_concurrency": 3,
       "outputs": [
         "workflow/reviews/qpbt-042-semantics-a01.md",
         "workflow/reviews/qpbt-042-pr030-bind-a02.md",

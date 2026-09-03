@@ -2476,7 +2476,7 @@
       "title": "feat(QPBT/Game): formalize graph simulation and verifier detyping",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-038",
@@ -2499,7 +2499,7 @@
         "Seed a private exact-main cache, pass scoped Lean, affected target, declaration/source synchronization, owned-scope debt/import scans, and one private full build; obtain fresh immutable source-fidelity review",
         "Record the complete F07A statement-integrity table, all 20 callables and exact formulas, source/report hashes, the complete tracked-sorry inventory, paper-gap notes for any genuinely missing proof step, and reviewer dispositions"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i043-orchestrator-a01-detyping-skeleton",
       "source_refs": [
         "blueprint/metadata/nodes.json#F07A-DETYPING",
         "workflow/state/issues.json#QPBT-047",
@@ -2512,9 +2512,9 @@
         "MIPStarRE/QPBT/Game/Detyping.lean"
       ],
       "created_at": "2026-09-01T15:49:00Z",
-      "updated_at": "2026-09-01T15:58:02.251253Z",
-      "blocked_reason": "QPBT-038 must supply F06/F07 and QPBT-042 must supply F04A before detyping can elaborate.",
-      "unblock_condition": "QPBT-038 and QPBT-042 done."
+      "updated_at": "2026-09-03T20:47:10.601754Z",
+      "blocked_reason": null,
+      "unblock_condition": "Phase 1 drafts the exact declaration skeleton without cache/build; QPBT-068 integration unlocks authenticated prepare, elaboration, target/full build, commit, and immutable review."
     },
     {
       "id": "QPBT-045",
@@ -4307,7 +4307,7 @@
       "title": "feat(QPBT/Game): implement the standalone Magic Square game",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "blocked",
       "parent_id": "QPBT-015",
       "dependency_ids": [
         "QPBT-038",
@@ -4328,7 +4328,7 @@
         "Import only the accepted Game semantics/types boundary, introduce no new sorry/axiom/constant/public assumption, and do not import legacy QPBT.Test.MagicSquare modules.",
         "Pass scoped elaboration, affected target, exact API/cardinality probes, debt/import scans, blueprint synchronization after QPBT-074, one full private build, immutable review, and guarded integration."
       ],
-      "owner_session_id": "i071-orchestrator-a01-magic-defs",
+      "owner_session_id": null,
       "source_refs": [
         "/tmp/i005-scout-a42-magic-operator-api.md:612-687",
         "/tmp/i005-scout-a43-game-codec.md:82-194",
@@ -4339,7 +4339,7 @@
         "MIPStarRE/QPBT/Game/MagicSquare/Defs.lean"
       ],
       "created_at": "2026-09-03T18:48:53.258232Z",
-      "updated_at": "2026-09-03T19:35:57.975701Z",
+      "updated_at": "2026-09-03T20:41:12.433289Z",
       "blocked_reason": "QPBT-068 is under final immutable review; no issue worktree may use the repaired prepare path before integration.",
       "unblock_condition": "Integrate QPBT-068, then authorize one authenticated private prepare, scoped elaboration, target/full build, commit, and code review.",
       "draft_sha256": "7e3960fbbf7d85f37c198f6b36da3e444164d4170b46c972253cbe99092a5478",
@@ -4379,7 +4379,7 @@
       "title": "feat(QPBT/Quantum): implement finite bipartite states",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "blocked",
       "parent_id": "QPBT-015",
       "dependency_ids": [
         "QPBT-041",
@@ -4400,7 +4400,7 @@
         "Use the weakest finite Euclidean abstractions already supported by Mathlib/project APIs; do not add supplied normalization, bridge, witness, residual, package, or repair assumptions.",
         "Introduce zero new sorry/axiom/constant/public assumptions and pass exact signature/axiom probes, scoped elaboration, target build, private full build, blueprint synchronization after QPBT-074, immutable review, and guarded integration."
       ],
-      "owner_session_id": "i072-orchestrator-a01-finite-state",
+      "owner_session_id": null,
       "source_refs": [
         "/tmp/i005-scout-a42-magic-operator-api.md:247-360",
         "blueprint/metadata/nodes.json#F08-MAGIC-GAME",
@@ -4410,22 +4410,23 @@
         "MIPStarRE/QPBT/Quantum/FiniteState.lean"
       ],
       "created_at": "2026-09-03T18:48:53.258232Z",
-      "updated_at": "2026-09-03T19:44:15.404574Z",
+      "updated_at": "2026-09-03T20:41:12.643663Z",
       "blocked_reason": "Frozen FiniteState draft passed source/API review; authenticated private-cache prepare and Lean elaboration await QPBT-068.",
       "unblock_condition": "Integrate QPBT-068, then let the existing owner authenticate the approved frozen bytes, prepare its private cache, elaborate, build, and commit.",
       "candidate_status": "source-api-approved-awaiting-authenticated-prepare",
       "draft_sha256": "b7a0d0b08c454fe6b6cdd43311d5332c5b97b091d83432bebb40e155d68ebd0c",
       "source_api_review_report": "/tmp/i072-reviewer-a03-source-api.md",
       "source_api_review_report_sha256": "a9167766af50f414a99c3a86f7a22c6750c72c6f50802029f1337830db28caa5",
-      "source_api_review_manifest_sha256": "8d6df441cbcb867381c568c218b3c8500491b1dab0251b985bf9d86a9e03c497",
-      "source_api_review_verdict": "approve"
+      "source_api_review_manifest_sha256": "8d6df44144b738dcf5190ca5fb80b2dc57ccd78dc4dc7df757c79e6fd928c506",
+      "source_api_review_verdict": "approve",
+      "provenance_correction": "The initial root import expanded the authenticated 8d6df441 prefix to the wrong full digest; the reviewer report and unchanged 944-byte manifest authenticate 8d6df44144b738dcf5190ca5fb80b2dc57ccd78dc4dc7df757c79e6fd928c506."
     },
     {
       "id": "QPBT-073",
       "title": "feat(QPBT/Game): prove normalized strategy outcome weights",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "blocked",
       "parent_id": "QPBT-015",
       "dependency_ids": [
         "QPBT-042"
@@ -4444,7 +4445,7 @@
         "Reuse project and Mathlib finite-sum/inner-product lemmas, introduce zero new sorry/axiom/constant/public assumptions, and keep imports minimal and acyclic.",
         "Pass scoped elaboration, affected target, exact signature/axiom/debt probes, blueprint synchronization after QPBT-074, one private full build, immutable review, and guarded integration."
       ],
-      "owner_session_id": "i073-orchestrator-a01-value-one",
+      "owner_session_id": null,
       "source_refs": [
         "/tmp/i005-scout-a42-magic-operator-api.md:548-610",
         "MIPStarRE/QPBT/Game/Semantics.lean",
@@ -4454,9 +4455,17 @@
         "MIPStarRE/QPBT/Game/ValueOne.lean"
       ],
       "created_at": "2026-09-03T18:48:53.258232Z",
-      "updated_at": "2026-09-03T18:58:06.841437Z",
-      "blocked_reason": null,
-      "unblock_condition": "Dispatch one owner on a private issue worktree; wait for QPBT-068 before using the authenticated private-cache prepare path."
+      "updated_at": "2026-09-03T20:41:12.858123Z",
+      "blocked_reason": "Frozen ValueOne draft passed source/API review; authenticated private-cache prepare and Lean elaboration await QPBT-068.",
+      "unblock_condition": "Integrate QPBT-068, then let the existing owner authenticate the approved frozen bytes, prepare its private cache, elaborate, build, and commit; complete blueprint synchronization after QPBT-074.",
+      "candidate_status": "source-api-approved-awaiting-authenticated-prepare",
+      "draft_sha256": "7e7ad51bd6600642d8f6bd235662bf22cc4be64db5cf4587d12198d76d497147",
+      "draft_bytes": 9428,
+      "draft_lines": 214,
+      "source_api_review_report": "/tmp/i073-reviewer-a02-source-api.md",
+      "source_api_review_report_sha256": "ce0143780a04335b22be9a66db68182c7a7112766e8e31429279ee65c4ec20d5",
+      "source_api_review_manifest_sha256": "09965fa2b31f0f26f5dea87a9bbc8f22e3d3ad3e551220eb2eec968c82a2130e",
+      "source_api_review_verdict": "approve"
     },
     {
       "id": "QPBT-074",
@@ -4518,9 +4527,9 @@
         "workflow/reviews/qpbt-074-game-contract-a01.md"
       ],
       "created_at": "2026-09-03T18:48:53.258232Z",
-      "updated_at": "2026-09-03T20:11:03.553791Z",
-      "blocked_reason": "A03 found two high source/API contract defects and one medium finite-carrier defect on head 37cdfae.",
-      "unblock_condition": "A06 must repair F074-A03-001 through F074-A03-003 on a new head, rerun all blueprint/source/idempotence gates, and obtain fresh immutable approval.",
+      "updated_at": "2026-09-03T20:33:04.873016Z",
+      "blocked_reason": "A03 found two high source/API contract defects and one medium finite-carrier defect on head 37cdfae; A48 additionally confirmed the missing F08/F04A semantics edge on canonical bytes.",
+      "unblock_condition": "A06 must repair F074-A03-001 through F074-A03-003 and F074-A48-001 on a new head, rerun all blueprint/source/idempotence gates, and obtain fresh immutable approval.",
       "scope_handoff_report": "/tmp/i074-orchestrator-a01-game-contract.md",
       "scope_handoff_report_sha256": "a063127bb2cca6f8693fa8f2c194f013c420b1b1f08ccf32f6e1eb6fcfb06dca",
       "dag_review_report": "/tmp/i005-reviewer-a46-issue-dag.md",
@@ -4591,6 +4600,19 @@
           "status": "open",
           "path": "workflow/reviews/qpbt-074-game-contract-a01.md:84",
           "summary": "Axis, diagonal, and individual LDT question carriers omit constructive Fintype instances required downstream."
+        }
+      ],
+      "compatibility_review_report": "/tmp/i005-reviewer-a48-draft-compatibility.md",
+      "compatibility_review_report_sha256": "77f3686902c48c9c5b385325f3fdbefa4660a35da039d7da360800f745c827af",
+      "compatibility_review_verdict": "approve-three-drafts-hold-f08-sync",
+      "compatibility_review_findings": [
+        {
+          "id": "F074-A48-001",
+          "severity": "high",
+          "status": "open",
+          "path": "blueprint/metadata/nodes.json:495",
+          "summary": "F08 omits F04A-GAME-SEMANTICS from direct prerequisites and transitive definitions despite using its FiniteGame and strategy semantics.",
+          "resolution_plan": "A06 must add the F04A edge, regenerate consumers, and validate it independently without changing the frozen Lean drafts."
         }
       ]
     },
