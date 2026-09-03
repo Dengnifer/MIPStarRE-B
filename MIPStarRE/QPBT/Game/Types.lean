@@ -1,3 +1,5 @@
+import Mathlib.Computability.TuringMachine.Computable
+import Mathlib.Data.Nat.Log
 import Mathlib.Probability.Distributions.Uniform
 import MIPStarRE.QPBT.Basic.Field
 
@@ -784,5 +786,857 @@ theorem CLSampler.sample_downsize
   congr 1
   funext x
   simp
+
+noncomputable section
+
+/-! ## Executable conditionally-linear samplers
+
+This section formalizes `conditionally-linear.tex:553-712`.  The logical
+six-tape interface is serialized only at the `FinTM2` boundary; every public
+query uses the canonical blank payloads from the paper-facing contract.
+-/
+
+/-- An admissible characteristic-two field family, indexed by positive naturals. -/
+structure AdmissibleFieldFamily where
+  exponent : Nat -> Nat
+  exponent_odd : forall n, 0 < n -> Odd (exponent n)
+
+/-- The cardinality of the indexed admissible field. -/
+def AdmissibleFieldFamily.fieldSize
+    (Q : AdmissibleFieldFamily) (n : Nat) : Nat :=
+  2 ^ Q.exponent n
+
+/-- The canonical F01 field data selected at a positive index. -/
+noncomputable def AdmissibleFieldFamily.fieldData
+    (Q : AdmissibleFieldFamily) (n : Nat) (hn : 0 < n) :
+    FieldData (Q.exponent n) :=
+  fieldDataOfOddExponent (Q.exponent n) (Q.exponent_odd n hn)
+
+private theorem zmodTwo_eq_zero_or_one (x : ZMod 2) : x = 0 ∨ x = 1 := by
+  have hlt : x.val < 2 := ZMod.val_lt x
+  have hx : x.val = 0 ∨ x.val = 1 := by omega
+  rcases hx with hx | hx
+  · left
+    apply ZMod.val_injective
+    simp [hx]
+  · right
+    apply ZMod.val_injective
+    rw [ZMod.val_one]
+    exact hx
+
+private def zmodTwoEquivBool : ZMod 2 ≃ Bool where
+  toFun x := decide (x = 1)
+  invFun bit := if bit then 1 else 0
+  left_inv x := by
+    rcases zmodTwo_eq_zero_or_one x with rfl | rfl <;> simp
+  right_inv bit := by
+    cases bit <;> simp
+
+private noncomputable def fieldVectorBitsEquiv
+    {k dimension : Nat} (D : FieldData k) :
+    FieldVector k dimension ≃ (Fin (dimension * k) -> Bool) where
+  toFun x ij := zmodTwoEquivBool
+    (D.coordinates (x (finProdFinEquiv.symm ij).1)
+      (finProdFinEquiv.symm ij).2)
+  invFun bits i := D.coordinates.symm fun j =>
+    zmodTwoEquivBool.symm (bits (finProdFinEquiv (i, j)))
+  left_inv x := by
+    funext i
+    apply D.coordinates.injective
+    funext j
+    simp
+  right_inv bits := by
+    funext ij
+    change zmodTwoEquivBool
+        ((D.coordinates
+          (D.coordinates.symm (fun j =>
+            zmodTwoEquivBool.symm
+              (bits (finProdFinEquiv ((finProdFinEquiv.symm ij).1, j))))))
+          (finProdFinEquiv.symm ij).2) = bits ij
+    rw [D.coordinates.apply_symm_apply, zmodTwoEquivBool.apply_symm_apply]
+    exact congrArg bits (finProdFinEquiv.apply_symm_apply ij)
+
+@[simp] private theorem fieldVectorBitsEquiv_apply
+    {k dimension : Nat} (D : FieldData k) (x : FieldVector k dimension)
+    (ij : Fin (dimension * k)) :
+    fieldVectorBitsEquiv D x ij = zmodTwoEquivBool
+      (D.coordinates (x (finProdFinEquiv.symm ij).1)
+        (finProdFinEquiv.symm ij).2) :=
+  rfl
+
+private noncomputable def encodingOfBoolVectorEquiv
+    {alpha : Type*} {width : Nat} (e : alpha ≃ (Fin width -> Bool)) :
+    Computability.Encoding alpha Bool where
+  encode x := List.ofFn (e x)
+  decode bits := if h : bits.length = width then
+    some (e.symm fun i => bits.get ⟨i.val, by omega⟩)
+  else none
+  decode_encode x := by
+    simp only [List.length_ofFn, ↓reduceDIte]
+    congr 1
+    apply e.injective
+    funext i
+    simp
+
+/-- The fixed-order F01 coordinate encoding of field vectors as bit strings. -/
+noncomputable def AdmissibleFieldFamily.fieldCodec
+    (Q : AdmissibleFieldFamily) (n dimension : Nat) (hn : 0 < n) :
+    Computability.Encoding (FieldVector (Q.exponent n) dimension) Bool :=
+  encodingOfBoolVectorEquiv (fieldVectorBitsEquiv (Q.fieldData n hn))
+
+/-- The constant family of binary fields. -/
+def binaryFieldFamily : AdmissibleFieldFamily where
+  exponent := fun _ => 1
+  exponent_odd := by
+    intro n hn
+    exact odd_one
+
+/-- The paper's global-positive-index big-O relation. -/
+def RuntimeBigO (f g : Nat -> Nat) : Prop :=
+  Exists fun C : Real => 0 < C /\ forall n, 0 < n ->
+    (f n : Real) <= C * (g n : Real)
+
+/-- Six logical binary input tapes, in their fixed paper order. -/
+abbrev SixTapeInput := Fin 6 -> List Bool
+
+/-- Assemble the six logical tapes in order. -/
+def SixTapeInput.ofLists
+    (tape0 tape1 tape2 tape3 tape4 tape5 : List Bool) : SixTapeInput :=
+  ![tape0, tape1, tape2, tape3, tape4, tape5]
+
+/-- The canonical input used to compute a field exponent from an index. -/
+def fieldExponentInput (n : Nat) : SixTapeInput :=
+  SixTapeInput.ofLists (Computability.encodeNat n) [] [] [] [] []
+
+namespace CLStage
+
+/-- The stage immediately before a nonzero zero-based stage. -/
+def pred {ell : Nat} (j : Fin ell) (h : 0 < j.val) : Fin ell :=
+  ⟨j.val - 1, by omega⟩
+
+/-- Include an earlier stage in the ambient stage type. -/
+def castLE {ell : Nat} (j : Fin ell) (i : Fin (j.val + 1)) : Fin ell :=
+  ⟨i.val, by omega⟩
+
+/-- The last stage of a nonempty level family. -/
+def last (ell : Nat) (h : 0 < ell) : Fin ell :=
+  ⟨ell - 1, by omega⟩
+
+end CLStage
+
+/-- The two maps sampled by a CL sampler. -/
+inductive CLSamplerSide
+  | alice
+  | bob
+  deriving DecidableEq, Fintype
+
+/-- The canonical one-bit side tag. -/
+def CLSamplerSide.bits : CLSamplerSide -> List Bool
+  | .alice => [false]
+  | .bob => [true]
+
+/-- Select one of the two maps carried by a CL sampler. -/
+def CLSampler.side {k n ell : Nat} (S : CLSampler k n ell) :
+    CLSamplerSide -> ConditionallyLinearMap k n ell
+  | .alice => S.alice
+  | .bob => S.bob
+
+/-- A valid output prefix of the preceding marginal map. -/
+abbrev CLPrefix {k n : Nat}
+    (priorOutput : FieldVector k n -> FieldVector k n) :=
+  {u : FieldVector k n // Exists fun x => u = priorOutput x}
+
+/-- A vector supported on one selected coordinate factor. -/
+abbrev CLFactorInput {k n : Nat} (factor : Finset (Fin n)) :=
+  {y : FieldVector k n // forall i, i ∉ factor -> y i = 0}
+
+/-- Data-valued marginal/factor decomposition satisfying the CL recursion laws. -/
+structure CLQueryDecomposition
+    {k n ell : Nat} (L : ConditionallyLinearMap k n ell) where
+  marginal : (j : Fin ell) -> ConditionallyLinearMap k n (j.val + 1)
+  priorOutput : Fin ell -> FieldVector k n -> FieldVector k n
+  priorOutput_zero : forall (j : Fin ell), j.val = 0 ->
+    priorOutput j = 0
+  priorOutput_succ : forall (j : Fin ell) (h : 0 < j.val),
+    priorOutput j = (marginal (CLStage.pred j h)).toFun
+  factor : (j : Fin ell) -> CLPrefix (priorOutput j) -> Finset (Fin n)
+  linear : (j : Fin ell) -> (u : CLPrefix (priorOutput j)) ->
+    FieldVector k n →ₗ[GaloisField 2 k] FieldVector k n
+  factor_cover : forall (x : FieldVector k n) (i : Fin n),
+    Exists fun j : Fin ell =>
+      i ∈ factor j ⟨priorOutput j x, ⟨x, rfl⟩⟩
+  factor_disjoint : forall (x : FieldVector k n) (j1 j2 : Fin ell),
+    j1 ≠ j2 -> Disjoint
+      (factor j1 ⟨priorOutput j1 x, ⟨x, rfl⟩⟩)
+      (factor j2 ⟨priorOutput j2 x, ⟨x, rfl⟩⟩)
+  linear_supported : forall (j : Fin ell) (u : CLPrefix (priorOutput j))
+      (y : FieldVector k n) (i : Fin n),
+    i ∉ factor j u -> linear j u y i = 0
+  linear_depends : forall (j : Fin ell) (u : CLPrefix (priorOutput j))
+      (y : FieldVector k n),
+    linear j u (restrictVector (factor j u) y) = linear j u y
+  marginal_sum : forall (j : Fin ell) (x : FieldVector k n),
+    (marginal j).toFun x =
+      ∑ i : Fin (j.val + 1),
+        linear (CLStage.castLE j i)
+          ⟨priorOutput (CLStage.castLE j i) x, ⟨x, rfl⟩⟩
+          (restrictVector
+            (factor (CLStage.castLE j i)
+              ⟨priorOutput (CLStage.castLE j i) x, ⟨x, rfl⟩⟩) x)
+  marginal_top : forall h : 0 < ell,
+    (marginal (CLStage.last ell h)).toFun = L.toFun
+
+/-- The four valid semantic query modes of an executable CL sampler. -/
+inductive CLSamplerQuery
+    (Q : AdmissibleFieldFamily) (s : Nat -> Nat) (ell n : Nat) (hn : 0 < n)
+    (associated : CLSampler (Q.exponent n) (s n) ell)
+    (decomposition : (w : CLSamplerSide) ->
+      CLQueryDecomposition (associated.side w))
+  | dimension
+  | marginal (w : CLSamplerSide) (j : Fin ell)
+      (z : FieldVector (Q.exponent n) (s n))
+  | linear (w : CLSamplerSide) (j : Fin ell)
+      (u : CLPrefix ((decomposition w).priorOutput j))
+      (y : CLFactorInput (k := Q.exponent n)
+        ((decomposition w).factor j u))
+  | factor (w : CLSamplerSide) (j : Fin ell)
+      (u : CLPrefix ((decomposition w).priorOutput j))
+
+variable {Q : AdmissibleFieldFamily} {s : Nat -> Nat}
+  {ell n : Nat} {hn : 0 < n}
+
+private abbrev CLSamplerQuery.FiniteCode
+    (Q : AdmissibleFieldFamily) (s : Nat -> Nat) (ell n : Nat) :=
+  Unit ⊕
+    (CLSamplerSide × Fin ell × FieldVector (Q.exponent n) (s n)) ⊕
+    (CLSamplerSide × Fin ell × FieldVector (Q.exponent n) (s n) ×
+      FieldVector (Q.exponent n) (s n)) ⊕
+    (CLSamplerSide × Fin ell × FieldVector (Q.exponent n) (s n))
+
+private def CLSamplerQuery.finiteCode :
+    CLSamplerQuery Q s ell n hn A D -> CLSamplerQuery.FiniteCode Q s ell n
+  | .dimension => .inl ()
+  | .marginal w j z => .inr (.inl (w, j, z))
+  | .linear w j u y => .inr (.inr (.inl (w, j, u.1, y.1)))
+  | .factor w j u => .inr (.inr (.inr (w, j, u.1)))
+
+private theorem CLSamplerQuery.finiteCode_injective :
+    Function.Injective
+      (CLSamplerQuery.finiteCode (Q := Q) (s := s) (ell := ell)
+        (n := n) (hn := hn) (A := A) (D := D)) := by
+  intro left right h
+  cases left <;> cases right <;> simp_all [finiteCode]
+  · rcases h with ⟨rfl, rfl, hu, hy⟩
+    have hu' : _ = _ := Subtype.ext hu
+    subst hu'
+    exact ⟨HEq.rfl, heq_of_eq (Subtype.ext hy)⟩
+  · rcases h with ⟨rfl, rfl, hu⟩
+    exact heq_of_eq (Subtype.ext hu)
+
+/-- Valid semantic sampler queries form a finite family at each index. -/
+noncomputable instance CLSamplerQuery.instFintype
+    (Q : AdmissibleFieldFamily) (s : Nat -> Nat) (ell n : Nat) (hn : 0 < n)
+    (A : CLSampler (Q.exponent n) (s n) ell)
+    (D : (w : CLSamplerSide) -> CLQueryDecomposition (A.side w)) :
+    Fintype (CLSamplerQuery Q s ell n hn A D) :=
+  Fintype.ofInjective
+    (CLSamplerQuery.finiteCode (Q := Q) (s := s) (ell := ell)
+      (n := n) (hn := hn) (A := A) (D := D))
+    CLSamplerQuery.finiteCode_injective
+
+/-- Recover the family index of a typed query. -/
+def CLSamplerQuery.index : CLSamplerQuery Q s ell n hn A D -> Nat :=
+  fun _ => n
+
+/-- The canonical six tapes for a typed query, with unused tapes blank. -/
+def CLSamplerQuery.canonicalTapes :
+    CLSamplerQuery Q s ell n hn A D -> SixTapeInput
+  | .dimension =>
+      SixTapeInput.ofLists (Computability.encodeNat n) [false, false]
+        [] [] [] []
+  | .marginal w j z =>
+      SixTapeInput.ofLists (Computability.encodeNat n) w.bits [false, true]
+        (Computability.encodeNat (j.val + 1))
+        ((Q.fieldCodec n (s n) hn).encode z) []
+  | .linear w j u y =>
+      SixTapeInput.ofLists (Computability.encodeNat n) w.bits [true, false]
+        (Computability.encodeNat (j.val + 1))
+        ((Q.fieldCodec n (s n) hn).encode u.1)
+        ((Q.fieldCodec n (s n) hn).encode y.1)
+  | .factor w j u =>
+      SixTapeInput.ofLists (Computability.encodeNat n) w.bits [true, true]
+        (Computability.encodeNat (j.val + 1))
+        ((Q.fieldCodec n (s n) hn).encode u.1) []
+
+/-- The exact bit-string answer associated with a typed query. -/
+def CLSamplerQuery.expectedOutput :
+    CLSamplerQuery Q s ell n hn A D -> List Bool
+  | .dimension => Computability.encodeNat (s n)
+  | .marginal w j z =>
+      (Q.fieldCodec n (s n) hn).encode ((D w).marginal j z)
+  | .linear w j u y =>
+      (Q.fieldCodec n (s n) hn).encode ((D w).linear j u y.1)
+  | .factor w j u =>
+      List.ofFn (fun i : Fin (s n) => decide (i ∈ (D w).factor j u))
+
+/-- Injectively serialize the six ordered logical tapes onto one bit stack. -/
+def packSixTapes (input : SixTapeInput) : List Bool :=
+  (List.ofFn input).flatMap fun tape =>
+    tape.flatMap (fun bit =>
+      match bit with
+      | false => [false, true]
+      | true => [true, false]) ++ [false, false]
+
+private def unpackDualRailTape : List Bool -> List Bool × List Bool
+  | false :: false :: rest => ([], rest)
+  | false :: true :: rest =>
+      let decoded := unpackDualRailTape rest
+      (false :: decoded.1, decoded.2)
+  | true :: false :: rest =>
+      let decoded := unpackDualRailTape rest
+      (true :: decoded.1, decoded.2)
+  | _ => ([], [])
+
+private def unpackDualRailTapes : Nat -> List Bool -> List (List Bool)
+  | 0, _ => []
+  | count + 1, bits =>
+      let decoded := unpackDualRailTape bits
+      decoded.1 :: unpackDualRailTapes count decoded.2
+
+private theorem unpackDualRailTape_encode (tape rest : List Bool) :
+    unpackDualRailTape
+        (tape.flatMap (fun bit =>
+          match bit with
+          | false => [false, true]
+          | true => [true, false]) ++ [false, false] ++ rest) =
+      (tape, rest) := by
+  induction tape with
+  | nil => rfl
+  | cons bit tape ih =>
+      have ih' :
+          unpackDualRailTape
+              (tape.flatMap (fun bit =>
+                match bit with
+                | false => [false, true]
+                | true => [true, false]) ++ false :: false :: rest) =
+            (tape, rest) := by
+        simpa only [List.append_assoc, List.cons_append, List.nil_append] using ih
+      cases bit <;> simp [unpackDualRailTape, ih']
+
+private theorem unpackDualRailTapes_encode (tapes : List (List Bool)) :
+    unpackDualRailTapes tapes.length
+        (tapes.flatMap fun tape =>
+          tape.flatMap (fun bit =>
+            match bit with
+            | false => [false, true]
+            | true => [true, false]) ++ [false, false]) =
+      tapes := by
+  induction tapes with
+  | nil => rfl
+  | cons tape tapes ih =>
+      simp only [List.length_cons, List.flatMap_cons]
+      rw [unpackDualRailTapes]
+      rw [unpackDualRailTape_encode]
+      simp only [ih]
+
+/-- Six-tape serialization is injective. -/
+theorem packSixTapes_injective : Function.Injective packSixTapes := by
+  intro left right h
+  apply List.ofFn_injective
+  have left_inverse := unpackDualRailTapes_encode (List.ofFn left)
+  have right_inverse := unpackDualRailTapes_encode (List.ofFn right)
+  simp only [List.length_ofFn] at left_inverse right_inverse
+  have packed_eq :
+      (List.ofFn left).flatMap (fun tape =>
+          tape.flatMap (fun bit =>
+            match bit with
+            | false => [false, true]
+            | true => [true, false]) ++ [false, false]) =
+        (List.ofFn right).flatMap (fun tape =>
+          tape.flatMap (fun bit =>
+            match bit with
+            | false => [false, true]
+            | true => [true, false]) ++ [false, false]) := by
+    simpa only [packSixTapes] using h
+  rw [← left_inverse, ← right_inverse, packed_eq]
+
+/-- A finite stack machine with Boolean input and output alphabets. -/
+structure IndexedSixInputBitMachine where
+  tm : Turing.FinTM2
+  inputAlphabet : tm.Γ tm.k₀ ≃ Bool
+  outputAlphabet : tm.Γ tm.k₁ ≃ Bool
+
+/-- Operational execution of a packed six-tape query within a stated bound. -/
+def IndexedSixInputBitMachine.outputsInTime
+    (M : IndexedSixInputBitMachine) (input : SixTapeInput)
+    (output : List Bool) (bound : Nat) :=
+  Turing.TM2OutputsInTime M.tm
+    ((packSixTapes input).map M.inputAlphabet.symm)
+    (some (output.map M.outputAlphabet.symm)) bound
+
+/-- One genuine operational execution with its certified bound. -/
+structure IndexedSixInputBitMachine.Execution
+    (M : IndexedSixInputBitMachine) (input : SixTapeInput)
+    (output : List Bool) where
+  bound : Nat
+  runInTime : M.outputsInTime input output bound
+
+/-- The exact number of transitions in an operational execution. -/
+def IndexedSixInputBitMachine.Execution.steps
+    {M : IndexedSixInputBitMachine} {input : SixTapeInput}
+    {output : List Bool} (execution : M.Execution input output) : Nat :=
+  execution.runInTime.toEvalsTo.steps
+
+/-- Intrinsic code computing the admissible exponent from every positive index. -/
+structure FieldExponentProgram (Q : AdmissibleFieldFamily) where
+  machine : IndexedSixInputBitMachine
+  execution : forall n, 0 < n ->
+    machine.Execution (fieldExponentInput n)
+      (Computability.encodeNat (Q.exponent n))
+
+/-- Forget the resource bound of an exponent-program execution. -/
+def FieldExponentProgram.correct
+    (P : FieldExponentProgram Q) (n : Nat) (hn : 0 < n) :
+    Turing.TM2Outputs P.machine.tm
+      ((packSixTapes (fieldExponentInput n)).map
+        P.machine.inputAlphabet.symm)
+      (some ((Computability.encodeNat (Q.exponent n)).map
+        P.machine.outputAlphabet.symm)) :=
+  Turing.TM2OutputsInTime.toTM2Outputs (P.execution n hn).runInTime
+
+/-- The exact transition count of the exponent program at an index. -/
+def FieldExponentProgram.steps
+    (P : FieldExponentProgram Q) (n : Nat) (hn : 0 < n) : Nat :=
+  (P.execution n hn).steps
+
+/-- A source sampler with chosen CL data and genuine query/exponent executions. -/
+structure ExecutableCLSampler
+    (Q : AdmissibleFieldFamily) (s : Nat -> Nat) (ell : Nat) where
+  associated : forall n, CLSampler (Q.exponent n) (s n) ell
+  decomposition : forall n (w : CLSamplerSide),
+    CLQueryDecomposition ((associated n).side w)
+  machine : IndexedSixInputBitMachine
+  execution : forall n (hn : 0 < n)
+      (query : CLSamplerQuery Q s ell n hn (associated n) (decomposition n)),
+    machine.Execution query.canonicalTapes query.expectedOutput
+  fieldProgram : FieldExponentProgram Q
+
+/-- Forget the resource bound of a source sampler execution. -/
+def ExecutableCLSampler.correct
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (hn : 0 < n)
+    (query : CLSamplerQuery Q s ell n hn (S.associated n) (S.decomposition n)) :
+    Turing.TM2Outputs S.machine.tm
+      ((packSixTapes query.canonicalTapes).map S.machine.inputAlphabet.symm)
+      (some (query.expectedOutput.map S.machine.outputAlphabet.symm)) :=
+  Turing.TM2OutputsInTime.toTM2Outputs (S.execution n hn query).runInTime
+
+/-- The exact transition count of one valid sampler query. -/
+def ExecutableCLSampler.executedSteps
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (hn : 0 < n)
+    (query : CLSamplerQuery Q s ell n hn (S.associated n) (S.decomposition n)) : Nat :=
+  (S.execution n hn query).steps
+
+/-- The finite set of all valid semantic queries at one positive index. -/
+noncomputable def ExecutableCLSampler.validQueries
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (hn : 0 < n) :
+    Finset (CLSamplerQuery Q s ell n hn (S.associated n) (S.decomposition n)) :=
+  Finset.univ
+
+/-- The exact maximum transition count over valid queries at an index. -/
+noncomputable def ExecutableCLSampler.queryTime
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (hn : 0 < n) : Nat :=
+  (S.validQueries n hn).sup (S.executedSteps n hn)
+
+/-- `queryTime` is definitionally the valid-query maximum. -/
+theorem ExecutableCLSampler.queryTime_eq_validQueryMax
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (hn : 0 < n) :
+    S.queryTime n hn =
+      (S.validQueries n hn).sup (S.executedSteps n hn) :=
+  rfl
+
+/-- Source time charges both sampler queries and intrinsic exponent computation. -/
+noncomputable def ExecutableCLSampler.time
+    (S : ExecutableCLSampler Q s ell) (n : Nat) : Nat :=
+  if hn : 0 < n then
+    Nat.max (S.queryTime n hn) (S.fieldProgram.steps n hn)
+  else 0
+
+/-- At a positive index, source time is the exact maximum of its two components. -/
+theorem ExecutableCLSampler.time_eq_max
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (hn : 0 < n) :
+    S.time n = Nat.max (S.queryTime n hn) (S.fieldProgram.steps n hn) := by
+  simp [ExecutableCLSampler.time, hn]
+
+/-- The exact shared-seed distribution associated with an executable sampler. -/
+noncomputable def ExecutableCLSampler.sample
+    (S : ExecutableCLSampler Q s ell) (n : Nat) :
+    PMF (FieldVector (Q.exponent n) (s n) ×
+      FieldVector (Q.exponent n) (s n)) :=
+  (S.associated n).sample
+
+/-- The field-vector dimension returned by the sampler. -/
+def ExecutableCLSampler.dimension
+    (_S : ExecutableCLSampler Q s ell) (n : Nat) : Nat :=
+  s n
+
+/-- One of the two associated conditionally-linear maps. -/
+def ExecutableCLSampler.associatedMap
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (w : CLSamplerSide) :
+    ConditionallyLinearMap (Q.exponent n) (s n) ell :=
+  (S.associated n).side w
+
+private theorem FieldData.basis_zero_eq_one (D : FieldData 1) :
+    D.basis 0 = 1 := by
+  have hb : D.basis 0 ≠ 0 := D.basis.ne_zero 0
+  apply (GaloisField.equivZmodP 2).injective
+  rw [map_one]
+  rcases zmodTwo_eq_zero_or_one
+      (GaloisField.equivZmodP 2 (D.basis 0)) with hz | hz
+  · exfalso
+    apply hb
+    apply (GaloisField.equivZmodP 2).injective
+    simpa using hz
+  · exact hz
+
+private theorem FieldData.coordinates_one_eq (D : FieldData 1)
+    (x : GaloisField 2 1) :
+    D.coordinates x 0 = GaloisField.equivZmodP 2 x := by
+  have hx : D.coordinates x 0 • D.basis 0 = x := by
+    simpa [FieldData.coordinates] using D.basis.sum_repr x
+  rw [D.basis_zero_eq_one] at hx
+  have mapped := congrArg (GaloisField.equivZmodP 2) hx
+  simpa using mapped
+
+private theorem flatten_ofFn_singleton {alpha : Type*} {width : Nat}
+    (f : Fin width -> alpha) :
+    (List.ofFn fun i => [f i]).flatten = List.ofFn f := by
+  induction width with
+  | zero => simp
+  | succ width ih =>
+      simp only [List.ofFn_succ, List.flatten_cons, List.singleton_append]
+      rw [ih]
+
+private theorem AdmissibleFieldFamily.fieldCodec_encode_downsize
+    (Q : AdmissibleFieldFamily) (n dimension : Nat) (hn : 0 < n)
+    (x : FieldVector (Q.exponent n) dimension) :
+    (binaryFieldFamily.fieldCodec n (dimension * Q.exponent n) hn).encode
+      (downsizeVector (Q.fieldData n hn) dimension x) =
+      (Q.fieldCodec n dimension hn).encode x := by
+  change List.ofFn
+      (fieldVectorBitsEquiv (binaryFieldFamily.fieldData n hn)
+        (downsizeVector (Q.fieldData n hn) dimension x)) =
+    List.ofFn (fieldVectorBitsEquiv (Q.fieldData n hn) x)
+  change List.ofFn
+      (fieldVectorBitsEquiv (fieldDataOfOddExponent 1 odd_one)
+        (downsizeVector (Q.fieldData n hn) dimension x)) =
+    List.ofFn (fieldVectorBitsEquiv (Q.fieldData n hn) x)
+  rw [List.ofFn_mul]
+  simp only [List.ofFn_succ, List.ofFn_zero]
+  rw [flatten_ofFn_singleton]
+  congr 1
+  funext i
+  rw [show
+    (⟨i.val * 1 + (0 : Fin 1).val, by omega⟩ :
+      Fin ((dimension * Q.exponent n) * 1)) =
+        finProdFinEquiv (i, (0 : Fin 1)) by
+    apply Fin.ext
+    simp [finProdFinEquiv]]
+  simp only [fieldVectorBitsEquiv_apply, Equiv.symm_apply_apply]
+  rw [(fieldDataOfOddExponent 1 odd_one).coordinates_one_eq]
+  simp [downsizeVector, flattenVectorEquiv]
+
+private noncomputable def zeroConditionallyLinearMap
+    (k n ell : Nat) : ConditionallyLinearMap k n ell where
+  toFun := fun _ => 0
+  certificate := by
+    simpa using
+      (ConditionallyLinearCertificate.zero (k := k) (n := n) Finset.univ).raiseLevel ell
+
+private noncomputable def zeroCLSampler (k n ell : Nat) : CLSampler k n ell where
+  alice := zeroConditionallyLinearMap k n ell
+  bob := zeroConditionallyLinearMap k n ell
+
+private def CLQueryDecomposition.basePrefix
+    {k n ell : Nat} {L : ConditionallyLinearMap k n ell}
+    (D : CLQueryDecomposition L) (j : Fin ell) : CLPrefix (D.priorOutput j) :=
+  ⟨D.priorOutput j 0, ⟨0, rfl⟩⟩
+
+private noncomputable def CLQueryDecomposition.zeroExpand
+    {sourceK sourceN ell : Nat} {L : ConditionallyLinearMap sourceK sourceN ell}
+    (D : CLQueryDecomposition L) (extension : Nat) :
+    CLQueryDecomposition
+      (zeroConditionallyLinearMap 1 (sourceN * extension) ell) where
+  marginal j := zeroConditionallyLinearMap 1 (sourceN * extension) (j.val + 1)
+  priorOutput _ := 0
+  priorOutput_zero _ _ := rfl
+  priorOutput_succ _ _ := rfl
+  factor j _ := expandRegister extension (D.factor j (D.basePrefix j))
+  linear _ _ := 0
+  factor_cover x ij := by
+    rcases D.factor_cover (0 : FieldVector sourceK sourceN)
+        (finProdFinEquiv.symm ij).1 with ⟨j, hj⟩
+    refine ⟨j, ?_⟩
+    simpa only [mem_expandRegister, basePrefix] using hj
+  factor_disjoint x j1 j2 hne := by
+    exact expandRegister_disjoint
+      (D.factor_disjoint (0 : FieldVector sourceK sourceN) j1 j2 hne)
+  linear_supported _ _ _ _ _ := rfl
+  linear_depends _ _ _ := rfl
+  marginal_sum j x := by
+    simp [zeroConditionallyLinearMap]
+  marginal_top h := rfl
+
+private noncomputable def CLQueryDecomposition.pullbackPrefix
+    {k n ell : Nat} {L : ConditionallyLinearMap k n ell}
+    (F : FieldData k) (D : CLQueryDecomposition L) (j : Fin ell)
+    (u : CLPrefix (fun y =>
+      downsizeVector F n (D.priorOutput j ((downsizeVector F n).symm y)))) :
+    CLPrefix (D.priorOutput j) := by
+  refine ⟨(downsizeVector F n).symm u.1, ?_⟩
+  rcases u.2 with ⟨y, hy⟩
+  refine ⟨(downsizeVector F n).symm y, ?_⟩
+  rw [hy]
+  simp
+
+private noncomputable def CLQueryDecomposition.downsize
+    {k n ell : Nat} {L : ConditionallyLinearMap k n ell}
+    (F : FieldData k) (D : CLQueryDecomposition L) :
+    CLQueryDecomposition (L.downsize F) where
+  marginal j := (D.marginal j).downsize F
+  priorOutput j y :=
+    downsizeVector F n (D.priorOutput j ((downsizeVector F n).symm y))
+  priorOutput_zero j hj := by
+    rw [D.priorOutput_zero j hj]
+    funext y
+    simp
+  priorOutput_succ j hj := by
+    rw [D.priorOutput_succ j hj]
+    rfl
+  factor j u := expandRegister k (D.factor j (D.pullbackPrefix F j u))
+  linear j u := downsizeLinearMap F (D.linear j (D.pullbackPrefix F j u))
+  factor_cover x ij := by
+    rcases D.factor_cover ((downsizeVector F n).symm x)
+        (finProdFinEquiv.symm ij).1 with ⟨j, hj⟩
+    refine ⟨j, ?_⟩
+    simpa only [mem_expandRegister, pullbackPrefix,
+      LinearEquiv.symm_apply_apply] using hj
+  factor_disjoint x j1 j2 hne := by
+    apply expandRegister_disjoint
+    simpa only [pullbackPrefix, LinearEquiv.symm_apply_apply] using
+      D.factor_disjoint ((downsizeVector F n).symm x) j1 j2 hne
+  linear_supported j u y ij hij := by
+    let sourceFactor := D.factor j (D.pullbackPrefix F j u)
+    let sourceLinear := D.linear j (D.pullbackPrefix F j u)
+    have hsupported (z : FieldVector k n) :
+        sourceLinear z = restrictVector sourceFactor (sourceLinear z) := by
+      ext i
+      by_cases hi : i ∈ sourceFactor
+      · simp [restrictVector, hi]
+      · rw [restrictVector, if_neg hi]
+        exact D.linear_supported j (D.pullbackPrefix F j u) z i
+          (by simpa only [sourceFactor] using hi)
+    have htarget :
+        downsizeLinearMap F sourceLinear y =
+          restrictVector (expandRegister k sourceFactor)
+            (downsizeLinearMap F sourceLinear y) := by
+      calc
+        downsizeLinearMap F sourceLinear y =
+            downsizeVector F n (sourceLinear ((downsizeVector F n).symm y)) := rfl
+        _ = downsizeVector F n
+            (restrictVector sourceFactor
+              (sourceLinear ((downsizeVector F n).symm y))) :=
+          congrArg (downsizeVector F n) (hsupported _)
+        _ = restrictVector (expandRegister k sourceFactor)
+            (downsizeVector F n
+              (sourceLinear ((downsizeVector F n).symm y))) :=
+          downsizeVector_restrict F sourceFactor _
+        _ = restrictVector (expandRegister k sourceFactor)
+            (downsizeLinearMap F sourceLinear y) := rfl
+    rw [htarget]
+    simp [restrictVector, sourceFactor, hij]
+  linear_depends j u y := by
+    change downsizeVector F n
+        (D.linear j (D.pullbackPrefix F j u)
+          ((downsizeVector F n).symm
+            (restrictVector
+              (expandRegister k (D.factor j (D.pullbackPrefix F j u))) y))) = _
+    rw [downsizeVector_symm_restrict, D.linear_depends]
+    rfl
+  marginal_sum j x := by
+    change downsizeVector F n
+        ((D.marginal j).toFun ((downsizeVector F n).symm x)) = _
+    rw [D.marginal_sum, map_sum]
+    apply Finset.sum_congr rfl
+    intro i hi
+    let stage := CLStage.castLE j i
+    let sourcePrefix : CLPrefix (D.priorOutput stage) :=
+      ⟨D.priorOutput stage ((downsizeVector F n).symm x),
+        ⟨(downsizeVector F n).symm x, rfl⟩⟩
+    let targetPrefix : CLPrefix (fun y =>
+        downsizeVector F n
+          (D.priorOutput stage ((downsizeVector F n).symm y))) :=
+      ⟨downsizeVector F n
+          (D.priorOutput stage ((downsizeVector F n).symm x)), ⟨x, rfl⟩⟩
+    have hp : D.pullbackPrefix F stage targetPrefix = sourcePrefix := by
+      apply Subtype.ext
+      simp [pullbackPrefix, sourcePrefix, targetPrefix]
+    change downsizeVector F n
+        (D.linear stage sourcePrefix
+          (restrictVector
+            (D.factor stage sourcePrefix)
+            ((downsizeVector F n).symm x))) = _
+    change _ = downsizeLinearMap F
+        (D.linear stage (D.pullbackPrefix F stage targetPrefix))
+        (restrictVector
+          (expandRegister k
+            (D.factor stage (D.pullbackPrefix F stage targetPrefix))) x)
+    rw [hp]
+    change _ = downsizeVector F n
+      (D.linear stage sourcePrefix
+        ((downsizeVector F n).symm
+          (restrictVector (expandRegister k (D.factor stage sourcePrefix)) x)))
+    rw [← downsizeVector_symm_restrict]
+  marginal_top h := by
+    funext x
+    change downsizeVector F n
+        ((D.marginal (CLStage.last ell h)).toFun ((downsizeVector F n).symm x)) =
+      downsizeVector F n (L.toFun ((downsizeVector F n).symm x))
+    rw [D.marginal_top h]
+
+private noncomputable def ExecutableCLSampler.downsizedAssociated
+    (S : ExecutableCLSampler Q s ell) (n : Nat) :
+    CLSampler 1 (s n * Q.exponent n) ell :=
+  if hn : 0 < n then
+    (S.associated n).downsize (Q.fieldData n hn)
+  else
+    zeroCLSampler 1 (s n * Q.exponent n) ell
+
+private noncomputable def ExecutableCLSampler.downsizedDecomposition
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (w : CLSamplerSide) :
+    CLQueryDecomposition ((S.downsizedAssociated n).side w) := by
+  by_cases hn : 0 < n
+  · rw [downsizedAssociated, dif_pos hn]
+    cases w
+    · simpa [CLSampler.side, CLSampler.downsize] using
+        (S.decomposition n .alice).downsize (Q.fieldData n hn)
+    · simpa [CLSampler.side, CLSampler.downsize] using
+        (S.decomposition n .bob).downsize (Q.fieldData n hn)
+  · rw [downsizedAssociated, dif_neg hn]
+    cases w
+    · simpa [CLSampler.side, zeroCLSampler] using
+        (S.decomposition n .alice).zeroExpand (Q.exponent n)
+    · simpa [CLSampler.side, zeroCLSampler] using
+        (S.decomposition n .bob).zeroExpand (Q.exponent n)
+
+private theorem ExecutableCLSampler.downsizedAssociated_eq
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (hn : 0 < n) :
+    S.downsizedAssociated n =
+      (S.associated n).downsize (Q.fieldData n hn) := by
+  rw [downsizedAssociated, dif_pos hn]
+
+private theorem ExecutableCLSampler.downsizedAssociatedMap_eq
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (hn : 0 < n)
+    (w : CLSamplerSide) :
+    (S.downsizedAssociated n).side w =
+      ((S.associated n).side w).downsize (Q.fieldData n hn) := by
+  rw [S.downsizedAssociated_eq n hn]
+  cases w <;> rfl
+
+private theorem ExecutableCLSampler.downsizedSample_eq
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (hn : 0 < n) :
+    (S.downsizedAssociated n).sample = PMF.map (fun pair =>
+      (downsizeVector (Q.fieldData n hn) (s n) pair.1,
+       downsizeVector (Q.fieldData n hn) (s n) pair.2)) (S.sample n) := by
+  rw [S.downsizedAssociated_eq n hn]
+  simpa only [ExecutableCLSampler.sample] using
+    CLSampler.sample_downsize (Q.fieldData n hn) (S.associated n)
+
+private theorem ExecutableCLSampler.downsizedDimension_eq
+    (_S : ExecutableCLSampler Q s ell) (n : Nat) :
+    s n * Q.exponent n = s n * Nat.log 2 (Q.fieldSize n) := by
+  simp [AdmissibleFieldFamily.fieldSize, Nat.log_pow (by omega : 1 < 2)]
+
+private noncomputable def ExecutableCLSampler.compiledDownsize
+    (S : ExecutableCLSampler Q s ell)
+    (machine : IndexedSixInputBitMachine)
+    (execution : forall n (hn : 0 < n)
+      (query : CLSamplerQuery binaryFieldFamily
+        (fun index => s index * Q.exponent index) ell n hn
+        (S.downsizedAssociated n) (S.downsizedDecomposition n)),
+      machine.Execution query.canonicalTapes query.expectedOutput)
+    (fieldProgram : FieldExponentProgram binaryFieldFamily) :
+    ExecutableCLSampler binaryFieldFamily
+      (fun n => s n * Q.exponent n) ell where
+  associated := S.downsizedAssociated
+  decomposition := S.downsizedDecomposition
+  machine := machine
+  execution := execution
+  fieldProgram := fieldProgram
+
+private structure ExecutableCLSampler.DownsizeCompiler
+    (S : ExecutableCLSampler Q s ell) where
+  machine : IndexedSixInputBitMachine
+  execution : forall n (hn : 0 < n)
+      (query : CLSamplerQuery binaryFieldFamily
+        (fun index => s index * Q.exponent index) ell n hn
+        (S.downsizedAssociated n) (S.downsizedDecomposition n)),
+    machine.Execution query.canonicalTapes query.expectedOutput
+  fieldProgram : FieldExponentProgram binaryFieldFamily
+  runtime : forall _hEll : 1 <= ell,
+    RuntimeBigO
+      (S.compiledDownsize machine execution fieldProgram).time
+      (fun n => S.time n * Nat.log 2 (Q.fieldSize n))
+
+private theorem ExecutableCLSampler.downsizeCompiler_exists
+    (S : ExecutableCLSampler Q s ell) :
+    Nonempty (ExecutableCLSampler.DownsizeCompiler S) := by
+  sorry
+
+/-- Downsize an executable sampler to its binary-coordinate realization. -/
+noncomputable def ExecutableCLSampler.downsize
+    (S : ExecutableCLSampler Q s ell) :
+    ExecutableCLSampler binaryFieldFamily
+      (fun n => s n * Q.exponent n) ell :=
+  let compiler : ExecutableCLSampler.DownsizeCompiler S :=
+    Classical.choice S.downsizeCompiler_exists
+  S.compiledDownsize compiler.machine compiler.execution compiler.fieldProgram
+
+/-- Downsizing expands dimension by the binary logarithm of the field size. -/
+theorem ExecutableCLSampler.downsize_dimension
+    (S : ExecutableCLSampler Q s ell) (n : Nat) (_hn : 0 < n) :
+    S.downsize.dimension n = s n * Nat.log 2 (Q.fieldSize n) := by
+  change s n * Q.exponent n = s n * Nat.log 2 (Q.fieldSize n)
+  exact S.downsizedDimension_eq n
+
+/-- Downsizing conjugates each associated CL map by the selected field basis. -/
+theorem ExecutableCLSampler.downsize_associated
+    (S : ExecutableCLSampler Q s ell) (_hEll : 1 <= ell)
+    (n : Nat) (hn : 0 < n) (w : CLSamplerSide) :
+    S.downsize.associatedMap n w =
+      ((S.associatedMap n w).downsize (Q.fieldData n hn)) := by
+  change (S.downsizedAssociated n).side w =
+    ((S.associated n).side w).downsize (Q.fieldData n hn)
+  exact S.downsizedAssociatedMap_eq n hn w
+
+/-- Downsizing pushes the shared-seed distribution through the basis map. -/
+theorem ExecutableCLSampler.sample_downsize
+    (S : ExecutableCLSampler Q s ell) (_hEll : 1 <= ell)
+    (n : Nat) (hn : 0 < n) :
+    S.downsize.sample n = PMF.map (fun pair =>
+      (downsizeVector (Q.fieldData n hn) (s n) pair.1,
+       downsizeVector (Q.fieldData n hn) (s n) pair.2)) (S.sample n) := by
+  change (S.downsizedAssociated n).sample = PMF.map (fun pair =>
+    (downsizeVector (Q.fieldData n hn) (s n) pair.1,
+     downsizeVector (Q.fieldData n hn) (s n) pair.2)) (S.sample n)
+  exact S.downsizedSample_eq n hn
+
+/-- The binary sampler runs in source time times the field exponent. -/
+theorem ExecutableCLSampler.downsize_time
+    (S : ExecutableCLSampler Q s ell) (hEll : 1 <= ell) :
+    RuntimeBigO S.downsize.time
+      (fun n => S.time n * Nat.log 2 (Q.fieldSize n)) := by
+  sorry
+
+end
 
 end MIPStarRE.QPBT
