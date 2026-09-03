@@ -6,19 +6,23 @@ Observed: 2026-09-03 (read-only audit; no cache, worktree, source, or state muta
 
 ## Scope and sources
 
-The layout is governed by `protocols/local-development.md`: the runtime root is
-`.workflow-runtime` below the primary non-bare worktree (lines 16-27), warm is
-lock-elected and publishes an atomic key directory only after a successful build
-(lines 49-54), `READY` authenticates the manifest and deep verification is done
-by `seed` (lines 74-77), and issue worktrees must receive private writable
-copies with hard-linked `.lake/build` forbidden (lines 83-103). In the QPBT-068
+The layout is governed by the Worktree isolation and Hot-main cache sections of
+`protocols/local-development.md`: the runtime root is `.workflow-runtime` below
+the primary non-bare worktree, warm is lock-elected and publishes an atomic key
+directory only after a successful build, `READY` authenticates the manifest and
+deep verification is done by `seed`, and issue worktrees must receive private
+writable copies with hard-linked `.lake/build` forbidden. In the QPBT-068 A10
 candidate, `HotMainCache.__init__` places `cache/main/<key>/.lake`,
 `manifest.json`, `READY`, and per-key locks at
-`scripts/hot_main_cache.py:2121`; `HotMainCache.is_ready` checks the READY
+`scripts/hot_main_cache.py:2661`; `HotMainCache.is_ready` checks the READY
 digest and identity fields before optional deep artifact inventory at
-`scripts/hot_main_cache.py:2566`. These symbol-qualified anchors are bound to
-the immutable QPBT-068 head recorded in its implementation report and result
-envelope.
+`scripts/hot_main_cache.py:3106`. Transaction anchors are
+`HotMainCache._write_seed_journal` at `:3933`,
+`HotMainCache._recover_interrupted_seed` at `:4081`,
+`HotMainCache._publish_seed_locked` at `:4393`, and
+`HotMainCache._retain_seed_backup` at `:4562`. These line and symbol anchors are
+for the A10 pre-commit candidate and must be rebound to its frozen commit in the
+terminal report and independent review.
 
 ### Source provenance
 
@@ -86,8 +90,8 @@ binds main commit, all key-input hashes, and the exact recipe. The five v7
 snapshots sharing authored hash still have different main commits and artifact
 hashes, so they are not duplicates. Full artifact-hash deduplication would
 reclaim 0 bytes on this inventory. Recipe-v5 snapshots must remain addressable
-only for audit history: the protocol explicitly invalidates v6 and forbids
-retrying v5 after authored QPBT sources exist (local-development.md:60-62).
+only for audit history: the Hot-main cache protocol explicitly invalidates v6
+and forbids retrying v5 after authored QPBT sources exist.
 
 ## Leases, references, and crash state
 
@@ -95,7 +99,8 @@ The runtime currently has 22 `hot-main-*.lock` files, 15 `seed-*.lock` files,
 one metrics lock, and one workflow-state lock (all zero-byte lock files), plus
 14 retained failure directories under `cache/failures`. Failure records contain
 `failure.json` and `build.log`, and none contains `READY`; this matches the
-failed-staging rule (local-development.md:69-71 and hot_main_cache.py:2669-2682).
+failed-staging rule in the Hot-main cache protocol and
+`HotMainCache._retain_failure` in `scripts/hot_main_cache.py`.
 There is no durable reference-count/lease manifest tying a published key to
 registered worktrees; lock files only serialize an operation and do not express
 retention ownership. A future cleanup tool therefore must treat every live
@@ -135,17 +140,19 @@ manifest/READY check; move to quarantine before any irreversible deletion.
 The implemented cache-readiness path is fail-closed:
 `HotMainCache.is_ready` returns false for a mismatched `READY` digest; no
 current command moves that snapshot to quarantine. The quarantine rules above
-remain a proposed cleanup contract. Synchronous seed failures restore a private
-backup before the metric commit point. The repaired QPBT-068 candidate publishes
-a diagnostic digest-bound journal before the first rename, but does not treat
-that journal or its adjacent digest/commit marker as persistent ownership
-authority. A later process rejects all journal/backup state unchanged for manual
-disposition. The live transaction binds the worktree and project by descriptors,
-performs target renames descriptor-relatively, and retains rather than
-recursively deletes the authenticated old tree after commit. These are candidate
-behaviors, not approved live guarantees, until a fresh immutable review approves
-the final head. Cleanup quarantine remains separate from live exception rollback
-and manual crash disposition.
+remain a proposed cleanup contract. Synchronous seed failures atomically
+exchange a continuously bound displaced tree back before the metric commit
+point. The repaired QPBT-068 A10 candidate publishes a diagnostic digest-bound
+journal before exchange, but does not treat that journal or its adjacent
+digest/commit marker as persistent ownership authority. A later process rejects
+all fixed journal/active staging state unchanged for manual disposition. The
+live transaction binds every target ancestor and the transaction objects by
+descriptors and permanent event monitors, publishes with atomic exchange or
+no-replace, and retains rather than deletes the journal, staging root, and
+authenticated old tree after commit. These are candidate behaviors, not
+approved live guarantees, until a fresh immutable review approves the final
+head. Cleanup quarantine remains separate from live exception rollback and
+manual crash disposition.
 
 ## Measurable acceptance tests
 
@@ -160,20 +167,22 @@ and manual crash disposition.
    writes to destination do not alter source, and fallback reports
    `reflinked=0` with exact copied file/byte counts. Existing regression
    `HotMainCacheTests.test_warm_hits_then_seed_is_private_and_writable`
-   (`tests/test_hot_main_cache.py:691`) covers private writable behavior.
+   (`tests/test_hot_main_cache.py:766`) covers private writable behavior.
 3. **Singleton/leases:** run concurrent warms for one key; assert one build,
    one READY publication, waiter hit metrics, and no staging READY. Register two
    seeds, then run dry-run cleanup; referenced key must not be a candidate.
 4. **Crash/rollback:** inject interruption at staging, READY publication, and
-   seed replacement; assert no partial published tree, old destination restored,
-   and quarantine/failure record contains reason without READY. Candidate
-   journal regressions begin at the symbol-qualified
-   `HotMainCacheTests.test_seed_rejects_unowned_backup_decoys_without_mutation`;
-   target-incarnation regressions cover recovery, copy, validation,
-   materialization, and metric commit, while committed-backup tests cover
-   substitution and ABA. Existing failed-build retention is
+   seed replacement; assert the destination is always the complete old or new
+   tree, displaced and ambiguous objects remain intact, and no success metric
+   escapes a precommit failure. Candidate regressions begin at
+   `HotMainCacheTests.test_seed_rejects_unowned_backup_decoys_without_mutation`
+   (`tests/test_hot_main_cache.py:3466`), atomic replacement is covered by
+   `HotMainCacheTests.test_seed_atomic_exchange_never_has_absent_destination`
+   (`:3762`), and ancestor ABA is covered symmetrically by
+   `HotMainCacheTests.test_seed_and_prepare_reject_ancestor_swap_restore`
+   (`:4132`). Existing failed-build retention is
    covered by `HotMainCacheTests.test_failed_build_is_retained_but_never_published`
-   (`:3176`).
+   (`:3260`).
 5. **Capacity guard:** on a filesystem with <10 GB free, dry-run must refuse
    byte-copy seeding before mutation and report required/apparent/physical bytes;
    reflink mode may proceed only after an explicit CoW capability check.

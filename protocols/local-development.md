@@ -85,16 +85,26 @@ key, verifies that the target is a live compatible registered Git worktree, and
 copies `.lake` with copy-on-write reflinks when available. Every issue worktree
 receives a private writable copy. Hard-linked or directly shared `.lake/build`
 trees are forbidden because Lean processes can update artifacts. Replacement
-uses a private backup and distinct old-moved/new-published transaction state.
+uses one Linux `renameat2(RENAME_EXCHANGE)` operation; non-replacement uses
+`RENAME_NOREPLACE`. There is no ordinary-rename fallback and replacement never
+has an absent-destination interval. Before cache/input admission or target
+mutation, seed requires descriptor-relative calls, inotify, a conservatively
+approved local filesystem, kernel support for both flags, and successful
+no-replace/exchange semantics on a disposable same-device directory under
+`/tmp`. If `/tmp` is not on the target device, seed and prepare refuse.
+
 Publication, validation, and the success-metric append share one rollback
-boundary; the original is restored on any precommit failure. The registered
-worktree root, project root, and worktree parent remain bound by no-follow
-descriptors and stable filesystem identities for the complete operation.
-Target-local staging and replacement renames are descriptor-relative, and
-identity guards run during copy, validation, registration checks, and while the
-metric append lock and descriptor are held. A rename/substitution or
-swap-and-restore generation change fails closed and rolls back only through the
-bound project descriptor. Seed validation walks every copied
+boundary; the original is atomically exchanged back on any unambiguous
+precommit failure. A root-to-target monitor installs each parent watch before
+opening the next child, continuously holds all ancestor descriptors, and stays
+permanently poisoned after a relevant rename, substitution, monitor failure,
+or swap-and-restore event. The registered worktree root, project root, and
+worktree parent also remain bound by no-follow descriptors. Fresh Git
+registration, worktree `HEAD`, repository attachment, namespace, and identity
+checks run before publication, around metric commit, during finalization, and
+before return. Target-local staging and all rollback/retention moves are
+descriptor-relative atomic exchange or no-replace operations. Seed validation
+walks every copied
 symlink without following it: both the lexical first hop and fully resolved
 target must remain inside the private `.lake`. Broken, cyclic, and every
 external package or layer link fail closed; mode bits are not evidence of
@@ -108,13 +118,17 @@ process consumes them as authority: any journal directory or
 without rename, chmod, unlink, or recursive deletion, and reports every path
 for manual disposition. This includes canonical self-consistent journals,
 matching commit markers, and durable success metrics. The live process still
-publishes a digest-bound journal before its first rename and can use its
-in-memory descriptors to roll back a synchronous precommit failure. After a
-successful commit, the old tree must still match its continuously open
-descriptor and recorded inventory; it is renamed descriptor-relatively to a
-`.lake.retained-*` path and is never recursively deleted by seed or prepare.
-Identity mismatch or ABA leaves the journal and all candidate trees for manual
-recovery.
+publishes a digest-bound diagnostic journal before exchange and can use only
+its continuously held descriptors and in-memory bindings to roll back a
+synchronous precommit failure. Journal bytes are never reloaded as mutation
+authority. Successful journal and empty-staging finalization uses atomic
+no-replace moves to uniquely named retained evidence; seed and prepare never
+unlink or `rmdir` transaction objects. After a successful commit, the displaced
+old tree must still match its continuously open descriptor and recorded
+inventory; it is moved no-replace to a `.lake.retained-*` path and is never
+recursively deleted. Any collision, identity mismatch, monitor poison, or ABA
+preserves all objects and reports manual disposition.
+
 Metric append failures truncate and fsync on the original descriptor while the
 original metrics lock remains continuously held. Successful append plus fsync
 is the commit point. The target identity guard runs before write, before fsync,
@@ -129,18 +143,40 @@ materialization with replacement/preservation mandatory, and verifies the
 foundation. One target-operation lock spans admission, seed, authenticated
 target-module and pin capture, materialization, final foundation and authored
 `MIPStarRE/QPBT/` verification, and final target/cache identity checks. The
+authenticated materializer must expose the exact private descriptor-bound
+adaptation surface; a module missing any required no-follow, cleanup, recovery,
+or error interface is refused before seed publication. There is no lexical-path
+fallback. Existing `MIPStarRE.transaction` or cleanup state is rejected before
+archive/cache input admission and rechecked before materializer invocation; the
+adapter refuses persisted recovery rather than allowing authenticated code to
+interpret same-principal transaction bytes. The
 authored inventory returned by `prepare` is the post-verifier inventory and
 must equal both the initial inventory and the verifier evidence. It never
 invokes Lean or Lake. Pass `--replace` only to transactionally replace an
-existing private `.lake`; its backup is retained until every preparation check
-succeeds and the success-metric append completes, and is restored on a later
-failure. After commit, a matching backup is moved to retained state and its
-path is reported without changing a successful result; automatic backup
-deletion is forbidden.
+existing private `.lake`; its displaced tree remains continuously present in
+the staging exchange slot until every preparation check succeeds and the
+success-metric append completes, and is atomically restored on a later
+unambiguous failure. After commit, a matching displaced tree is moved no-replace
+to retained state and its path is reported without changing a successful
+result; automatic transaction deletion is forbidden.
 
 The cache record includes key, source SHA, elected owner, hit/miss, lock wait,
 dependency-cache duration, build duration, total duration, exit status, and log
 path. Cache cleanup is explicit and outside ordinary agent runs.
+
+A coordinator read-only capacity check on 2026-09-04 observed the filesystem at
+97% utilization with 164 GB free. Archived QPBT-040 and active QPBT-069 each
+held a separate approximately 9.8 GB `.lake` after reflink was unavailable.
+Do not create another private copy merely to investigate this pressure, and do
+not delete either tree during an implementation or review session. QPBT-069 is
+an active lease. After QPBT-068 receives independent review, a separately
+authorized reclamation pass may consider the archived QPBT-040 tree only after
+a dry-run inventory proves its session terminal, its worktree unregistered, no
+live lock or explicit/implicit reference remains, and the corresponding cache
+snapshot remains authenticated. Move an eligible tree to quarantine first,
+observe the configured grace interval, and repeat the lease/reference and
+manifest checks before irreversible deletion. Unsupported reflink remains a
+capacity result, not permission to hard-link mutable build artifacts.
 
 ## Validation ladder
 

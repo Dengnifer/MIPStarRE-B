@@ -1,76 +1,117 @@
-# QPBT-068 Cache Safety Implementation and Identity Repair Report
+# QPBT-068 Cache Safety Transaction Repair Report
 
-Current session: `i068-orchestrator-a06-identity-repair`
-Prior implementation session: `i068-orchestrator-a04-cache-transaction`
-Role: orchestrator
-Repair base commit: `2820c66f2a9f227cfe2a5da6d1448c6e52cb8262`
+Current session: `i068-orchestrator-a10-transaction-repair`
+Prior repair head/tree: `f03c94e074f2ebfd7e99e05394c4116126455895` /
+`1aa8ff42dbf89f78e09d46d3efdf0195e2dd38a6`
 Owned worktree: `.workflow-runtime/worktrees/qpbt-068-cache-safety-a04`
 
-## Scope
+## Scope and authenticated inputs
 
-Attempt A04 repaired F068-A02-001 through F068-A02-008 in these five paths.
-Attempt A06 preserves those source-input, metric-lock, symlink, provenance,
-and rollback controls while repairing the three A05 hostile findings. It does
-not edit `protocols/CHANGELOG.md`.
-That required protocol-evolution disposition remains a sequential binder
-obligation after QPBT-044 releases the file, so this candidate is not
-integration-ready until the binder and a fresh immutable review complete.
+A10 repairs every A08/A09 transaction finding in the five QPBT-068 owned
+paths while preserving the A04 authenticated-input, source-evidence, authored
+QPBT, private-copy, and deep-inventory controls and the A06 metric-lock and
+rollback controls. It does not edit `protocols/CHANGELOG.md`; that remains a
+sequential binder obligation before integration.
 
-The repaired implementation rejects every external `.lake` symlink and still
-publishes the A04 diagnostic journal before the first replacement rename, but
-does not let mutable journal/digest/commit bytes authorize a later process.
-Every persistent journal or backup blocks seed/prepare unchanged for manual
-disposition. A live operation keeps no-follow descriptors for the registered
-worktree root, project root, and worktree parent, detects pathname substitution
-and swap/restore generation changes, routes target staging and renames through
-the project descriptor, and guards the success metric while its lock is held.
-The original `.lake` also remains open across replacement. After commit it is
-identity-checked and renamed to retained state; neither normal completion nor
-recovery recursively deletes it.
+The two required review artifacts authenticated before implementation:
+
+- A08: `/tmp/i068-reviewer-a08-security.md`, SHA-256
+  `e2824460afc2657d6695d10c53a2944b2622f85df129114d68822a10ff7cdbf4`.
+- A09: `/tmp/i068-reviewer-a09-regression.md`, SHA-256
+  `65dff9813338a2da76bf2e7ef199d8fc7588bf74037e5ef489347456d2e85963`.
+
+The A07 repair audit (SHA-256
+`c9791defd746b5432296cff7458c388652c2ec3bb27bdf532fc893de8af5f04c`)
+and both required A10 scouts were also authenticated and inspected. The
+atomic-rename scout report is
+`/tmp/i068-scout-a10-atomic-rename.md`, SHA-256
+`c101c3807b24d6177d5df23265db8e78a42a559aaa1dd97f48942205e6426e17`;
+the continuous-authority report is
+`/tmp/i068-scout-a10-continuous-authority.md`, SHA-256
+`1fe6e7aa89386dd1134abc55199da6bccdb6f76d1b1f8d059eeac7afd366357a`.
+
+## Transaction contract
+
+Seed and prepare now require Linux `renameat2`, inotify, descriptor-relative
+operations, a conservatively approved local filesystem, and a successful
+same-device disposable semantic probe before input/cache admission or target
+mutation. Non-replacement publication is one `RENAME_NOREPLACE`; replacement
+is one `RENAME_EXCHANGE`, so a crash cannot expose an absent destination and a
+concurrent destination is never replaced. There is no ordinary-rename
+fallback.
+
+The target monitor binds every ancestor root-to-leaf, installs each parent
+watch before opening its child, holds all descriptors, and remains poisoned by
+any protected rename, substitution, invalidation, malformed/unknown event, or
+ABA. Live Git registration and the initially captured worktree `HEAD` are
+rechecked before publication, around metric commit and finalization, and before
+return. Rollback, old-tree retention, journal retention, failed-tree retention,
+and empty-staging finalization use continuously held object descriptors plus
+atomic exchange/no-replace. Seed/prepare never recursively delete transaction
+objects and no longer unlink or `rmdir` live journal/staging names; successful
+finalization moves them to unique retained evidence names. A last-instant
+substitution can therefore only be preserved or moved intact before failure.
+
+Every fixed seed journal, backup, or active staging object on a later invocation
+causes refusal before cache/input admission. The dead seed-journal recovery
+parser was removed. Prepare likewise rejects a materializer transaction or
+cleanup tombstone before archive/cache admission and immediately before
+invocation. The bound adapter never delegates to the legacy persisted recovery
+routine, refuses a module missing any required private fail-closed operation,
+and provides no lexical target fallback.
+
+## Finding dispositions
+
+| Finding | A10 disposition |
+|---|---|
+| F068-A08-001 | Resolved: materializer recovery state is refused before admission and again before invocation; adapted `_recover` never parses or delegates persisted recovery. |
+| F068-A08-002 / A09 atomic-publication blocker | Resolved: capability-gated `RENAME_NOREPLACE` and `RENAME_EXCHANGE`, with no ordinary fallback and crash/collision regressions for seed and prepare. |
+| F068-A08-003 / A09 live-cleanup blocker | Resolved conservatively: rollback and retention are descriptor-bound object-preserving atomic moves; journal and staging finalization retain instead of deleting. Substitution/collision/ABA preserves every candidate. |
+| F068-A08-004 / A09 Git blocker | Resolved: `_assert_seed_target_registered` performs a fresh eligibility/Git query and compares project, worktree, parent, and initial `HEAD` bindings at every live barrier. |
+| F068-A08-005 | Resolved: the QPBT-067 report uses final A10 symbol/line anchors and labels them pre-commit until the terminal identity envelope. |
+| A09 ancestor-ABA blocker | Resolved: root-to-leaf held-descriptor inotify construction observes setup-time and live ancestor changes; poison is permanent. |
+| A09 materializer-fallback blocker | Resolved: incomplete materializers fail before seed allocation/publication for both replace modes; no lexical fallback is reachable. |
+| A09 regression-evidence high | Resolved: the hostile matrix is symmetric where applicable, metadata snapshots include root/entries, type, link text, mode, size, device, inode, link count, digest, and payload, and exact metric bytes remain separately checked. |
 
 ## Validation
 
 | Command | Result | Wall time |
 |---|---|---:|
-| A06 targeted 8-test identity command | 8/8 passed | 2.32 s |
-| `python3 tests/test_hot_main_cache.py` | 107/107 passed | 32.92 s |
-| `python3 tests/test_workflow.py` | 77/77 passed | 2.31 s |
-| `python3 tests/test_check_workflow.py` | 3/3 passed | 0.08 s |
-| `python3 -m unittest discover -s tests` | 405/405 passed outside sandbox | 312.03 s |
+| Final hostile 22-test selector | 22/22 passed | 10.097 s |
+| `python3 tests/test_hot_main_cache.py` | 120/120 passed | 42.740 s |
+| `python3 tests/test_workflow.py` | 77/77 passed | 1.023 s |
+| `python3 tests/test_check_workflow.py` | 3/3 passed | 0.003 s |
+| `python3 -m unittest discover -s tests` | 418 run; 416 passed, two unchanged AF_UNIX fixtures blocked by sandbox `EPERM` | 226.958 s |
+| `python3 scripts/check_workflow.py` | workflow valid; 418 run, same 416 passed and two sandbox AF_UNIX errors | 256.335 s |
+| Outside-sandbox focused AF_UNIX command | 2/2 passed | 90.773 s |
 | `python3 -m compileall -q scripts tests` | passed | below timer resolution |
-| `python3 scripts/workflow.py validate` | valid: 69 issues, 34 PRs, 541 issued sessions, 7 stages | 0.19 s |
-| `git diff --check` | passed | below timer resolution |
+| `python3 scripts/workflow.py validate` | valid: 69 issues, 34 PRs, 541 issued sessions, 7 stages | below timer resolution |
+| `git diff --check` and five-path scope check | passed | below timer resolution |
 
-The first A06 aggregate run completed 405 tests in 201.43 seconds with 403
-passing and the two unchanged UNIX-socket cases failing at `listener.bind` with
-`EPERM`. The exact command was rerun through the managed escalation path and
-passed 405/405. The A04 validation evidence remains part of the immutable
-parent. Lean/Lake/full builds, cache warming against the real repository,
-network, GitHub, endpoint, credential, canonical state/metric, and
-authored-source actions remain zero.
+The aggregate was run exactly once after the cache/workflow implementation was
+stable. Its only errors were the two unchanged socket fixtures at
+`listener.bind`; the exact two tests then passed in the focused managed
+outside-sandbox run. The registered checker encountered the same environmental
+pair after validating workflow state; it introduced no distinct failure.
+Commit/tree/patch/report identities are recorded in the terminal A10 report
+after the canonical report is frozen.
 
-## Findings
+No Lean/Lake/full build, real cache warm/seed/prepare, network, GitHub,
+credential, endpoint, canonical workflow-state, or research-metric action ran.
 
-| Finding | Disposition |
-|---|---|
-| F068-A02-001 | Strengthened: `_recover_interrupted_seed` treats every persistent journal/backup as unauthenticated manual-recovery state and never parses it as authority. Canonical self-consistent journal/digest/COMMITTED bytes fail byte-exactly unchanged. |
-| F068-A02-002 | Resolved by `_validate_lake_symlink_policy`: every lexical first hop and final target must stay within the private destination; writable and mode-read-only external targets are both rejected. |
-| F068-A02-003 | Strengthened in `seed` and `prepare`: persistent-state rejection precedes cache/input admission; the bound target remains live through copy, validation, materialization, registration, metric commit, rollback, and retention. |
-| F068-A02-004 | Resolved in `_append_metric` and `_rollback_metric_append_locked`: rollback occurs under one continuous lock. Event-coordinated two-process short-write and fsync regressions preserve writer B exactly. |
-| F068-A02-005 | Resolved in the corrected QPBT-067 report: mismatched `READY` returns false; quarantine is explicitly only a proposal. |
-| F068-A02-006 | Resolved as an evidence/disposition correction: exact audit start/stop/elapsed and a four-lane interval sweep are recorded, unavailable per-command latency is `null` with a reason, and the QPBT-068 ordering violation is explicit. QPBT-067 remains unapproved. |
-| F068-A02-007 | Resolved with symbol-qualified final-candidate anchors for protocol, initialization, readiness, journal, recovery, publication, and tests. |
-| F068-A02-008 | Resolved as authenticated provenance with the QPBT-062 commit/tree/blob/size/SHA-256. Because that byte is absent from this candidate tree, approval remains deferred until it is manifest-listed in the next immutable review packet. |
-| F068-A05-001 | Resolved fail-closed: no mutable journal record can authorize automatic recovery, rename, chmod, unlink, or deletion. |
-| F068-A05-002 | Resolved by `_BoundSeedTarget`, descriptor-relative target operations, parent-generation ABA detection, guarded metric append, and deterministic seed/prepare phase regressions. |
-| F068-A05-003 | Resolved by continuously binding the original directory and moving a matching committed backup to `.lake.retained-*`; substitution and ABA never invoke recursive deletion. |
+## Capacity and remaining gates
 
-## Integrity and remaining obligation
+A coordinator read-only check on 2026-09-04 observed 97% filesystem utilization
+with 164 GB free. Archived QPBT-040 and active QPBT-069 each hold a separate
+approximately 9.8 GB `.lake` after reflink was unsupported. A10 created no
+cache copy and deletes neither tree. QPBT-069 remains an active lease. After
+independent review, a separately authorized reclamation pass may dry-run the
+archived QPBT-040 tree, but only after proving terminal session state, no Git
+registration, no live lock/reference/lease, and an authenticated source cache;
+quarantine plus the configured grace interval and a repeated final check must
+precede deletion.
 
-Repair base commit/tree are
-`2820c66f2a9f227cfe2a5da6d1448c6e52cb8262` /
-`557a0f1bd5af2803a15c1d90417aa5568879161f`. The frozen head/tree and
-five-path hashes are supplied in the A06 terminal result envelope after commit.
-No `protocols/CHANGELOG.md` disposition is claimed here. A sequential binder
-must update it after QPBT-044 releases the file, validate that changed head,
-and obtain a fresh independent immutable review before integration.
+This candidate still requires a fresh immutable security/regression review,
+the existing QPBT-062 evidence inclusion gate, and the sequential
+`protocols/CHANGELOG.md` binder. It is not integration-ready until those gates
+are recorded against the frozen A10 commit.

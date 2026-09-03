@@ -137,17 +137,55 @@ def run_git(root: Path, *arguments: str) -> str:
     return result.stdout.strip()
 
 
-def byte_snapshot(root: Path) -> dict[str, tuple[str, bytes | str]]:
-    snapshot: dict[str, tuple[str, bytes | str]] = {}
-    for path in sorted(root.rglob("*")):
+def byte_snapshot(root: Path) -> dict[str, tuple[object, ...]]:
+    snapshot: dict[str, tuple[object, ...]] = {}
+    for path in [root, *sorted(root.rglob("*"))]:
         relative = path.relative_to(root).as_posix()
+        metadata = path.stat(follow_symlinks=False)
+        common = (
+            stat.S_IMODE(metadata.st_mode),
+            metadata.st_size,
+            metadata.st_dev,
+            metadata.st_ino,
+            metadata.st_nlink,
+        )
         if path.is_symlink():
-            snapshot[relative] = ("symlink", os.readlink(path))
+            snapshot[relative] = ("symlink", os.readlink(path), *common)
         elif path.is_file():
-            snapshot[relative] = ("file", path.read_bytes())
+            payload = path.read_bytes()
+            snapshot[relative] = (
+                "file",
+                hashlib.sha256(payload).hexdigest(),
+                payload,
+                *common,
+            )
         elif path.is_dir():
-            snapshot[relative] = ("directory", b"")
+            snapshot[relative] = ("directory", *common)
     return snapshot
+
+
+def adaptable_materializer(**attributes: object) -> types.SimpleNamespace:
+    defaults: dict[str, object] = {
+        "MaterializationError": RuntimeError,
+        "_assert_real_directory": lambda _path: None,
+        "_reject_symlink_components": lambda _path: None,
+        "_finish_cleanup": lambda _path: None,
+        "_recover": lambda *_args: None,
+    }
+    defaults.update(attributes)
+    return types.SimpleNamespace(**defaults)
+
+
+def snapshot_subtree(
+    snapshot: dict[str, tuple[object, ...]], prefix: str
+) -> dict[str, tuple[object, ...]]:
+    result: dict[str, tuple[object, ...]] = {}
+    for relative, facts in snapshot.items():
+        if relative == prefix:
+            result["."] = facts
+        elif relative.startswith(prefix + "/"):
+            result[relative[len(prefix) + 1 :]] = facts
+    return result
 
 
 def initialize_repository(root: Path) -> str:
@@ -519,6 +557,15 @@ class HotMainCacheTests(unittest.TestCase):
         run_git(self.repo, "worktree", "add", "--detach", str(target), self.commit)
         return target
 
+    @staticmethod
+    def metric_records(manager: cache_module.HotMainCache) -> list[dict[str, object]]:
+        if not manager.metrics_path.exists():
+            return []
+        return [
+            json.loads(line)
+            for line in manager.metrics_path.read_text(encoding="utf-8").splitlines()
+        ]
+
     def mathlib_fixture(self) -> tuple[Path, str, str]:
         source = self.base / "mathlib-source"
         commit, tree = initialize_mathlib_source(source)
@@ -526,6 +573,21 @@ class HotMainCacheTests(unittest.TestCase):
         run_git(self.repo, "add", "lake-manifest.json")
         run_git(self.repo, "commit", "-m", "pin mathlib fixture")
         return source, commit, tree
+
+    def test_renameat2_wrapper_restricts_flags_and_child_names(self) -> None:
+        with self.assertRaisesRegex(cache_module.CacheError, "no-replace or exchange"):
+            cache_module._linux_renameat2(-1, "source", -1, "destination", 0)
+        for unsafe_name in ("", ".", "..", "parent/child", "nul\0child"):
+            with self.subTest(name=unsafe_name), self.assertRaisesRegex(
+                cache_module.CacheError, "single child names"
+            ):
+                cache_module._linux_renameat2(
+                    -1,
+                    unsafe_name,
+                    -1,
+                    "destination",
+                    cache_module.RENAME_NOREPLACE,
+                )
 
     def test_identity_comes_from_exact_main_not_dirty_worktree(self) -> None:
         first = self.manager().identity
@@ -1910,7 +1972,7 @@ class HotMainCacheTests(unittest.TestCase):
         archive.write_bytes(b"authenticated")
         calls: list[object] = []
         authored = cache_module.authored_tree_facts_on_disk(target)
-        fake_module = types.SimpleNamespace(
+        fake_module = adaptable_materializer(
             load_pin=lambda _path: {"source": {"commit": "1" * 40}},
             validate_project_pins=lambda _root, _pin: calls.append("pins"),
             materialize=lambda _root, _pin_path, _archive, *, replace_existing: (
@@ -1945,7 +2007,7 @@ class HotMainCacheTests(unittest.TestCase):
             (authored / "Drift.lean").write_text("def drift := true\n", encoding="ascii")
             return {"status": "published"}
 
-        fake_module = types.SimpleNamespace(
+        fake_module = adaptable_materializer(
             load_pin=lambda _path: {},
             validate_project_pins=lambda _root, _pin: None,
             materialize=drift,
@@ -1959,7 +2021,7 @@ class HotMainCacheTests(unittest.TestCase):
         verified.assert_not_called()
         self.assertFalse((target / ".lake").exists())
 
-    def test_prepare_rejects_target_module_and_pin_substitution_before_load(self) -> None:
+    def test_prepare_authenticates_materializer_before_seed_publication(self) -> None:
         manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
         manager.warm(
             _test_command_callback=fake_success,
@@ -1967,43 +2029,27 @@ class HotMainCacheTests(unittest.TestCase):
         )
         archive = self.base / "foundation-target-input.tar.gz"
         archive.write_bytes(b"authenticated")
-        original_publish = manager._publish_seed_locked
-        for index, relative in enumerate(
-            ("scripts/materialize_mipstarre.py", "references/mipstarre-upstream.json")
+        target = self.issue_worktree("prepare-materializer-before-publication")
+        publish = mock.Mock(side_effect=AssertionError("seed publication ran"))
+        with mock.patch.dict(
+            os.environ,
+            {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+            clear=True,
+        ), mock.patch.object(
+            manager,
+            "_preflight_authenticated_inputs",
+            return_value={"required": True},
+        ), mock.patch.object(
+            manager, "_publish_seed_locked", publish
+        ), mock.patch.object(
+            manager,
+            "_load_identity_module",
+            side_effect=cache_module.CacheError("injected authenticated module failure"),
         ):
-            with self.subTest(relative=relative):
-                target = self.issue_worktree(f"prepare-target-input-substitution-{index}")
-
-                def publish_then_substitute(*args: object, **kwargs: object) -> object:
-                    result = original_publish(*args, **kwargs)
-                    path = target / relative
-                    substitute = path.with_name(path.name + ".substitute")
-                    substitute.write_bytes(b"substituted target input\n")
-                    os.replace(substitute, path)
-                    return result
-
-                with mock.patch.dict(
-                    os.environ,
-                    {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
-                    clear=True,
-                ), mock.patch.object(
-                    manager,
-                    "_preflight_authenticated_inputs",
-                    return_value={"required": True},
-                ), mock.patch.object(
-                    manager,
-                    "_publish_seed_locked",
-                    side_effect=publish_then_substitute,
-                ), mock.patch.object(
-                    manager,
-                    "_load_identity_module",
-                    side_effect=AssertionError("substituted target module was loaded"),
-                ):
-                    with self.assertRaisesRegex(
-                        cache_module.CacheError, "exact main cache identity"
-                    ):
-                        manager.prepare(target)
-                self.assertFalse((target / ".lake").exists())
+            with self.assertRaisesRegex(cache_module.CacheError, "authenticated module failure"):
+                manager.prepare(target)
+        publish.assert_not_called()
+        self.assertFalse((target / ".lake").exists())
 
     def test_prepare_rejects_verifier_authored_mutation_and_restores_replaced_seed(self) -> None:
         manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
@@ -2018,16 +2064,16 @@ class HotMainCacheTests(unittest.TestCase):
         archive = self.base / "foundation-verifier-mutation.tar.gz"
         archive.write_bytes(b"authenticated")
 
-        def mutate_after_snapshot(root: Path, _pin: object) -> dict[str, object]:
-            evidence = cache_module.authored_tree_facts_on_disk(root)
-            authored = root / "MIPStarRE" / "QPBT"
+        def mutate_after_snapshot(_root: Path, _pin: object) -> dict[str, object]:
+            evidence = cache_module.authored_tree_facts_on_disk(target)
+            authored = target / "MIPStarRE" / "QPBT"
             authored.mkdir(parents=True, exist_ok=True)
             (authored / "VerifierDrift.lean").write_text(
                 "def verifierDrift := true\n", encoding="ascii"
             )
             return {"status": "verified", **evidence}
 
-        fake_module = types.SimpleNamespace(
+        fake_module = adaptable_materializer(
             load_pin=lambda _path: {},
             validate_project_pins=lambda _root, _pin: None,
             materialize=lambda *_args, **_kwargs: {"status": "published"},
@@ -2066,7 +2112,7 @@ class HotMainCacheTests(unittest.TestCase):
         archive = self.base / "foundation-metric-failure.tar.gz"
         archive.write_bytes(b"authenticated")
         authored = cache_module.authored_tree_facts_on_disk(target)
-        fake_module = types.SimpleNamespace(
+        fake_module = adaptable_materializer(
             load_pin=lambda _path: {},
             validate_project_pins=lambda _root, _pin: None,
             materialize=lambda *_args, **_kwargs: {"status": "published"},
@@ -2074,7 +2120,8 @@ class HotMainCacheTests(unittest.TestCase):
         )
 
         def fail_metric(_metric: object, *_args: object) -> None:
-            self.assertEqual(1, len(list(target.glob(".lake.backup-*"))))
+            staging = next(target.glob(".lake-seed-*"))
+            self.assertTrue((staging / ".lake" / "original-marker").is_file())
             raise OSError("injected metric failure")
 
         with mock.patch.dict(
@@ -2092,24 +2139,28 @@ class HotMainCacheTests(unittest.TestCase):
         )
         self.assertEqual([], list(target.glob(".lake.backup-*")))
 
-    def test_seed_failed_old_to_backup_rename_preserves_original(self) -> None:
+    def test_seed_failed_atomic_exchange_preserves_original(self) -> None:
         manager = self.manager()
         manager.warm(_test_command_callback=fake_success)
         target = self.issue_worktree("seed-old-rename-failure")
         original_lake = target / ".lake"
         original_lake.mkdir()
         (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
-        real_replace = os.replace
+        real_renameat2 = cache_module._linux_renameat2
 
-        def fail_old_move(
-            source: object, destination: object, **kwargs: object
+        def fail_exchange(
+            source_parent: int,
+            source: str,
+            destination_parent: int,
+            destination: str,
+            flags: int,
         ) -> None:
-            if Path(source).name == ".lake" and Path(destination).name.startswith(".lake.backup-"):
-                raise OSError("injected old-to-backup rename failure")
-            real_replace(source, destination, **kwargs)
+            if source == destination == ".lake" and flags == cache_module.RENAME_EXCHANGE:
+                raise OSError("injected atomic exchange failure")
+            real_renameat2(source_parent, source, destination_parent, destination, flags)
 
-        with mock.patch.object(cache_module.os, "replace", side_effect=fail_old_move):
-            with self.assertRaisesRegex(OSError, "old-to-backup rename failure"):
+        with mock.patch.object(cache_module, "_linux_renameat2", side_effect=fail_exchange):
+            with self.assertRaisesRegex(cache_module.CacheError, "atomic exchange failure"):
                 manager.seed(target, replace=True)
 
         self.assertEqual(
@@ -2153,13 +2204,26 @@ class HotMainCacheTests(unittest.TestCase):
         original_lake.mkdir()
         (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
         publish = manager._publish_seed_locked
+        archive = self.base / "foundation-handoff.tar.gz"
+        archive.write_bytes(b"authenticated")
+        authored = cache_module.authored_tree_facts_on_disk(target)
+        fake_module = adaptable_materializer(
+            load_pin=lambda _path: {},
+            validate_project_pins=lambda _root, _pin: None,
+            materialize=lambda *_args, **_kwargs: {"status": "published"},
+            verify_materialized=lambda *_args: {"status": "verified", **authored},
+        )
 
         def publish_then_interrupt(*args: object, **kwargs: object) -> object:
             publish(*args, **kwargs)
             raise KeyboardInterrupt("injected publisher handoff interruption")
 
-        with mock.patch.object(
+        with mock.patch.dict(
+            os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True
+        ), mock.patch.object(
             manager, "_preflight_authenticated_inputs", return_value={"required": True}
+        ), mock.patch.object(
+            manager, "_load_identity_module", return_value=fake_module
         ), mock.patch.object(
             manager,
             "_publish_seed_locked",
@@ -2185,7 +2249,8 @@ class HotMainCacheTests(unittest.TestCase):
         (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
 
         def fail_metric(_metric: object, *_args: object) -> None:
-            self.assertEqual(1, len(list(target.glob(".lake.backup-*"))))
+            staging = next(target.glob(".lake-seed-*"))
+            self.assertTrue((staging / ".lake" / "original-marker").is_file())
             raise OSError("injected seed metric failure")
 
         with mock.patch.object(manager, "_append_metric", side_effect=fail_metric):
@@ -2246,7 +2311,11 @@ class HotMainCacheTests(unittest.TestCase):
 
         def short_metric_write(descriptor: int, payload: bytes) -> int:
             nonlocal injected
-            if not injected:
+            try:
+                opened = Path(os.readlink(f"/proc/self/fd/{descriptor}")).resolve()
+            except OSError:
+                opened = None
+            if not injected and opened == manager.metrics_path.resolve():
                 injected = True
                 partial = max(1, len(payload) // 2)
                 real_write(descriptor, payload[:partial])
@@ -2454,7 +2523,7 @@ class HotMainCacheTests(unittest.TestCase):
         archive = self.base / "foundation-backup-cleanup.tar.gz"
         archive.write_bytes(b"authenticated")
         authored = cache_module.authored_tree_facts_on_disk(target)
-        fake_module = types.SimpleNamespace(
+        fake_module = adaptable_materializer(
             load_pin=lambda _path: {},
             validate_project_pins=lambda _root, _pin: None,
             materialize=lambda *_args, **_kwargs: {"status": "published"},
@@ -2514,14 +2583,14 @@ class HotMainCacheTests(unittest.TestCase):
         failures: list[BaseException] = []
         seed_results: list[dict[str, object]] = []
 
-        def blocking_verify(root: Path, _pin: object) -> dict[str, object]:
-            evidence = cache_module.authored_tree_facts_on_disk(root)
+        def blocking_verify(_root: Path, _pin: object) -> dict[str, object]:
+            evidence = cache_module.authored_tree_facts_on_disk(target)
             verifier_entered.set()
             if not release_verifier.wait(5):
                 raise AssertionError("interleaving regression timed out")
             return {"status": "verified", **evidence}
 
-        fake_module = types.SimpleNamespace(
+        fake_module = adaptable_materializer(
             load_pin=lambda _path: {},
             validate_project_pins=lambda _root, _pin: None,
             materialize=lambda *_args, **_kwargs: {"status": "published"},
@@ -2556,7 +2625,7 @@ class HotMainCacheTests(unittest.TestCase):
         prepare_thread = threading.Thread(target=run_prepare)
         seed_thread = threading.Thread(target=run_seed)
         prepare_thread.start()
-        self.assertTrue(verifier_entered.wait(5))
+        self.assertTrue(verifier_entered.wait(5), repr(failures))
         seed_thread.start()
         self.assertFalse(seed_finished.wait(0.2))
         release_verifier.set()
@@ -3366,33 +3435,27 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual([], list(target.glob(".lake.backup-*")))
         self.assertEqual([], list(target.glob(".lake-seed-*")))
 
-    def _crash_seed_after_rename(
+    def _crash_seed_after_atomic_publication(
         self,
         manager: cache_module.HotMainCache,
         target: Path,
-        rename_number: int,
     ) -> None:
-        real_replace = cache_module.os.replace
+        real_renameat2 = cache_module._linux_renameat2
         context = multiprocessing.get_context("fork")
 
         def interrupted_seed() -> None:
-            renames = 0
-
             def kill_at_boundary(
-                source: object, destination: object, **kwargs: object
+                source_parent: int,
+                source: str,
+                destination_parent: int,
+                destination: str,
+                flags: int,
             ) -> None:
-                nonlocal renames
-                real_replace(source, destination, **kwargs)
-                destination_path = Path(destination)
-                if (
-                    destination_path.name.startswith(".lake.backup-")
-                    or destination_path.name == ".lake"
-                ):
-                    renames += 1
-                    if renames == rename_number:
-                        os.kill(os.getpid(), signal.SIGKILL)
+                real_renameat2(source_parent, source, destination_parent, destination, flags)
+                if source == destination == ".lake":
+                    os.kill(os.getpid(), signal.SIGKILL)
 
-            cache_module.os.replace = kill_at_boundary
+            cache_module._linux_renameat2 = kill_at_boundary
             manager.seed(target, replace=True)
 
         process = context.Process(target=interrupted_seed)
@@ -3466,7 +3529,10 @@ class HotMainCacheTests(unittest.TestCase):
         with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target, replace=True)
 
-        self.assertEqual(target_before, byte_snapshot(target))
+        target_after = byte_snapshot(target)
+        for relative, facts in target_before.items():
+            if relative != ".":
+                self.assertEqual(facts, target_after[relative])
         self.assertEqual(journal_before, byte_snapshot(journal_dir))
 
     def _swap_worktree_aba(self, target: Path, substitute: Path) -> None:
@@ -3496,10 +3562,13 @@ class HotMainCacheTests(unittest.TestCase):
             return real_copy(source, destination)
 
         with mock.patch.object(cache_module, "reflink_copytree", side_effect=copy_after_aba):
-            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed|namespace changed"):
                 manager.seed(target, replace=True)
 
-        self.assertEqual(target_before, byte_snapshot(target))
+        target_after = byte_snapshot(target)
+        for relative, facts in target_before.items():
+            if relative != ".":
+                self.assertEqual(facts, target_after[relative])
         self.assertEqual(substitute_before, byte_snapshot(substitute))
 
     def test_seed_rejects_target_swap_restore_during_recovery_without_mutation(self) -> None:
@@ -3520,7 +3589,7 @@ class HotMainCacheTests(unittest.TestCase):
         with mock.patch.object(
             manager, "_recover_interrupted_seed", side_effect=recover_after_aba
         ):
-            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed|namespace changed"):
                 manager.seed(target)
 
         self.assertEqual(target_before, byte_snapshot(target))
@@ -3552,10 +3621,13 @@ class HotMainCacheTests(unittest.TestCase):
         with mock.patch.object(
             manager, "_validate_seeded_destination", side_effect=validate_then_aba
         ):
-            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed|namespace changed"):
                 manager.seed(target, replace=True)
 
-        self.assertEqual(target_before, byte_snapshot(target))
+        target_after = byte_snapshot(target)
+        for relative, facts in target_before.items():
+            if relative != ".":
+                self.assertEqual(facts, target_after[relative])
         self.assertEqual(substitute_before, byte_snapshot(substitute))
 
     def test_seed_rejects_target_swap_restore_at_metric_commit_byte_exact(self) -> None:
@@ -3578,24 +3650,29 @@ class HotMainCacheTests(unittest.TestCase):
             real_append(metric, guard)
 
         with mock.patch.object(manager, "_append_metric", side_effect=append_after_aba):
-            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed|namespace changed"):
                 manager.seed(target, replace=True)
 
-        self.assertEqual(target_before, byte_snapshot(target))
+        staging = next(target.glob(".lake-seed-*")) / ".lake"
+        self.assertEqual(snapshot_subtree(target_before, ".lake"), byte_snapshot(staging))
+        target_after = byte_snapshot(target)
+        for relative, facts in target_before.items():
+            if relative != "." and not relative.startswith(".lake"):
+                self.assertEqual(facts, target_after[relative])
         self.assertEqual(substitute_before, byte_snapshot(substitute))
 
-    def test_seed_first_rename_requires_manual_recovery_unchanged(self) -> None:
+    def test_seed_atomic_exchange_crash_requires_manual_recovery_unchanged(self) -> None:
         manager = self.manager()
         manager.warm(_test_command_callback=fake_success)
         target = self.issue_worktree("journal-replace-false")
         original = target / ".lake"
         original.mkdir()
         (original / "original-marker").write_bytes(b"keep")
-        self._crash_seed_after_rename(manager, target, 1)
-        backup = next(target.glob(".lake.backup-*"))
+        self._crash_seed_after_atomic_publication(manager, target)
+        backup = next(target.glob(".lake-seed-*")) / ".lake"
         with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target)
-        self.assertFalse(original.exists())
+        self.assertTrue((original / "build" / "QPBT.olean").is_file())
         self.assertEqual(b"keep", (backup / "original-marker").read_bytes())
 
     def test_seed_recovers_before_invalid_cache_admission(self) -> None:
@@ -3605,13 +3682,13 @@ class HotMainCacheTests(unittest.TestCase):
         original = target / ".lake"
         original.mkdir()
         (original / "original-marker").write_bytes(b"keep")
-        self._crash_seed_after_rename(manager, target, 1)
+        self._crash_seed_after_atomic_publication(manager, target)
         cache_module.make_owner_writable(manager.snapshot_dir)
         manager.ready_path.write_text("0" * 64 + "\n", encoding="ascii")
-        backup = next(target.glob(".lake.backup-*"))
+        backup = next(target.glob(".lake-seed-*")) / ".lake"
         with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target, replace=True)
-        self.assertFalse(original.exists())
+        self.assertTrue((original / "build" / "QPBT.olean").is_file())
         self.assertEqual(b"keep", (backup / "original-marker").read_bytes())
 
     def test_prepare_recovers_before_input_admission(self) -> None:
@@ -3621,7 +3698,7 @@ class HotMainCacheTests(unittest.TestCase):
         original = target / ".lake"
         original.mkdir()
         (original / "original-marker").write_bytes(b"keep")
-        self._crash_seed_after_rename(manager, target, 1)
+        self._crash_seed_after_atomic_publication(manager, target)
         with mock.patch.object(
             manager,
             "_preflight_authenticated_inputs",
@@ -3629,8 +3706,8 @@ class HotMainCacheTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
                 manager.prepare(target, replace_seed=True)
-        backup = next(target.glob(".lake.backup-*"))
-        self.assertFalse(original.exists())
+        backup = next(target.glob(".lake-seed-*")) / ".lake"
+        self.assertTrue((original / "build" / "QPBT.olean").is_file())
         self.assertEqual(b"keep", (backup / "original-marker").read_bytes())
 
     def test_seed_rejects_tampered_journal_without_mutation(self) -> None:
@@ -3640,13 +3717,13 @@ class HotMainCacheTests(unittest.TestCase):
         original = target / ".lake"
         original.mkdir()
         (original / "original-marker").write_bytes(b"keep")
-        self._crash_seed_after_rename(manager, target, 1)
-        backup = next(target.glob(".lake.backup-*"))
+        self._crash_seed_after_atomic_publication(manager, target)
+        backup = next(target.glob(".lake-seed-*")) / ".lake"
         journal = manager._seed_transaction_dir(target) / "journal.json"
         journal.write_bytes(journal.read_bytes().replace(b'"replace":true', b'"replace":false'))
         with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target, replace=True)
-        self.assertFalse(original.exists())
+        self.assertTrue((original / "build" / "QPBT.olean").is_file())
         self.assertEqual(b"keep", (backup / "original-marker").read_bytes())
 
     def test_seed_rejects_wrong_backup_identity_without_mutation(self) -> None:
@@ -3656,12 +3733,12 @@ class HotMainCacheTests(unittest.TestCase):
         original = target / ".lake"
         original.mkdir()
         (original / "original-marker").write_bytes(b"keep")
-        self._crash_seed_after_rename(manager, target, 1)
-        backup = next(target.glob(".lake.backup-*"))
+        self._crash_seed_after_atomic_publication(manager, target)
+        backup = next(target.glob(".lake-seed-*")) / ".lake"
         (backup / "unrecorded").write_bytes(b"changed")
         with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target, replace=True)
-        self.assertFalse(original.exists())
+        self.assertTrue((original / "build" / "QPBT.olean").is_file())
         self.assertEqual(b"changed", (backup / "unrecorded").read_bytes())
 
     def test_seed_rejects_extra_backup_without_mutation(self) -> None:
@@ -3671,26 +3748,26 @@ class HotMainCacheTests(unittest.TestCase):
         original = target / ".lake"
         original.mkdir()
         (original / "original-marker").write_bytes(b"keep")
-        self._crash_seed_after_rename(manager, target, 1)
-        owned = next(target.glob(".lake.backup-*"))
+        self._crash_seed_after_atomic_publication(manager, target)
+        owned = next(target.glob(".lake-seed-*")) / ".lake"
         extra = target / ".lake.backup-extra"
         extra.mkdir()
         (extra / "decoy").write_bytes(b"decoy")
         with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target, replace=True)
-        self.assertFalse(original.exists())
+        self.assertTrue((original / "build" / "QPBT.olean").is_file())
         self.assertEqual(b"keep", (owned / "original-marker").read_bytes())
         self.assertEqual(b"decoy", (extra / "decoy").read_bytes())
 
-    def test_seed_second_rename_requires_manual_recovery_unchanged(self) -> None:
+    def test_seed_atomic_exchange_never_has_absent_destination(self) -> None:
         manager = self.manager()
         manager.warm(_test_command_callback=fake_success)
         target = self.issue_worktree("journal-second-rename")
         original = target / ".lake"
         original.mkdir()
         (original / "original-marker").write_bytes(b"keep")
-        self._crash_seed_after_rename(manager, target, 2)
-        backup = next(target.glob(".lake.backup-*"))
+        self._crash_seed_after_atomic_publication(manager, target)
+        backup = next(target.glob(".lake-seed-*")) / ".lake"
         with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target)
         self.assertTrue((original / "build" / "QPBT.olean").is_file())
@@ -3719,8 +3796,7 @@ class HotMainCacheTests(unittest.TestCase):
         process.join(10)
         self.assertEqual(-signal.SIGKILL, process.exitcode)
         self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
-        self.assertEqual(1, len(list(target.glob(".lake.backup-*"))))
-        backup = next(target.glob(".lake.backup-*"))
+        backup = next(target.glob(".lake-seed-*")) / ".lake"
         with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target)
         self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
@@ -3752,7 +3828,7 @@ class HotMainCacheTests(unittest.TestCase):
             self._swap_worktree_aba(target, substitute)
             return {"status": "published"}
 
-        fake_module = types.SimpleNamespace(
+        fake_module = adaptable_materializer(
             load_pin=lambda _path: {},
             validate_project_pins=lambda _root, _pin: None,
             materialize=materialize_with_aba,
@@ -3763,10 +3839,15 @@ class HotMainCacheTests(unittest.TestCase):
         ), mock.patch.object(
             manager, "_preflight_authenticated_inputs", return_value={"required": True}
         ), mock.patch.object(manager, "_load_identity_module", return_value=fake_module):
-            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed|namespace changed"):
                 manager.prepare(target, replace_seed=True)
 
-        self.assertEqual(target_before, byte_snapshot(target))
+        staging = next(target.glob(".lake-seed-*")) / ".lake"
+        self.assertEqual(snapshot_subtree(target_before, ".lake"), byte_snapshot(staging))
+        target_after = byte_snapshot(target)
+        for relative, facts in target_before.items():
+            if relative != "." and not relative.startswith(".lake"):
+                self.assertEqual(facts, target_after[relative])
         self.assertEqual(substitute_before, byte_snapshot(substitute))
 
     def test_committed_backup_substitution_is_retained_unchanged_for_manual_recovery(self) -> None:
@@ -3783,7 +3864,8 @@ class HotMainCacheTests(unittest.TestCase):
         def substitute_before_retention(
             bound: object, replacement: object
         ) -> object:
-            backup = target / replacement.backup.name
+            staging = target / replacement.staging_root.name
+            backup = staging / ".lake"
             os.replace(backup, genuine_saved)
             backup.mkdir()
             (backup / "substitute").write_bytes(substitute_bytes)
@@ -3792,10 +3874,12 @@ class HotMainCacheTests(unittest.TestCase):
         with mock.patch.object(
             manager, "_retain_seed_backup", side_effect=substitute_before_retention
         ):
-            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+            with self.assertRaisesRegex(
+                cache_module.CacheError, "identity changed|object name changed|finalization failed"
+            ):
                 manager.seed(target, replace=True)
 
-        backup = next(target.glob(".lake.backup-*"))
+        backup = next(target.glob(".lake-seed-*")) / ".lake"
         self.assertEqual(substitute_bytes, (backup / "substitute").read_bytes())
         self.assertEqual(b"original\n", (genuine_saved / "original").read_bytes())
         self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
@@ -3814,7 +3898,8 @@ class HotMainCacheTests(unittest.TestCase):
         real_retain = manager._retain_seed_backup
 
         def aba_before_retention(bound: object, replacement: object) -> object:
-            backup = target / replacement.backup.name
+            staging = target / replacement.staging_root.name
+            backup = staging / ".lake"
             parked = target / ".backup-parked"
             os.replace(backup, parked)
             os.replace(substitute, backup)
@@ -3825,13 +3910,657 @@ class HotMainCacheTests(unittest.TestCase):
         with mock.patch.object(
             manager, "_retain_seed_backup", side_effect=aba_before_retention
         ):
-            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+            with self.assertRaisesRegex(
+                cache_module.CacheError, "identity changed|object name changed|finalization failed"
+            ):
                 manager.seed(target, replace=True)
 
-        backup = next(target.glob(".lake.backup-*"))
+        backup = next(target.glob(".lake-seed-*")) / ".lake"
         self.assertEqual(b"original\n", (backup / "original").read_bytes())
         self.assertEqual(b"substitute\n", (substitute / "substitute").read_bytes())
         self.assertTrue(manager._seed_transaction_dir(target).is_dir())
+
+    def test_seed_and_prepare_refuse_missing_atomic_capability_before_mutation(self) -> None:
+        for action in ("seed", "prepare"):
+            with self.subTest(action=action):
+                recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                manager = self.manager(
+                    runtime=self.base / f"runtime-capability-{action}", recipe=recipe
+                )
+                manager.warm(
+                    _test_command_callback=fake_success,
+                    _test_source_verifier=fake_source_verifier if action == "prepare" else None,
+                )
+                target = self.issue_worktree(f"capability-{action}")
+                before = byte_snapshot(target)
+                admission = mock.Mock(side_effect=AssertionError("input admission ran"))
+                with mock.patch.object(
+                    cache_module,
+                    "_probe_renameat2_semantics",
+                    side_effect=cache_module.CacheError("atomic capability unavailable"),
+                ), mock.patch.object(
+                    manager, "_preflight_authenticated_inputs", admission
+                ):
+                    with self.assertRaisesRegex(cache_module.CacheError, "capability unavailable"):
+                        if action == "seed":
+                            manager.seed(target)
+                        else:
+                            manager.prepare(target)
+                admission.assert_not_called()
+                self.assertEqual(before, byte_snapshot(target))
+                self.assertFalse(manager._seed_transaction_dir(target).exists())
+
+    def test_seed_and_prepare_atomic_no_replace_preserve_concurrent_destination(self) -> None:
+        for action in ("seed", "prepare"):
+            with self.subTest(action=action):
+                recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                manager = self.manager(
+                    runtime=self.base / f"runtime-no-replace-{action}", recipe=recipe
+                )
+                manager.warm(
+                    _test_command_callback=fake_success,
+                    _test_source_verifier=fake_source_verifier if action == "prepare" else None,
+                )
+                target = self.issue_worktree(f"no-replace-{action}")
+                real_renameat2 = cache_module._linux_renameat2
+                injected = False
+
+                def collide(
+                    source_parent: int,
+                    source: str,
+                    destination_parent: int,
+                    destination: str,
+                    flags: int,
+                ) -> None:
+                    nonlocal injected
+                    if (
+                        not injected
+                        and source == destination == ".lake"
+                        and flags == cache_module.RENAME_NOREPLACE
+                    ):
+                        injected = True
+                        (target / ".lake").mkdir()
+                        (target / ".lake" / "concurrent").write_bytes(b"preserve")
+                    real_renameat2(
+                        source_parent, source, destination_parent, destination, flags
+                    )
+
+                contexts: list[object] = [
+                    mock.patch.object(cache_module, "_linux_renameat2", side_effect=collide)
+                ]
+                if action == "prepare":
+                    archive = self.base / f"no-replace-{action}.tar.gz"
+                    archive.write_bytes(b"authenticated")
+                    authored = cache_module.authored_tree_facts_on_disk(target)
+                    materialize = mock.Mock(return_value={"status": "published"})
+                    fake_module = adaptable_materializer(
+                        load_pin=lambda _path: {},
+                        validate_project_pins=lambda _root, _pin: None,
+                        materialize=materialize,
+                        verify_materialized=lambda *_args: {"status": "verified", **authored},
+                    )
+                    contexts.extend(
+                        [
+                            mock.patch.dict(
+                                os.environ,
+                                {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+                                clear=True,
+                            ),
+                            mock.patch.object(
+                                manager,
+                                "_preflight_authenticated_inputs",
+                                return_value={"required": True},
+                            ),
+                            mock.patch.object(
+                                manager, "_load_identity_module", return_value=fake_module
+                            ),
+                        ]
+                    )
+                with contexts[0]:
+                    if action == "prepare":
+                        with contexts[1], contexts[2], contexts[3]:
+                            with self.assertRaisesRegex(cache_module.CacheError, "destination appeared"):
+                                manager.prepare(target)
+                    else:
+                        with self.assertRaisesRegex(cache_module.CacheError, "destination appeared"):
+                            manager.seed(target)
+                self.assertTrue(injected)
+                self.assertEqual(b"preserve", (target / ".lake" / "concurrent").read_bytes())
+                self.assertEqual(
+                    [],
+                    [
+                        record
+                        for record in self.metric_records(manager)
+                        if record.get("result") == "seeded"
+                    ],
+                )
+                if action == "prepare":
+                    materialize.assert_not_called()
+
+    def test_prepare_rejects_persisted_materializer_state_before_input_admission(self) -> None:
+        for suffix in ("MIPStarRE.transaction", "MIPStarRE.transaction.cleanup"):
+            with self.subTest(suffix=suffix):
+                manager = self.manager(
+                    runtime=self.base / f"runtime-materializer-state-{suffix}",
+                    recipe=MATERIALIZING_TEST_RECIPE,
+                )
+                manager.warm(
+                    _test_command_callback=fake_success,
+                    _test_source_verifier=fake_source_verifier,
+                )
+                target = self.issue_worktree(f"materializer-state-{suffix}")
+                state = target / ".workflow-runtime" / "mipstarre-materialization" / suffix
+                state.mkdir(parents=True)
+                (state / "untrusted").write_bytes(b"preserve")
+                before = byte_snapshot(target)
+                admission = mock.Mock(side_effect=AssertionError("input admission ran"))
+                with mock.patch.object(
+                    manager, "_preflight_authenticated_inputs", admission
+                ):
+                    with self.assertRaisesRegex(
+                        cache_module.CacheError, "no independent ownership proof"
+                    ):
+                        manager.prepare(target)
+                admission.assert_not_called()
+                self.assertEqual(before, byte_snapshot(target))
+
+    def test_prepare_refuses_unadaptable_materializer_before_seed_for_both_modes(self) -> None:
+        for replace in (False, True):
+            with self.subTest(replace=replace):
+                manager = self.manager(
+                    runtime=self.base / f"runtime-unadaptable-{replace}",
+                    recipe=MATERIALIZING_TEST_RECIPE,
+                )
+                manager.warm(
+                    _test_command_callback=fake_success,
+                    _test_source_verifier=fake_source_verifier,
+                )
+                target = self.issue_worktree(f"unadaptable-{replace}")
+                archive = self.base / f"unadaptable-{replace}.tar.gz"
+                archive.write_bytes(b"authenticated")
+                materialize = mock.Mock(side_effect=AssertionError("materializer ran"))
+                module = types.SimpleNamespace(
+                    load_pin=lambda _path: {},
+                    validate_project_pins=lambda _root, _pin: None,
+                    materialize=materialize,
+                    verify_materialized=lambda *_args: {},
+                )
+                with mock.patch.dict(
+                    os.environ,
+                    {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+                    clear=True,
+                ), mock.patch.object(
+                    manager,
+                    "_preflight_authenticated_inputs",
+                    return_value={"required": True},
+                ), mock.patch.object(
+                    manager, "_load_identity_module", return_value=module
+                ):
+                    with self.assertRaisesRegex(cache_module.CacheError, "bound fail-closed interface"):
+                        manager.prepare(target, replace_seed=replace)
+                materialize.assert_not_called()
+                self.assertFalse((target / ".lake").exists())
+                self.assertEqual([], list(target.glob(".lake-seed-*")))
+
+    def test_materializer_adapter_never_delegates_persisted_recovery(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        target_path = self.issue_worktree("materializer-no-recovery-delegation")
+        target = manager._eligible_seed_target(target_path, check_inputs=False)
+        try:
+            delegated_recovery = mock.Mock(
+                side_effect=AssertionError("legacy persisted recovery ran")
+            )
+            module = adaptable_materializer(_recover=delegated_recovery)
+            manager._adapt_materializer_to_bound_target(module, target)
+            transaction = (
+                target.access_path
+                / ".workflow-runtime"
+                / "mipstarre-materialization"
+                / "MIPStarRE.transaction"
+            )
+            module._recover(transaction, target.access_path / "MIPStarRE", {})
+            delegated_recovery.assert_not_called()
+            transaction.mkdir(parents=True)
+            with self.assertRaisesRegex(
+                module.MaterializationError, "no independent ownership proof"
+            ):
+                module._recover(transaction, target.access_path / "MIPStarRE", {})
+            delegated_recovery.assert_not_called()
+        finally:
+            target.close()
+
+    def test_seed_and_prepare_reject_ancestor_swap_restore(self) -> None:
+        for action in ("seed", "prepare"):
+            with self.subTest(action=action):
+                recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                manager = self.manager(
+                    runtime=self.base / f"runtime-ancestor-{action}", recipe=recipe
+                )
+                manager.warm(
+                    _test_command_callback=fake_success,
+                    _test_source_verifier=fake_source_verifier if action == "prepare" else None,
+                )
+                ancestor = self.base / f"registered-{action}"
+                target_parent = ancestor / "nested"
+                target_parent.mkdir(parents=True)
+                target = target_parent / "issue"
+                run_git(self.repo, "worktree", "add", "--detach", str(target), self.commit)
+                (target / ".lake").mkdir()
+                (target / ".lake" / "original").write_bytes(b"preserve")
+                substitute = self.base / f"ancestor-substitute-{action}"
+                substitute.mkdir()
+                parked = self.base / f"ancestor-parked-{action}"
+                real_copy = cache_module.reflink_copytree
+
+                def copy_after_ancestor_aba(source: Path, destination: Path) -> object:
+                    os.replace(ancestor, parked)
+                    os.replace(substitute, ancestor)
+                    os.replace(ancestor, substitute)
+                    os.replace(parked, ancestor)
+                    return real_copy(source, destination)
+
+                patches: list[object] = [
+                    mock.patch.object(
+                        cache_module, "reflink_copytree", side_effect=copy_after_ancestor_aba
+                    )
+                ]
+                if action == "prepare":
+                    archive = self.base / f"ancestor-{action}.tar.gz"
+                    archive.write_bytes(b"authenticated")
+                    authored = cache_module.authored_tree_facts_on_disk(target)
+                    fake_module = adaptable_materializer(
+                        load_pin=lambda _path: {},
+                        validate_project_pins=lambda _root, _pin: None,
+                        materialize=lambda *_args, **_kwargs: {"status": "published"},
+                        verify_materialized=lambda *_args: {"status": "verified", **authored},
+                    )
+                    patches.extend(
+                        [
+                            mock.patch.dict(
+                                os.environ,
+                                {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+                                clear=True,
+                            ),
+                            mock.patch.object(
+                                manager,
+                                "_preflight_authenticated_inputs",
+                                return_value={"required": True},
+                            ),
+                            mock.patch.object(
+                                manager, "_load_identity_module", return_value=fake_module
+                            ),
+                        ]
+                    )
+                with patches[0]:
+                    if action == "prepare":
+                        with patches[1], patches[2], patches[3]:
+                            with self.assertRaisesRegex(cache_module.CacheError, "ancestor namespace"):
+                                manager.prepare(target, replace_seed=True)
+                    else:
+                        with self.assertRaisesRegex(cache_module.CacheError, "ancestor namespace"):
+                            manager.seed(target, replace=True)
+                self.assertEqual(b"preserve", (target / ".lake" / "original").read_bytes())
+                self.assertTrue(substitute.is_dir())
+
+    def test_seed_and_prepare_recheck_live_git_registration_before_publication(self) -> None:
+        for action in ("seed", "prepare"):
+            with self.subTest(action=action):
+                recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                manager = self.manager(
+                    runtime=self.base / f"runtime-registration-{action}", recipe=recipe
+                )
+                manager.warm(
+                    _test_command_callback=fake_success,
+                    _test_source_verifier=fake_source_verifier if action == "prepare" else None,
+                )
+                target = self.issue_worktree(f"registration-{action}")
+                (target / ".lake").mkdir()
+                (target / ".lake" / "original").write_bytes(b"preserve")
+                records = cache_module.git_worktrees(self.repo)
+                calls = 0
+
+                def disappear(_repo: Path) -> list[cache_module.WorktreeRecord]:
+                    nonlocal calls
+                    calls += 1
+                    return records if calls <= 2 else []
+
+                contexts: list[object] = [
+                    mock.patch.object(cache_module, "git_worktrees", side_effect=disappear)
+                ]
+                if action == "prepare":
+                    archive = self.base / f"registration-{action}.tar.gz"
+                    archive.write_bytes(b"authenticated")
+                    authored = cache_module.authored_tree_facts_on_disk(target)
+                    fake_module = adaptable_materializer(
+                        load_pin=lambda _path: {},
+                        validate_project_pins=lambda _root, _pin: None,
+                        materialize=lambda *_args, **_kwargs: {"status": "published"},
+                        verify_materialized=lambda *_args: {"status": "verified", **authored},
+                    )
+                    contexts.extend(
+                        [
+                            mock.patch.dict(
+                                os.environ,
+                                {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+                                clear=True,
+                            ),
+                            mock.patch.object(
+                                manager,
+                                "_preflight_authenticated_inputs",
+                                return_value={"required": True},
+                            ),
+                            mock.patch.object(
+                                manager, "_load_identity_module", return_value=fake_module
+                            ),
+                        ]
+                    )
+                with contexts[0]:
+                    if action == "prepare":
+                        with contexts[1], contexts[2], contexts[3]:
+                            with self.assertRaisesRegex(cache_module.CacheError, "not the project root"):
+                                manager.prepare(target, replace_seed=True)
+                    else:
+                        with self.assertRaisesRegex(cache_module.CacheError, "not the project root"):
+                            manager.seed(target, replace=True)
+                self.assertGreaterEqual(calls, 3)
+                self.assertEqual(b"preserve", (target / ".lake" / "original").read_bytes())
+
+    def test_seed_and_prepare_preserve_substituted_live_journal(self) -> None:
+        for action in ("seed", "prepare"):
+            with self.subTest(action=action):
+                recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                manager = self.manager(
+                    runtime=self.base / f"runtime-journal-substitute-{action}", recipe=recipe
+                )
+                manager.warm(
+                    _test_command_callback=fake_success,
+                    _test_source_verifier=fake_source_verifier if action == "prepare" else None,
+                )
+                target = self.issue_worktree(f"journal-substitute-{action}")
+                (target / ".lake").mkdir()
+                (target / ".lake" / "original").write_bytes(b"original")
+                saved = manager._seed_transaction_dir(target).with_name(
+                    f"saved-journal-{action}"
+                )
+                real_clear = manager._clear_seed_journal
+
+                def substitute_journal(replacement: object) -> None:
+                    os.replace(replacement.journal_dir, saved)
+                    replacement.journal_dir.mkdir()
+                    (replacement.journal_dir / "unknown").write_bytes(b"preserve")
+                    real_clear(replacement)
+
+                contexts: list[object] = [
+                    mock.patch.object(
+                        manager, "_clear_seed_journal", side_effect=substitute_journal
+                    )
+                ]
+                if action == "prepare":
+                    archive = self.base / f"journal-substitute-{action}.tar.gz"
+                    archive.write_bytes(b"authenticated")
+                    authored = cache_module.authored_tree_facts_on_disk(target)
+                    fake_module = adaptable_materializer(
+                        load_pin=lambda _path: {},
+                        validate_project_pins=lambda _root, _pin: None,
+                        materialize=lambda *_args, **_kwargs: {"status": "published"},
+                        verify_materialized=lambda *_args: {"status": "verified", **authored},
+                    )
+                    contexts.extend(
+                        [
+                            mock.patch.dict(
+                                os.environ,
+                                {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+                                clear=True,
+                            ),
+                            mock.patch.object(
+                                manager,
+                                "_preflight_authenticated_inputs",
+                                return_value={"required": True},
+                            ),
+                            mock.patch.object(
+                                manager, "_load_identity_module", return_value=fake_module
+                            ),
+                        ]
+                    )
+                with contexts[0]:
+                    if action == "prepare":
+                        with contexts[1], contexts[2], contexts[3]:
+                            with self.assertRaisesRegex(cache_module.CacheError, "journal|finalization"):
+                                manager.prepare(target, replace_seed=True)
+                    else:
+                        with self.assertRaisesRegex(cache_module.CacheError, "journal|object name"):
+                            manager.seed(target, replace=True)
+                self.assertEqual(
+                    b"preserve",
+                    (manager._seed_transaction_dir(target) / "unknown").read_bytes(),
+                )
+                self.assertTrue((saved / "journal.json").is_file())
+                self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
+
+    def test_prepare_rejects_self_consistent_unowned_seed_journal_before_inputs(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("prepare-unowned-seed-journal")
+        journal = manager._seed_transaction_dir(target)
+        journal.mkdir(parents=True)
+        payload = b'{"self_asserted":true}\n'
+        digest = hashlib.sha256(payload).hexdigest()
+        (journal / "journal.json").write_bytes(payload)
+        (journal / "journal.sha256").write_text(digest + "\n", encoding="ascii")
+        (journal / "COMMITTED").write_text(digest + "\n", encoding="ascii")
+        before = byte_snapshot(journal)
+        admission = mock.Mock(side_effect=AssertionError("input admission ran"))
+        with mock.patch.object(manager, "_preflight_authenticated_inputs", admission):
+            with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
+                manager.prepare(target)
+        admission.assert_not_called()
+        self.assertEqual(before, byte_snapshot(journal))
+
+    def test_prepare_atomic_exchange_crash_never_removes_destination(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("prepare-atomic-crash")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original").write_bytes(b"preserve")
+        archive = self.base / "prepare-atomic-crash.tar.gz"
+        archive.write_bytes(b"authenticated")
+        authored = cache_module.authored_tree_facts_on_disk(target)
+        fake_module = adaptable_materializer(
+            load_pin=lambda _path: {},
+            validate_project_pins=lambda _root, _pin: None,
+            materialize=lambda *_args, **_kwargs: {"status": "published"},
+            verify_materialized=lambda *_args: {"status": "verified", **authored},
+        )
+        real_renameat2 = cache_module._linux_renameat2
+        context = multiprocessing.get_context("fork")
+
+        def interrupted_prepare() -> None:
+            def kill_after_exchange(
+                source_parent: int,
+                source: str,
+                destination_parent: int,
+                destination: str,
+                flags: int,
+            ) -> None:
+                real_renameat2(source_parent, source, destination_parent, destination, flags)
+                if source == destination == ".lake":
+                    os.kill(os.getpid(), signal.SIGKILL)
+
+            with mock.patch.dict(
+                os.environ,
+                {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+                clear=True,
+            ), mock.patch.object(
+                manager,
+                "_preflight_authenticated_inputs",
+                return_value={"required": True},
+            ), mock.patch.object(
+                manager, "_load_identity_module", return_value=fake_module
+            ), mock.patch.object(
+                cache_module, "_linux_renameat2", side_effect=kill_after_exchange
+            ):
+                manager.prepare(target, replace_seed=True)
+
+        process = context.Process(target=interrupted_prepare)
+        process.start()
+        process.join(10)
+        self.assertEqual(-signal.SIGKILL, process.exitcode)
+        self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
+        displaced = next(target.glob(".lake-seed-*")) / ".lake"
+        self.assertEqual(b"preserve", (displaced / "original").read_bytes())
+        with mock.patch.object(
+            manager,
+            "_preflight_authenticated_inputs",
+            side_effect=AssertionError("input admission ran"),
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
+                manager.prepare(target, replace_seed=True)
+
+    def test_seed_and_prepare_do_not_replace_retention_collision(self) -> None:
+        for action in ("seed", "prepare"):
+            with self.subTest(action=action):
+                recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                manager = self.manager(
+                    runtime=self.base / f"runtime-retention-collision-{action}", recipe=recipe
+                )
+                manager.warm(
+                    _test_command_callback=fake_success,
+                    _test_source_verifier=fake_source_verifier if action == "prepare" else None,
+                )
+                target = self.issue_worktree(f"retention-collision-{action}")
+                (target / ".lake").mkdir()
+                (target / ".lake" / "original").write_bytes(b"original")
+                real_retain = manager._retain_seed_backup
+
+                def collide_retention(bound: object, replacement: object) -> object:
+                    retained = target / f".lake.retained-{replacement.transaction_id}"
+                    retained.mkdir()
+                    (retained / "decoy").write_bytes(b"preserve")
+                    return real_retain(bound, replacement)
+
+                contexts: list[object] = [
+                    mock.patch.object(
+                        manager, "_retain_seed_backup", side_effect=collide_retention
+                    )
+                ]
+                if action == "prepare":
+                    archive = self.base / f"retention-collision-{action}.tar.gz"
+                    archive.write_bytes(b"authenticated")
+                    authored = cache_module.authored_tree_facts_on_disk(target)
+                    fake_module = adaptable_materializer(
+                        load_pin=lambda _path: {},
+                        validate_project_pins=lambda _root, _pin: None,
+                        materialize=lambda *_args, **_kwargs: {"status": "published"},
+                        verify_materialized=lambda *_args: {"status": "verified", **authored},
+                    )
+                    contexts.extend(
+                        [
+                            mock.patch.dict(
+                                os.environ,
+                                {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+                                clear=True,
+                            ),
+                            mock.patch.object(
+                                manager,
+                                "_preflight_authenticated_inputs",
+                                return_value={"required": True},
+                            ),
+                            mock.patch.object(
+                                manager, "_load_identity_module", return_value=fake_module
+                            ),
+                        ]
+                    )
+                with contexts[0]:
+                    if action == "prepare":
+                        with contexts[1], contexts[2], contexts[3]:
+                            with self.assertRaisesRegex(cache_module.CacheError, "identity|finalization"):
+                                manager.prepare(target, replace_seed=True)
+                    else:
+                        with self.assertRaisesRegex(cache_module.CacheError, "identity"):
+                            manager.seed(target, replace=True)
+                retained = next(target.glob(".lake.retained-*"))
+                self.assertEqual(b"preserve", (retained / "decoy").read_bytes())
+                displaced = next(target.glob(".lake-seed-*")) / ".lake"
+                self.assertEqual(b"original", (displaced / "original").read_bytes())
+
+    def test_seed_and_prepare_preserve_substituted_empty_staging_root(self) -> None:
+        for action in ("seed", "prepare"):
+            with self.subTest(action=action):
+                recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                manager = self.manager(
+                    runtime=self.base / f"runtime-staging-substitute-{action}", recipe=recipe
+                )
+                manager.warm(
+                    _test_command_callback=fake_success,
+                    _test_source_verifier=fake_source_verifier if action == "prepare" else None,
+                )
+                target = self.issue_worktree(f"staging-substitute-{action}")
+                real_discard = manager._discard_seed_rollback_root
+                saved = target / f"saved-staging-{action}"
+                injected = False
+
+                def substitute_staging(bound: object, replacement: object) -> None:
+                    nonlocal injected
+                    if not injected:
+                        injected = True
+                        staging = target / replacement.staging_root.name
+                        os.replace(staging, saved)
+                        staging.mkdir()
+                        (staging / "unknown").write_bytes(b"preserve")
+                    real_discard(bound, replacement)
+
+                contexts: list[object] = [
+                    mock.patch.object(
+                        manager,
+                        "_discard_seed_rollback_root",
+                        side_effect=substitute_staging,
+                    )
+                ]
+                if action == "prepare":
+                    archive = self.base / f"staging-substitute-{action}.tar.gz"
+                    archive.write_bytes(b"authenticated")
+                    authored = cache_module.authored_tree_facts_on_disk(target)
+                    fake_module = adaptable_materializer(
+                        load_pin=lambda _path: {},
+                        validate_project_pins=lambda _root, _pin: None,
+                        materialize=lambda *_args, **_kwargs: {"status": "published"},
+                        verify_materialized=lambda *_args: {"status": "verified", **authored},
+                    )
+                    contexts.extend(
+                        [
+                            mock.patch.dict(
+                                os.environ,
+                                {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)},
+                                clear=True,
+                            ),
+                            mock.patch.object(
+                                manager,
+                                "_preflight_authenticated_inputs",
+                                return_value={"required": True},
+                            ),
+                            mock.patch.object(
+                                manager, "_load_identity_module", return_value=fake_module
+                            ),
+                        ]
+                    )
+                with contexts[0]:
+                    if action == "prepare":
+                        with contexts[1], contexts[2], contexts[3]:
+                            with self.assertRaisesRegex(cache_module.CacheError, "identity|namespace"):
+                                manager.prepare(target)
+                    else:
+                        with self.assertRaisesRegex(cache_module.CacheError, "identity|namespace"):
+                            manager.seed(target)
+                staging = next(target.glob(".lake-seed-*"))
+                self.assertEqual(b"preserve", (staging / "unknown").read_bytes())
+                self.assertTrue(saved.is_dir())
 
     def _warm_with_external_link(self, manager: cache_module.HotMainCache, external: Path) -> None:
         def build_with_link(

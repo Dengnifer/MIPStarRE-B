@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 from contextlib import contextmanager
+import ctypes
 from dataclasses import asdict, dataclass
 import datetime as dt
 import errno
@@ -25,6 +26,7 @@ import secrets
 import shutil
 import socket
 import stat
+import struct
 import subprocess
 import sys
 import tarfile
@@ -55,6 +57,420 @@ REFLINK_FALLBACK_ERRNOS = {
     errno.ENOSYS,
     errno.EPERM,
 }
+RENAME_NOREPLACE = 1
+RENAME_EXCHANGE = 2
+_RENAMEAT2_FILESYSTEM_MAGICS = {
+    0xEF53,  # ext2/ext3/ext4
+    0x58465342,  # XFS
+    0x9123683E,  # Btrfs
+    0x01021994,  # tmpfs
+    0x794C7630,  # overlayfs
+    0xF2F52010,  # F2FS
+}
+_IN_ATTRIB = 0x00000004
+_IN_MOVED_FROM = 0x00000040
+_IN_MOVED_TO = 0x00000080
+_IN_CREATE = 0x00000100
+_IN_DELETE = 0x00000200
+_IN_DELETE_SELF = 0x00000400
+_IN_MOVE_SELF = 0x00000800
+_IN_UNMOUNT = 0x00002000
+_IN_Q_OVERFLOW = 0x00004000
+_IN_IGNORED = 0x00008000
+_INOTIFY_EVENT = struct.Struct("iIII")
+
+
+def _linux_libc() -> Any:
+    if sys.platform != "linux":
+        raise CacheError("safe seed publication requires Linux renameat2 and inotify")
+    return ctypes.CDLL(None, use_errno=True)
+
+
+def _linux_renameat2(
+    source_parent: int,
+    source_name: str,
+    destination_parent: int,
+    destination_name: str,
+    flags: int,
+) -> None:
+    if flags not in {RENAME_NOREPLACE, RENAME_EXCHANGE}:
+        raise CacheError("renameat2 publication requires no-replace or exchange")
+    for name in (source_name, destination_name):
+        encoded = os.fsencode(name)
+        if not encoded or encoded in {b".", b".."} or b"/" in encoded or b"\0" in encoded:
+            raise CacheError("renameat2 operands must be single child names")
+    for descriptor in (source_parent, destination_parent):
+        try:
+            mode = os.fstat(descriptor).st_mode
+        except OSError:
+            mode = stat.S_IFDIR if descriptor == -1 else 0
+        if descriptor != -1 and not stat.S_ISDIR(mode):
+            raise CacheError("renameat2 parent descriptor is not a directory")
+    libc = _linux_libc()
+    renameat2 = getattr(libc, "renameat2", None)
+    if renameat2 is None:
+        raise CacheError("safe seed publication requires Linux renameat2")
+    renameat2.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    ]
+    renameat2.restype = ctypes.c_int
+    ctypes.set_errno(0)
+    if renameat2(
+        source_parent,
+        os.fsencode(source_name),
+        destination_parent,
+        os.fsencode(destination_name),
+        flags,
+    ) != 0:
+        error_number = ctypes.get_errno()
+        raise OSError(error_number, os.strerror(error_number))
+
+
+def _linux_filesystem_magic(descriptor: int) -> int:
+    libc = _linux_libc()
+    fstatfs = getattr(libc, "fstatfs", None)
+    if fstatfs is None:
+        raise CacheError("safe seed publication requires Linux fstatfs")
+    buffer = ctypes.create_string_buffer(256)
+    fstatfs.argtypes = [ctypes.c_int, ctypes.c_void_p]
+    fstatfs.restype = ctypes.c_int
+    ctypes.set_errno(0)
+    if fstatfs(descriptor, ctypes.byref(buffer)) != 0:
+        error_number = ctypes.get_errno()
+        raise CacheError(f"could not identify target filesystem: {os.strerror(error_number)}")
+    width = ctypes.sizeof(ctypes.c_long)
+    return int.from_bytes(buffer.raw[:width], sys.byteorder, signed=False)
+
+
+def _assert_renameat2_kernel_capability(flags: int, label: str) -> None:
+    try:
+        _linux_renameat2(-1, "probe-source", -1, "probe-destination", flags)
+    except OSError as error:
+        if error.errno == errno.EBADF:
+            return
+        raise CacheError(f"kernel does not provide atomic {label} publication") from error
+    raise CacheError(f"atomic {label} capability probe unexpectedly mutated a name")
+
+
+def _probe_renameat2_semantics(target_descriptor: int) -> None:
+    temporary_descriptor = os.open("/tmp", _authored_directory_flags())
+    try:
+        if os.fstat(temporary_descriptor).st_dev != os.fstat(target_descriptor).st_dev:
+            raise CacheError(
+                "safe seed publication requires a same-device /tmp capability probe"
+            )
+    finally:
+        os.close(temporary_descriptor)
+    with tempfile.TemporaryDirectory(prefix="mipstarre-renameat2-probe-", dir="/tmp") as name:
+        root = Path(name)
+        first = root / "first"
+        second = root / "second"
+        moving = root / "moving"
+        first.mkdir()
+        second.mkdir()
+        moving.mkdir()
+        (first / "marker").write_bytes(b"first")
+        (second / "marker").write_bytes(b"second")
+        (moving / "marker").write_bytes(b"moving")
+        root_descriptor = os.open(root, _authored_directory_flags())
+        first_descriptor = os.open(first, _authored_directory_flags())
+        second_descriptor = os.open(second, _authored_directory_flags())
+        moving_descriptor = os.open(moving, _authored_directory_flags())
+        try:
+            try:
+                _linux_renameat2(
+                    root_descriptor,
+                    "moving",
+                    root_descriptor,
+                    "second",
+                    RENAME_NOREPLACE,
+                )
+            except OSError as error:
+                if error.errno != errno.EEXIST:
+                    raise CacheError("atomic no-replace semantic probe failed") from error
+            else:
+                raise CacheError("atomic no-replace probe replaced an existing object")
+            HotMainCache._assert_bound_name(
+                root_descriptor, "moving", moving_descriptor, "no-replace probe source"
+            )
+            HotMainCache._assert_bound_name(
+                root_descriptor, "second", second_descriptor, "no-replace probe destination"
+            )
+            _linux_renameat2(
+                root_descriptor,
+                "moving",
+                root_descriptor,
+                "moved",
+                RENAME_NOREPLACE,
+            )
+            HotMainCache._assert_bound_name(
+                root_descriptor, "moved", moving_descriptor, "no-replace probe publication"
+            )
+            _linux_renameat2(
+                root_descriptor,
+                "first",
+                root_descriptor,
+                "second",
+                RENAME_EXCHANGE,
+            )
+            HotMainCache._assert_bound_name(
+                root_descriptor, "second", first_descriptor, "exchange probe first"
+            )
+            HotMainCache._assert_bound_name(
+                root_descriptor, "first", second_descriptor, "exchange probe second"
+            )
+            _linux_renameat2(
+                root_descriptor,
+                "first",
+                root_descriptor,
+                "second",
+                RENAME_EXCHANGE,
+            )
+            HotMainCache._assert_bound_name(
+                root_descriptor, "first", first_descriptor, "exchange probe restoration"
+            )
+            HotMainCache._assert_bound_name(
+                root_descriptor, "second", second_descriptor, "exchange probe restoration"
+            )
+            os.fsync(root_descriptor)
+        finally:
+            os.close(moving_descriptor)
+            os.close(second_descriptor)
+            os.close(first_descriptor)
+            os.close(root_descriptor)
+
+
+class _NamespaceMonitor:
+    """Fail closed when a lexical ancestor is renamed during seed/prepare."""
+
+    def __init__(self, paths: Sequence[Path]):
+        libc = _linux_libc()
+        initialize = getattr(libc, "inotify_init1", None)
+        add_watch = getattr(libc, "inotify_add_watch", None)
+        if initialize is None or add_watch is None:
+            raise CacheError("safe seed publication requires Linux inotify")
+        initialize.argtypes = [ctypes.c_int]
+        initialize.restype = ctypes.c_int
+        add_watch.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
+        add_watch.restype = ctypes.c_int
+        flags = os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0)
+        ctypes.set_errno(0)
+        descriptor = initialize(flags)
+        if descriptor < 0:
+            error_number = ctypes.get_errno()
+            raise CacheError(f"could not initialize target namespace monitor: {os.strerror(error_number)}")
+        self.descriptor = descriptor
+        self.watches: dict[int, set[bytes]] = {}
+        self.bindings: list[tuple[int, str, int]] = []
+        self.bound_descriptors: list[int] = []
+        self.changed = False
+        mask = (
+            _IN_ATTRIB
+            | _IN_MOVED_FROM
+            | _IN_MOVED_TO
+            | _IN_CREATE
+            | _IN_DELETE
+            | _IN_DELETE_SELF
+            | _IN_MOVE_SELF
+            | _IN_UNMOUNT
+            | _IN_Q_OVERFLOW
+        )
+        try:
+            for supplied in paths:
+                absolute = Path(os.path.abspath(supplied))
+                parent_descriptor = os.open(
+                    absolute.anchor, _authored_directory_flags()
+                )
+                self.bound_descriptors.append(parent_descriptor)
+                for component in absolute.parts[1:]:
+                    encoded_component = os.fsencode(component)
+                    ctypes.set_errno(0)
+                    watch = add_watch(
+                        descriptor,
+                        os.fsencode(f"/proc/self/fd/{parent_descriptor}"),
+                        mask,
+                    )
+                    if watch < 0:
+                        error_number = ctypes.get_errno()
+                        raise CacheError(
+                            "could not bind target ancestor namespace monitor: "
+                            f"{absolute}: {os.strerror(error_number)}"
+                        )
+                    self.watches.setdefault(watch, set()).add(encoded_component)
+                    child_descriptor = os.open(
+                        component,
+                        _authored_directory_flags(),
+                        dir_fd=parent_descriptor,
+                    )
+                    self.bound_descriptors.append(child_descriptor)
+                    self.bindings.append(
+                        (parent_descriptor, component, child_descriptor)
+                    )
+                    parent_descriptor = child_descriptor
+            self.assert_clean()
+        except BaseException:
+            for bound_descriptor in reversed(self.bound_descriptors):
+                os.close(bound_descriptor)
+            os.close(descriptor)
+            raise
+
+    def assert_clean(self) -> None:
+        while True:
+            try:
+                payload = os.read(self.descriptor, 64 * 1024)
+            except BlockingIOError:
+                break
+            except OSError as error:
+                raise CacheError("target namespace monitor became unavailable") from error
+            if not payload:
+                raise CacheError("target namespace monitor closed unexpectedly")
+            offset = 0
+            while offset < len(payload):
+                if len(payload) - offset < _INOTIFY_EVENT.size:
+                    self.changed = True
+                    break
+                watch, mask, _cookie, name_size = _INOTIFY_EVENT.unpack_from(payload, offset)
+                offset += _INOTIFY_EVENT.size
+                if len(payload) - offset < name_size:
+                    self.changed = True
+                    break
+                name = payload[offset : offset + name_size].split(b"\0", 1)[0]
+                offset += name_size
+                if watch not in self.watches or mask & (
+                    _IN_Q_OVERFLOW
+                    | _IN_IGNORED
+                    | _IN_UNMOUNT
+                    | _IN_DELETE_SELF
+                    | _IN_MOVE_SELF
+                ):
+                    self.changed = True
+                elif name and name in self.watches.get(watch, set()):
+                    self.changed = True
+        for parent_descriptor, name, child_descriptor in self.bindings:
+            try:
+                lexical = os.stat(
+                    name,
+                    dir_fd=parent_descriptor,
+                    follow_symlinks=False,
+                )
+                bound = os.fstat(child_descriptor)
+            except OSError:
+                self.changed = True
+                break
+            if (
+                stat.S_ISLNK(lexical.st_mode)
+                or (lexical.st_dev, lexical.st_ino, stat.S_IFMT(lexical.st_mode))
+                != (bound.st_dev, bound.st_ino, stat.S_IFMT(bound.st_mode))
+            ):
+                self.changed = True
+                break
+        if self.changed:
+            raise CacheError("target ancestor namespace changed during seed/prepare")
+
+    def close(self) -> None:
+        for bound_descriptor in reversed(self.bound_descriptors):
+            os.close(bound_descriptor)
+        os.close(self.descriptor)
+
+
+class _BoundNameMonitor:
+    """Detect substitution or ABA of exact children of one held directory."""
+
+    def __init__(self, parent_descriptor: int, names: Sequence[str]):
+        libc = _linux_libc()
+        initialize = getattr(libc, "inotify_init1", None)
+        add_watch = getattr(libc, "inotify_add_watch", None)
+        if initialize is None or add_watch is None:
+            raise CacheError("safe transaction binding requires Linux inotify")
+        initialize.argtypes = [ctypes.c_int]
+        initialize.restype = ctypes.c_int
+        add_watch.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
+        add_watch.restype = ctypes.c_int
+        descriptor = initialize(os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0))
+        if descriptor < 0:
+            error_number = ctypes.get_errno()
+            raise CacheError(f"could not initialize transaction monitor: {os.strerror(error_number)}")
+        mask = (
+            _IN_ATTRIB
+            | _IN_MOVED_FROM
+            | _IN_MOVED_TO
+            | _IN_CREATE
+            | _IN_DELETE
+            | _IN_DELETE_SELF
+            | _IN_MOVE_SELF
+            | _IN_UNMOUNT
+            | _IN_Q_OVERFLOW
+        )
+        ctypes.set_errno(0)
+        watch = add_watch(descriptor, os.fsencode(f"/proc/self/fd/{parent_descriptor}"), mask)
+        if watch < 0:
+            error_number = ctypes.get_errno()
+            os.close(descriptor)
+            raise CacheError(f"could not bind transaction monitor: {os.strerror(error_number)}")
+        self.descriptor = descriptor
+        self.watch = watch
+        self.names = {os.fsencode(name) for name in names}
+        self.poisoned = False
+
+    def _drain(self) -> tuple[bool, bool]:
+        relevant = False
+        fatal = False
+        while True:
+            try:
+                payload = os.read(self.descriptor, 64 * 1024)
+            except BlockingIOError:
+                break
+            except OSError:
+                self.poisoned = True
+                return relevant, True
+            if not payload:
+                self.poisoned = True
+                return relevant, True
+            offset = 0
+            while offset < len(payload):
+                if len(payload) - offset < _INOTIFY_EVENT.size:
+                    fatal = True
+                    break
+                watch, mask, _cookie, name_size = _INOTIFY_EVENT.unpack_from(payload, offset)
+                offset += _INOTIFY_EVENT.size
+                if len(payload) - offset < name_size:
+                    fatal = True
+                    break
+                name = payload[offset : offset + name_size].split(b"\0", 1)[0]
+                offset += name_size
+                if watch not in {-1, self.watch} or mask & (
+                    _IN_Q_OVERFLOW
+                    | _IN_IGNORED
+                    | _IN_UNMOUNT
+                    | _IN_DELETE_SELF
+                    | _IN_MOVE_SELF
+                ):
+                    fatal = True
+                elif name in self.names:
+                    relevant = True
+        if fatal:
+            self.poisoned = True
+        return relevant, fatal
+
+    def assert_clean(self) -> None:
+        relevant, fatal = self._drain()
+        if relevant or fatal:
+            self.poisoned = True
+        if self.poisoned:
+            raise CacheError("transaction object name changed or monitor became ambiguous")
+
+    def accept_owned_change(self) -> None:
+        relevant, fatal = self._drain()
+        if self.poisoned or fatal or not relevant:
+            self.poisoned = True
+            raise CacheError("atomic transaction rename lacked an exact monitor event")
+
+    def close(self) -> None:
+        os.close(self.descriptor)
 
 
 class CacheError(Exception):
@@ -79,6 +495,18 @@ class _SeedReplacement:
     metric_committed: bool = False
     original_identity: dict[str, Any] | None = None
     original_descriptor: int | None = None
+    staging_descriptor: int | None = None
+    staging_lake_descriptor: int | None = None
+    journal_parent_descriptor: int | None = None
+    journal_descriptor: int | None = None
+    journal_file_descriptors: dict[str, int] | None = None
+    journal_digest: str | None = None
+    failed_retained: str | None = None
+    staging_parent_monitor: _BoundNameMonitor | None = None
+    staging_entry_monitor: _BoundNameMonitor | None = None
+    destination_monitor: _BoundNameMonitor | None = None
+    journal_parent_monitor: _BoundNameMonitor | None = None
+    journal_entry_monitor: _BoundNameMonitor | None = None
 
 
 @dataclass
@@ -87,6 +515,7 @@ class _BoundSeedTarget:
 
     target_project: Path
     worktree_root: Path
+    worktree_head: str
     project_descriptor: int
     worktree_descriptor: int
     worktree_parent_descriptor: int
@@ -96,12 +525,14 @@ class _BoundSeedTarget:
     project_generation: tuple[int, ...]
     worktree_generation: tuple[int, ...]
     worktree_parent_generation: tuple[int, ...]
+    namespace_monitor: _NamespaceMonitor
 
     @property
     def access_path(self) -> Path:
         return Path("/proc/self/fd") / str(self.project_descriptor)
 
     def assert_current(self) -> None:
+        self.namespace_monitor.assert_clean()
         for path, descriptor, identity, generation, label in (
             (
                 self.target_project,
@@ -141,6 +572,7 @@ class _BoundSeedTarget:
     def refresh_after_project_mutation(self) -> None:
         """Admit only a descriptor-relative mutation performed by this operation."""
 
+        self.namespace_monitor.assert_clean()
         try:
             lexical = self.target_project.stat(follow_symlinks=False)
             lexical_worktree = self.worktree_root.stat(follow_symlinks=False)
@@ -175,9 +607,12 @@ class _BoundSeedTarget:
             self.worktree_generation = _authored_directory_scan_identity(worktree)
 
     def close(self) -> None:
-        os.close(self.project_descriptor)
-        os.close(self.worktree_descriptor)
-        os.close(self.worktree_parent_descriptor)
+        try:
+            self.namespace_monitor.close()
+        finally:
+            os.close(self.project_descriptor)
+            os.close(self.worktree_descriptor)
+            os.close(self.worktree_parent_descriptor)
 
 
 @dataclass(frozen=True)
@@ -3296,16 +3731,21 @@ class HotMainCache:
         project_descriptor: int | None = None
         worktree_descriptor: int | None = None
         worktree_parent_descriptor: int | None = None
+        namespace_monitor: _NamespaceMonitor | None = None
         try:
             project_descriptor = os.open(target_project, flags)
             worktree_descriptor = os.open(matched_root, flags)
             worktree_parent_descriptor = os.open(matched_root.parent, flags)
+            namespace_monitor = _NamespaceMonitor(
+                (target_project, matched_root, matched_root.parent)
+            )
             project = os.fstat(project_descriptor)
             worktree = os.fstat(worktree_descriptor)
             worktree_parent = os.fstat(worktree_parent_descriptor)
             binding = _BoundSeedTarget(
                 target_project=target_project,
                 worktree_root=matched_root,
+                worktree_head=matched.head,
                 project_descriptor=project_descriptor,
                 worktree_descriptor=worktree_descriptor,
                 worktree_parent_descriptor=worktree_parent_descriptor,
@@ -3315,6 +3755,7 @@ class HotMainCache:
                 project_generation=_authored_directory_scan_identity(project),
                 worktree_generation=_authored_directory_scan_identity(worktree),
                 worktree_parent_generation=_authored_directory_scan_identity(worktree_parent),
+                namespace_monitor=namespace_monitor,
             )
             binding.assert_current()
             if git_resolved_path(matched_root, "--show-toplevel") != matched_root:
@@ -3330,6 +3771,8 @@ class HotMainCache:
                 binding.assert_current()
             return binding
         except Exception:
+            if namespace_monitor is not None:
+                namespace_monitor.close()
             if project_descriptor is not None:
                 os.close(project_descriptor)
             if worktree_descriptor is not None:
@@ -3337,6 +3780,100 @@ class HotMainCache:
             if worktree_parent_descriptor is not None:
                 os.close(worktree_parent_descriptor)
             raise
+
+    @staticmethod
+    def _require_seed_capabilities(target: _BoundSeedTarget) -> None:
+        """Refuse before transaction mutation unless the strong Linux primitives exist."""
+
+        target.assert_current()
+        required_dir_fd = (os.open, os.mkdir, os.stat, os.unlink, os.rmdir)
+        if any(operation not in os.supports_dir_fd for operation in required_dir_fd):
+            raise CacheError("safe seed publication requires descriptor-relative filesystem calls")
+        if not hasattr(os, "O_DIRECTORY") or not hasattr(os, "O_NOFOLLOW"):
+            raise CacheError("safe seed publication requires O_DIRECTORY and O_NOFOLLOW")
+        filesystem_magic = _linux_filesystem_magic(target.project_descriptor)
+        if filesystem_magic not in _RENAMEAT2_FILESYSTEM_MAGICS:
+            raise CacheError(
+                "target filesystem is not conservatively approved for atomic seed publication"
+            )
+        _assert_renameat2_kernel_capability(RENAME_NOREPLACE, "no-replace")
+        _assert_renameat2_kernel_capability(RENAME_EXCHANGE, "exchange")
+        _probe_renameat2_semantics(target.project_descriptor)
+        target.assert_current()
+
+    @staticmethod
+    def _assert_bound_name(
+        parent_descriptor: int,
+        name: str,
+        descriptor: int,
+        label: str,
+    ) -> None:
+        try:
+            lexical = os.stat(
+                name, dir_fd=parent_descriptor, follow_symlinks=False
+            )
+            bound = os.fstat(descriptor)
+        except OSError as error:
+            raise CacheError(f"{label} identity changed") from error
+        if (
+            stat.S_ISLNK(lexical.st_mode)
+            or (lexical.st_dev, lexical.st_ino, stat.S_IFMT(lexical.st_mode))
+            != (bound.st_dev, bound.st_ino, stat.S_IFMT(bound.st_mode))
+        ):
+            raise CacheError(f"{label} identity changed")
+
+    @classmethod
+    def _atomic_move_bound(
+        cls,
+        source_parent: int,
+        source_name: str,
+        source_descriptor: int,
+        destination_parent: int,
+        destination_name: str,
+        label: str,
+    ) -> None:
+        cls._assert_bound_name(source_parent, source_name, source_descriptor, label)
+        try:
+            _linux_renameat2(
+                source_parent,
+                source_name,
+                destination_parent,
+                destination_name,
+                RENAME_NOREPLACE,
+            )
+        except OSError as error:
+            if error.errno == errno.EEXIST:
+                raise CacheError(f"{label} destination appeared concurrently; source retained") from error
+            raise CacheError(f"atomic no-replace move failed for {label}: {error}") from error
+        cls._assert_bound_name(
+            destination_parent, destination_name, source_descriptor, label
+        )
+
+    @classmethod
+    def _atomic_exchange_bound(
+        cls,
+        first_parent: int,
+        first_name: str,
+        first_descriptor: int,
+        second_parent: int,
+        second_name: str,
+        second_descriptor: int,
+        label: str,
+    ) -> None:
+        cls._assert_bound_name(first_parent, first_name, first_descriptor, label)
+        cls._assert_bound_name(second_parent, second_name, second_descriptor, label)
+        try:
+            _linux_renameat2(
+                first_parent,
+                first_name,
+                second_parent,
+                second_name,
+                RENAME_EXCHANGE,
+            )
+        except OSError as error:
+            raise CacheError(f"atomic exchange failed for {label}: {error}") from error
+        cls._assert_bound_name(second_parent, second_name, first_descriptor, label)
+        cls._assert_bound_name(first_parent, first_name, second_descriptor, label)
 
     def _validate_seeded_destination(self, destination: Path) -> None:
         if not self.is_ready(deep=True):
@@ -3396,9 +3933,10 @@ class HotMainCache:
     def _write_seed_journal(
         self,
         replacement: _SeedReplacement,
-        target_project: Path,
+        target: _BoundSeedTarget,
         staging_lake: Path,
     ) -> None:
+        target_project = target.target_project
         original = self._lake_tree_identity(replacement.destination)
         replacement_identity = self._lake_tree_identity(staging_lake)
         staging_root = replacement.staging_root
@@ -3412,9 +3950,9 @@ class HotMainCache:
             "destination": str(replacement.destination),
             "target_lock_digest": self._seed_target_digest(target_project),
             "replace": True,
-            "backup_basename": replacement.backup.name,
             "staging_basename": staging_root.name,
             "retained_basename": f".lake.retained-{replacement.transaction_id}",
+            "original_slot": f"{staging_root.name}/.lake",
             "original": original,
             "replacement": replacement_identity,
             "cache_key": self.identity.cache_key,
@@ -3423,148 +3961,122 @@ class HotMainCache:
         }
         payload = self._journal_bytes(value)
         replacement.journal_dir.parent.mkdir(parents=True, exist_ok=True)
-        if replacement.journal_dir.exists() or replacement.journal_dir.is_symlink():
+        reject_symlink_components(replacement.journal_dir.parent)
+        parent_descriptor = os.open(
+            replacement.journal_dir.parent, _authored_directory_flags()
+        )
+        replacement.journal_parent_descriptor = parent_descriptor
+        retained_name = (
+            f"{replacement.journal_dir.name}.retained-{replacement.transaction_id}"
+        )
+        replacement.journal_parent_monitor = _BoundNameMonitor(
+            parent_descriptor, (replacement.journal_dir.name, retained_name)
+        )
+        try:
+            os.mkdir(replacement.journal_dir.name, 0o700, dir_fd=parent_descriptor)
+        except FileExistsError as error:
             raise CacheError(
                 f"seed transaction journal already exists: {replacement.journal_dir}"
-            )
-        replacement.journal_dir.mkdir()
-        _fsync_directory(replacement.journal_dir.parent)
-        _atomic_write_bytes(replacement.journal_path, payload)
-        _atomic_write_bytes(
-            replacement.journal_digest_path,
-            (hashlib.sha256(payload).hexdigest() + "\n").encode("ascii"),
+            ) from error
+        replacement.journal_parent_monitor.accept_owned_change()
+        journal_descriptor = os.open(
+            replacement.journal_dir.name,
+            _authored_directory_flags(),
+            dir_fd=parent_descriptor,
         )
-        _fsync_directory(replacement.journal_dir)
+        replacement.journal_descriptor = journal_descriptor
+        self._assert_bound_name(
+            parent_descriptor,
+            replacement.journal_dir.name,
+            journal_descriptor,
+            "seed transaction journal",
+        )
+        replacement.journal_file_descriptors = {}
 
-    def _load_seed_journal(self, target_project: Path) -> tuple[dict[str, Any], str] | None:
-        journal_dir = self._seed_transaction_dir(target_project)
-        if not journal_dir.exists() and not journal_dir.is_symlink():
-            return None
-        if not journal_dir.is_dir() or journal_dir.is_symlink():
-            raise CacheError(f"seed transaction journal is not a real directory: {journal_dir}")
-        names = {entry.name for entry in os.scandir(journal_dir)}
-        required = {"journal.json", "journal.sha256"}
-        if not required.issubset(names) or not names.issubset(required | {"COMMITTED"}):
-            raise CacheError(f"seed transaction journal has invalid entries: {journal_dir}")
-        journal_path = journal_dir / "journal.json"
-        digest_path = journal_dir / "journal.sha256"
-        if (
-            not journal_path.is_file()
-            or journal_path.is_symlink()
-            or not digest_path.is_file()
-            or digest_path.is_symlink()
-        ):
-            raise CacheError(f"seed transaction journal files are invalid: {journal_dir}")
-        payload = _read_bounded_regular_file(journal_path, 1024 * 1024, "seed journal")
-        try:
-            digest = _read_bounded_regular_file(
-                digest_path, 256, "seed journal digest"
-            ).decode("ascii").strip()
-            value = json.loads(
-                payload.decode("ascii"), object_pairs_hook=_json_object_without_duplicates
-            )
-        except (UnicodeDecodeError, json.JSONDecodeError) as error:
-            raise CacheError(f"seed transaction journal cannot be decoded: {journal_dir}") from error
-        if not isinstance(value, dict) or self._journal_bytes(value) != payload:
-            raise CacheError(f"seed transaction journal is not canonical: {journal_dir}")
-        expected_keys = {
-            "schema_version",
-            "transaction_version",
-            "transaction_id",
-            "target_project",
-            "destination",
-            "target_lock_digest",
-            "replace",
-            "backup_basename",
-            "staging_basename",
-            "retained_basename",
-            "original",
-            "replacement",
-            "cache_key",
-            "main_commit",
-            "cache_manifest_sha256",
-        }
-        transaction_id = value.get("transaction_id")
-        target_digest = self._seed_target_digest(target_project)
-        if (
-            set(value) != expected_keys
-            or value.get("schema_version") != 1
-            or value.get("transaction_version") != 1
-            or not _is_lower_hex(transaction_id, 32)
-            or value.get("target_project") != str(target_project)
-            or value.get("destination") != str(target_project / ".lake")
-            or value.get("target_lock_digest") != target_digest
-            or value.get("replace") is not True
-            or value.get("backup_basename") != f".lake.backup-{transaction_id}"
-            or value.get("staging_basename") != f".lake-seed-{transaction_id}"
-            or value.get("retained_basename") != f".lake.retained-{transaction_id}"
-            or not _is_lower_hex(value.get("cache_key"), 64)
-            or not re_full_sha(value.get("main_commit", ""))
-            or not _is_lower_hex(value.get("cache_manifest_sha256"), 64)
-            or not isinstance(value.get("original"), dict)
-            or not isinstance(value.get("replacement"), dict)
-            or digest != hashlib.sha256(payload).hexdigest()
-        ):
-            raise CacheError(f"seed transaction journal authentication failed: {journal_dir}")
-        return value, digest
+        def write_owned(name: str, content: bytes) -> None:
+            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
+            descriptor = os.open(name, flags, 0o600, dir_fd=journal_descriptor)
+            replacement.journal_file_descriptors[name] = descriptor
+            view = memoryview(content)
+            while view:
+                written = os.write(descriptor, view)
+                if written <= 0:
+                    raise OSError("short seed journal write")
+                view = view[written:]
+            os.fsync(descriptor)
 
-    @staticmethod
-    def _clear_seed_journal(journal_dir: Path) -> None:
-        for name in ("COMMITTED", "journal.sha256", "journal.json"):
-            (journal_dir / name).unlink(missing_ok=True)
-        journal_dir.rmdir()
-        _fsync_directory(journal_dir.parent)
-
-    def _metric_records_seed_commit(self, journal: Mapping[str, Any]) -> bool:
-        if not self.metrics_path.exists():
-            return False
-        with ExclusiveLock(self.metrics_lock_path):
-            try:
-                lines = self.metrics_path.read_text(encoding="utf-8").splitlines()
-                records = [json.loads(line) for line in lines]
-            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
-                raise CacheError(f"could not authenticate seed metric commit: {error}") from error
-        return any(
-            isinstance(record, dict)
-            and record.get("result") == "seeded"
-            and record.get("transaction_id") == journal["transaction_id"]
-            and record.get("target") == journal["destination"]
-            and record.get("cache_key") == journal["cache_key"]
-            for record in records
+        digest = hashlib.sha256(payload).hexdigest()
+        write_owned("journal.json", payload)
+        write_owned("journal.sha256", (digest + "\n").encode("ascii"))
+        replacement.journal_digest = digest
+        os.fsync(journal_descriptor)
+        os.fsync(parent_descriptor)
+        replacement.journal_entry_monitor = _BoundNameMonitor(
+            journal_descriptor, ("journal.json", "journal.sha256", "COMMITTED")
         )
 
-    def _journal_is_committed(
-        self, journal_dir: Path, journal: Mapping[str, Any], digest: str
-    ) -> bool:
-        committed_path = journal_dir / "COMMITTED"
-        if committed_path.exists() or committed_path.is_symlink():
-            if not committed_path.is_file() or committed_path.is_symlink():
-                raise CacheError(f"seed transaction commit marker is invalid: {committed_path}")
-            try:
-                marker = _read_bounded_regular_file(
-                    committed_path, 256, "seed transaction commit marker"
-                ).decode("ascii").strip()
-            except UnicodeDecodeError as error:
-                raise CacheError(
-                    f"seed transaction commit marker cannot be decoded: {committed_path}"
-                ) from error
-            if marker != digest:
-                raise CacheError(
-                    f"seed transaction commit marker authentication failed: {committed_path}"
-                )
-            return True
-        return self._metric_records_seed_commit(journal)
+    @classmethod
+    def _clear_seed_journal(cls, replacement: _SeedReplacement) -> None:
+        parent_descriptor = replacement.journal_parent_descriptor
+        journal_descriptor = replacement.journal_descriptor
+        files = replacement.journal_file_descriptors
+        if parent_descriptor is None or journal_descriptor is None or files is None:
+            if replacement.journal_dir.exists() or replacement.journal_dir.is_symlink():
+                raise CacheError("seed transaction journal has no continuous live binding")
+            return
+        if replacement.journal_parent_monitor is None or replacement.journal_entry_monitor is None:
+            raise CacheError("seed transaction journal lost its continuous name monitor")
+        replacement.journal_parent_monitor.assert_clean()
+        replacement.journal_entry_monitor.assert_clean()
+        cls._assert_bound_name(
+            parent_descriptor,
+            replacement.journal_dir.name,
+            journal_descriptor,
+            "seed transaction journal",
+        )
+        names = set(os.listdir(journal_descriptor))
+        if names != set(files):
+            raise CacheError("seed transaction journal changed; retained for manual recovery")
+        for name in sorted(files):
+            cls._assert_bound_name(
+                journal_descriptor,
+                name,
+                files[name],
+                f"seed transaction journal file {name}",
+            )
+        retained_name = (
+            f"{replacement.journal_dir.name}.retained-{replacement.transaction_id}"
+        )
+        cls._atomic_move_bound(
+            parent_descriptor,
+            replacement.journal_dir.name,
+            journal_descriptor,
+            parent_descriptor,
+            retained_name,
+            "seed transaction journal retention",
+        )
+        replacement.journal_parent_monitor.accept_owned_change()
+        os.fsync(parent_descriptor)
 
     def _mark_seed_committed(self, replacement: _SeedReplacement) -> None:
         if not replacement.old_moved:
             return
-        payload = _read_bounded_regular_file(
-            replacement.journal_path, 1024 * 1024, "seed journal"
-        )
-        digest = hashlib.sha256(payload).hexdigest()
-        _atomic_write_bytes(
-            replacement.committed_path, (digest + "\n").encode("ascii")
-        )
+        journal_descriptor = replacement.journal_descriptor
+        files = replacement.journal_file_descriptors
+        digest = replacement.journal_digest
+        monitor = replacement.journal_entry_monitor
+        if journal_descriptor is None or files is None or digest is None or monitor is None:
+            raise CacheError("seed transaction journal lost its live commit binding")
+        monitor.assert_clean()
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
+        descriptor = os.open("COMMITTED", flags, 0o600, dir_fd=journal_descriptor)
+        files["COMMITTED"] = descriptor
+        payload = (digest + "\n").encode("ascii")
+        if os.write(descriptor, payload) != len(payload):
+            raise OSError("short seed transaction commit-marker write")
+        os.fsync(descriptor)
+        os.fsync(journal_descriptor)
+        monitor.accept_owned_change()
 
     def _recover_interrupted_seed(self, target: _BoundSeedTarget) -> None:
         """Reject persistent transaction state without treating it as authority."""
@@ -3572,50 +4084,98 @@ class HotMainCache:
         target.assert_current()
         target_project = target.target_project
         journal_dir = self._seed_transaction_dir(target_project)
-        backups = sorted(target_project.glob(".lake.backup-*"), key=lambda path: path.name)
-        if journal_dir.exists() or journal_dir.is_symlink() or backups:
-            retained = [journal_dir, *backups]
+        names = sorted(os.listdir(target.project_descriptor))
+        interrupted = [
+            target_project / name
+            for name in names
+            if name.startswith((".lake.backup-", ".lake-seed-", ".lake-prepare-"))
+        ]
+        if journal_dir.exists() or journal_dir.is_symlink() or interrupted:
+            retained = [journal_dir, *interrupted]
             raise CacheError(
                 "interrupted seed state has no independent ownership proof and requires "
                 "manual recovery; retained paths: " + ", ".join(map(str, retained))
             )
         target.assert_current()
 
-    @staticmethod
+    @classmethod
     def _rollback_seed_replacement(
+        cls,
         target: _BoundSeedTarget,
         replacement: _SeedReplacement,
     ) -> list[str]:
         errors: list[str] = []
-        destination = target.access_path / replacement.destination.name
-        backup = target.access_path / replacement.backup.name
-        rollback_root = target.access_path / replacement.rollback_root.name
-        rollback_new = rollback_root / ".lake-failed-publication"
-        if replacement.new_published and (destination.exists() or destination.is_symlink()):
-            try:
-                os.replace(
-                    replacement.destination.name,
-                    f"{replacement.rollback_root.name}/.lake-failed-publication",
-                    src_dir_fd=target.project_descriptor,
-                    dst_dir_fd=target.project_descriptor,
-                )
-            except OSError as error:
-                errors.append(f"could not withdraw failed publication: {error}")
-        if replacement.old_moved and (backup.exists() or backup.is_symlink()):
-            if destination.exists() or destination.is_symlink():
-                errors.append(f"original cache remains recoverable at {backup}")
+        staging_descriptor = replacement.staging_descriptor
+        staged_lake_descriptor = replacement.staging_lake_descriptor
+        original_descriptor = replacement.original_descriptor
+        staging = replacement.staging_root
+        if staging_descriptor is None or staged_lake_descriptor is None or staging is None:
+            return errors
+        if replacement.new_published and replacement.old_moved:
+            if original_descriptor is None:
+                errors.append("original cache has no continuous rollback binding")
             else:
                 try:
-                    os.replace(
-                        replacement.backup.name,
+                    if replacement.staging_entry_monitor is None or replacement.destination_monitor is None:
+                        raise CacheError("seed rollback lost its continuous name monitors")
+                    replacement.staging_entry_monitor.assert_clean()
+                    replacement.destination_monitor.assert_clean()
+                    cls._atomic_exchange_bound(
+                        target.project_descriptor,
                         replacement.destination.name,
-                        src_dir_fd=target.project_descriptor,
-                        dst_dir_fd=target.project_descriptor,
+                        staged_lake_descriptor,
+                        staging_descriptor,
+                        ".lake",
+                        original_descriptor,
+                        "seed rollback",
                     )
-                except OSError as error:
-                    errors.append(f"could not restore original cache from {backup}: {error}")
-        elif replacement.old_moved:
-            errors.append(f"original cache backup disappeared: {backup}")
+                    replacement.staging_entry_monitor.accept_owned_change()
+                    replacement.destination_monitor.accept_owned_change()
+                    replacement.new_published = False
+                    replacement.old_moved = False
+                    os.fsync(target.project_descriptor)
+                except (OSError, CacheError) as error:
+                    errors.append(f"could not atomically restore original cache: {error}")
+        elif replacement.new_published:
+            try:
+                if replacement.destination_monitor is None:
+                    raise CacheError("failed publication lost its destination monitor")
+                replacement.destination_monitor.assert_clean()
+                failed_name = f".lake.failed-{replacement.transaction_id}"
+                cls._atomic_move_bound(
+                    target.project_descriptor,
+                    replacement.destination.name,
+                    staged_lake_descriptor,
+                    target.project_descriptor,
+                    failed_name,
+                    "failed seed publication",
+                )
+                replacement.destination_monitor.accept_owned_change()
+                replacement.failed_retained = str(target.target_project / failed_name)
+                replacement.new_published = False
+                os.fsync(target.project_descriptor)
+            except (OSError, CacheError) as error:
+                errors.append(f"could not retain failed publication: {error}")
+        if not errors and not replacement.new_published:
+            try:
+                failed_name = f".lake.failed-{replacement.transaction_id}"
+                if replacement.failed_retained is None and os.listdir(staging_descriptor):
+                    if replacement.staging_parent_monitor is None:
+                        raise CacheError("failed staging tree lost its parent monitor")
+                    replacement.staging_parent_monitor.assert_clean()
+                    cls._atomic_move_bound(
+                        target.project_descriptor,
+                        staging.name,
+                        staging_descriptor,
+                        target.project_descriptor,
+                        failed_name,
+                        "failed seed staging tree",
+                    )
+                    replacement.staging_parent_monitor.accept_owned_change()
+                    replacement.failed_retained = str(target.target_project / failed_name)
+                    os.fsync(target.project_descriptor)
+            except (OSError, CacheError) as error:
+                errors.append(f"could not retain failed staging tree: {error}")
         return errors
 
     def _new_seed_replacement(
@@ -3625,14 +4185,10 @@ class HotMainCache:
         target_project = target.target_project
         transaction_id = secrets.token_hex(16)
         journal_dir = self._seed_transaction_dir(target_project)
-        rollback_created = Path(
-            tempfile.mkdtemp(prefix=rollback_prefix, dir=target.access_path)
-        )
-        target.refresh_after_project_mutation()
         return _SeedReplacement(
             destination=target_project / ".lake",
             backup=target_project / f".lake.backup-{transaction_id}",
-            rollback_root=target_project / rollback_created.name,
+            rollback_root=target_project / f"{rollback_prefix}{transaction_id}",
             transaction_id=transaction_id,
             journal_dir=journal_dir,
             journal_path=journal_dir / "journal.json",
@@ -3645,13 +4201,71 @@ class HotMainCache:
         target: _BoundSeedTarget, replacement: _SeedReplacement
     ) -> None:
         try:
-            rollback_root = target.access_path / replacement.rollback_root.name
-            if rollback_root.exists():
-                make_owner_writable(rollback_root)
-                shutil.rmtree(rollback_root)
-                target.refresh_after_project_mutation()
+            descriptor = replacement.staging_descriptor
+            staging = replacement.staging_root
+            if descriptor is None or staging is None:
+                return
+            if os.listdir(descriptor):
+                return
+            HotMainCache._assert_bound_name(
+                target.project_descriptor,
+                staging.name,
+                descriptor,
+                "seed staging root",
+            )
+            if replacement.staging_parent_monitor is None:
+                return
+            replacement.staging_parent_monitor.assert_clean()
+            retained_name = f".lake.transaction-evidence-{replacement.transaction_id}"
+            HotMainCache._atomic_move_bound(
+                target.project_descriptor,
+                staging.name,
+                descriptor,
+                target.project_descriptor,
+                retained_name,
+                "seed staging-root retention",
+            )
+            replacement.staging_parent_monitor.accept_owned_change()
+            target.refresh_after_project_mutation()
+            os.fsync(target.project_descriptor)
         except BaseException:
             pass
+
+    @staticmethod
+    def _close_seed_replacement(replacement: _SeedReplacement) -> None:
+        descriptors: list[int] = []
+        if replacement.journal_file_descriptors is not None:
+            descriptors.extend(replacement.journal_file_descriptors.values())
+        for descriptor in (
+            replacement.journal_descriptor,
+            replacement.journal_parent_descriptor,
+            replacement.staging_lake_descriptor,
+            replacement.staging_descriptor,
+            replacement.original_descriptor,
+        ):
+            if descriptor is not None:
+                descriptors.append(descriptor)
+        closed: set[int] = set()
+        for descriptor in descriptors:
+            if descriptor in closed:
+                continue
+            closed.add(descriptor)
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        for monitor in (
+            replacement.journal_entry_monitor,
+            replacement.journal_parent_monitor,
+            replacement.destination_monitor,
+            replacement.staging_entry_monitor,
+            replacement.staging_parent_monitor,
+        ):
+            if monitor is not None:
+                try:
+                    monitor.close()
+                except OSError:
+                    pass
 
     def _target_lock_path(self, supplied_target: Path) -> tuple[Path, Path]:
         lexical_target = reject_symlink_components(supplied_target)
@@ -3661,20 +4275,43 @@ class HotMainCache:
 
     def _assert_seed_target_registered(self, target: _BoundSeedTarget) -> None:
         target.assert_current()
+        checked = self._eligible_seed_target(target.target_project, check_inputs=False)
+        try:
+            if (
+                checked.project_identity != target.project_identity
+                or checked.worktree_identity != target.worktree_identity
+                or checked.worktree_parent_identity != target.worktree_parent_identity
+                or checked.worktree_head != target.worktree_head
+            ):
+                raise CacheError("target worktree identity changed during seed/prepare")
+        finally:
+            checked.close()
+        target.assert_current()
 
     @staticmethod
     def _adapt_materializer_to_bound_target(
         module: Any, target: _BoundSeedTarget
-    ) -> bool:
+    ) -> None:
         """Let the authenticated materializer traverse the bound project fd."""
 
-        if not hasattr(module, "_assert_real_directory") or not hasattr(
-            module, "_reject_symlink_components"
-        ):
-            return False
+        required = {
+            "MaterializationError",
+            "_assert_real_directory",
+            "_reject_symlink_components",
+            "_finish_cleanup",
+            "_recover",
+        }
+        missing = sorted(name for name in required if not hasattr(module, name))
+        if missing:
+            raise CacheError(
+                "foundation materializer lacks the bound fail-closed interface: "
+                + ", ".join(missing)
+            )
         bound_root = target.access_path
         original_assert = module._assert_real_directory
         original_reject = module._reject_symlink_components
+        original_finish_cleanup = module._finish_cleanup
+        first_cleanup = True
 
         def assert_real_directory(path: Path) -> None:
             absolute = Path(os.path.abspath(path))
@@ -3719,17 +4356,38 @@ class HotMainCache:
 
         module._assert_real_directory = assert_real_directory
         module._reject_symlink_components = reject_symlink_components
-        return True
-        checked = self._eligible_seed_target(target.target_project, check_inputs=False)
-        try:
-            if (
-                checked.project_identity != target.project_identity
-                or checked.worktree_identity != target.worktree_identity
-                or checked.worktree_parent_identity != target.worktree_parent_identity
-            ):
-                raise CacheError("target worktree identity changed during seed/prepare")
-        finally:
-            checked.close()
+        def finish_cleanup(path: Path) -> None:
+            nonlocal first_cleanup
+            if first_cleanup:
+                first_cleanup = False
+                if path.exists() or path.is_symlink():
+                    raise module.MaterializationError(
+                        "persisted materializer cleanup has no independent ownership proof"
+                    )
+                return
+            original_finish_cleanup(path)
+
+        def recover(transaction: Path, destination: Path, pin: Mapping[str, Any]) -> None:
+            if transaction.exists() or transaction.is_symlink():
+                raise module.MaterializationError(
+                    "persisted materializer transaction has no independent ownership proof"
+                )
+
+        module._finish_cleanup = finish_cleanup
+        module._recover = recover
+
+    @staticmethod
+    def _assert_no_materializer_recovery_state(target: _BoundSeedTarget) -> None:
+        target.assert_current()
+        runtime = target.access_path / ".workflow-runtime" / "mipstarre-materialization"
+        transaction = runtime / "MIPStarRE.transaction"
+        cleanup = runtime / "MIPStarRE.transaction.cleanup"
+        retained = [path for path in (transaction, cleanup) if path.exists() or path.is_symlink()]
+        if retained:
+            raise CacheError(
+                "persisted materializer state has no independent ownership proof and requires "
+                "manual recovery; retained paths: " + ", ".join(map(str, retained))
+            )
         target.assert_current()
 
     def _publish_seed_locked(
@@ -3760,87 +4418,146 @@ class HotMainCache:
         staging_root = target.access_path / f".lake-seed-{replacement.transaction_id}"
         if staging_root.exists() or staging_root.is_symlink():
             raise CacheError(f"seed staging path already exists: {staging_root}")
+        replacement.staging_parent_monitor = _BoundNameMonitor(
+            target.project_descriptor,
+            (
+                staging_root.name,
+                f".lake.transaction-evidence-{replacement.transaction_id}",
+            ),
+        )
         os.mkdir(staging_root.name, dir_fd=target.project_descriptor)
+        replacement.staging_parent_monitor.accept_owned_change()
         target.refresh_after_project_mutation()
         replacement.staging_root = target_project / staging_root.name
-        try:
-            staging_lake = staging_root / ".lake"
-            copy_stats = reflink_copytree(self.lake_dir, staging_lake)
-            make_owner_writable(staging_lake)
-            self._validate_seeded_destination(staging_lake)
-            target.assert_current()
-            if destination.exists():
-                replacement.original_identity = self._lake_tree_identity(destination)
-                replacement.original_descriptor = os.open(
-                    replacement.destination.name,
-                    _authored_directory_flags(),
-                    dir_fd=target.project_descriptor,
-                )
-                original_stat = os.fstat(replacement.original_descriptor)
-                if _authored_directory_identity(original_stat) != (
-                    replacement.original_identity["device"],
-                    replacement.original_identity["inode"],
-                ):
-                    raise CacheError("target .lake identity changed while binding replacement")
-                self._write_seed_journal(replacement, target_project, staging_lake)
-                target.assert_current()
-                try:
-                    os.replace(
-                        replacement.destination.name,
-                        replacement.backup.name,
-                        src_dir_fd=target.project_descriptor,
-                        dst_dir_fd=target.project_descriptor,
-                    )
-                finally:
-                    replacement.old_moved = (
-                        (target.access_path / replacement.backup.name).exists()
-                        or (target.access_path / replacement.backup.name).is_symlink()
-                    )
-                target.refresh_after_project_mutation()
-                os.fsync(target.project_descriptor)
+        replacement.staging_descriptor = os.open(
+            staging_root.name,
+            _authored_directory_flags(),
+            dir_fd=target.project_descriptor,
+        )
+        self._assert_bound_name(
+            target.project_descriptor,
+            staging_root.name,
+            replacement.staging_descriptor,
+            "seed staging root",
+        )
+        staging_lake = staging_root / ".lake"
+        copy_stats = reflink_copytree(self.lake_dir, staging_lake)
+        make_owner_writable(staging_lake)
+        replacement.staging_lake_descriptor = os.open(
+            ".lake",
+            _authored_directory_flags(),
+            dir_fd=replacement.staging_descriptor,
+        )
+        self._assert_bound_name(
+            replacement.staging_descriptor,
+            ".lake",
+            replacement.staging_lake_descriptor,
+            "staged Lake tree",
+        )
+        replacement.staging_entry_monitor = _BoundNameMonitor(
+            replacement.staging_descriptor, (".lake",)
+        )
+        replacement.destination_monitor = _BoundNameMonitor(
+            target.project_descriptor, (replacement.destination.name,)
+        )
+        self._validate_seeded_destination(staging_lake)
+        self._assert_seed_target_registered(target)
+        if destination.exists():
+            replacement.original_identity = self._lake_tree_identity(destination)
+            replacement.original_descriptor = os.open(
+                replacement.destination.name,
+                _authored_directory_flags(),
+                dir_fd=target.project_descriptor,
+            )
+            original_stat = os.fstat(replacement.original_descriptor)
+            if _authored_directory_identity(original_stat) != (
+                replacement.original_identity["device"],
+                replacement.original_identity["inode"],
+            ):
+                raise CacheError("target .lake identity changed while binding replacement")
+            self._write_seed_journal(replacement, target, staging_lake)
+            self._assert_seed_target_registered(target)
+            replacement.staging_entry_monitor.assert_clean()
+            replacement.destination_monitor.assert_clean()
             try:
-                os.replace(
-                    f"{staging_root.name}/.lake",
+                self._atomic_exchange_bound(
+                    replacement.staging_descriptor,
+                    ".lake",
+                    replacement.staging_lake_descriptor,
+                    target.project_descriptor,
                     replacement.destination.name,
-                    src_dir_fd=target.project_descriptor,
-                    dst_dir_fd=target.project_descriptor,
+                    replacement.original_descriptor,
+                    "seed replacement publication",
                 )
+                replacement.staging_entry_monitor.accept_owned_change()
+                replacement.destination_monitor.accept_owned_change()
             finally:
-                replacement.new_published = (
-                    not staging_lake.exists()
-                    and not staging_lake.is_symlink()
-                    and (destination.exists() or destination.is_symlink())
-                )
-            target.refresh_after_project_mutation()
-            os.fsync(target.project_descriptor)
-            self._validate_seeded_destination(destination)
-            target.assert_current()
-            return {
-                **self.status(),
-                "action": "seed",
-                "result": "seeded",
-                "target": str(replacement.destination),
-                "worktree_root": str(target.worktree_root),
-                "replaced": replacement.old_moved,
-                "transaction_id": replacement.transaction_id,
-                "backup_retained": None,
-                "cache_hit": 1,
-                "cache_miss": 0,
-                "lock_waited": int(cache_lock.waited or target_lock.waited),
-                "lock_wait_seconds": round(cache_lock.wait_seconds + target_lock.wait_seconds, 6),
-                "builds": 0,
-                "build_seconds": 0.0,
-                "elapsed_seconds": round(time.monotonic() - started, 6),
-                "copy": asdict(copy_stats),
-            }
-        finally:
+                try:
+                    self._assert_bound_name(
+                        target.project_descriptor,
+                        replacement.destination.name,
+                        replacement.staging_lake_descriptor,
+                        "published Lake tree",
+                    )
+                    self._assert_bound_name(
+                        replacement.staging_descriptor,
+                        ".lake",
+                        replacement.original_descriptor,
+                        "displaced original Lake tree",
+                    )
+                except CacheError:
+                    pass
+                else:
+                    replacement.old_moved = True
+                    replacement.new_published = True
+        else:
+            replacement.staging_entry_monitor.assert_clean()
+            replacement.destination_monitor.assert_clean()
             try:
-                if staging_root.exists():
-                    make_owner_writable(staging_root)
-                    shutil.rmtree(staging_root)
-                    target.refresh_after_project_mutation()
-            except BaseException:
-                pass
+                self._atomic_move_bound(
+                    replacement.staging_descriptor,
+                    ".lake",
+                    replacement.staging_lake_descriptor,
+                    target.project_descriptor,
+                    replacement.destination.name,
+                    "seed no-replace publication",
+                )
+                replacement.staging_entry_monitor.accept_owned_change()
+                replacement.destination_monitor.accept_owned_change()
+            finally:
+                try:
+                    self._assert_bound_name(
+                        target.project_descriptor,
+                        replacement.destination.name,
+                        replacement.staging_lake_descriptor,
+                        "published Lake tree",
+                    )
+                except CacheError:
+                    pass
+                else:
+                    replacement.new_published = True
+        target.refresh_after_project_mutation()
+        os.fsync(target.project_descriptor)
+        self._validate_seeded_destination(destination)
+        self._assert_seed_target_registered(target)
+        return {
+            **self.status(),
+            "action": "seed",
+            "result": "seeded",
+            "target": str(replacement.destination),
+            "worktree_root": str(target.worktree_root),
+            "replaced": replacement.old_moved,
+            "transaction_id": replacement.transaction_id,
+            "backup_retained": None,
+            "cache_hit": 1,
+            "cache_miss": 0,
+            "lock_waited": int(cache_lock.waited or target_lock.waited),
+            "lock_wait_seconds": round(cache_lock.wait_seconds + target_lock.wait_seconds, 6),
+            "builds": 0,
+            "build_seconds": 0.0,
+            "elapsed_seconds": round(time.monotonic() - started, 6),
+            "copy": asdict(copy_stats),
+        }
 
     def _retain_seed_backup(
         self, target: _BoundSeedTarget, replacement: _SeedReplacement
@@ -3850,13 +4567,14 @@ class HotMainCache:
         target.assert_current()
         expected = replacement.original_identity
         descriptor = replacement.original_descriptor
-        backup = target.access_path / replacement.backup.name
         retained_name = f".lake.retained-{replacement.transaction_id}"
         retained = target.access_path / retained_name
-        if expected is None or descriptor is None:
+        staging_descriptor = replacement.staging_descriptor
+        if expected is None or descriptor is None or staging_descriptor is None:
             raise CacheError("seed backup has no live ownership binding")
-        if retained.exists() or retained.is_symlink():
-            raise CacheError(f"seed retained path already exists: {target.target_project / retained_name}")
+        if replacement.staging_entry_monitor is None:
+            raise CacheError("seed backup lost its continuous name monitor")
+        replacement.staging_entry_monitor.assert_clean()
         try:
             descriptor_identity = os.fstat(descriptor)
         except OSError as error:
@@ -3864,34 +4582,25 @@ class HotMainCache:
         if (
             _authored_directory_identity(descriptor_identity)
             != (expected.get("device"), expected.get("inode"))
-            or not self._lake_tree_matches(backup, expected)
         ):
             raise CacheError("seed backup identity changed; retained for manual recovery")
-        os.replace(
-            replacement.backup.name,
+        self._atomic_move_bound(
+            staging_descriptor,
+            ".lake",
+            descriptor,
+            target.project_descriptor,
             retained_name,
-            src_dir_fd=target.project_descriptor,
-            dst_dir_fd=target.project_descriptor,
+            "displaced original Lake tree",
         )
-        try:
-            retained_identity = retained.stat(follow_symlinks=False)
-            if _authored_directory_identity(retained_identity) != _authored_directory_identity(
-                descriptor_identity
-            ):
-                raise CacheError("seed backup identity changed during retention")
-            target.refresh_after_project_mutation()
-            os.fsync(target.project_descriptor)
-        except BaseException:
-            if not backup.exists() and retained.exists():
-                os.replace(
-                    retained_name,
-                    replacement.backup.name,
-                    src_dir_fd=target.project_descriptor,
-                    dst_dir_fd=target.project_descriptor,
-                )
-                target.refresh_after_project_mutation()
-                os.fsync(target.project_descriptor)
-            raise
+        replacement.staging_entry_monitor.accept_owned_change()
+        self._assert_bound_name(
+            target.project_descriptor,
+            retained_name,
+            descriptor,
+            "retained original Lake tree",
+        )
+        target.refresh_after_project_mutation()
+        os.fsync(target.project_descriptor)
         return str(target.target_project / retained_name)
 
     def _rollback_seed_transaction(
@@ -3903,10 +4612,10 @@ class HotMainCache:
         action: str,
     ) -> None:
         rollback_errors = self._rollback_seed_replacement(target, replacement)
-        if not rollback_errors and replacement.journal_dir.exists():
+        if not rollback_errors and replacement.journal_descriptor is not None:
             try:
                 os.fsync(target.project_descriptor)
-                self._clear_seed_journal(replacement.journal_dir)
+                self._clear_seed_journal(replacement)
             except BaseException as journal_error:
                 rollback_errors.append(f"could not clear recovered transaction journal: {journal_error}")
         if rollback_errors:
@@ -3920,6 +4629,7 @@ class HotMainCache:
         if dry_run:
             target = self._eligible_seed_target(lexical_target)
             try:
+                self._require_seed_capabilities(target)
                 return {
                     **self.status(),
                     "action": "seed",
@@ -3936,9 +4646,11 @@ class HotMainCache:
             replacement: _SeedReplacement | None = None
             try:
                 self._recover_interrupted_seed(target)
+                self._require_seed_capabilities(target)
                 checked_target = self._eligible_seed_target(lexical_target)
                 target.close()
                 target = checked_target
+                self._require_seed_capabilities(target)
                 destination = target.access_path / ".lake"
                 if destination.exists() and not replace:
                     raise CacheError(
@@ -3963,10 +4675,12 @@ class HotMainCache:
                         replacement=replacement,
                     )
                     self._assert_seed_target_registered(target)
-                    self._append_metric(result, target.assert_current)
+                    self._append_metric(
+                        result, lambda: self._assert_seed_target_registered(target)
+                    )
                     replacement.metric_committed = True
                     self._mark_seed_committed(replacement)
-                    target.assert_current()
+                    self._assert_seed_target_registered(target)
                 except BaseException as error:
                     if replacement.metric_committed:
                         self._discard_seed_rollback_root(target, replacement)
@@ -3979,15 +4693,15 @@ class HotMainCache:
                         self._discard_seed_rollback_root(target, replacement)
                     raise
                 result["backup_retained"] = self._retain_seed_backup(target, replacement)
-                if replacement.journal_dir.exists():
+                if replacement.journal_descriptor is not None:
                     os.fsync(target.project_descriptor)
-                    self._clear_seed_journal(replacement.journal_dir)
+                    self._clear_seed_journal(replacement)
                 self._discard_seed_rollback_root(target, replacement)
                 self._assert_seed_target_registered(target)
                 return result
             finally:
-                if replacement is not None and replacement.original_descriptor is not None:
-                    os.close(replacement.original_descriptor)
+                if replacement is not None:
+                    self._close_seed_replacement(replacement)
                 target.close()
 
     def prepare(self, target_project: Path, *, replace_seed: bool = False, dry_run: bool = False) -> dict[str, Any]:
@@ -4007,6 +4721,8 @@ class HotMainCache:
             replacement: _SeedReplacement | None = None
             try:
                 self._recover_interrupted_seed(target)
+                self._assert_no_materializer_recovery_state(target)
+                self._require_seed_capabilities(target)
                 destination = target.access_path / ".lake"
                 if destination.exists() and not replace_seed:
                     raise CacheError(
@@ -4017,24 +4733,8 @@ class HotMainCache:
                 checked_target = self._eligible_seed_target(lexical_target)
                 target.close()
                 target = checked_target
+                self._require_seed_capabilities(target)
                 authored_before = authored_tree_facts_on_disk(target.target_project)
-                target.assert_current()
-                with ExclusiveLock(self.lock_path) as cache_lock:
-                    if not self.is_ready(deep=True):
-                        raise CacheError(
-                            "hot-main cache is missing or failed deep artifact verification"
-                        )
-                replacement = self._new_seed_replacement(
-                    target, rollback_prefix=".lake-prepare-rollback-"
-                )
-                seeded = self._publish_seed_locked(
-                    target,
-                    replace=replace_seed,
-                    cache_lock=cache_lock,
-                    target_lock=target_lock,
-                    started=started,
-                    replacement=replacement,
-                )
                 target.assert_current()
                 operational_project = target.access_path
                 target_inputs = self._capture_identity_inputs(target.target_project)
@@ -4046,11 +4746,8 @@ class HotMainCache:
                     target_inputs[module_relative],
                     target.target_project,
                 )
-                module_project = (
-                    operational_project
-                    if self._adapt_materializer_to_bound_target(module, target)
-                    else target.target_project
-                )
+                self._adapt_materializer_to_bound_target(module, target)
+                module_project = operational_project
                 pin = self._load_captured_pin(
                     module, pin_relative, target_inputs[pin_relative]
                 )
@@ -4075,6 +4772,25 @@ class HotMainCache:
 
                 module.load_pin = captured_pin_loader
                 module.validate_project_pins = captured_project_validator
+                self._assert_no_materializer_recovery_state(target)
+                with ExclusiveLock(self.lock_path) as cache_lock:
+                    if not self.is_ready(deep=True):
+                        raise CacheError(
+                            "hot-main cache is missing or failed deep artifact verification"
+                        )
+                replacement = self._new_seed_replacement(
+                    target, rollback_prefix=".lake-prepare-rollback-"
+                )
+                seeded = self._publish_seed_locked(
+                    target,
+                    replace=replace_seed,
+                    cache_lock=cache_lock,
+                    target_lock=target_lock,
+                    started=started,
+                    replacement=replacement,
+                )
+                target.assert_current()
+                self._assert_no_materializer_recovery_state(target)
                 materialized = module.materialize(
                     module_project,
                     pin_path,
@@ -4117,14 +4833,16 @@ class HotMainCache:
                     "seed": seeded, "foundation": materialized, "verification": verified,
                     "authored_qpbt": authored_final,
                 }
-                self._append_metric(seeded, target.assert_current)
+                self._append_metric(
+                    seeded, lambda: self._assert_seed_target_registered(target)
+                )
                 replacement.metric_committed = True
                 self._mark_seed_committed(replacement)
-                target.assert_current()
+                self._assert_seed_target_registered(target)
                 seeded["backup_retained"] = self._retain_seed_backup(target, replacement)
-                if replacement.journal_dir.exists():
+                if replacement.journal_descriptor is not None:
                     os.fsync(target.project_descriptor)
-                    self._clear_seed_journal(replacement.journal_dir)
+                    self._clear_seed_journal(replacement)
                 self._discard_seed_rollback_root(target, replacement)
                 self._assert_seed_target_registered(target)
                 return prepared
@@ -4149,8 +4867,8 @@ class HotMainCache:
                     raise
                 raise CacheError(f"issue-worktree foundation preparation failed: {error}") from error
             finally:
-                if replacement is not None and replacement.original_descriptor is not None:
-                    os.close(replacement.original_descriptor)
+                if replacement is not None:
+                    self._close_seed_replacement(replacement)
                 target.close()
 
 
