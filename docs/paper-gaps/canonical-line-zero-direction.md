@@ -39,10 +39,13 @@ sum_i bit(D.coordinates s i) * 2^i
 ```
 
 with coordinate zero least significant. The future Lean implementation must
-prove this is an equivalence with `Fin (2^k)` and that it agrees with the
-ordered coordinate-bit codec used by the project. Then `chi` is zero-based
-integer division by `2^k/m`. Its fibers have the paper's required cardinality,
-so the selector is uniform; no opaque `Fintype.equivFin` choice is permitted.
+prove this is an equivalence with `Fin (2^k)`. The callable theorem
+`fieldElementIndex_testBit` states, for every `i : Fin k`, that bit `i` of the
+index is exactly `decide (D.coordinates s i = 1)`. This fixes the same
+least-coordinate-first order used by the project field-vector codec. Then
+`chi` is zero-based integer division by `2^k/m`. Its fibers have the paper's
+required cardinality, so the selector is uniform; no opaque
+`Fintype.equivFin` choice is permitted.
 
 ## Layering effect
 

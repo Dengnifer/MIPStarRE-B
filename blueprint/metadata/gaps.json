@@ -217,8 +217,8 @@
       "source": "classical-ldt.tex:194-207 [4356-4369]; finite-fields.tex:250-263 [1566-1579]",
       "affected_nodes": ["F09A-LDT-GAME-CORE", "F09-LDT-GAME", "G02-GAME"],
       "paper_problem": "The chi selector treats a field element as an integer, while the paper specifies only a natural binary representation in the selected basis and does not state which basis coordinate is most significant.",
-      "disposition": "Freeze the explicit little-endian boundary index(s) = sum_i bit(D.coordinates s i) * 2^i, with coordinate zero least significant. Prove it is an equivalence with Fin (2^k) and agrees with the same ordered coordinate-bit list used by the project codec.",
-      "public_effect": "Only a transparent representation convention is fixed. Every chi fiber has size 2^k/m, so a uniform selector remains uniform under any fixed bijective endian convention. No opaque Fintype.equivFin choice is used.",
+      "disposition": "Freeze the explicit little-endian boundary index(s) = sum_i bit(D.coordinates s i) * 2^i, with coordinate zero least significant. Prove it is an equivalence with Fin (2^k); the callable fieldElementIndex_testBit theorem states that index bit i equals decide (D.coordinates s i = 1), in the same order used by the project codec.",
+      "public_effect": "Only a transparent representation convention is fixed. fieldElementIndex_testBit makes the ordered codec boundary callable. Every chi fiber has size 2^k/m, so a uniform selector remains uniform under any fixed bijective endian convention. No opaque Fintype.equivFin choice is used.",
       "issue": "QPBT-074"
     }
   ]

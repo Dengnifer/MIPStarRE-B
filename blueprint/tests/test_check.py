@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import json
 import tempfile
@@ -947,13 +948,171 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertEqual(check.CLASSICAL_LDT_GAME_CORE_SOURCE_ANCHORS,
                          [core["source"], *core["additional_sources"]])
         self.assertEqual(check.CLASSICAL_LDT_GAME_CORE_LEAN_NAMES, core["lean"]["names"])
-        self.assertEqual(63, len(core["lean"]["names"]))
+        self.assertEqual(64, len(core["lean"]["names"]))
         self.assertEqual(check.CLASSICAL_LDT_GAME_CORE_IMPLEMENTATION_CONTRACT,
                          core["implementation_contract"])
         self.assertEqual(["MIPStarRE.QPBT.Basic.Polynomial", "MIPStarRE.QPBT.Game.Types"],
                          core["implementation_contract"]["imports"])
         self.assertEqual([], core["implementation_contract"]["allowed_minimal_sorries"])
         self.assertEqual(0, core["implementation_contract"]["proof_complete_sorry_count"])
+        self.assertNotIn("F07-TYPED", core["prerequisites"])
+        self.assertNotIn("F06A-EXECUTABLE-CL", core["prerequisites"])
+
+        manifest = core["implementation_contract"]["signature_manifest"]
+        report = (ROOT.parent / manifest["path"]).read_text(encoding="utf-8")
+        signature_block = report.split(manifest["begin_marker"], 1)[1].split(
+            manifest["end_marker"], 1
+        )[0].strip()
+        self.assertEqual([], check.classical_ldt_signature_errors(signature_block))
+        declaration_names, declaration_segments, declaration_errors = (
+            check.classical_ldt_declaration_segments(signature_block)
+        )
+        self.assertEqual([], declaration_errors)
+        self.assertEqual(check.CLASSICAL_LDT_GAME_CORE_LEAN_NAMES, declaration_names)
+        self.assertEqual(
+            check.CLASSICAL_LDT_LOCAL_INSTANCE_NAMES,
+            [
+                "classicalLDTGaloisFieldFintype",
+                "classicalLDTGaloisFieldDecidableEq",
+            ],
+        )
+        self.assertEqual(
+            check.CLASSICAL_LDT_GAME_CORE_LEAN_NAMES,
+            list(check.CLASSICAL_LDT_GAME_CORE_DECLARATION_SHA256),
+        )
+        for name, segment in declaration_segments.items():
+            self.assertEqual(
+                check.CLASSICAL_LDT_GAME_CORE_DECLARATION_SHA256[name],
+                hashlib.sha256(segment.encode("utf-8")).hexdigest(),
+            )
+
+        for qualified_name in check.CLASSICAL_LDT_GAME_CORE_LAW_NAMES:
+            short_name = qualified_name.removeprefix("MIPStarRE.QPBT.")
+            declaration = f"theorem {short_name}"
+            with self.subTest(comment_only_law=qualified_name):
+                comment_only = signature_block.replace(
+                    declaration, f"-- {declaration}", 1
+                )
+                self.assertTrue(any(
+                    "code must not contain comments" in error
+                    for error in check.classical_ldt_signature_errors(
+                        comment_only,
+                        hashlib.sha256(comment_only.encode("utf-8")).hexdigest(),
+                    )
+                ))
+
+        block_comment = signature_block.replace(
+            "theorem chi_val", "/- theorem chi_val -/", 1
+        )
+        self.assertTrue(any(
+            "code must not contain comments" in error
+            for error in check.classical_ldt_signature_errors(
+                block_comment, hashlib.sha256(block_comment.encode("utf-8")).hexdigest()
+            )
+        ))
+
+        for instance_name in check.CLASSICAL_LDT_LOCAL_INSTANCE_NAMES:
+            with self.subTest(local_instance_name=instance_name):
+                renamed = signature_block.replace(
+                    instance_name, f"{instance_name}Renamed", 1
+                )
+                self.assertTrue(any(
+                    "local instance names/order must remain exact" in error or
+                    "omits required term" in error
+                    for error in check.classical_ldt_signature_errors(
+                        renamed, hashlib.sha256(renamed.encode("utf-8")).hexdigest()
+                    )
+                ))
+
+        signature_mutations = (
+            ("(hv : v ≠ 0)", "(hv : True)"),
+            ("(s : GaloisField 2 k) :", "(s : GaloisField 2 k) (repair : True) :"),
+            ("| .point _ => GaloisField 2 k", "| .point _ => Unit"),
+            ("deriving DecidableEq, Fintype", "deriving DecidableEq"),
+            ("chi D hm pair.1.selector) i", "pair.1.selector) i"),
+            ("(q.line D hm).direction = 0", "q.direction = 0"),
+            ("| none => false", "| none => true"),
+        )
+        for old, new in signature_mutations:
+            with self.subTest(weakened_signature=old):
+                self.assertIn(old, signature_block)
+                weakened = signature_block.replace(old, new, 1)
+                self.assertTrue(any(
+                    "differs from exact signature" in error or
+                    "contains forbidden pattern" in error or
+                    "omits required term" in error
+                    for error in check.classical_ldt_signature_errors(
+                        weakened, hashlib.sha256(weakened.encode("utf-8")).hexdigest()
+                    )
+                ))
+
+        finite_carriers = (
+            "structure AxisLineQuestion (k m : Nat)",
+            "structure DiagonalLineQuestion (k m : Nat)",
+            "inductive IndividualLDTQuestion (k m : Nat)",
+        )
+        for carrier in finite_carriers:
+            segment = next(
+                declaration_segments[name] for name in declaration_names
+                if declaration_segments[name].startswith(carrier)
+            )
+            weakened_segment = segment.replace(
+                "deriving DecidableEq, Fintype", "deriving DecidableEq", 1
+            )
+            weakened = signature_block.replace(segment, weakened_segment, 1)
+            with self.subTest(finite_carrier=carrier):
+                self.assertTrue(any(
+                    "differs from exact signature" in error or
+                    "derive exactly three finite carriers" in error
+                    for error in check.classical_ldt_signature_errors(
+                        weakened, hashlib.sha256(weakened.encode("utf-8")).hexdigest()
+                    )
+                ))
+
+        for answer_arm, weakened_arm in (
+            ("| .point _ => GaloisField 2 k", "| .point _ => Unit"),
+            ("| .axisLine _ => BoundedUnivariatePolynomial k d",
+             "| .axisLine _ => BoundedUnivariatePolynomial k (m * d)"),
+            ("| .diagonalLine _ => BoundedUnivariatePolynomial k (m * d)",
+             "| .diagonalLine _ => BoundedUnivariatePolynomial k d"),
+        ):
+            weakened = signature_block.replace(answer_arm, weakened_arm, 1)
+            with self.subTest(answer_fiber=answer_arm):
+                self.assertTrue(any(
+                    "IndividualLDTAnswer" in error or "omits required term" in error
+                    for error in check.classical_ldt_signature_errors(
+                        weakened, hashlib.sha256(weakened.encode("utf-8")).hexdigest()
+                    )
+                ))
+
+        added_f07 = copy.deepcopy(self.nodes)
+        added_f07_core = next(
+            item for item in added_f07["nodes"]
+            if item["id"] == check.CLASSICAL_LDT_GAME_CORE_ID
+        )
+        added_f07_core["prerequisites"].append("F07-TYPED")
+        self.assertTrue(any(
+            "forbidden F06A/F07 semantic ancestors" in error
+            for error in self.errors(nodes=added_f07)
+        ))
+
+        bad_reuse = copy.deepcopy(self.nodes)
+        bad_reuse_core = next(
+            item for item in bad_reuse["nodes"]
+            if item["id"] == check.CLASSICAL_LDT_GAME_CORE_ID
+        )
+        bad_reuse_core["implementation_contract"]["reused_api"].append(
+            "MIPStarRE.QPBT.TypedDecider"
+        )
+        self.assertTrue(any(
+            "F06-only reused API whitelist must remain exact" in error or
+            "implementation contract must remain exact" in error
+            for error in self.errors(nodes=bad_reuse)
+        ))
+
+        self.assertIn("constructive Fintype instances", by_id[check.QPBT_GAME_ID]["encoding"])
+        self.assertIn("never downstream orphan instances",
+                      by_id[check.QPBT_GAME_ID]["boundary_hypotheses"])
 
         direct_edge_cases = (
             (check.MAGIC_GAME_OWNER_ID, check.GAME_SEMANTICS_OWNER_ID,
@@ -1051,6 +1210,150 @@ class BlueprintCheckTests(unittest.TestCase):
             "progress and inherited G22/G23 fidelity must remain exact" in error
             for error in self.errors(nodes=wrong_g02_fidelity)
         ))
+
+    def test_classical_ldt_sources_are_structured_and_content_authenticated(self) -> None:
+        self.assertEqual([], check.classical_ldt_source_manifest_errors(ROOT.parent))
+        self.assertEqual([], check.classical_ldt_combined_import_probe_errors(ROOT.parent))
+        self.assertEqual(4, len(check.CLASSICAL_LDT_GAME_CORE_AUTHENTICATED_SOURCES))
+        self.assertEqual(
+            check.CLASSICAL_LDT_GAME_CORE_SOURCE_ANCHORS,
+            [
+                anchor
+                for source in check.CLASSICAL_LDT_GAME_CORE_AUTHENTICATED_SOURCES
+                for anchor in source["anchors"]
+            ],
+        )
+
+        report_path = Path("workflow/reviews/qpbt-074-game-contract-a01.md")
+        report = (ROOT.parent / report_path).read_text(encoding="utf-8")
+        manifest_mutations = (
+            (
+                '"sha256": "' + check.CLASSICAL_LDT_GAME_CORE_SOURCE_SHA256[
+                    "references/2001.04383v3/sections/dependencies/classical-ldt.tex"
+                ] + '"',
+                '"sha256": "' + "0" * 64 + '"',
+            ),
+            ('"generated_lines": [262, 273]', '"generated_lines": [263, 273]'),
+        )
+        for old, new in manifest_mutations:
+            with self.subTest(source_manifest_mutation=old):
+                self.assertIn(old, report)
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    repository_root = Path(temporary_directory)
+                    destination = repository_root / report_path
+                    destination.parent.mkdir(parents=True)
+                    destination.write_text(report.replace(old, new, 1), encoding="utf-8")
+                    self.assertTrue(any(
+                        "authenticated source manifest must remain exact" in error or
+                        "source manifest anchors must match node anchors" in error
+                        for error in check.classical_ldt_source_manifest_errors(
+                            repository_root
+                        )
+                    ))
+
+        expected_probe_modules = {
+            "MIPStarRE.QPBT.Basic.Pauli",
+            "MIPStarRE.QPBT.Basic.Polynomial",
+            "MIPStarRE.QPBT.Game.Types",
+            "MIPStarRE.QPBT.Game.Parameters",
+            "MIPStarRE.QPBT.Game.MagicSquare.Defs",
+            "MIPStarRE.QPBT.Game.ClassicalLDT",
+        }
+        self.assertEqual(
+            {"pauli_first", "classical_ldt_first"},
+            set(check.CLASSICAL_LDT_COMBINED_IMPORT_PROBE),
+        )
+        for order, modules in check.CLASSICAL_LDT_COMBINED_IMPORT_PROBE.items():
+            with self.subTest(combined_import_order=order):
+                self.assertEqual(expected_probe_modules, set(modules))
+                self.assertEqual(6, len(modules))
+
+        probe_marker = check.CLASSICAL_LDT_COMBINED_IMPORT_PROBE_MARKERS[0]
+        probe_suffix = report.split(probe_marker, 1)[1]
+        probe_mutation = probe_suffix.replace(
+            '    "MIPStarRE.QPBT.Basic.Pauli",\n', "", 1
+        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository_root = Path(temporary_directory)
+            destination = repository_root / report_path
+            destination.parent.mkdir(parents=True)
+            destination.write_text(
+                report.split(probe_marker, 1)[0] + probe_marker + probe_mutation,
+                encoding="utf-8",
+            )
+            self.assertTrue(any(
+                "combined-import probe must remain exact" in error
+                for error in check.classical_ldt_combined_import_probe_errors(
+                    repository_root
+                )
+            ))
+
+        source_layout = {
+            "dependencies/classical-ldt.tex": (497, {
+                88: r"\label{def:line}",
+                262: r"\label{def:line-point-dist}",
+                306: r"\label{fig:ld-decider}",
+            }),
+            "qpbt/qpbt-game-and-soundness.tex": (593, {}),
+            "top-level/preliminaries.tex": (1265, {
+                306: r"\label{def:canonical-complement}",
+            }),
+            "dependencies/finite-fields.tex": (412, {}),
+        }
+        split_manifest = {
+            "collections": [
+                {"output_directory": "dependencies", "slices": [
+                    ["classical-ldt", 4163, 4659],
+                    ["finite-fields", 1317, 1728],
+                ]},
+                {"output_directory": "qpbt", "slices": [
+                    ["qpbt-game-and-soundness", 5047, 5639],
+                ]},
+                {"output_directory": "top-level", "slices": [
+                    ["preliminaries", 898, 2162],
+                ]},
+            ]
+        }
+        core = next(
+            copy.deepcopy(node) for node in self.nodes["nodes"]
+            if node["id"] == check.CLASSICAL_LDT_GAME_CORE_ID
+        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            source_root = Path(temporary_directory)
+            (source_root / "split-manifest.json").write_text(
+                json.dumps(split_manifest), encoding="utf-8"
+            )
+            materialized: dict[str, Path] = {}
+            expected_hashes: dict[str, str] = {}
+            for relative, (line_count, labels) in source_layout.items():
+                destination = source_root / "sections" / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                lines = [f"source line {line_number}" for line_number in range(1, line_count + 1)]
+                for line_number, label in labels.items():
+                    lines[line_number - 1] = label
+                content = ("\n".join(lines) + "\n").encode("utf-8")
+                destination.write_bytes(content)
+                canonical_path = f"references/2001.04383v3/sections/{relative}"
+                materialized[canonical_path] = destination
+                expected_hashes[canonical_path] = hashlib.sha256(content).hexdigest()
+
+            canonical_hashes = check.CLASSICAL_LDT_GAME_CORE_SOURCE_SHA256.copy()
+            try:
+                check.CLASSICAL_LDT_GAME_CORE_SOURCE_SHA256.clear()
+                check.CLASSICAL_LDT_GAME_CORE_SOURCE_SHA256.update(expected_hashes)
+                self.assertEqual([], check.validate_sources({"nodes": [core]}, source_root))
+                for canonical_path, destination in materialized.items():
+                    with self.subTest(tampered_source=canonical_path):
+                        original = destination.read_bytes()
+                        destination.write_bytes(original + b"tampered\n")
+                        self.assertTrue(any(
+                            f"authenticated source digest mismatch: {canonical_path}" in error
+                            for error in check.validate_sources({"nodes": [core]}, source_root)
+                        ))
+                        destination.write_bytes(original)
+            finally:
+                check.CLASSICAL_LDT_GAME_CORE_SOURCE_SHA256.clear()
+                check.CLASSICAL_LDT_GAME_CORE_SOURCE_SHA256.update(canonical_hashes)
 
     def test_classical_ldt_gaps_and_records_are_fail_closed(self) -> None:
         by_gap = {gap["id"]: gap for gap in self.gaps["gaps"]}
