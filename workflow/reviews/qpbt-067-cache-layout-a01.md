@@ -9,12 +9,23 @@ Observed: 2026-09-03 (read-only audit; no cache, worktree, source, or state muta
 The layout is governed by `protocols/local-development.md`: the runtime root is
 `.workflow-runtime` below the primary non-bare worktree (lines 16-27), warm is
 lock-elected and publishes an atomic key directory only after a successful build
-(lines 39-44), `READY` authenticates the manifest and deep verification is done
-by `seed` (lines 64-67), and issue worktrees must receive private writable
-copies with hard-linked `.lake/build` forbidden (lines 73-78). The implementation
-places `cache/main/<key>/.lake`, `manifest.json`, `READY`, and per-key locks at
-`scripts/hot_main_cache.py:1973-1981`; `is_ready` checks the READY digest and
-identity fields before optional deep artifact inventory at `:2179-2229`.
+(lines 49-54), `READY` authenticates the manifest and deep verification is done
+by `seed` (lines 74-77), and issue worktrees must receive private writable
+copies with hard-linked `.lake/build` forbidden (lines 83-103). In the QPBT-068
+candidate, `HotMainCache.__init__` places `cache/main/<key>/.lake`,
+`manifest.json`, `READY`, and per-key locks at
+`scripts/hot_main_cache.py:2121`; `HotMainCache.is_ready` checks the READY
+digest and identity fields before optional deep artifact inventory at
+`scripts/hot_main_cache.py:2566`. These symbol-qualified anchors are bound to
+the immutable QPBT-068 head recorded in its implementation report and result
+envelope.
+
+### Source provenance
+
+| Source | Commit / tree / blob | Byte evidence | Disposition |
+|---|---|---|---|
+| Original QPBT-067 report | commit `4c4612b5f77800c3b549b60585e0ee21762e7d30`; tree `812749f12d268f84fc1802ce7af7c821d6a2af05`; blob `09df9dac0f3687f2a69baad90887d16d7af10781` | SHA-256 `afa401e27cb8e5e8a2a83501f3813c4e56fe58a26a692dd1fdc14a3a64e7ef97` | Authenticated from Git. |
+| `workflow/reviews/qpbt-062-branch-lifecycle-a01.md` | commit `889e7f8f16b09e5c6de23b3348508a48c2bc14c6`; tree `04cad9b46835ab529b849510c853a07b2c8bce27`; blob `fb4990be9374d38944d62007cbf3bceaf649def1` | 7,398 bytes; SHA-256 `fc8c515d300b2bfe7d7c3f171afd56df8cd599f2fcd9de91f49d1773c84e2795` | Authenticated from the reachable Git object. The path is absent from this candidate tree; approval remains deferred until the next immutable review manifest includes these exact bytes. |
 
 ## Inventory evidence
 
@@ -40,8 +51,10 @@ worktree `.workflow-runtime/worktrees/qpbt-037-pauli-a01/.lake/packages/mathlib`
 was observed as an absolute symlink to
 `/home/drx/.cache/mipstarre-dev/hot-main/repo/.lake/packages/mathlib`; the
 resolved target was mode `775` and writable at review time. Consequently,
-package-target ownership/read-only and realpath containment checks are still
-required before claiming a seed is private. Existing seed
+the QPBT-068 candidate rejects every external first hop or final target rather
+than treating mode bits as durable immutability evidence. That candidate still
+requires fresh immutable approval before this audit may rely on the policy.
+Existing seed
 metrics (45 JSONL records in `metrics/hot-main.jsonl`) report
 `copy.files=124925`, approximately 10.10 GB per full seed, and
 `reflinked=0,copied=124925`; this volume is using the conservative byte-copy
@@ -93,7 +106,7 @@ and should add an explicit append-only reference record before reclaiming.
 
 | Option | Soundness against singleton compilation / private writable output | Space and portability assessment |
 |---|---|---|
-| Immutable shared snapshot, copy on seed | Preserves one lock-elected build and authenticated READY; inspected build files have no hard links. Whole-`.lake` privacy is not established until symlink targets are contained/owned and non-writable. | Current behavior; safe everywhere once the target policy is enforced, but byte-copy costs about 10 GB per seed on ext4. |
+| Immutable shared snapshot, copy on seed | Preserves one lock-elected build and authenticated READY; inspected build files have no hard links. Whole-`.lake` privacy requires rejecting every link that leaves the private destination. | Current baseline plus the preliminary QPBT-068 policy; byte-copy costs about 10 GB per seed on ext4. |
 | Reflink copy-on-write seed | Same semantics if destination inode/link checks and deep inventory remain; writes diverge by extent. | Preferred optimization when `FICLONE` succeeds. Must record `reflinked`/`copied` counts and retain byte-copy fallback; filesystem-dependent. |
 | Hard links to `.lake/build` | Violates protocol: Lean can mutate artifacts and cross-worktree writes become visible. | Prohibited regardless of apparent savings; test link counts and reject. |
 | Overlayfs / CoW delta over immutable package+build layers | Could share read-only package bytes and isolate writable deltas; singleton warm still required. | Requires privileged/mount support, careful lowerdir authentication, whiteout handling, and portability fallback; not justified until measured on this host. |
@@ -119,18 +132,18 @@ attempt is terminal); retain successful snapshots while referenced, then for a
 the grace interval, no active lease, valid lock-state audit, and a final
 manifest/READY check; move to quarantine before any irreversible deletion.
 
-The implemented live-process path is exception rollback: staging directories
-without `READY` are never addressable; a snapshot with a mismatched READY digest
-is quarantined, never repaired in place; and seed replacement uses the existing
-private backup and restores it when post-publication validation fails
-(local-development.md:77-78). This rollback path does not prove process-crash
-recovery. In `scripts/hot_main_cache.py:2841-2846`, a SIGKILL between the rename
-of the old `.lake` to `.lake.backup-*` and the rename of the staged tree can
-leave the target without `.lake`; no automatic recovery guarantee is currently
-implemented. Treat that state as an observed risk requiring a future
-lock-serialized recovery implementation and subprocess SIGKILL tests. Do not
-claim that interruption between copy and publication currently preserves either
-the old destination or a complete validated destination.
+The implemented cache-readiness path is fail-closed:
+`HotMainCache.is_ready` returns false for a mismatched `READY` digest; no
+current command moves that snapshot to quarantine. The quarantine rules above
+remain a proposed cleanup contract. Synchronous seed failures restore a private
+backup before the metric commit point. The preliminary QPBT-068 candidate adds
+digest-bound journal publication in `HotMainCache._write_seed_journal`
+(`scripts/hot_main_cache.py:3244`), cache-independent state recovery in
+`HotMainCache._recover_interrupted_seed` (`:3417`), and journaled renames in
+`HotMainCache._publish_seed_locked` (`:3540`). These are candidate behaviors,
+not approved live guarantees, until a fresh immutable review approves the final
+head. Cleanup quarantine remains separate from exception rollback and seed
+transaction recovery.
 
 ## Measurable acceptance tests
 
@@ -144,14 +157,19 @@ the old destination or a complete validated destination.
    assert destination inode differs, all build files have `st_nlink == 1`,
    writes to destination do not alter source, and fallback reports
    `reflinked=0` with exact copied file/byte counts. Existing regression
-   `tests/test_hot_main_cache.py:600-624` covers private writable behavior.
+   `HotMainCacheTests.test_warm_hits_then_seed_is_private_and_writable`
+   (`tests/test_hot_main_cache.py:691`) covers private writable behavior.
 3. **Singleton/leases:** run concurrent warms for one key; assert one build,
    one READY publication, waiter hit metrics, and no staging READY. Register two
    seeds, then run dry-run cleanup; referenced key must not be a candidate.
 4. **Crash/rollback:** inject interruption at staging, READY publication, and
    seed replacement; assert no partial published tree, old destination restored,
-   and quarantine/failure record contains reason without READY. Existing failure
-   regressions cover no-READY behavior (`tests/test_hot_main_cache.py:545-598`).
+   and quarantine/failure record contains reason without READY. Candidate
+   journal regressions begin at
+   `HotMainCacheTests.test_seed_rejects_unowned_backup_decoys_without_mutation`
+   (`tests/test_hot_main_cache.py:3386`); existing failed-build retention is
+   covered by `HotMainCacheTests.test_failed_build_is_retained_but_never_published`
+   (`:3176`).
 5. **Capacity guard:** on a filesystem with <10 GB free, dry-run must refuse
    byte-copy seeding before mutation and report required/apparent/physical bytes;
    reflink mode may proceed only after an explicit CoW capability check.
@@ -163,9 +181,32 @@ the old destination or a complete validated destination.
 
 ## Metrics and protocol implications
 
-This attempt made no source or protocol edits and dispatched no child agents.
-Observed protocol revision is the current `local-development.md` contract
-(recipe v7). The audit exposes a capacity risk rather than an implementation
+The original audit attempt made no source or protocol edits and dispatched no
+child agents. Its authenticated lifecycle and timing records are
+`workflow/state/sessions.json` SHA-256
+`ae17e1b2c93ef6d120058c4402383370f71cb532b9736504ef11dc0a8e5c1bcc`
+and `research/metrics/sessions.jsonl` SHA-256
+`6b1c2c1e2141f6bbbaf626a6303c572350c8ff01b4ca4f710858fc4870d16a5e`.
+
+| Audit metric | Authenticated value | Availability |
+|---|---:|---|
+| `audit_started_at` | `2026-09-03T09:10:15.289700Z` | Runtime measured. |
+| `audit_stopped_at` | `2026-09-03T09:25:32.007492Z` | Runtime measured. |
+| `elapsed_seconds` | `916.718` | Runtime measured. |
+| Focused cache tests | `62/62 passed` | Result recorded; per-command elapsed latency was not recorded and is unavailable. |
+| Inventory command latencies | `null` | No per-command timing evidence was recorded; not estimated. |
+| `measured_max_parallel_lanes` | `4` non-coordinator sessions | Interval sweep over authenticated `started_at`/`ended_at` fields. From `2026-09-03T09:15:01.976868Z` through `09:24:47.060258Z`, the audit overlapped `i051-fixer-a09-cache-metric`, `i060-orchestrator-a02-integration`, and `i057-scout-a06-resource-selection`. The continuously running root coordinator is excluded from lane occupancy. |
+| Protocol revision | recipe v7 at audit base `58980655263b581b0fa8751bed09440ee1b0141a` | Authenticated by the session record. |
+
+QPBT-067 was created at `2026-09-03T09:12:00Z`. QPBT-068 was created at
+`2026-09-03T09:42:00Z` while QPBT-067 was still in review. No authenticated
+authorization for an exception is recorded. The acceptance gate requiring
+these metrics and approval before opening an implementation issue was therefore
+violated and cannot be repaired retroactively. QPBT-067 remains unapproved;
+this correction records the missing values and ordering failure rather than
+claiming an exception.
+
+The audit exposes a capacity risk rather than an implementation
 bug: 97% volume utilization leaves roughly 185 GB, while one full byte-copy
 seed is about 10.5 GB physical. Add reference/lease accounting and dry-run
 quarantine reporting before enabling automated cleanup. If the same ext4

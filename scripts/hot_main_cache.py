@@ -21,6 +21,7 @@ import json
 import os
 from pathlib import Path
 from pathlib import PurePosixPath
+import secrets
 import shutil
 import socket
 import stat
@@ -67,8 +68,15 @@ class _SeedReplacement:
     destination: Path
     backup: Path
     rollback_root: Path
+    transaction_id: str
+    journal_dir: Path
+    journal_path: Path
+    journal_digest_path: Path
+    committed_path: Path
+    staging_root: Path | None = None
     old_moved: bool = False
     new_published: bool = False
+    metric_committed: bool = False
 
 
 @dataclass(frozen=True)
@@ -1975,6 +1983,43 @@ def _walk_without_following(root: Path) -> list[Path]:
     return paths
 
 
+def _strict_walk_without_following(root: Path) -> list[Path]:
+    """Walk a tree without following links, surfacing every traversal error."""
+
+    paths: list[Path] = [root]
+
+    def fail(error: OSError) -> None:
+        raise CacheError(f"could not inspect Lake tree {error.filename or root}: {error}") from error
+
+    for directory, names, files in os.walk(root, followlinks=False, onerror=fail):
+        base = Path(directory)
+        paths.extend(base / name for name in names)
+        paths.extend(base / name for name in files)
+    return paths
+
+
+def _validate_lake_symlink_policy(root: Path) -> None:
+    """Reject links whose first hop or final target escapes the private tree."""
+
+    if not root.is_dir() or root.is_symlink():
+        raise CacheError(f"Lake root must be a real directory: {root}")
+    root_resolved = root.resolve(strict=True)
+    for path in _strict_walk_without_following(root):
+        if not path.is_symlink():
+            continue
+        raw_target = Path(os.readlink(path))
+        first_hop = raw_target if raw_target.is_absolute() else path.parent / raw_target
+        first_hop = Path(os.path.abspath(first_hop))
+        if not path_is_within(first_hop, root_resolved):
+            raise CacheError(f"symlink first hop escapes private Lake tree: {path}")
+        try:
+            resolved = path.resolve(strict=True)
+        except (OSError, RuntimeError) as error:
+            raise CacheError(f"symlink target cannot be resolved: {path}: {error}") from error
+        if not path_is_within(resolved, root_resolved):
+            raise CacheError(f"symlink target escapes private Lake tree: {path}")
+
+
 def make_read_only(root: Path) -> None:
     for path in reversed(_walk_without_following(root)):
         if path.is_symlink():
@@ -2002,6 +2047,30 @@ def atomic_write_json(path: Path, value: Any) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _atomic_write_bytes(path: Path, payload: bytes) -> None:
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+        _fsync_directory(path.parent)
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -2568,54 +2637,49 @@ class HotMainCache:
             **metric,
         }
         encoded = (json.dumps(envelope, ensure_ascii=True, separators=(",", ":")) + "\n").encode("utf-8")
-        checkpoint: int | None = None
-        try:
-            with ExclusiveLock(self.metrics_lock_path):
-                self.metrics_path.parent.mkdir(parents=True, exist_ok=True)
-                descriptor = os.open(
-                    self.metrics_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644
-                )
-                try:
-                    checkpoint = os.fstat(descriptor).st_size
-                    written = os.write(descriptor, encoded)
-                    if written != len(encoded):
-                        raise OSError(errno.EIO, "short hot-cache metric write")
-                    os.fsync(descriptor)
-                finally:
-                    os.close(descriptor)
-        except BaseException as error:
-            if checkpoint is None:
-                raise
-            try:
-                self._rollback_metric_append(checkpoint)
-            except BaseException as rollback_error:
-                raise OSError(
-                    f"hot-cache metric append failed ({error}); rollback failed: {rollback_error}"
-                ) from error
-            raise
-
-    def _rollback_metric_append(self, checkpoint: int) -> None:
-        """Durably remove a metric append after any append/cleanup failure."""
-
+        self.metrics_path.parent.mkdir(parents=True, exist_ok=True)
         lock = ExclusiveLock(self.metrics_lock_path)
         lock.__enter__()
         descriptor: int | None = None
+        committed = False
         try:
-            descriptor = os.open(self.metrics_path, os.O_RDWR | os.O_CREAT, 0o644)
-            os.ftruncate(descriptor, checkpoint)
-            os.fsync(descriptor)
+            descriptor = os.open(
+                self.metrics_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644
+            )
+            checkpoint = os.fstat(descriptor).st_size
+            try:
+                written = os.write(descriptor, encoded)
+                if written != len(encoded):
+                    raise OSError(errno.EIO, "short hot-cache metric write")
+                os.fsync(descriptor)
+                committed = True
+            except BaseException as error:
+                try:
+                    self._rollback_metric_append_locked(descriptor, checkpoint)
+                except BaseException as rollback_error:
+                    raise OSError(
+                        f"hot-cache metric append failed ({error}); rollback failed: {rollback_error}"
+                    ) from error
+                raise
         finally:
             if descriptor is not None:
                 try:
                     os.close(descriptor)
                 except BaseException:
-                    pass
+                    if not committed and sys.exc_info()[0] is None:
+                        raise
             try:
                 lock.__exit__(None, None, None)
             except BaseException:
-                # The truncation and fsync above establish the rollback.  A
-                # second cleanup failure must not mask that durable result.
-                pass
+                if not committed and sys.exc_info()[0] is None:
+                    raise
+
+    @staticmethod
+    def _rollback_metric_append_locked(descriptor: int, checkpoint: int) -> None:
+        """Durably roll back on the descriptor while its original lock is held."""
+
+        os.ftruncate(descriptor, checkpoint)
+        os.fsync(descriptor)
 
     def _run_logged(
         self,
@@ -3073,7 +3137,9 @@ class HotMainCache:
                     # the unpacked source tree.
                     self._cleanup_mathlib_source(mathlib_binding)
 
-    def _eligible_seed_target(self, supplied_target: Path) -> tuple[Path, Path]:
+    def _eligible_seed_target(
+        self, supplied_target: Path, *, check_inputs: bool = True
+    ) -> tuple[Path, Path]:
         lexical_target = reject_symlink_components(supplied_target)
         if not lexical_target.is_dir():
             raise CacheError(f"target worktree must be an existing real directory: {lexical_target}")
@@ -3111,12 +3177,13 @@ class HotMainCache:
         ):
             raise CacheError("target worktree is not attached to the main repository")
 
-        try:
-            self._capture_identity_inputs(target_project)
-        except CacheError as error:
-            raise CacheError(
-                f"target worktree has cache-key inputs incompatible with this cache: {error}"
-            ) from error
+        if check_inputs:
+            try:
+                self._capture_identity_inputs(target_project)
+            except CacheError as error:
+                raise CacheError(
+                    f"target worktree has cache-key inputs incompatible with this cache: {error}"
+                ) from error
         return target_project, matched_root
 
     def _validate_seeded_destination(self, destination: Path) -> None:
@@ -3127,12 +3194,292 @@ class HotMainCache:
         build = destination / "build"
         if not build.is_dir() or build.is_symlink():
             raise CacheError(f"seed publication has no real build directory: {build}")
+        _validate_lake_symlink_policy(destination)
         try:
             manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
             raise CacheError(f"could not read cache manifest after seed: {error}") from error
         if artifact_inventory(destination) != manifest.get("artifact_inventory"):
             raise CacheError("seeded cache artifact inventory does not match the published cache")
+
+    @staticmethod
+    def _lake_tree_identity(path: Path) -> dict[str, Any]:
+        if not path.is_dir() or path.is_symlink():
+            raise CacheError(f"seed transaction tree must be a real directory: {path}")
+        metadata = path.stat(follow_symlinks=False)
+        return {
+            "device": metadata.st_dev,
+            "inode": metadata.st_ino,
+            "type": stat.S_IFMT(metadata.st_mode),
+            "inventory": artifact_inventory(path),
+        }
+
+    @classmethod
+    def _lake_tree_matches(cls, path: Path, expected: Any) -> bool:
+        try:
+            return cls._lake_tree_identity(path) == expected
+        except (CacheError, OSError):
+            return False
+
+    @staticmethod
+    def _seed_target_digest(target_project: Path) -> str:
+        destination = target_project / ".lake"
+        return hashlib.sha256(str(destination).encode("utf-8")).hexdigest()
+
+    def _seed_transaction_dir(self, target_project: Path) -> Path:
+        return (
+            self.runtime_dir
+            / "transactions"
+            / "seed"
+            / self._seed_target_digest(target_project)
+        )
+
+    @staticmethod
+    def _journal_bytes(value: Mapping[str, Any]) -> bytes:
+        return (
+            json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+            + "\n"
+        ).encode("ascii")
+
+    def _write_seed_journal(
+        self,
+        replacement: _SeedReplacement,
+        target_project: Path,
+        staging_lake: Path,
+    ) -> None:
+        original = self._lake_tree_identity(replacement.destination)
+        replacement_identity = self._lake_tree_identity(staging_lake)
+        staging_root = replacement.staging_root
+        if staging_root is None:
+            raise CacheError("seed transaction has no staging root")
+        value = {
+            "schema_version": 1,
+            "transaction_version": 1,
+            "transaction_id": replacement.transaction_id,
+            "target_project": str(target_project),
+            "destination": str(replacement.destination),
+            "target_lock_digest": self._seed_target_digest(target_project),
+            "replace": True,
+            "backup_basename": replacement.backup.name,
+            "staging_basename": staging_root.name,
+            "retained_basename": f".lake.retained-{replacement.transaction_id}",
+            "original": original,
+            "replacement": replacement_identity,
+            "cache_key": self.identity.cache_key,
+            "main_commit": self.identity.main_commit,
+            "cache_manifest_sha256": sha256_file(self.manifest_path),
+        }
+        payload = self._journal_bytes(value)
+        replacement.journal_dir.parent.mkdir(parents=True, exist_ok=True)
+        if replacement.journal_dir.exists() or replacement.journal_dir.is_symlink():
+            raise CacheError(
+                f"seed transaction journal already exists: {replacement.journal_dir}"
+            )
+        replacement.journal_dir.mkdir()
+        _fsync_directory(replacement.journal_dir.parent)
+        _atomic_write_bytes(replacement.journal_path, payload)
+        _atomic_write_bytes(
+            replacement.journal_digest_path,
+            (hashlib.sha256(payload).hexdigest() + "\n").encode("ascii"),
+        )
+        _fsync_directory(replacement.journal_dir)
+
+    def _load_seed_journal(self, target_project: Path) -> tuple[dict[str, Any], str] | None:
+        journal_dir = self._seed_transaction_dir(target_project)
+        if not journal_dir.exists() and not journal_dir.is_symlink():
+            return None
+        if not journal_dir.is_dir() or journal_dir.is_symlink():
+            raise CacheError(f"seed transaction journal is not a real directory: {journal_dir}")
+        names = {entry.name for entry in os.scandir(journal_dir)}
+        required = {"journal.json", "journal.sha256"}
+        if not required.issubset(names) or not names.issubset(required | {"COMMITTED"}):
+            raise CacheError(f"seed transaction journal has invalid entries: {journal_dir}")
+        journal_path = journal_dir / "journal.json"
+        digest_path = journal_dir / "journal.sha256"
+        if (
+            not journal_path.is_file()
+            or journal_path.is_symlink()
+            or not digest_path.is_file()
+            or digest_path.is_symlink()
+        ):
+            raise CacheError(f"seed transaction journal files are invalid: {journal_dir}")
+        payload = _read_bounded_regular_file(journal_path, 1024 * 1024, "seed journal")
+        try:
+            digest = _read_bounded_regular_file(
+                digest_path, 256, "seed journal digest"
+            ).decode("ascii").strip()
+            value = json.loads(
+                payload.decode("ascii"), object_pairs_hook=_json_object_without_duplicates
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise CacheError(f"seed transaction journal cannot be decoded: {journal_dir}") from error
+        if not isinstance(value, dict) or self._journal_bytes(value) != payload:
+            raise CacheError(f"seed transaction journal is not canonical: {journal_dir}")
+        expected_keys = {
+            "schema_version",
+            "transaction_version",
+            "transaction_id",
+            "target_project",
+            "destination",
+            "target_lock_digest",
+            "replace",
+            "backup_basename",
+            "staging_basename",
+            "retained_basename",
+            "original",
+            "replacement",
+            "cache_key",
+            "main_commit",
+            "cache_manifest_sha256",
+        }
+        transaction_id = value.get("transaction_id")
+        target_digest = self._seed_target_digest(target_project)
+        if (
+            set(value) != expected_keys
+            or value.get("schema_version") != 1
+            or value.get("transaction_version") != 1
+            or not _is_lower_hex(transaction_id, 32)
+            or value.get("target_project") != str(target_project)
+            or value.get("destination") != str(target_project / ".lake")
+            or value.get("target_lock_digest") != target_digest
+            or value.get("replace") is not True
+            or value.get("backup_basename") != f".lake.backup-{transaction_id}"
+            or value.get("staging_basename") != f".lake-seed-{transaction_id}"
+            or value.get("retained_basename") != f".lake.retained-{transaction_id}"
+            or not _is_lower_hex(value.get("cache_key"), 64)
+            or not re_full_sha(value.get("main_commit", ""))
+            or not _is_lower_hex(value.get("cache_manifest_sha256"), 64)
+            or not isinstance(value.get("original"), dict)
+            or not isinstance(value.get("replacement"), dict)
+            or digest != hashlib.sha256(payload).hexdigest()
+        ):
+            raise CacheError(f"seed transaction journal authentication failed: {journal_dir}")
+        return value, digest
+
+    @staticmethod
+    def _clear_seed_journal(journal_dir: Path) -> None:
+        for name in ("COMMITTED", "journal.sha256", "journal.json"):
+            (journal_dir / name).unlink(missing_ok=True)
+        journal_dir.rmdir()
+        _fsync_directory(journal_dir.parent)
+
+    def _metric_records_seed_commit(self, journal: Mapping[str, Any]) -> bool:
+        if not self.metrics_path.exists():
+            return False
+        with ExclusiveLock(self.metrics_lock_path):
+            try:
+                lines = self.metrics_path.read_text(encoding="utf-8").splitlines()
+                records = [json.loads(line) for line in lines]
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+                raise CacheError(f"could not authenticate seed metric commit: {error}") from error
+        return any(
+            isinstance(record, dict)
+            and record.get("result") == "seeded"
+            and record.get("transaction_id") == journal["transaction_id"]
+            and record.get("target") == journal["destination"]
+            and record.get("cache_key") == journal["cache_key"]
+            for record in records
+        )
+
+    def _journal_is_committed(
+        self, journal_dir: Path, journal: Mapping[str, Any], digest: str
+    ) -> bool:
+        committed_path = journal_dir / "COMMITTED"
+        if committed_path.exists() or committed_path.is_symlink():
+            if not committed_path.is_file() or committed_path.is_symlink():
+                raise CacheError(f"seed transaction commit marker is invalid: {committed_path}")
+            try:
+                marker = _read_bounded_regular_file(
+                    committed_path, 256, "seed transaction commit marker"
+                ).decode("ascii").strip()
+            except UnicodeDecodeError as error:
+                raise CacheError(
+                    f"seed transaction commit marker cannot be decoded: {committed_path}"
+                ) from error
+            if marker != digest:
+                raise CacheError(
+                    f"seed transaction commit marker authentication failed: {committed_path}"
+                )
+            return True
+        return self._metric_records_seed_commit(journal)
+
+    def _mark_seed_committed(self, replacement: _SeedReplacement) -> None:
+        if not replacement.old_moved:
+            return
+        payload = _read_bounded_regular_file(
+            replacement.journal_path, 1024 * 1024, "seed journal"
+        )
+        digest = hashlib.sha256(payload).hexdigest()
+        _atomic_write_bytes(
+            replacement.committed_path, (digest + "\n").encode("ascii")
+        )
+
+    def _recover_interrupted_seed(self, target_project: Path) -> None:
+        destination = target_project / ".lake"
+        backups = sorted(target_project.glob(".lake.backup-*"), key=lambda path: path.name)
+        loaded = self._load_seed_journal(target_project)
+        if loaded is None:
+            if backups:
+                raise CacheError(
+                    "unowned interrupted seed backup requires manual recovery: "
+                    + ", ".join(map(str, backups))
+                )
+            return
+        journal, digest = loaded
+        journal_dir = self._seed_transaction_dir(target_project)
+        backup = target_project / journal["backup_basename"]
+        if backups != ([backup] if backup.exists() or backup.is_symlink() else []):
+            raise CacheError(
+                "ambiguous interrupted seed backups require manual recovery: "
+                + ", ".join(map(str, backups))
+            )
+        staging = target_project / journal["staging_basename"]
+        retained = target_project / journal["retained_basename"]
+        for path, label in ((backup, "backup"), (staging, "staging"), (retained, "retained")):
+            if path.is_symlink():
+                raise CacheError(f"seed transaction {label} path is symlinked: {path}")
+        committed = self._journal_is_committed(journal_dir, journal, digest)
+        destination_present = destination.exists() or destination.is_symlink()
+        backup_present = backup.exists() or backup.is_symlink()
+        destination_is_original = (
+            destination_present and self._lake_tree_matches(destination, journal["original"])
+        )
+        destination_is_replacement = (
+            destination_present and self._lake_tree_matches(destination, journal["replacement"])
+        )
+        backup_is_original = (
+            backup_present and self._lake_tree_matches(backup, journal["original"])
+        )
+
+        if destination_is_original and not backup_present:
+            self._clear_seed_journal(journal_dir)
+            return
+        if not destination_present and backup_is_original:
+            os.replace(backup, destination)
+            _fsync_directory(target_project)
+            self._clear_seed_journal(journal_dir)
+            return
+        if destination_is_replacement and backup_is_original:
+            if committed:
+                retained_backup = self._discard_seed_backup(backup, True)
+                if retained_backup is None:
+                    self._clear_seed_journal(journal_dir)
+                return
+            if retained.exists():
+                raise CacheError(f"seed transaction retained path already exists: {retained}")
+            os.replace(destination, retained)
+            _fsync_directory(target_project)
+            os.replace(backup, destination)
+            _fsync_directory(target_project)
+            self._clear_seed_journal(journal_dir)
+            return
+        if committed and destination_is_replacement and not backup_present:
+            self._clear_seed_journal(journal_dir)
+            return
+        raise CacheError(
+            "interrupted seed transaction state does not match its authenticated journal; "
+            f"retained paths: {destination}, {backup}, {staging}, {retained}"
+        )
 
     @staticmethod
     def _rollback_seed_replacement(
@@ -3159,14 +3506,20 @@ class HotMainCache:
             errors.append(f"original cache backup disappeared: {backup}")
         return errors
 
-    @staticmethod
     def _new_seed_replacement(
-        target_project: Path, *, rollback_prefix: str
+        self, target_project: Path, *, rollback_prefix: str
     ) -> _SeedReplacement:
+        transaction_id = secrets.token_hex(16)
+        journal_dir = self._seed_transaction_dir(target_project)
         return _SeedReplacement(
             destination=target_project / ".lake",
-            backup=target_project / f".lake.backup-{os.getpid()}-{time.monotonic_ns()}",
+            backup=target_project / f".lake.backup-{transaction_id}",
             rollback_root=Path(tempfile.mkdtemp(prefix=rollback_prefix, dir=target_project)),
+            transaction_id=transaction_id,
+            journal_dir=journal_dir,
+            journal_path=journal_dir / "journal.json",
+            journal_digest_path=journal_dir / "journal.sha256",
+            committed_path=journal_dir / "COMMITTED",
         )
 
     @staticmethod
@@ -3181,7 +3534,7 @@ class HotMainCache:
     def _target_lock_path(self, supplied_target: Path) -> tuple[Path, Path]:
         lexical_target = reject_symlink_components(supplied_target)
         destination = lexical_target / ".lake"
-        target_digest = hashlib.sha256(str(destination).encode("utf-8")).hexdigest()
+        target_digest = self._seed_target_digest(lexical_target)
         return lexical_target, self.runtime_dir / "locks" / f"seed-{target_digest}.lock"
 
     def _publish_seed_locked(
@@ -3208,18 +3561,25 @@ class HotMainCache:
             raise CacheError(
                 f"target .lake already exists; pass --replace to replace it: {destination}"
             )
-        staging_root = Path(tempfile.mkdtemp(prefix=".lake-seed-", dir=target_project))
+        staging_root = target_project / f".lake-seed-{replacement.transaction_id}"
+        if staging_root.exists() or staging_root.is_symlink():
+            raise CacheError(f"seed staging path already exists: {staging_root}")
+        staging_root.mkdir()
+        replacement.staging_root = staging_root
         try:
             staging_lake = staging_root / ".lake"
             copy_stats = reflink_copytree(self.lake_dir, staging_lake)
             make_owner_writable(staging_lake)
+            self._validate_seeded_destination(staging_lake)
             if destination.exists():
+                self._write_seed_journal(replacement, target_project, staging_lake)
                 try:
                     os.replace(destination, replacement.backup)
                 finally:
                     replacement.old_moved = (
                         replacement.backup.exists() or replacement.backup.is_symlink()
                     )
+                _fsync_directory(target_project)
             try:
                 os.replace(staging_lake, destination)
             finally:
@@ -3228,6 +3588,7 @@ class HotMainCache:
                     and not staging_lake.is_symlink()
                     and (destination.exists() or destination.is_symlink())
                 )
+            _fsync_directory(target_project)
             self._validate_seeded_destination(destination)
             return {
                 **self.status(),
@@ -3236,6 +3597,7 @@ class HotMainCache:
                 "target": str(destination),
                 "worktree_root": str(worktree_root),
                 "replaced": replacement.old_moved,
+                "transaction_id": replacement.transaction_id,
                 "backup_retained": None,
                 "cache_hit": 1,
                 "cache_miss": 0,
@@ -3269,6 +3631,12 @@ class HotMainCache:
         self, replacement: _SeedReplacement, error: BaseException, *, action: str
     ) -> None:
         rollback_errors = self._rollback_seed_replacement(replacement)
+        if not rollback_errors and replacement.journal_dir.exists():
+            try:
+                _fsync_directory(replacement.destination.parent)
+                self._clear_seed_journal(replacement.journal_dir)
+            except BaseException as journal_error:
+                rollback_errors.append(f"could not clear recovered transaction journal: {journal_error}")
         if rollback_errors:
             details = "; ".join(rollback_errors)
             raise CacheError(
@@ -3289,7 +3657,18 @@ class HotMainCache:
             }
         started = time.monotonic()
         with ExclusiveLock(target_lock_path) as target_lock:
-            target_project, worktree_root = self._eligible_seed_target(lexical_target)
+            target_project, worktree_root = self._eligible_seed_target(
+                lexical_target, check_inputs=False
+            )
+            self._recover_interrupted_seed(target_project)
+            target_project, checked_root = self._eligible_seed_target(target_project)
+            if checked_root != worktree_root:
+                raise CacheError("target worktree identity changed during seed recovery")
+            destination = target_project / ".lake"
+            if destination.exists() and not replace:
+                raise CacheError(
+                    f"target .lake already exists; pass --replace to replace it: {destination}"
+                )
             with ExclusiveLock(self.lock_path) as cache_lock:
                 if not self.is_ready(deep=True):
                     raise CacheError(
@@ -3309,7 +3688,14 @@ class HotMainCache:
                     replacement=replacement,
                 )
                 self._append_metric(result)
+                replacement.metric_committed = True
+                self._mark_seed_committed(replacement)
             except BaseException as error:
+                if replacement.metric_committed:
+                    self._discard_seed_rollback_root(replacement)
+                    raise CacheError(
+                        f"seed committed but transaction finalization failed: {error}"
+                    ) from error
                 try:
                     self._rollback_seed_transaction(replacement, error, action="seed")
                 finally:
@@ -3318,6 +3704,9 @@ class HotMainCache:
             result["backup_retained"] = self._discard_seed_backup(
                 replacement.backup, replacement.old_moved
             )
+            if replacement.journal_dir.exists() and result["backup_retained"] is None:
+                _fsync_directory(target_project)
+                self._clear_seed_journal(replacement.journal_dir)
             self._discard_seed_rollback_root(replacement)
             return result
 
@@ -3332,10 +3721,21 @@ class HotMainCache:
                 "foundation_replace_existing": True,
                 "foundation_verify": True,
             }
-        inputs = self._preflight_authenticated_inputs()
         started = time.monotonic()
         with ExclusiveLock(target_lock_path) as target_lock:
-            target_project, worktree_root = self._eligible_seed_target(lexical_target)
+            target_project, worktree_root = self._eligible_seed_target(
+                lexical_target, check_inputs=False
+            )
+            self._recover_interrupted_seed(target_project)
+            destination = target_project / ".lake"
+            if destination.exists() and not replace_seed:
+                raise CacheError(
+                    f"target .lake already exists; pass --replace to replace it: {destination}"
+                )
+            inputs = self._preflight_authenticated_inputs()
+            target_project, checked_root = self._eligible_seed_target(target_project)
+            if checked_root != worktree_root:
+                raise CacheError("target worktree identity changed during preparation recovery")
             authored_before = authored_tree_facts_on_disk(target_project)
             with ExclusiveLock(self.lock_path) as cache_lock:
                 if not self.is_ready(deep=True):
@@ -3429,7 +3829,15 @@ class HotMainCache:
                     "authored_qpbt": authored_final,
                 }
                 self._append_metric(seeded)
+                replacement.metric_committed = True
+                self._mark_seed_committed(replacement)
             except BaseException as error:
+                if replacement.metric_committed:
+                    self._discard_seed_rollback_root(replacement)
+                    raise CacheError(
+                        "issue-worktree preparation committed but transaction "
+                        f"finalization failed: {error}"
+                    ) from error
                 try:
                     self._rollback_seed_transaction(
                         replacement, error, action="issue-worktree preparation"
@@ -3442,6 +3850,9 @@ class HotMainCache:
             seeded["backup_retained"] = self._discard_seed_backup(
                 replacement.backup, replacement.old_moved
             )
+            if replacement.journal_dir.exists() and seeded["backup_retained"] is None:
+                _fsync_directory(target_project)
+                self._clear_seed_journal(replacement.journal_dir)
             self._discard_seed_rollback_root(replacement)
             return prepared
 

@@ -10,6 +10,7 @@ import multiprocessing
 import os
 from pathlib import Path
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -384,6 +385,94 @@ def linked_worktree_contention_worker(worktree: str, counter: str) -> None:
         return fake_success(callback_project, command, log_path)
 
     manager.warm(_test_command_callback=callback)
+
+
+def failing_metric_writer(
+    repo: str,
+    runtime: str,
+    failure_mode: str,
+    rollback_started: multiprocessing.synchronize.Event,
+    release_rollback: multiprocessing.synchronize.Event,
+    outcome: multiprocessing.queues.Queue,
+) -> None:
+    manager = cache_module.HotMainCache(
+        Path(repo), Path(repo), Path(runtime), _test_recipe=TEST_RECIPE
+    )
+    real_rollback = manager._rollback_metric_append_locked
+
+    def pause_rollback(descriptor: int, checkpoint: int) -> None:
+        rollback_started.set()
+        if not release_rollback.wait(10):
+            raise RuntimeError("timed out waiting to finish metric rollback")
+        real_rollback(descriptor, checkpoint)
+
+    try:
+        with mock.patch.object(
+            manager, "_rollback_metric_append_locked", side_effect=pause_rollback
+        ):
+            if failure_mode == "short-write":
+                real_write = cache_module.os.write
+                injected = False
+
+                def short_write(descriptor: int, payload: bytes) -> int:
+                    nonlocal injected
+                    if not injected:
+                        injected = True
+                        count = max(1, len(payload) // 2)
+                        real_write(descriptor, payload[:count])
+                        return count
+                    return real_write(descriptor, payload)
+
+                with mock.patch.object(cache_module.os, "write", side_effect=short_write):
+                    manager._append_metric({"action": "test", "result": "writer-a"})
+            else:
+                real_fsync = cache_module.os.fsync
+                injected = False
+
+                def fail_fsync(descriptor: int) -> None:
+                    nonlocal injected
+                    if not injected:
+                        injected = True
+                        raise OSError("injected metric fsync failure")
+                    real_fsync(descriptor)
+
+                with mock.patch.object(cache_module.os, "fsync", side_effect=fail_fsync):
+                    manager._append_metric({"action": "test", "result": "writer-a"})
+    except OSError:
+        outcome.put("rolled-back")
+    else:
+        outcome.put("unexpected-success")
+
+
+def successful_metric_writer(
+    repo: str,
+    runtime: str,
+    started: multiprocessing.synchronize.Event,
+    completed: multiprocessing.synchronize.Event,
+    expected_line: multiprocessing.queues.Queue,
+) -> None:
+    manager = cache_module.HotMainCache(
+        Path(repo), Path(repo), Path(runtime), _test_recipe=TEST_RECIPE
+    )
+    metric = {"action": "test", "result": "writer-b"}
+    timestamp = "2026-09-03T00:00:00+00:00"
+    envelope = {
+        "schema_version": cache_module.SCHEMA_VERSION,
+        "timestamp": timestamp,
+        "pid": os.getpid(),
+        "cache_key": manager.identity.cache_key,
+        "main_commit": manager.identity.main_commit,
+        **metric,
+    }
+    expected_line.put(
+        (json.dumps(envelope, ensure_ascii=True, separators=(",", ":")) + "\n").encode(
+            "utf-8"
+        )
+    )
+    started.set()
+    with mock.patch.object(cache_module, "utc_now", return_value=timestamp):
+        manager._append_metric(metric)
+    completed.set()
 
 
 class HotMainCacheTests(unittest.TestCase):
@@ -2106,8 +2195,13 @@ class HotMainCacheTests(unittest.TestCase):
 
         def fail_metric_fsync(descriptor: int) -> None:
             nonlocal calls
-            calls += 1
-            if calls == 1:
+            try:
+                opened = Path(os.readlink(f"/proc/self/fd/{descriptor}")).resolve()
+            except OSError:
+                opened = None
+            if opened == manager.metrics_path.resolve():
+                calls += 1
+            if opened == manager.metrics_path.resolve() and calls == 1:
                 raise OSError("injected metric fsync failure")
             real_fsync(descriptor)
 
@@ -2158,7 +2252,64 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual([], [item for item in metrics if item.get("result") == "seeded"])
         self.assertEqual([], list(target.glob(".lake-seed-*")))
 
-    def _assert_seed_metric_cleanup_failure_rolls_back(
+    def _assert_two_writer_metric_rollback_is_serialized(self, failure_mode: str) -> None:
+        manager = self.manager()
+        metrics_path = manager.metrics_path
+        metrics_path.parent.mkdir(parents=True)
+        baseline = b'{"baseline":true}\n'
+        metrics_path.write_bytes(baseline)
+        context = multiprocessing.get_context("fork")
+        rollback_started = context.Event()
+        release_rollback = context.Event()
+        writer_b_started = context.Event()
+        writer_b_completed = context.Event()
+        outcome = context.Queue()
+        expected_line = context.Queue()
+        writer_a = context.Process(
+            target=failing_metric_writer,
+            args=(
+                str(self.repo),
+                str(self.runtime),
+                failure_mode,
+                rollback_started,
+                release_rollback,
+                outcome,
+            ),
+        )
+        writer_b = context.Process(
+            target=successful_metric_writer,
+            args=(
+                str(self.repo),
+                str(self.runtime),
+                writer_b_started,
+                writer_b_completed,
+                expected_line,
+            ),
+        )
+        writer_a.start()
+        self.assertTrue(rollback_started.wait(10))
+        writer_b.start()
+        self.assertTrue(writer_b_started.wait(10))
+        expected = expected_line.get(timeout=10)
+        self.assertFalse(writer_b_completed.wait(0.25))
+        release_rollback.set()
+        writer_a.join(10)
+        writer_b.join(10)
+        self.assertEqual(0, writer_a.exitcode)
+        self.assertEqual(0, writer_b.exitcode)
+        self.assertEqual("rolled-back", outcome.get(timeout=10))
+        self.assertTrue(writer_b_completed.is_set())
+        self.assertEqual(baseline + expected, metrics_path.read_bytes())
+        for line in metrics_path.read_text(encoding="utf-8").splitlines():
+            self.assertIsInstance(json.loads(line), dict)
+
+    def test_two_writer_short_metric_write_preserves_committed_append(self) -> None:
+        self._assert_two_writer_metric_rollback_is_serialized("short-write")
+
+    def test_two_writer_metric_fsync_failure_preserves_committed_append(self) -> None:
+        self._assert_two_writer_metric_rollback_is_serialized("fsync")
+
+    def _assert_seed_metric_postcommit_cleanup_failure_commits(
         self,
         manager: cache_module.HotMainCache,
         target_name: str,
@@ -2172,13 +2323,11 @@ class HotMainCacheTests(unittest.TestCase):
         (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
 
         with cleanup_patch:
-            with self.assertRaisesRegex(OSError, message):
-                manager.seed(target, replace=True)
+            result = manager.seed(target, replace=True)
 
-        self.assertEqual(
-            "preserve\n", (original_lake / "original-marker").read_text(encoding="ascii")
-        )
-        self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
+        self.assertEqual("seeded", result["result"], message)
+        self.assertTrue((original_lake / "build" / "QPBT.olean").is_file())
+        self.assertFalse((original_lake / "original-marker").exists())
         self.assertEqual([], list(target.glob(".lake.backup-*")))
         self.assertEqual([], list(target.glob(".lake-seed-*")))
         metrics = [
@@ -2187,9 +2336,9 @@ class HotMainCacheTests(unittest.TestCase):
             .read_text(encoding="utf-8")
             .splitlines()
         ]
-        self.assertEqual([], [item for item in metrics if item.get("result") == "seeded"])
+        self.assertEqual(1, len([item for item in metrics if item.get("result") == "seeded"]))
 
-    def test_seed_metric_descriptor_close_failure_rolls_back_metric_and_replaced_seed(self) -> None:
+    def test_seed_metric_descriptor_close_failure_is_postcommit(self) -> None:
         manager = self.manager()
         injected = False
         real_close = cache_module.os.close
@@ -2206,14 +2355,14 @@ class HotMainCacheTests(unittest.TestCase):
                 raise OSError("injected metric descriptor close failure")
             real_close(descriptor)
 
-        self._assert_seed_metric_cleanup_failure_rolls_back(
+        self._assert_seed_metric_postcommit_cleanup_failure_commits(
             manager,
             "seed-metric-descriptor-close-failure",
             mock.patch.object(cache_module.os, "close", side_effect=fail_metric_close),
             "metric descriptor close failure",
         )
 
-    def test_seed_metric_unlock_failure_rolls_back_metric_and_replaced_seed(self) -> None:
+    def test_seed_metric_unlock_failure_is_postcommit(self) -> None:
         manager = self.manager()
         injected = False
         real_flock = cache_module.fcntl.flock
@@ -2233,14 +2382,14 @@ class HotMainCacheTests(unittest.TestCase):
                 raise OSError("injected metrics lock unlock failure")
             real_flock(descriptor, operation)
 
-        self._assert_seed_metric_cleanup_failure_rolls_back(
+        self._assert_seed_metric_postcommit_cleanup_failure_commits(
             manager,
             "seed-metric-unlock-failure",
             mock.patch.object(cache_module.fcntl, "flock", side_effect=fail_metric_unlock),
             "metrics lock unlock failure",
         )
 
-    def test_seed_metric_stream_close_failure_rolls_back_metric_and_replaced_seed(self) -> None:
+    def test_seed_metric_stream_close_failure_is_postcommit(self) -> None:
         manager = self.manager()
         injected = False
         real_exit = cache_module.ExclusiveLock.__exit__
@@ -2268,7 +2417,7 @@ class HotMainCacheTests(unittest.TestCase):
                 return
             real_exit(lock, exception_type, exception, traceback)
 
-        self._assert_seed_metric_cleanup_failure_rolls_back(
+        self._assert_seed_metric_postcommit_cleanup_failure_commits(
             manager,
             "seed-metric-stream-close-failure",
             mock.patch.object(
@@ -3201,6 +3350,293 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertFalse((original / "build" / "QPBT.olean").exists())
         self.assertEqual([], list(target.glob(".lake.backup-*")))
         self.assertEqual([], list(target.glob(".lake-seed-*")))
+
+    def _crash_seed_after_rename(
+        self,
+        manager: cache_module.HotMainCache,
+        target: Path,
+        rename_number: int,
+    ) -> None:
+        real_replace = cache_module.os.replace
+        context = multiprocessing.get_context("fork")
+
+        def interrupted_seed() -> None:
+            renames = 0
+
+            def kill_at_boundary(source: object, destination: object) -> None:
+                nonlocal renames
+                real_replace(source, destination)
+                destination_path = Path(destination)
+                if (
+                    destination_path.name.startswith(".lake.backup-")
+                    or destination_path == target / ".lake"
+                ):
+                    renames += 1
+                    if renames == rename_number:
+                        os.kill(os.getpid(), signal.SIGKILL)
+
+            cache_module.os.replace = kill_at_boundary
+            manager.seed(target, replace=True)
+
+        process = context.Process(target=interrupted_seed)
+        process.start()
+        process.join(10)
+        self.assertEqual(-signal.SIGKILL, process.exitcode)
+
+    def test_seed_rejects_unowned_backup_decoys_without_mutation(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        for destination_present in (False, True):
+            with self.subTest(destination_present=destination_present):
+                target = self.issue_worktree(f"unowned-backup-{destination_present}")
+                destination = target / ".lake"
+                if destination_present:
+                    destination.mkdir()
+                    (destination / "current-user-bytes").write_bytes(b"current")
+                backup = target / ".lake.backup-manual"
+                backup.mkdir()
+                (backup / "decoy-bytes").write_bytes(b"decoy")
+                with self.assertRaisesRegex(
+                    cache_module.CacheError, "unowned interrupted seed backup"
+                ):
+                    manager.seed(target)
+                self.assertEqual(b"decoy", (backup / "decoy-bytes").read_bytes())
+                if destination_present:
+                    self.assertEqual(
+                        b"current", (destination / "current-user-bytes").read_bytes()
+                    )
+                else:
+                    self.assertFalse(destination.exists())
+
+    def test_seed_first_rename_recovery_preserves_replace_false(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("journal-replace-false")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original-marker").write_bytes(b"keep")
+        self._crash_seed_after_rename(manager, target, 1)
+        with self.assertRaisesRegex(cache_module.CacheError, "target .lake already exists"):
+            manager.seed(target)
+        self.assertEqual(b"keep", (original / "original-marker").read_bytes())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+
+    def test_seed_recovers_before_invalid_cache_admission(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("journal-invalid-cache")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original-marker").write_bytes(b"keep")
+        self._crash_seed_after_rename(manager, target, 1)
+        cache_module.make_owner_writable(manager.snapshot_dir)
+        manager.ready_path.write_text("0" * 64 + "\n", encoding="ascii")
+        with self.assertRaisesRegex(cache_module.CacheError, "deep artifact verification"):
+            manager.seed(target, replace=True)
+        self.assertEqual(b"keep", (original / "original-marker").read_bytes())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+
+    def test_prepare_recovers_before_input_admission(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("journal-invalid-input")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original-marker").write_bytes(b"keep")
+        self._crash_seed_after_rename(manager, target, 1)
+        with mock.patch.object(
+            manager,
+            "_preflight_authenticated_inputs",
+            side_effect=cache_module.CacheError("injected input admission failure"),
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "input admission failure"):
+                manager.prepare(target, replace_seed=True)
+        self.assertEqual(b"keep", (original / "original-marker").read_bytes())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+
+    def test_seed_rejects_tampered_journal_without_mutation(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("journal-tampered")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original-marker").write_bytes(b"keep")
+        self._crash_seed_after_rename(manager, target, 1)
+        backup = next(target.glob(".lake.backup-*"))
+        journal = manager._seed_transaction_dir(target) / "journal.json"
+        journal.write_bytes(journal.read_bytes().replace(b'"replace":true', b'"replace":false'))
+        with self.assertRaisesRegex(cache_module.CacheError, "authentication failed"):
+            manager.seed(target, replace=True)
+        self.assertFalse(original.exists())
+        self.assertEqual(b"keep", (backup / "original-marker").read_bytes())
+
+    def test_seed_rejects_wrong_backup_identity_without_mutation(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("journal-wrong-backup")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original-marker").write_bytes(b"keep")
+        self._crash_seed_after_rename(manager, target, 1)
+        backup = next(target.glob(".lake.backup-*"))
+        (backup / "unrecorded").write_bytes(b"changed")
+        with self.assertRaisesRegex(cache_module.CacheError, "does not match"):
+            manager.seed(target, replace=True)
+        self.assertFalse(original.exists())
+        self.assertEqual(b"changed", (backup / "unrecorded").read_bytes())
+
+    def test_seed_rejects_extra_backup_without_mutation(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("journal-extra-backup")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original-marker").write_bytes(b"keep")
+        self._crash_seed_after_rename(manager, target, 1)
+        owned = next(target.glob(".lake.backup-*"))
+        extra = target / ".lake.backup-extra"
+        extra.mkdir()
+        (extra / "decoy").write_bytes(b"decoy")
+        with self.assertRaisesRegex(cache_module.CacheError, "ambiguous interrupted"):
+            manager.seed(target, replace=True)
+        self.assertFalse(original.exists())
+        self.assertEqual(b"keep", (owned / "original-marker").read_bytes())
+        self.assertEqual(b"decoy", (extra / "decoy").read_bytes())
+
+    def test_seed_second_rename_recovery_restores_and_retains_replacement(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("journal-second-rename")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original-marker").write_bytes(b"keep")
+        self._crash_seed_after_rename(manager, target, 2)
+        with self.assertRaisesRegex(cache_module.CacheError, "target .lake already exists"):
+            manager.seed(target)
+        self.assertEqual(b"keep", (original / "original-marker").read_bytes())
+        retained = list(target.glob(".lake.retained-*"))
+        self.assertEqual(1, len(retained))
+        self.assertTrue((retained[0] / "build" / "QPBT.olean").is_file())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+
+    def test_seed_metric_commit_recovers_before_commit_marker(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("journal-metric-commit")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original-marker").write_bytes(b"old")
+        context = multiprocessing.get_context("fork")
+
+        def interrupted_seed() -> None:
+            with mock.patch.object(
+                manager,
+                "_mark_seed_committed",
+                side_effect=lambda _replacement: os.kill(os.getpid(), signal.SIGKILL),
+            ):
+                manager.seed(target, replace=True)
+
+        process = context.Process(target=interrupted_seed)
+        process.start()
+        process.join(10)
+        self.assertEqual(-signal.SIGKILL, process.exitcode)
+        self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
+        self.assertEqual(1, len(list(target.glob(".lake.backup-*"))))
+        with self.assertRaisesRegex(cache_module.CacheError, "target .lake already exists"):
+            manager.seed(target)
+        self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
+        self.assertFalse((target / ".lake" / "original-marker").exists())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertFalse(manager._seed_transaction_dir(target).exists())
+
+    def _warm_with_external_link(self, manager: cache_module.HotMainCache, external: Path) -> None:
+        def build_with_link(
+            project: Path,
+            command: list[str] | tuple[str, ...],
+            log_path: Path,
+        ) -> int:
+            result = fake_success(project, command, log_path)
+            if list(command) == ["fake", "build"]:
+                link = project / ".lake" / "packages" / "external"
+                link.parent.mkdir(parents=True, exist_ok=True)
+                link.symlink_to(external, target_is_directory=True)
+            return result
+
+        manager.warm(_test_command_callback=build_with_link)
+
+    def test_seed_rejects_writable_and_read_only_external_links(self) -> None:
+        for read_only in (False, True):
+            with self.subTest(read_only=read_only):
+                manager = self.manager(runtime=self.base / f"runtime-external-{read_only}")
+                external = self.base / f"external-package-{read_only}"
+                external.mkdir()
+                marker = external / "marker"
+                marker.write_bytes(b"external")
+                if read_only:
+                    marker.chmod(0o444)
+                    external.chmod(0o555)
+                self._warm_with_external_link(manager, external)
+                target = self.issue_worktree(f"external-target-{read_only}")
+                with self.assertRaisesRegex(
+                    cache_module.CacheError, "escapes private Lake tree"
+                ):
+                    manager.seed(target)
+                self.assertEqual(b"external", marker.read_bytes())
+                self.assertFalse((target / ".lake").exists())
+                self.assertEqual([], list(target.glob(".lake.backup-*")))
+
+    def test_seed_accepts_relative_link_contained_in_private_tree(self) -> None:
+        manager = self.manager(runtime=self.base / "runtime-contained-link")
+
+        def build_with_link(
+            project: Path,
+            command: list[str] | tuple[str, ...],
+            log_path: Path,
+        ) -> int:
+            result = fake_success(project, command, log_path)
+            if list(command) == ["fake", "build"]:
+                package = project / ".lake" / "packages" / "fixture"
+                package.mkdir(parents=True, exist_ok=True)
+                (package / "marker").write_bytes(b"inside")
+                (package.parent / "alias").symlink_to("fixture", target_is_directory=True)
+            return result
+
+        manager.warm(_test_command_callback=build_with_link)
+        target = self.issue_worktree("contained-link-target")
+        self.assertEqual("seeded", manager.seed(target)["result"])
+        self.assertEqual(
+            b"inside", (target / ".lake" / "packages" / "alias" / "marker").read_bytes()
+        )
+
+    def test_seed_rejects_broken_and_cyclic_private_links(self) -> None:
+        for case in ("broken", "cycle"):
+            with self.subTest(case=case):
+                manager = self.manager(runtime=self.base / f"runtime-link-{case}")
+
+                def build_with_invalid_link(
+                    project: Path,
+                    command: list[str] | tuple[str, ...],
+                    log_path: Path,
+                ) -> int:
+                    result = fake_success(project, command, log_path)
+                    if list(command) == ["fake", "build"]:
+                        packages = project / ".lake" / "packages"
+                        packages.mkdir(parents=True, exist_ok=True)
+                        first = packages / "first"
+                        if case == "broken":
+                            first.symlink_to("missing")
+                        else:
+                            first.symlink_to("second")
+                            (packages / "second").symlink_to("first")
+                    return result
+
+                manager.warm(_test_command_callback=build_with_invalid_link)
+                target = self.issue_worktree(f"invalid-link-target-{case}")
+                with self.assertRaisesRegex(
+                    cache_module.CacheError, "symlink target cannot be resolved"
+                ):
+                    manager.seed(target)
+                self.assertFalse((target / ".lake").exists())
 
     def test_two_processes_elect_exactly_one_builder(self) -> None:
         counter = self.base / "build-count.txt"
