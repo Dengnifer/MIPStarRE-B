@@ -34,8 +34,9 @@ Every dispatch dry-run and confirmation resolves each non-null planned
 worktree. The resolver accepts a full object ID, a fully qualified ref, `HEAD`,
 or shorthand that has exactly one canonical ref interpretation. A hexadecimal
 token is a full object ID only when its length matches an input object format
-advertised by that repository; a SHA-256 repository therefore rejects a
-40-hex abbreviation and accepts the exact 64-hex identity. A shorthand
+advertised by that repository and Git resolves it byte-for-byte to that same
+ID; a SHA-256 repository therefore rejects a 40-hex abbreviation and accepts
+the exact 64-hex identity. A shorthand
 collision such as same-named branch and tag is rejected; callers use the
 desired `refs/heads/...` or `refs/tags/...` name explicitly. The resolver obtains
 the full commit and root tree from Git and proves with `cat-file` that both
@@ -48,20 +49,28 @@ ref, wrong object type, malformed Git result, or mismatch with an optional
 planned `base_tree` blocks the complete requested batch before any session or
 event mutation.
 
-The worktree path must contain no symlink component and must name the repository
-root. On Linux, the resolver opens every absolute path component relative to an
-already-open parent with `O_DIRECTORY | O_NOFOLLOW`, retains the resulting
+The worktree path must contain no symlink or lexical parent (`..`) component
+and must name the repository root. On Linux, the resolver opens every absolute
+path component relative to an already-open parent with
+`O_DIRECTORY | O_NOFOLLOW`, retains the resulting
 directory descriptor, and checks its filesystem device/inode against the
-canonical path. Every Git child starts through `/proc/self/fd/N` with that exact
-descriptor inherited explicitly; it never resolves the registered pathname as
-its working directory. Descriptor-relative `rev-parse --is-inside-work-tree`
-rejects bare repositories, and `rev-parse --show-prefix` proves that the
-registered directory itself is the worktree root.
+canonical path. Before the first Git child, it similarly authenticates and
+retains the worktree's `.git` directory or single-link regular gitfile, the
+gitfile target, and any single-link regular `commondir` file and target. This
+supports ordinary repositories and linked worktrees without following a
+metadata symlink. Every Git child starts through `/proc/self/fd/N` and receives
+the same retained worktree, Git-directory, and common-directory descriptors as
+explicit `GIT_WORK_TREE`, `GIT_DIR`, and `GIT_COMMON_DIR` authorities. It never
+rediscovers those authorities from the registered pathname. Descriptor-relative
+`rev-parse --is-inside-work-tree` rejects bare repositories, and
+`rev-parse --show-prefix` proves that the registered directory itself is the
+worktree root.
 
 Dispatch carries the live descriptor proof through the complete locked
 transaction, records only the canonical path in the issued row, rechecks the
-descriptor and its current pathname immediately before publication and after
-event validation, and rolls back if the root was renamed or replaced. Every
+worktree and repository descriptors, admitted metadata-file bytes, and their
+current paths immediately before publication and after event validation, and
+rolls back if any bound authority was renamed, replaced, or modified. Every
 success, blocked return, and exceptional rollback closes all retained
 descriptors before releasing the workflow lock. Cleanup attempts every retained
 descriptor even if an individual close fails; cleanup is inside the publication

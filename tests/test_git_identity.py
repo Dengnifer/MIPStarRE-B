@@ -112,6 +112,65 @@ class GitIdentityTests(unittest.TestCase):
             self.assertEqual(commit, identity.commit)
             self.assertEqual(tree, identity.tree)
 
+    def test_object_format_and_resolution_share_one_repository_binding(self) -> None:
+        repository = self.root / "sha256-bound-repo"
+        repository.mkdir()
+        git(repository, "init", "--object-format=sha256", "-b", "main")
+        git(repository, "config", "user.name", "Git Identity Test")
+        git(repository, "config", "user.email", "git-identity@example.invalid")
+        (repository / "tracked.txt").write_text("sha256\n", encoding="ascii")
+        git(repository, "add", "tracked.txt")
+        git(repository, "commit", "-m", "sha256 base")
+        commit = git(repository, "rev-parse", "HEAD")
+        tree = git(repository, "rev-parse", "HEAD^{tree}")
+
+        substitute = self.root / "sha1-substitute"
+        substitute.mkdir()
+        git(substitute, "init", "-b", "main")
+        authentic_git = self.root / "sha256-authentic.git"
+        original_run = subprocess.run
+        format_swaps = 0
+
+        def swap_format_repository(
+            *arguments: object,
+            **keywords: object,
+        ) -> subprocess.CompletedProcess[str]:
+            nonlocal format_swaps
+            command = arguments[0]
+            if not (
+                isinstance(command, list)
+                and command[-2:] == ["rev-parse", "--show-object-format=input"]
+            ):
+                return original_run(*arguments, **keywords)
+            (repository / ".git").rename(authentic_git)
+            (substitute / ".git").rename(repository / ".git")
+            try:
+                format_swaps += 1
+                return original_run(*arguments, **keywords)
+            finally:
+                (repository / ".git").rename(substitute / ".git")
+                authentic_git.rename(repository / ".git")
+
+        with mock.patch.object(
+            git_identity.subprocess,
+            "run",
+            side_effect=swap_format_repository,
+        ):
+            with self.assertRaisesRegex(git_identity.GitIdentityError, "object format length"):
+                git_identity.resolve_git_identity(
+                    repository,
+                    commit[:40],
+                    expected_tree=tree,
+                )
+            with git_identity.resolve_git_identity(
+                repository,
+                commit,
+                expected_tree=tree,
+            ) as identity:
+                self.assertEqual(commit, identity.commit)
+                self.assertEqual(tree, identity.tree)
+        self.assertEqual(2, format_swaps)
+
     def test_tree_mismatch_is_rejected_after_object_resolution(self) -> None:
         with self.assertRaisesRegex(git_identity.GitIdentityError, "tree mismatch"):
             git_identity.resolve_git_identity(
@@ -130,6 +189,8 @@ class GitIdentityTests(unittest.TestCase):
     def test_bound_descriptor_is_retained_until_explicit_close(self) -> None:
         identity = git_identity.resolve_git_identity(self.repo, "main")
         descriptor = identity._worktree_fd
+        assert identity._repository_binding is not None
+        repository_descriptors = identity._repository_binding.descriptors()
         opened = os.fstat(descriptor)
         self.assertEqual(
             (identity.worktree_device, identity.worktree_inode),
@@ -139,6 +200,9 @@ class GitIdentityTests(unittest.TestCase):
         self.assertEqual(-1, identity._worktree_fd)
         with self.assertRaises(OSError):
             os.fstat(descriptor)
+        for repository_descriptor in repository_descriptors:
+            with self.assertRaises(OSError):
+                os.fstat(repository_descriptor)
         identity.close()
 
     def test_repository_subdirectory_is_not_accepted_as_the_worktree(self) -> None:
@@ -164,6 +228,36 @@ class GitIdentityTests(unittest.TestCase):
         alias.symlink_to(alternate, target_is_directory=True)
         with self.assertRaisesRegex(git_identity.GitIdentityError, "symlink component"):
             git_identity.resolve_git_identity(alias, "main")
+
+    def test_symlink_before_parent_component_is_rejected_before_normalization(self) -> None:
+        alias = self.root / "lexical-alias"
+        alias.symlink_to("/", target_is_directory=True)
+        lexical_path = alias / ".." / self.repo.name
+        self.assertEqual(self.repo, Path(os.path.abspath(lexical_path)))
+
+        with (
+            mock.patch.object(git_identity.subprocess, "run") as run,
+            self.assertRaisesRegex(git_identity.GitIdentityError, "unsafe parent component"),
+        ):
+            git_identity.resolve_git_identity(lexical_path, "main")
+        run.assert_not_called()
+
+    def test_linked_worktree_gitfile_and_common_directory_are_supported(self) -> None:
+        linked = self.root / "linked"
+        git(self.repo, "worktree", "add", "--detach", str(linked), self.base_commit)
+        self.assertTrue((linked / ".git").is_file())
+
+        with git_identity.resolve_git_identity(
+            linked,
+            self.base_commit,
+            expected_tree=self.base_tree,
+        ) as identity:
+            self.assertEqual(self.base_commit, identity.commit)
+            self.assertEqual(self.base_tree, identity.tree)
+            self.assertIsNotNone(identity._repository_binding)
+            assert identity._repository_binding is not None
+            self.assertIsNotNone(identity._repository_binding.git_entry_file)
+            self.assertIsNotNone(identity._repository_binding.common_dir_file)
 
     def test_root_replacement_during_git_call_is_rejected(self) -> None:
         original_run = subprocess.run
@@ -207,7 +301,8 @@ class GitIdentityTests(unittest.TestCase):
             self.assertIsInstance(cwd, str)
             self.assertRegex(str(cwd), r"^/proc/self/fd/[0-9]+$")
             self.assertIsInstance(pass_fds, tuple)
-            self.assertEqual(1, len(pass_fds))
+            self.assertGreaterEqual(len(pass_fds), 3)
+            self.assertIn(int(str(cwd).rsplit("/", 1)[-1]), pass_fds)
             self.repo.rename(moved)
             substitute.rename(self.repo)
             try:

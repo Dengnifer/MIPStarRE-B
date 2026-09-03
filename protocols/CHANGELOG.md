@@ -58,6 +58,23 @@ identities are now admitted only when their width matches an input object format
 advertised by the bound repository. Resolver and dispatch regressions reject a
 40-hex SHA-256 prefix without mutation and accept the exact 64-hex commit.
 
+Independent reviews A15 and A16 found two further path/authority gaps. The
+object-format query could rediscover a transient substitute `.git` directory
+before later resolution returned to the authentic SHA-256 repository, and
+lexical normalization could erase a symlink followed by `..` before the
+no-follow walk. The resolver now rejects lexical parent components before
+normalization and authenticates one retained repository authority before any
+Git operation. Ordinary `.git` directories and linked-worktree gitfiles,
+gitfile targets, `commondir` files, and common-directory targets are opened
+without following symlinks and retained through dispatch publication. Every Git
+child receives the same worktree, Git-directory, and common-directory
+descriptors explicitly. Direct object input must additionally equal the full ID
+returned by Git. Exact resolver and workflow regressions swap a SHA-1 `.git`
+directory into a SHA-256 worktree only during the format child, reject the
+40-hex prefix with an expected tree and no ledger mutation, and still accept
+the authentic 64-hex ID. Companion regressions reject a symlink/`..` path before
+Git runs and prove linked-worktree gitfile/common-directory resolution.
+
 Focused regressions cover symbolic and exact refs, branch/tag ambiguity,
 nonexistent full-looking SHAs, object/tree authentication, expected-tree
 mismatch, detached-head review semantics, symlink retargeting, root
@@ -67,10 +84,12 @@ byte-identical atomic rejection. The partial-clone checks use a sentinel
 transport and prove that neither dry-run nor confirmation invokes it. The
 QPBT-045 contract is exercised without a cache implementation change: an
 invalid exact main reaches zero warm/build, publication, and metric actions.
-The focused resolver suite passes 15/15, the workflow module passes 91/91, the
-canonical checker passes 3/3, compileall and canonical workflow validation pass,
-and the dependency-free aggregate passes 412/412. A fresh immutable independent
-review remains required before activation.
+The focused resolver suite passes 18/18 and the workflow module passes 94/94.
+The single dependency-free aggregate run passed 416/418; its two unrelated
+Unix-socket cases were denied by the managed sandbox with `EPERM`, then both
+passed in a bounded unsandboxed follow-up. The canonical checker, compileall,
+and canonical workflow validation pass. A fresh immutable independent review
+remains required before activation.
 
 ## 0.1.12 (2026-09-03)
 
