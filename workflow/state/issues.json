@@ -3098,7 +3098,7 @@
       "title": "fix(blueprint): restore the staged F06A skeleton boundary",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "ready",
+      "status": "in_progress",
       "parent_id": "QPBT-057",
       "dependency_ids": [
         "QPBT-059"
@@ -3119,7 +3119,7 @@
         "Document the exact G19-related operational/resource debt and its Stage 4C discharge plan under docs/paper-gaps, linked to QPBT-061, without claiming a new paper theorem or weakening source fidelity.",
         "Update checker mutation coverage, metadata, generated graph/chapter entry, and blueprint README; run deterministic generation twice, all blueprint tests, default and pinned-source checks, workflow validation, and diff hygiene, then obtain a fresh independent review."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i060-orchestrator-a02-integration",
       "source_refs": [
         "protocols/formalization.md#Skeleton-stages",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-712",
@@ -3138,7 +3138,7 @@
         "workflow/reviews/qpbt-060-f06a-skeleton-boundary-a01.md"
       ],
       "created_at": "2026-09-03T01:16:00.451829Z",
-      "updated_at": "2026-09-03T08:44:13.838413Z",
+      "updated_at": "2026-09-03T09:14:11.979932Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3355,6 +3355,47 @@
       "owned_paths": [],
       "created_at": "2026-09-03T16:05:00+08:00",
       "updated_at": "2026-09-03T08:19:56.026848Z",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-067",
+      "title": "audit(workflow): quantify and design deduplicated Lake cache layout",
+      "kind": "workflow",
+      "execution_category": "preflight",
+      "status": "ready",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [],
+      "labels": [
+        "workflow",
+        "hot-cache",
+        "storage",
+        "lake",
+        "deduplication",
+        "disk-pressure",
+        "safety",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Measure the current physical and apparent footprint of .workflow-runtime/cache and issue-worktree .lake trees, group duplicate snapshots by authenticated cache identity and artifact inventory, and record the evidence without deleting or mutating any worktree, cache, or authored source.",
+        "Read the pinned Lake/Lean build and cache contracts and compare immutable shared snapshots, reflink copies, hardlink restrictions, overlay or copy-on-write deltas, package/build separation, and a conservative fallback; identify which mechanisms preserve private writable output, singleton compilation, source authentication, rollback, and portability.",
+        "Produce a source-anchored design report with a concrete storage layout, lease/reference accounting, corruption and crash recovery, dry-run retention and quarantine policy, migration order, compatibility fallback, and measurable acceptance tests; do not claim implementation or projected savings without evidence.",
+        "Run an independent immutable review of the report and record the measured disk, duplicate-identity, parallel-lane, timing, and protocol-evolution metrics before any implementation issue is opened."
+      ],
+      "source_refs": [
+        "AGENTS.md#Build protocol",
+        "protocols/local-development.md",
+        "protocols/orchestration.md",
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "workflow/reviews/qpbt-062-branch-lifecycle-a01.md"
+      ],
+      "owned_paths": [
+        "workflow/reviews/qpbt-067-cache-layout-a01.md"
+      ],
+      "created_at": "2026-09-03T09:12:00Z",
+      "updated_at": "2026-09-03T09:12:00Z",
+      "owner_session_id": null,
       "blocked_reason": null,
       "unblock_condition": null
     }
