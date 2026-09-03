@@ -5256,6 +5256,25 @@
           "report_sha256": "8a876b5c91dfa2b762cf9d1cfc1c2bd82da2f05a798d6d0e543dfc17f3d5ac6e",
           "focused_tests": "4/4",
           "adversarial_cases": 6
+        },
+        {
+          "id": "review-qpbt-028-pr018-a07-fresh",
+          "reviewer_session_id": "i028-reviewer-a07-pr018-fresh",
+          "verdict": "request_changes",
+          "base_sha": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
+          "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e",
+          "started_at": "2026-09-03T08:59:34.134207Z",
+          "completed_at": "2026-09-03T09:01:15.641159Z",
+          "result_path": "/tmp/i028-review-a07.md",
+          "finding_ids": [
+            "F-LPR018-A07-001",
+            "F-LPR018-A07-002",
+            "F-LPR018-A07-003"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "7ae0ea1c3b8cd6d9a9051e71b5989fd4c15a23acfe8bf17cd6cfc2f1fee23054",
+          "manifest_sha256": "f4c05b6ba9af38b0322fdf01091419aedc0bc3deb62a1ced5edc4e411cad94b8",
+          "integration_gate": "blocked pending projection-root race, strict v2 authority parsing, and canonical QPBT-029/030 dependency records"
         }
       ],
       "findings": [
@@ -5300,12 +5319,57 @@
           "summary": "The projection-root symlink check resolves the path before testing is_symlink, so a caller-selected live symlink is accepted.",
           "path": "scripts/review_isolation.py",
           "line": 102
+        },
+        {
+          "id": "F-LPR018-A07-001",
+          "introduced_review_id": "review-qpbt-028-pr018-a07-fresh",
+          "base_sha": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
+          "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Projection-root symlinks can be followed before Landlock authorization, including a replacement race.",
+          "path": "scripts/review_isolation.py",
+          "line": 102,
+          "required_change": "Use lstat and O_NOFOLLOW|O_DIRECTORY with descriptor-bound authorization, plus symlink and replacement-race regressions."
+        },
+        {
+          "id": "F-LPR018-A07-002",
+          "introduced_review_id": "review-qpbt-028-pr018-a07-fresh",
+          "base_sha": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
+          "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Malformed v2 entry kinds/channels can raise TypeError outside the AgentError boundary, and duplicate JSON keys are silently accepted.",
+          "path": "scripts/local_agent.py",
+          "line": 803,
+          "required_change": "Validate scalar types before membership/sorting and parse duplicate keys deterministically into AgentError."
+        },
+        {
+          "id": "F-LPR018-A07-003",
+          "introduced_review_id": "review-qpbt-028-pr018-a07-fresh",
+          "base_sha": "1799fbaf8175157a4aca6841a179fcbd43d7f4ed",
+          "head_sha": "7e7fe07e776b44b98724605648a71e2d5f31580e",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "QPBT-029 and QPBT-030 dependency issues and the LPR-018 ledger binding are absent from authenticated canonical state.",
+          "path": "workflow/state/issues.json",
+          "line": 1328,
+          "required_change": "Add and validate the dependency issue records and bind LPR-018 before claiming the content-coordinator and broker gates."
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-01T07:45:41.746204Z",
-      "updated_at": "2026-09-01T09:24:28.044053Z",
+      "updated_at": "2026-09-03T09:06:33.857178Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/review.md",
@@ -7112,6 +7176,26 @@
           "report_sha256": "e450b2d2f8782bdf5975fbf1b4443d80857bff60ee54e81abd0cf977a8a20347",
           "manifest_sha256": "ed1d478437c5e52e80e2828ca3439138c7483235b51c49ffbff7f24a30cb8184",
           "integration_gate": "blocked: marked null-identity issuance bypass must be repaired on a changed head and re-reviewed"
+        },
+        {
+          "id": "review-qpbt-049-pr025-a07-fresh",
+          "reviewer_session_id": "i049-reviewer-a07-pr025-fresh",
+          "verdict": "request_changes",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+          "started_at": "2026-09-03T09:03:44.586873Z",
+          "completed_at": "2026-09-03T09:04:03.430757Z",
+          "result_path": "/tmp/i049-review-a07.md",
+          "finding_ids": [
+            "F-LPR025-A07-001",
+            "F-LPR025-A07-002",
+            "F-LPR025-A07-003",
+            "F-LPR025-A07-004"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "21600c58ddee208cb7bbe0f965aaf173b08196517c38bc5a49378fbebdb39915",
+          "manifest_sha256": "44bc5b938460c3d2a68441e91ed59cd30784ea5079a9634978b5f1573fc8a511",
+          "integration_gate": "blocked pending manifest regeneration and missing-ID/status-event lifecycle repairs on a changed head"
         }
       ],
       "findings": [
@@ -7234,12 +7318,72 @@
           "path": "scripts/workflow.py",
           "line": 1541,
           "required_change": "Require a non-empty session and issuance external_id for every marked issuance, bind them exactly, and make release_required independent of identity truthiness; add null/missing terminal and archive regressions."
+        },
+        {
+          "id": "F-LPR025-A07-001",
+          "introduced_review_id": "review-qpbt-049-pr025-a07-fresh",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "The immutable review manifest contains a malformed 63-character tests/test_local_agent.py digest.",
+          "path": ".workflow-runtime/review-manifests/i049-reviewer-a07-pr025-fresh/manifest.json",
+          "line": 31,
+          "required_change": "Regenerate the exact manifest and re-authenticate every listed digest before review or integration."
+        },
+        {
+          "id": "F-LPR025-A07-002",
+          "introduced_review_id": "review-qpbt-049-pr025-a07-fresh",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "A session.released event missing session_id is silently ignored by event-log validation.",
+          "path": "scripts/workflow.py",
+          "line": 1472,
+          "required_change": "Reject malformed release events instead of discarding them, with a focused missing-identity regression."
+        },
+        {
+          "id": "F-LPR025-A07-003",
+          "introduced_review_id": "review-qpbt-049-pr025-a07-fresh",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+          "severity": "high",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "Running collaboration rows can pass event-log validation without a corresponding running/release lifecycle phase.",
+          "path": "scripts/workflow.py",
+          "line": 1554,
+          "required_change": "Drive release and transition requirements from canonical status and require matching lifecycle evidence, including equal-timestamp cases."
+        },
+        {
+          "id": "F-LPR025-A07-004",
+          "introduced_review_id": "review-qpbt-049-pr025-a07-fresh",
+          "base_sha": "b0d5c83f7aa215a3c37372a962cb82019ceefa2d",
+          "head_sha": "2310617ed6df56730f1fa267a9b19aec47be6e37",
+          "severity": "medium",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "summary": "The review manifest declares eight changed paths although the exact base-to-head patch has seven.",
+          "path": ".workflow-runtime/review-manifests/i049-reviewer-a07-pr025-fresh/manifest.json",
+          "line": 14,
+          "required_change": "Regenerate the manifest from the exact base-to-head path set and authenticate the corrected scope."
         }
       ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T03:40:00Z",
-      "updated_at": "2026-09-02T00:39:23.173935Z",
+      "updated_at": "2026-09-03T09:06:34.586170Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
