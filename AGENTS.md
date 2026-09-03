@@ -134,6 +134,13 @@ writable build output, and missing source provenance.
 ## Safety and scope
 
 Preserve user changes. Do not rewrite unrelated files or use destructive Git
-commands. No GitHub write operation is part of this workflow. Network access is
-for pinned source discovery and dependency retrieval only; record provenance
-and checksums for imported mathematical sources.
+commands. The root coordinator may push validated coherent checkpoints to the
+attached `github` remote (`git@github.com:Dengnifer/MIPStarRE-B.git`) promptly
+after each local commit, with bounded retries for transient transport failure.
+Pushes are limited to this repository and its primary branch; never touch the
+umbrella repository, MIPStarRE-A, or unrelated remotes, and never transmit
+credentials or private runtime content. GitHub Issues, PRs, and review state
+remain represented by the local ledgers unless a separate user requirement
+changes that authority. Network access for source discovery and dependency
+retrieval remains pinned and provenance-recorded; GitHub transport is limited
+to the explicitly authorized checkpoint push.

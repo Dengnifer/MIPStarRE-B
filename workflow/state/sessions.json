@@ -29467,18 +29467,39 @@
       "result_envelope_path": "/tmp/i053-refactor-a01.md",
       "priority": 1,
       "requested_model": "gpt-5.6-sol",
-      "archive_status": "active",
-      "status": "running",
+      "archive_status": "archived",
+      "status": "archived",
       "started_at": "2026-09-03T11:06:07.708601Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-03T11:14:12.699418Z",
+      "elapsed_seconds": 484.991,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "outcome_path": null
+      "outcome_path": "workflow/reviews/qpbt-053-refactor-a01.md",
+      "source_report_sha256": "ab916866ded40c38611c94d786f61ed541a9884789fd98796fae493cc5a0956a",
+      "canonical_report_sha256": "ab916866ded40c38611c94d786f61ed541a9884789fd98796fae493cc5a0956a",
+      "timing_quality": "runtime-measured",
+      "outcome": "blocked-provenance-boundary",
+      "checks": {
+        "report_lines": 83,
+        "report_sha256": "ab916866ded40c38611c94d786f61ed541a9884789fd98796fae493cc5a0956a",
+        "candidate_commit": null,
+        "repository_writes": 0,
+        "git_writes": 0,
+        "lean": 0,
+        "lake": 0,
+        "builds": 0,
+        "cache_actions": 0,
+        "network": 0,
+        "endpoint": 0,
+        "github": 0,
+        "nested_agents": 0,
+        "provenance_blocker": "ignored unlicensed MIPStarRE/LDT files cannot be force-added"
+      },
+      "notes": "No source edits or candidate commit; exact rights-compliant redesign report imported."
     },
     {
       "id": "i057-reviewer-a06-source-fidelity",
@@ -29499,18 +29520,38 @@
       "result_envelope_path": "/tmp/i057-review-a06-source-fidelity.md",
       "priority": 1,
       "requested_model": "gpt-5.6-sol",
-      "archive_status": "active",
-      "status": "running",
+      "archive_status": "archived",
+      "status": "archived",
       "started_at": "2026-09-03T11:06:08.184300Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-03T11:14:14.712033Z",
+      "elapsed_seconds": 486.528,
       "token_usage": {
         "input": null,
         "output": null,
         "total": null,
         "availability_reason": "Collaboration backend does not expose per-agent token usage"
       },
-      "outcome_path": null
+      "outcome_path": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md",
+      "source_report_sha256": "64aa7c91148a4aab49dd5dd0a6e9a616faeaa10ba55f154f9f1748c96f8f80df",
+      "canonical_report_sha256": "64aa7c91148a4aab49dd5dd0a6e9a616faeaa10ba55f154f9f1748c96f8f80df",
+      "timing_quality": "runtime-measured",
+      "outcome": "request-changes-stale-candidate-base",
+      "checks": {
+        "report_lines": 49,
+        "report_sha256": "64aa7c91148a4aab49dd5dd0a6e9a616faeaa10ba55f154f9f1748c96f8f80df",
+        "candidate_head": "a9abedb3d08d1b020d310075fc2865ae21397eb8",
+        "candidate_tree": "f736b0ccd81f3f4e34b1cdfc1a35a25e112e5cd8",
+        "declared_base": "6b43c72ab382fa53ee7cfd259a56ec2fbe41b623",
+        "actual_merge_base": "20745fe45450276db3c2130d2631d863e8346ba3",
+        "unrelated_deletions": 8143,
+        "verdict": "request_changes",
+        "repository_writes": 0,
+        "git_writes": 0,
+        "tests": 0,
+        "builds": 0,
+        "nested_agents": 0
+      },
+      "notes": "Fresh immutable review found the candidate is not based on its declared review base; source inspection otherwise matched the frozen dual-rail contract."
     }
   ]
 }

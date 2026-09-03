@@ -8681,7 +8681,7 @@
     {
       "id": "LPR-034",
       "title": "feat(cache): add authenticated input preflight",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-051"
       ],
@@ -9100,10 +9100,10 @@
           "required_change": "Hold one per-target operation lock through admission, cache publication, authenticated loading, materialization, final verification, and deep final identity checks; retain and restore replaced .lake through the whole transaction and add interleaving/rollback regressions."
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "6b43c72ab382fa53ee7cfd259a56ec2fbe41b623",
+      "merged_at": "2026-09-03T11:16:03.679964Z",
       "created_at": "2026-09-02T23:07:18.585757Z",
-      "updated_at": "2026-09-03T10:36:16.461934Z",
+      "updated_at": "2026-09-03T11:16:03.679964Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -9114,7 +9114,7 @@
       ],
       "motivation": "Eliminate the third recurrence of cache work beginning without a complete authenticated local input tuple and provide a deterministic no-build preparation path for private issue worktrees.",
       "description": "Preflight every canonical warm input before cache-hit handling or builder election, and add a prepare command that privately seeds, replacement-materializes, and verifies the pinned foundation while preserving authored QPBT bytes.",
-      "testing": "A10: py_compile; 90/90 focused hot-cache/workflow tests; exact two-path identity; authored-QPBT scan",
+      "testing": "A13: authenticated six-commit integration; py_compile; 85/85 hot-cache; 77/77 workflow; 3/3 checker; 383/383 aggregate including two host Unix-socket reruns; lake build 8992/8992 on source-identical private snapshot",
       "addresses": "QPBT-051",
       "provenance_session_ids": [
         "i051-orchestrator-a01-preflight",
@@ -9126,7 +9126,7 @@
         "i051-fixer-a10-cache-cleanup"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable changed-head review of A10 cleanup is required before integration."
+      "unexecuted_gate": "none; guarded integration report and singleton validation complete"
     }
   ]
 }

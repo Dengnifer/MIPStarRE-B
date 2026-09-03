@@ -1,7 +1,10 @@
 # Local Workflow Protocols
 
 These protocols translate the current `LionSR/MIPStarRE` and TeXRA workflows
-from GitHub automation into local, versioned operations.
+into local, versioned operations. The attached `Dengnifer/MIPStarRE-B` remote
+is a timely commit mirror: the root coordinator pushes validated checkpoints
+after local commits. Local ledgers remain the authority for issues, PR review,
+and session state.
 
 | Concern | Local authority |
 | --- | --- |
@@ -12,6 +15,7 @@ from GitHub automation into local, versioned operations.
 | Latest-main build artifact | locked hot-main cache under `.workflow-runtime/cache/` |
 | Review bots | fresh read-only Codex reviewer sessions |
 | Workflow telemetry | `research/metrics/` |
+| Timely commit mirror | attached `github` remote, root-coordinator push only |
 
 Read the protocols in this order:
 

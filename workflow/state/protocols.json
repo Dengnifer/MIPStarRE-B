@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "active_revision": "0.1.4",
+  "active_revision": "0.1.5",
   "revisions": [
     {
       "revision": "0.1.0",
@@ -40,12 +40,21 @@
     },
     {
       "revision": "0.1.4",
-      "status": "active",
+      "status": "superseded",
       "effective_at": "2026-08-30T17:11:00.000010Z",
       "cause": "The first full-tree staged acceptance check found blank EOF lines that the untracked bootstrap diff check could not observe",
       "evidence_ids": ["INC-020"],
       "review_pr_id": null,
       "retirement_condition": "Re-evaluate after three first-commit or generated-tree reviews; supersede if core hygiene diverges from Git whitespace semantics or omits another untracked-file condition required by the staged gate"
+    },
+    {
+      "revision": "0.1.5",
+      "status": "active",
+      "effective_at": "2026-09-03T11:20:00Z",
+      "cause": "Direct user requirement to mirror validated local commits promptly to the attached MIPStarRE-B GitHub repository",
+      "evidence_ids": ["INC-076"],
+      "review_pr_id": null,
+      "retirement_condition": "Re-evaluate after three checkpoint-push incidents or any scope violation; retain root-only, attached-remote, credential-free limits"
     }
   ]
 }

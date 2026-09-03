@@ -17,7 +17,9 @@ Parallelize only independent work. Inspect every report and diff yourself.
 You may edit issue-owned implementation, blueprint, test, or documentation
 paths. Do not edit canonical `workflow/state/` or `research/metrics/`; emit an
 inspected result envelope under `.workflow-runtime/runs/` for the coordinator.
-Do not merge, approve yourself, or mutate GitHub.
+Do not merge or approve yourself, and do not perform GitHub writes. The root
+coordinator alone may push an already-validated local checkpoint under the
+repository push protocol.
 
 Finish with: acceptance gates, changed paths, source-integrity comparison,
 commands and results, proof-debt delta, child attempts and metrics, cache

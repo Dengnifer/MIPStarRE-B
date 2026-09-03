@@ -200,6 +200,10 @@ Statuses are `draft`, `ready`, `changes_requested`, `approved`, `merged`, and
    run a new review round.
 7. Integrate only an approved, unchanged head. Run the main build after merge.
 8. Reconcile issue status and genuine follow-ups, then archive sessions.
+9. After the coherent local checkpoint is committed and validated, the root
+   coordinator pushes `main` to the attached `github` remote. Retry bounded
+   transport failures; do not push from child sessions or publish runtime
+   caches, credentials, or unrelated branches.
 
 PR titles use `type(scope): description`. The record body contains Motivation,
 Description, Testing, and `Addresses QPBT-NNN` or `Closes QPBT-NNN`.

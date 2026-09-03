@@ -11,8 +11,10 @@ source, blueprint, and Lean implementation have a strict source-of-truth order:
 2. `blueprint/` contains the dependency-tracked formalization design.
 3. `MIPStarRE/` contains the Lean declarations and proofs.
 
-GitHub issues, pull requests, CI caches, and review bots are replaced by local,
-versioned state and fresh Codex sessions. See [protocols/README.md](protocols/README.md)
+GitHub issues, pull requests, CI caches, and review bots are represented by
+local, versioned state and fresh Codex sessions. Validated commits are mirrored
+promptly to the attached GitHub repository by the root coordinator; local
+issues and review records remain canonical. See [protocols/README.md](protocols/README.md)
 and [workflow/README.md](workflow/README.md).
 
 ## Project stages

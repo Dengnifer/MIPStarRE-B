@@ -2628,7 +2628,7 @@
       "title": "Add authenticated cache-input and issue-worktree source preflight",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-045",
       "dependency_ids": [
         "QPBT-045",
@@ -2674,7 +2674,7 @@
         "workflow/reviews/qpbt-051-input-preflight.md"
       ],
       "created_at": "2026-09-01T19:00:00Z",
-      "updated_at": "2026-09-03T08:44:13.044696Z",
+      "updated_at": "2026-09-03T11:16:04.139650Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -2734,7 +2734,7 @@
       "title": "refactor(LDT): lower the generic measurement-completeness adapter",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "blocked",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-041"
@@ -2764,9 +2764,26 @@
         "MIPStarRE/LDT/Preliminaries/ComparisonCore.lean"
       ],
       "created_at": "2026-09-02T16:27:52.017183Z",
-      "updated_at": "2026-09-02T16:27:52.017183Z",
-      "blocked_reason": null,
-      "unblock_condition": null
+      "updated_at": "2026-09-03T11:14:13.930315Z",
+      "blocked_reason": "Acceptance requires modifying ignored upstream LDT bytes; current provenance policy permits only tracked MIPStarRE/QPBT files.",
+      "unblock_condition": "Obtain redistribution rights, adopt an authenticated tracked overlay/upstream revision, or replace the requirement with a QPBT-only adapter; then replan with corrected owned paths.",
+      "review_report": "workflow/reviews/qpbt-053-refactor-a01.md",
+      "review_findings": [
+        {
+          "id": "F053-A01-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "MIPStarRE/LDT/Preliminaries/ComparisonCore.lean",
+          "summary": "Requested relocation targets are ignored, unlicensed upstream foundation files and cannot be committed under QPBT-004 provenance policy."
+        },
+        {
+          "id": "F053-A01-002",
+          "severity": "high",
+          "status": "open",
+          "path": "MIPStarRE/LDT/Test/StrategyRole/Algebra.lean:96-124",
+          "summary": "Relocation also requires an import-edge change contrary to the current narrow acceptance scope."
+        }
+      ]
     },
     {
       "id": "QPBT-054",
@@ -2938,7 +2955,7 @@
       "title": "feat(QPBT/Game): implement the executable CL minimal skeleton",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "blocked",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-056"
@@ -2975,9 +2992,9 @@
         "workflow/reviews/qpbt-057-f06a-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T08:44:13.425858Z",
-      "blocked_reason": null,
-      "unblock_condition": "Fresh immutable review and QPBT-060 blueprint integration are required before candidate integration.",
+      "updated_at": "2026-09-03T11:14:15.821105Z",
+      "blocked_reason": "Fresh immutable review found candidate a9abedb3 is based on 20745fe, not declared base 6b43c72, and its diff includes 8,143 unrelated deletions.",
+      "unblock_condition": "Reconstruct/rebase the exact Types.lean implementation onto current main 6b43c72, regenerate immutable head/tree/patch/report, and obtain a fresh review.",
       "proof_completion_issue_id": "QPBT-061",
       "candidate_head_sha": "a9abedb3d08d1b020d310075fc2865ae21397eb8",
       "candidate_tree": "f736b0ccd81f3f4e34b1cdfc1a35a25e112e5cd8",
@@ -2992,6 +3009,16 @@
         "authenticated foundation materialized and verified",
         "full build passed 8992 jobs",
         "exact two-path scope and diff hygiene passed"
+      ],
+      "review_report": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md",
+      "review_findings": [
+        {
+          "id": "F057-A06-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md:11-20",
+          "summary": "Candidate is not descended from the declared immutable review base; unrelated canonical-history deletions prevent attribution and integration."
+        }
       ]
     },
     {
@@ -3206,7 +3233,7 @@
       "acceptance_gates": [
         "Define one stable branch/worktree identity per implementation attempt using i<issue>-<role>-a<attempt>-<slug>, with immutable candidate head/base/tree recorded before review and no shared writable ownership.",
         "Define a visible default-branch heartbeat: every guarded integration or canonical state transition produces a coherent local main checkpoint, and while active work exists the protocol reports main age, ahead/behind status, active lanes, and next integration gate; no empty or ceremonial commits.",
-        "Define branch completion and archival rules that preserve commits and reports, mark sessions terminal before archival, and make stale/unmerged branches auditable without destructive deletion; explicitly state the local-only GitHub-write prohibition.",
+        "Define branch completion and archival rules that preserve commits and reports, mark sessions terminal before archival, and make stale/unmerged branches auditable without destructive deletion; state the root-only timely push protocol for the attached github remote and keep runtime/credential/umbrella writes excluded.",
         "Add a deterministic branch-topology audit artifact and focused validation for duplicate worktree/branch ownership, untracked active branches, stale default-branch checkpoints, and candidate heads not reachable from their recorded base.",
         "Obtain an independent immutable review and record branch-age/parallelism metrics and protocol revision in the changelog."
       ],
@@ -3223,7 +3250,7 @@
         "workflow/reviews/qpbt-062-branch-lifecycle-a01.md"
       ],
       "created_at": "2026-09-03T16:00:00+08:00",
-      "updated_at": "2026-09-03T16:00:00+08:00",
+      "updated_at": "2026-09-03T11:18:55.259220Z",
       "blocked_reason": null,
       "unblock_condition": null
     },

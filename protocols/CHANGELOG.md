@@ -1,5 +1,15 @@
 # Protocol Changelog
 
+## 0.1.12 (2026-09-03)
+
+The user-authorized repository mirror is now explicit. The root coordinator may
+push each validated coherent local checkpoint to the attached
+`Dengnifer/MIPStarRE-B` `github` remote with bounded retries. Local issue, PR,
+review, and session ledgers remain authoritative; child sessions cannot push,
+and the umbrella repository, MIPStarRE-A, runtime caches, credentials, and
+unrelated remotes remain out of scope. This change resolves the earlier
+local-only wording without changing the singleton build or exact-review rules.
+
 ## 0.1.11 candidate (QPBT-051) - 2026-09-03
 
 INC-065 is the third `hot-cache-input-preflight-omission`. INC-070 records a
