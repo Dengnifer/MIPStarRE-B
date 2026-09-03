@@ -314,6 +314,15 @@ EXECUTABLE_CL_IMPLEMENTATION_CONTRACT = {
     "allowed_minimal_sorries": [],
     "proof_complete_sorry_count": 0,
 }
+EXECUTABLE_CL_HISTORICAL_REPORT_PATH = Path(
+    "workflow/reviews/qpbt-054-f06a-repair-a04.md"
+)
+EXECUTABLE_CL_HISTORICAL_REPORT_SHA256 = (
+    "22db8cee76ff159412ced50941eb61d25bf94b7e4570147bd347d87cd0018ba7"
+)
+EXECUTABLE_CL_HISTORICAL_REPORT_HASH_ERROR = (
+    "F06A-EXECUTABLE-CL: historical signature report hash mismatch"
+)
 EXECUTABLE_CL_SIGNATURE_REQUIRED_TERMS = (
     "(hn : 0 < n)",
     "abbrev CLPrefix",
@@ -377,6 +386,17 @@ def executable_cl_signature_errors(signature_block: str) -> list[str]:
         if re.search(pattern, signature_block, flags=re.IGNORECASE)
     )
     return errors
+
+
+def executable_cl_historical_report_errors(repository_root: Path) -> list[str]:
+    """Authenticate the full superseded F06A contract report bytes."""
+    report_path = repository_root / EXECUTABLE_CL_HISTORICAL_REPORT_PATH
+    if not report_path.is_file():
+        return ["F06A-EXECUTABLE-CL: historical signature report file does not exist"]
+    if hashlib.sha256(report_path.read_bytes()).hexdigest() != (
+            EXECUTABLE_CL_HISTORICAL_REPORT_SHA256):
+        return [EXECUTABLE_CL_HISTORICAL_REPORT_HASH_ERROR]
+    return []
 
 
 EXECUTABLE_CL_CONTRACT = {
@@ -835,7 +855,7 @@ def _implementation_contract_errors(node: dict[str, Any],
 
 def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
                   externals_doc: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
+    errors = executable_cl_historical_report_errors(ROOT.parent)
     if nodes_doc.get("schema_version") != 1:
         errors.append("nodes schema_version must be 1")
     nodes = nodes_doc.get("nodes")

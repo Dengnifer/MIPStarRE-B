@@ -688,6 +688,23 @@ class BlueprintCheckTests(unittest.TestCase):
                     f"{block}\n{forbidden}"
                 ))
 
+    def test_executable_cl_historical_report_is_fail_closed(self) -> None:
+        canonical = ROOT.parent / check.EXECUTABLE_CL_HISTORICAL_REPORT_PATH
+        report_bytes = canonical.read_bytes()
+        self.assertEqual([], check.executable_cl_historical_report_errors(ROOT.parent))
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository_root = Path(temporary_directory)
+            historical = repository_root / check.EXECUTABLE_CL_HISTORICAL_REPORT_PATH
+            historical.parent.mkdir(parents=True)
+            mutated = bytearray(report_bytes)
+            mutated[0] ^= 1
+            historical.write_bytes(mutated)
+            self.assertEqual(
+                [check.EXECUTABLE_CL_HISTORICAL_REPORT_HASH_ERROR],
+                check.executable_cl_historical_report_errors(repository_root),
+            )
+
     def test_typed_finiteness_and_executable_ownership_wording_is_adversarial(self) -> None:
         finiteness_mutations = (
             ("statement", " Finite typed samplers and deciders are exposed."),
