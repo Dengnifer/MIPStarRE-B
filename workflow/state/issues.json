@@ -3363,7 +3363,7 @@
       "title": "audit(workflow): quantify and design deduplicated Lake cache layout",
       "kind": "workflow",
       "execution_category": "preflight",
-      "status": "ready",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [],
       "labels": [
@@ -3394,8 +3394,8 @@
         "workflow/reviews/qpbt-067-cache-layout-a01.md"
       ],
       "created_at": "2026-09-03T09:12:00Z",
-      "updated_at": "2026-09-03T09:12:00Z",
-      "owner_session_id": null,
+      "updated_at": "2026-09-03T09:15:56.717731Z",
+      "owner_session_id": "i067-orchestrator-a01-cache-layout",
       "blocked_reason": null,
       "unblock_condition": null
     }
