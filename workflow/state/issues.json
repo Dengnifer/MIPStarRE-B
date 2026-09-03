@@ -2188,7 +2188,7 @@
       "title": "Prevent guessed full SHAs in local workflow admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-026",
@@ -2232,60 +2232,64 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:46:00Z",
-      "updated_at": "2026-09-03T17:48:51.513679Z",
+      "updated_at": "2026-09-03T18:36:07.387484Z",
       "blocked_reason": null,
-      "unblock_condition": "Repair F044-A15-001 and F044-A16-001 on exact head 546e6dc, preserve all prior identity and transaction guarantees, rerun focused and aggregate tests, then obtain fresh immutable reviews.",
+      "unblock_condition": "Bind the approved exact candidate to a local PR, run guarded integration on current main, and verify the focused post-integration workflow gates.",
       "candidate_base_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
-      "candidate_head_sha": "546e6dcad0e16c53c5ced59e25b7f9c78f13a467",
-      "candidate_tree": "67b18735b16c8963474a5f6c0490e7eefb581db1",
-      "candidate_patch_sha256": "fbbf8690ae34885c342047e8f4144bec78f20a83463ed8e107184f704e80857c",
-      "candidate_report": "/tmp/i044-orchestrator-a14-sha256-length.md",
-      "candidate_report_sha256": "6e6fce5ce7cebb963f77e8ebad3a4d76e6a84256c36e71a2e1e615fae3344ba8",
-      "candidate_status": "changes-requested",
-      "review_report": "/tmp/i044-reviewer-a06-security.md",
-      "review_manifest_sha256": "00a398971e4fedc2314087d3d46b7b464501e0e409448d0934777b13fd85698c",
-      "review_head_sha": "2eb8aef8ec091c991a1a6ec852a869b6269a6aee",
-      "review_verdict": "request_changes",
-      "secondary_review_report": "/tmp/i044-reviewer-a16-regression.md",
-      "secondary_review_manifest_sha256": "9edc6d85da2ab78a5381954b322c8be2b3a5e3d5d80cfe2448f9ba377792a433",
-      "secondary_review_verdict": "request_changes",
+      "candidate_head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+      "candidate_tree": "5135d16808d85d40ee841fc4bb88ff7edc143e31",
+      "candidate_patch_sha256": "1490a68baf0038c2a6f526346a92317a3c320f8c8eb8def6ef89ff2c9a2f4249",
+      "candidate_report": "/tmp/i044-orchestrator-a17-repository-binding.md",
+      "candidate_report_sha256": "d47e03898e8d4370008489119c2e29185dfa6727f7eaca8ec5fdcdab9fa8b1e1",
+      "candidate_status": "reviewed-approved-pending-local-pr",
+      "review_report": "/tmp/i044-reviewer-a18-repository-binding.md",
+      "review_manifest_sha256": "d4be7775be9cf56d26006e86dd4ba0e7280eb81d551d764b2a6aeaee49466ed8",
+      "review_head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+      "review_verdict": "approve",
+      "secondary_review_report": "/tmp/i044-reviewer-a19-regression.md",
+      "secondary_review_manifest_sha256": "d4be7775be9cf56d26006e86dd4ba0e7280eb81d551d764b2a6aeaee49466ed8",
+      "secondary_review_verdict": "approve",
       "review_findings": [
         {
           "id": "F044-A02-001",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/git_identity.py:128",
-          "summary": "Unqualified symbolic refs can be ambiguous across branch and tag namespaces while successful Git stderr warnings are discarded."
+          "summary": "Unqualified symbolic refs can be ambiguous across branch and tag namespaces while successful Git stderr warnings are discarded.",
+          "resolution_evidence": "The cumulative candidate rejects ambiguous names and authenticates symbolic and direct identities through descriptor-bound Git children; A18 and A19 approved the exact head."
         },
         {
           "id": "F044-A02-002",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/git_identity.py:112",
-          "summary": "The resolver authenticates a transient symlink-resolved root but the issued row retains the mutable lexical worktree path without a stable filesystem-identity recheck."
+          "summary": "The resolver authenticates a transient symlink-resolved root but the issued row retains the mutable lexical worktree path without a stable filesystem-identity recheck.",
+          "resolution_evidence": "The cumulative candidate retains and rechecks the worktree directory identity through publication; A18 and A19 approved the exact head."
         },
         {
           "id": "F044-A03-001",
           "severity": "medium",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/git_identity.py:32",
-          "summary": "Object proof in a partial clone can trigger unpinned lazy fetch and credential-helper activity because GIT_NO_LAZY_FETCH is not set."
+          "summary": "Object proof in a partial clone can trigger unpinned lazy fetch and credential-helper activity because GIT_NO_LAZY_FETCH is not set.",
+          "resolution_evidence": "The cumulative candidate supplies a minimal no-fetch and non-interactive Git environment; both final reviewers verified the missing-promisor regression."
         },
         {
           "id": "F044-A06-001",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/git_identity.py:99",
-          "summary": "Pathname pre/post inode checks permit a swap-run-restore ABA substitution while the Git child resolves its working directory."
+          "summary": "Pathname pre/post inode checks permit a swap-run-restore ABA substitution while the Git child resolves its working directory.",
+          "resolution_evidence": "The cumulative candidate runs Git through retained worktree and repository metadata descriptors and reauthenticates them through publication; A18 and A19 approved the exact head."
         }
       ],
-      "repair_parent_sha": "818ecbdede4f2e490e8e0f113c868e6ba9a80eb2",
+      "repair_parent_sha": "546e6dcad0e16c53c5ced59e25b7f9c78f13a467",
       "repair_patch_sha256": "9170384aebc72d25f7c6ab502cd8f929846a8767479d4a89801fa765db756e8d",
-      "latest_review_report": "/tmp/i044-reviewer-a15-object-format.md",
-      "latest_review_report_sha256": "53ac176b0a320581a0482a4bc4d26b4bb7aaa8c3c7968fefadef88629303c197",
-      "latest_review_manifest_sha256": "9edc6d85da2ab78a5381954b322c8be2b3a5e3d5d80cfe2448f9ba377792a433",
-      "latest_review_head_sha": "546e6dcad0e16c53c5ced59e25b7f9c78f13a467",
-      "latest_review_verdict": "request_changes",
+      "latest_review_report": "/tmp/i044-reviewer-a18-repository-binding.md",
+      "latest_review_report_sha256": "ff3d3764c0af36660d13052e0c4cf55ae6ed0753a43bfdeccfc5f5825fac7391",
+      "latest_review_manifest_sha256": "d4be7775be9cf56d26006e86dd4ba0e7280eb81d551d764b2a6aeaee49466ed8",
+      "latest_review_head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+      "latest_review_verdict": "approve",
       "approval_review_report_a09": "/tmp/i044-reviewer-a09-fd-immutable.md",
       "approval_review_report_a09_sha256": "8b3d5202700029feefd291c56fac1d0e2f536aebc1c308492df8b90341891cb2",
       "latest_review_findings": [
@@ -2295,25 +2299,29 @@
           "status": "resolved",
           "path": "scripts/git_identity.py:18",
           "summary": "SHA-256 repositories accepted a 40-hex commit prefix as a full identity.",
-          "resolution_evidence": "A14 queries descriptor-bound Git input object formats before direct-object resolution and adds nominal resolver and workflow regressions."
+          "resolution_evidence": "A14 queries descriptor-bound Git input object formats and adds resolver and workflow regressions."
         },
         {
           "id": "F044-A15-001",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/git_identity.py:254",
-          "summary": "A separately queried object format can come from transiently substituted Git metadata, allowing a SHA-256 repository to accept a 40-hex prefix."
+          "summary": "A separately queried object format could come from transiently substituted Git metadata.",
+          "resolution_evidence": "A17 retains and reauthenticates repository metadata descriptors across every Git child and publication boundary."
         },
         {
           "id": "F044-A16-001",
           "severity": "medium",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/git_identity.py:363",
-          "summary": "Lexical normalization can erase a symlink followed by dot-dot before the no-follow worktree walk and authenticate a different directory from the supplied pathname."
+          "summary": "Lexical normalization could erase a symlink followed by dot-dot before the no-follow walk.",
+          "resolution_evidence": "A17 rejects dot-dot in the supplied lexical path before normalization and adds exact resolver and workflow regressions."
         }
       ],
-      "repair_parent_patch_sha256": "db72e5c67362b7fea32b2a3984dd9117c13c26d0f8859b401abebb28c49a0c93",
-      "secondary_review_report_sha256": "22552a7c8967eb21e69529e0dd7382fd58397bcdc4b43b60de707ce0495f7ddf"
+      "repair_parent_patch_sha256": "b397bb72d4b4ee988220eac143c8ba3fc8ae8b7f326b7396054cda160e8a6d2b",
+      "secondary_review_report_sha256": "f7ded2d61fce4f8f26434d9c8c490dcfee3a1c11c7da7399df117cd6f7b1d9c5",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-044-review-manifest-a18.json",
+      "review_report_sha256": "ff3d3764c0af36660d13052e0c4cf55ae6ed0753a43bfdeccfc5f5825fac7391"
     },
     {
       "id": "QPBT-041",
@@ -3830,27 +3838,29 @@
       ],
       "owned_paths": [
         "scripts/hot_main_cache.py",
+        "scripts/materialize_mipstarre.py",
         "tests/test_hot_main_cache.py",
+        "tests/test_mipstarre_materialization.py",
         "protocols/local-development.md",
         "protocols/CHANGELOG.md",
         "workflow/reviews/qpbt-067-cache-layout-a01.md",
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
-      "owner_session_id": "i068-orchestrator-a10-transaction-repair",
-      "blocked_reason": null,
-      "unblock_condition": "Resolve all A08/A09 blockers with fail-closed capability and continuous identity semantics, complete the adversarial matrix, rerun focused and aggregate gates, then obtain fresh immutable reviews before the serialized changelog binder.",
+      "owner_session_id": "i068-orchestrator-a13-materializer-transaction",
+      "blocked_reason": "A11 found that prepare still delegates live materializer cleanup to pathname-based recursive deletion and uses two ordinary renames; A12 also found dry-run capability admission occurs after input authentication.",
+      "unblock_condition": "Repair the live materializer transaction so cleanup and publication preserve continuous authority or refuse before mutation, cover the adversarial substitution schedules, and move the dry-run capability gate before input admission; then obtain fresh immutable review.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-03T17:05:46.315870Z",
+      "updated_at": "2026-09-03T18:40:35.954062Z",
       "candidate_base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
-      "candidate_head_sha": "f03c94e074f2ebfd7e99e05394c4116126455895",
-      "candidate_tree": "1aa8ff42dbf89f78e09d46d3efdf0195e2dd38a6",
-      "candidate_patch_sha256": "6f77cd62af9ec0fd0927d615c5b30da32a49633bbfbefa75e6db82bd3fba6867",
-      "candidate_report": "/tmp/i068-orchestrator-a06-identity-repair.md",
-      "candidate_report_sha256": "eaf1307b8346ef43f49bbf65b69443728949c48c35055a8614a734666cf98aa7",
-      "candidate_status": "changes-requested",
-      "review_report": "/tmp/i068-scout-a05-hostile.md",
-      "review_manifest_sha256": "3c7e8c4b00d4e378c8dd8e477f28cfef79c42ed70d2d794a5312c65563b3dd07",
-      "review_head_sha": "2820c66f2a9f227cfe2a5da6d1448c6e52cb8262",
+      "candidate_head_sha": "650097d3fc65ecb93683dcbd5fbc3071240cf1e8",
+      "candidate_tree": "9e74df6a4b96beddc547507f3e16020b96075556",
+      "candidate_patch_sha256": "7b1a4f2cf185edf91e73758be444a58c1dd23e8306da25e561fdc892f27b7a1f",
+      "candidate_report": "/tmp/i068-orchestrator-a10-transaction-repair.md",
+      "candidate_report_sha256": "a3e5e29df02dcb764a0009925fb25d12dd8a3e30b5453687e6093e0c3c789c48",
+      "candidate_status": "changes-requested-a11-a12",
+      "review_report": "/tmp/i068-reviewer-a11-transaction.md",
+      "review_manifest_sha256": "dfc0ccd3674d55ecd927ab74d39bfa996286e04cd4404f41e66437453fefbc70",
+      "review_head_sha": "650097d3fc65ecb93683dcbd5fbc3071240cf1e8",
       "review_verdict": "request_changes",
       "review_findings": [
         {
@@ -3918,89 +3928,116 @@
           "resolution_evidence": "A04 binds the exact QPBT-062 commit, tree, blob, byte size, and SHA-256; the next immutable manifest must include that byte."
         }
       ],
-      "review_report_sha256": "4e33f0745d18b5b1094365c2a58885dfa2b0c75d1b33a7e16e5469eb27cdc8a2",
+      "review_report_sha256": "a8566ce28fd663578a91baa9700dd6695c9924c90f25871381a57a8baa2605b5",
       "latest_review_findings": [
         {
           "id": "F068-A08-001",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/materialize_mipstarre.py:738",
-          "summary": "Prepare invokes materializer recovery whose unauthenticated persisted transaction bytes can authorize replacement and recursive deletion."
+          "summary": "Prepare invokes materializer recovery whose unauthenticated persisted transaction bytes can authorize replacement and recursive deletion.",
+          "resolution_evidence": "A10 refuses persisted materializer state before invocation; A11 authenticated this prior-finding closure."
         },
         {
           "id": "F068-A08-002",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:3788",
-          "summary": "Seed replacement publication is a two-rename non-atomic sequence, replace=false lacks no-replace semantics, and unsupported capabilities are not refused before mutation."
+          "summary": "Seed replacement publication is a two-rename non-atomic sequence, replace=false lacks no-replace semantics, and unsupported capabilities are not refused before mutation.",
+          "resolution_evidence": "A10 provides capability-gated atomic no-replace/exchange seed publication; A11 authenticated this cache-transaction closure."
         },
         {
           "id": "F068-A08-003",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:3594",
-          "summary": "Rollback and cleanup trust substituted pathnames and can install or recursively delete unknown directories."
+          "summary": "Rollback and cleanup trust substituted pathnames and can install or recursively delete unknown directories.",
+          "resolution_evidence": "A10 descriptor-binds seed rollback and retention objects; A11 authenticated this cache-transaction closure."
         },
         {
           "id": "F068-A08-004",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:3662",
-          "summary": "The named registration guard omits Git registration revalidation because the intended block is unreachable."
+          "summary": "The named registration guard omits Git registration revalidation because the intended block is unreachable.",
+          "resolution_evidence": "A10 restores live Git registration and captured HEAD revalidation; A11 authenticated the closure."
         },
         {
           "id": "F068-A08-005",
           "severity": "medium",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:15",
-          "summary": "The final-candidate source and test line anchors remain stale despite the report claiming repair."
+          "summary": "The final-candidate source and test line anchors remain stale despite the report claiming repair.",
+          "resolution_evidence": "A10 corrects the final-candidate anchors and A11 authenticated the evidence artifact."
         },
         {
           "id": "F068-A09-001",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:104",
-          "summary": "Stat generations do not detect ancestor ABA during seed or prepare."
+          "summary": "Stat generations do not detect ancestor ABA during seed or prepare.",
+          "resolution_evidence": "A10 adds root-to-leaf name monitoring and conservative poison semantics; both A11 and A12 audited this closure."
         },
         {
           "id": "F068-A09-002",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:3858",
-          "summary": "Retained-name publication and live journal/staging cleanup retain check/use races that replace or delete substituted objects."
+          "summary": "Retained-name publication and live journal/staging cleanup retain check/use races that replace or delete substituted objects.",
+          "resolution_evidence": "A10 descriptor-binds and moves seed transaction objects without recursive deletion; A11 authenticated the cache-only closure."
         },
         {
           "id": "F068-A09-003",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:3671",
-          "summary": "An unadaptable materializer falls back to the lexical target path and can mutate a swapped decoy before failure."
+          "summary": "An unadaptable materializer falls back to the lexical target path and can mutate a swapped decoy before failure.",
+          "resolution_evidence": "A10 refuses incomplete materializer interfaces before seed allocation; A11 authenticated this boundary while identifying a distinct live-cleanup defect."
         },
         {
           "id": "F068-A09-004",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "tests/test_hot_main_cache.py:140",
-          "summary": "The regression matrix omits atomic/no-replace capability, ancestor-ABA, cleanup-race, and symmetric seed/prepare schedules; byte snapshots omit metadata."
+          "summary": "The regression matrix omits atomic/no-replace capability, ancestor-ABA, cleanup-race, and symmetric seed/prepare schedules; byte snapshots omit metadata.",
+          "resolution_evidence": "A10 expands symmetric hostile tests and metadata snapshots; A11 and A12 authenticated the covered schedules."
+        },
+        {
+          "id": "F068-A11-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/materialize_mipstarre.py:667",
+          "summary": "Prepare delegates live materializer cleanup to pathname-based shutil.rmtree and foundation replacement to two ordinary renames, allowing substitution deletion and a non-atomic destination interval."
+        },
+        {
+          "id": "F068-A12-001",
+          "severity": "low",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:4630",
+          "summary": "Dry-run authenticates cache-key inputs before the mandatory capability gate, contrary to the unqualified protocol and report ordering claim."
         }
       ],
       "repair_audit_report": "/tmp/i068-scout-a07-repair-audit.md",
       "repair_audit_report_sha256": "c9791defd746b5432296cff7458c388652c2ec3bb27bdf532fc893de8af5f04c",
-      "latest_review_report": "/tmp/i068-reviewer-a08-security.md",
-      "latest_review_report_sha256": "e2824460afc2657d6695d10c53a2944b2622f85df129114d68822a10ff7cdbf4",
-      "latest_review_manifest_sha256": "53ff38bd5ce0cdc6758576136d9808cbb9330e4419c39142fadc2025630e1e40",
+      "latest_review_report": "/tmp/i068-reviewer-a11-transaction.md",
+      "latest_review_report_sha256": "a8566ce28fd663578a91baa9700dd6695c9924c90f25871381a57a8baa2605b5",
+      "latest_review_manifest_sha256": "dfc0ccd3674d55ecd927ab74d39bfa996286e04cd4404f41e66437453fefbc70",
       "latest_review_verdict": "request_changes",
-      "secondary_review_report": "/tmp/i068-reviewer-a09-regression.md",
-      "secondary_review_report_sha256": "65dff9813338a2da76bf2e7ef199d8fc7588bf74037e5ef489347456d2e85963",
-      "secondary_review_verdict": "request_changes",
-      "latest_review_head_sha": "f03c94e074f2ebfd7e99e05394c4116126455895"
+      "secondary_review_report": "/tmp/i068-reviewer-a12-regression.md",
+      "secondary_review_report_sha256": "870b45e7b45f11ef5d0c7b96f19a7ea5006194692b09b31eb4d92b2aeb010f5d",
+      "secondary_review_verdict": "approve",
+      "latest_review_head_sha": "650097d3fc65ecb93683dcbd5fbc3071240cf1e8",
+      "repair_parent_sha": "f03c94e074f2ebfd7e99e05394c4116126455895",
+      "repair_parent_patch_sha256": "205341eaa01b08294cb3ca69480cbb249898db5d0da4ff182d776b10891e040d",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a11.json",
+      "secondary_review_manifest_sha256": "dfc0ccd3674d55ecd927ab74d39bfa996286e04cd4404f41e66437453fefbc70"
     },
     {
       "id": "QPBT-069",
       "title": "fix(QPBT): disambiguate local Galois-field instances",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "blocked",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-037",
@@ -4020,7 +4057,7 @@
         "The candidate changes only MIPStarRE/QPBT/Game/Types.lean, records exact base/head/tree/patch identities, and receives fresh immutable independent review before guarded integration.",
         "After guarded integration, QPBT-040 reruns the combined import and snapshot gates before QPBT-014 may close."
       ],
-      "owner_session_id": "i069-orchestrator-a01-instance-names",
+      "owner_session_id": "i069-orchestrator-a04-full-build",
       "source_refs": [
         "workflow/reviews/qpbt-040-q014-combined-a01.md",
         "MIPStarRE/QPBT/Basic/Pauli.lean:22",
@@ -4030,9 +4067,9 @@
         "MIPStarRE/QPBT/Game/Types.lean"
       ],
       "created_at": "2026-09-03T17:38:00Z",
-      "updated_at": "2026-09-03T17:57:47.320096Z",
-      "blocked_reason": null,
-      "unblock_condition": "Obtain two fresh immutable reviews of exact candidate 4bb8a089, then create and approve the local PR before guarded integration.",
+      "updated_at": "2026-09-03T18:21:51.025290Z",
+      "blocked_reason": "The build-only A04 correctly failed because the manually cache-copied candidate worktree lacks the ignored authenticated MIPStarRE foundation required by the root target.",
+      "unblock_condition": "After the QPBT-068 cache safety repair is reviewed and integrated, prepare this exact candidate worktree with the authenticated local archives, then rerun the one full build and explicitly request re-review.",
       "candidate_base_sha": "c0b166fa288b2aac0e008e375f8339bbf38c067f",
       "candidate_head_sha": "4bb8a0897a5fbe4f7356c09329820801564e8879",
       "candidate_tree": "7351759488dcec34213019ba7ad49ce78131efd5",
@@ -4040,9 +4077,33 @@
       "candidate_blob": "eeae36f9c54f9072c89cbde9edd19078fee9a5d0",
       "candidate_report": "/tmp/i069-orchestrator-a01-instance-names.md",
       "candidate_report_sha256": "da258bb174689dd815fc1f7afbe16bc70a958fb000a7d7dd320aa94cafbf0d7b",
-      "candidate_status": "implementation-complete-pending-immutable-review",
+      "candidate_status": "blocked-preparation-incomplete",
       "review_manifest": ".workflow-runtime/qpbt-069-review-manifest-a02.json",
-      "review_manifest_sha256": "d0bafa2b4425d2a3e9b2be079afd27bbc223b7099263eae85eba88e017346e70"
+      "review_manifest_sha256": "d0bafa2b4425d2a3e9b2be079afd27bbc223b7099263eae85eba88e017346e70",
+      "review_report": "/tmp/i069-reviewer-a02-source-lean.md",
+      "review_report_sha256": "d658478716228bd01b11f2fef81a7ca2c5a5c5144a1b6c9d820718fdc450e19b",
+      "review_head_sha": "4bb8a0897a5fbe4f7356c09329820801564e8879",
+      "review_verdict": "request_changes",
+      "secondary_review_report": "/tmp/i069-reviewer-a03-regression.md",
+      "secondary_review_report_sha256": "913c5b92758ea4a7a5d937c6a35aa62af20806446688ec16c438ad813ca90f03",
+      "secondary_review_manifest_sha256": "d0bafa2b4425d2a3e9b2be079afd27bbc223b7099263eae85eba88e017346e70",
+      "secondary_review_verdict": "approve",
+      "latest_review_report": "/tmp/i069-reviewer-a02-source-lean.md",
+      "latest_review_report_sha256": "d658478716228bd01b11f2fef81a7ca2c5a5c5144a1b6c9d820718fdc450e19b",
+      "latest_review_manifest_sha256": "d0bafa2b4425d2a3e9b2be079afd27bbc223b7099263eae85eba88e017346e70",
+      "latest_review_head_sha": "4bb8a0897a5fbe4f7356c09329820801564e8879",
+      "latest_review_verdict": "request_changes",
+      "review_findings": [
+        {
+          "id": "F069-A02-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "AGENTS.md:58",
+          "summary": "The exact candidate has scoped and target evidence but lacks the mandatory repository-wide lake build before review and integration."
+        }
+      ],
+      "latest_build_report": "/tmp/i069-orchestrator-a04-full-build.md",
+      "latest_build_report_sha256": "13619d1d78670a8852f04be86ecc26986845f9c83c2b36a0c85fc06a8ba0d3e4"
     },
     {
       "id": "QPBT-070",
