@@ -9417,6 +9417,158 @@
       "postintegration_report_sha256": "d2db04e86b71cf85dee7428233758dbd36e0f24627c9abe766439a318a628148",
       "postintegration_cache_key": "21a7b15fd273fef0829d2ef790f152e6e0af02d4ba75a905e0583a758bcac187",
       "postintegration_build": "8992 jobs passed; singleton build 643.598163s; immediate cache status hit"
+    },
+    {
+      "id": "LPR-037",
+      "title": "fix(workflow): authenticate Git repository identities",
+      "status": "merged",
+      "issue_ids": [
+        "QPBT-044"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-044-git-identity-a01",
+      "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+      "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+      "implementer_session_ids": [
+        "i044-integrator-a20-pr037-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-044-pr037-auth",
+          "name": "QPBT-044 immutable candidate authentication",
+          "command": "Authenticate exact current base/tree, candidate head/tree/parent, cumulative six-path blobs and patch, immutable manifest, A18/A19 approvals, and clean candidate worktree",
+          "status": "passed",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "completed_at": "2026-09-03T18:50:06Z",
+          "result_path": "/tmp/i044-integrator-a20-pr037-bind.md",
+          "result": "Base 5bac1995/tree e2ec61c and head 0107b093/tree 5135d16 authenticated; exact six candidate paths and both zero-finding approvals matched."
+        },
+        {
+          "id": "check-qpbt-044-pr037-merge",
+          "name": "LPR-037 current-base merge proof",
+          "command": "Compute read-only three-way merge at merge base 08b12a8 and verify exact six-path result, zero conflicts, and preservation of every unrelated main byte",
+          "status": "passed",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "completed_at": "2026-09-03T18:50:06Z",
+          "result_path": "/tmp/i044-integrator-a20-pr037-bind.md",
+          "result": "Merge output SHA-256 3680a703; staged six-path patch SHA-256 095dbf4e; zero overlapping base-side paths and zero conflicts."
+        },
+        {
+          "id": "check-qpbt-044-pr037-validation",
+          "name": "QPBT-044 reviewed validation evidence",
+          "command": "Authenticate A17 aggregate and focused results plus A18/A19 bounded reruns without repeating unchanged aggregate work",
+          "status": "passed",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "completed_at": "2026-09-03T18:50:06Z",
+          "result_path": "/tmp/i044-integrator-a20-pr037-bind.md",
+          "result": "A17 recorded 18/18 resolver, 94/94 workflow, and effective 418/418 aggregate; A18 passed 8 focused tests and A19 passed 11 focused tests."
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-044-pr037-a21-formal",
+          "reviewer_session_id": "i044-reviewer-a21-formal-pr",
+          "verdict": "request_changes",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "started_at": "2026-09-03T18:53:57.363873Z",
+          "completed_at": "2026-09-03T18:58:32Z",
+          "result_path": "/tmp/i044-reviewer-a21-formal-pr.md",
+          "finding_ids": [
+            "F044-A21-001"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "de81e9b18cd9a290c2842873d4b4e6aa97948d8f6fb20c3b9d4daeb3fdace91b",
+          "manifest_sha256": "1d015aceda4beb4f8f2b0a2823228131df84f9213405cc7f57638b47006e1226",
+          "patch_sha256": "095dbf4e5e9ff66a7c676d976e29a16a2cfd4c7dfa81f607d54cd1afcbdcc668",
+          "integration_gate": "blocked only on correcting immutable PR evidence representation; candidate code and merge require no change"
+        },
+        {
+          "id": "review-qpbt-044-pr037-a22-evidence",
+          "reviewer_session_id": "i044-reviewer-a22-evidence",
+          "verdict": "approve",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "started_at": "2026-09-03T19:09:27.525795Z",
+          "completed_at": "2026-09-03T19:11:09Z",
+          "result_path": "/tmp/i044-reviewer-a22-evidence.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "67383ec60b21b56b93b68ce61c9db4252a45785ee4ba51da254f4f6709ae968d",
+          "manifest_sha256": "bb9e8a5d2818a8771a8774e0849c8ee71eb5dfabdcd6bb500094fc445f1c44d8",
+          "patch_sha256": "095dbf4e5e9ff66a7c676d976e29a16a2cfd4c7dfa81f607d54cd1afcbdcc668",
+          "integration_gate": "approved for guarded integration; no candidate-head change required"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F044-A21-001",
+          "introduced_review_id": "review-qpbt-044-pr037-a21-formal",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "severity": "medium",
+          "status": "resolved",
+          "disposition": "rejected",
+          "disposition_evidence": "A22 authenticated correction-qpbt-044-pr037-aggregate and the exact testing summary. A21's evidence-fidelity defect was valid and is superseded in the PR ledger, but it never described a candidate-head defect, so no candidate remediation applies.",
+          "resolved_by_review_id": "review-qpbt-044-pr037-a22-evidence",
+          "confirmation_review_ids": [],
+          "summary": "The PR ledger overstates separate aggregate and host follow-up evidence as an effective 418/418 aggregate run.",
+          "path": "workflow/state/prs.json",
+          "line": 9467,
+          "required_change": "Preserve the immutable old check as history, append an explicit evidence correction and exact testing summary, then request focused same-head re-review; no candidate change is required."
+        }
+      ],
+      "integration_sha": "4ee8ccda11bf15dcaab7bf5a3fc15bbd34cdb109",
+      "merged_at": "2026-09-03T19:24:26.628802Z",
+      "created_at": "2026-09-03T18:46:11.702507Z",
+      "updated_at": "2026-09-03T19:24:26.628802Z",
+      "changed_paths": [
+        "scripts/git_identity.py",
+        "scripts/workflow.py",
+        "tests/test_git_identity.py",
+        "tests/test_workflow.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "motivation": "Prevent guessed, ambiguous, abbreviated, or path-substituted Git identities from entering canonical session state.",
+      "description": "Adopt the exact cumulatively reviewed QPBT-044 candidate on the current main base, then obtain one PR-bound immutable approval before guarded integration.",
+      "testing": "Candidate evidence is 18/18 resolver tests, 94/94 workflow tests, one sandbox aggregate with 416/418 passing and two EPERM errors, and a separate bounded 2/2 host follow-up; A18 and A19 independently approved the exact head.",
+      "addresses": "QPBT-044",
+      "manifest_sha256": "d4be7775be9cf56d26006e86dd4ba0e7280eb81d551d764b2a6aeaee49466ed8",
+      "requested_external_review": true,
+      "unexecuted_gate": null,
+      "evidence_corrections": [
+        {
+          "id": "correction-qpbt-044-pr037-aggregate",
+          "supersedes_check_id": "check-qpbt-044-pr037-validation",
+          "recorded_at": "2026-09-03T19:06:30Z",
+          "incorrect_claim": "A17 recorded an effective 418/418 aggregate.",
+          "corrected_claim": "The single sandbox aggregate ran 418 tests: 416 passed and two Unix-socket cases errored with sandbox EPERM; those exact two cases then passed 2/2 in a separate bounded host follow-up.",
+          "evidence_path": "/tmp/i044-orchestrator-a17-repository-binding.md",
+          "evidence_sha256": "d47e03898e8d4370008489119c2e29185dfa6727f7eaca8ec5fdcdab9fa8b1e1",
+          "rationale": "Checks are append-only historical records, so this structured correction preserves the original byte while making the authoritative interpretation explicit."
+        }
+      ],
+      "local_immutable_review": "approved",
+      "approval_review_id": "review-qpbt-044-pr037-a22-evidence",
+      "postintegration_validation": {
+        "integration_commit": "4ee8ccda11bf15dcaab7bf5a3fc15bbd34cdb109",
+        "integration_tree": "8771fe631097d1108fe04766948e433fa4e0d9e2",
+        "parents": [
+          "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "0107b093ff37e2423709c05d3fe8b299da2ef344"
+        ],
+        "cumulative_patch_sha256": "095dbf4e5e9ff66a7c676d976e29a16a2cfd4c7dfa81f607d54cd1afcbdcc668",
+        "changed_paths": 6,
+        "identity_tests": "18/18",
+        "workflow_tests": "94/94",
+        "compileall": "passed",
+        "integration_worktree_validate": "passed",
+        "canonical_post_fast_forward_validate": "passed"
+      }
     }
   ]
 }
