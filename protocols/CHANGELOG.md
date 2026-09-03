@@ -1,5 +1,96 @@
 # Protocol Changelog
 
+## 0.1.13 candidate (QPBT-044) - 2026-09-03
+
+INC-050, INC-058, and INC-059 are the three occurrences of
+`session-base-full-sha-guessed-from-abbreviation`: a displayed abbreviation was
+manually extended into a syntactically valid but nonexistent 40-hex value.
+INC-078 independently reached the third occurrence of the same transcription
+failure at a read-only candidate comparison. The prior manual preflight rule
+did not prevent recurrence.
+
+QPBT-044 adds one Git identity resolver to workflow admission. Every dispatch
+dry-run and confirmation resolves the planned base in its registered worktree,
+proves the full commit and exact root-tree object and type, compares an optional
+expected tree, and records the resolved commit/tree pair. A guessed SHA,
+missing object, or tree mismatch blocks the complete requested batch before
+session/event mutation. The resolver deliberately keeps a PR review base
+distinct from a detached candidate worktree `HEAD`. Collaboration confirmation
+and atomic rollback are unchanged, and governed CLI rows retain their null-ID
+issue-first lease behavior.
+
+Independent reviews A02 and A03 identified three remaining admission gaps, all
+fixed in the candidate. Unqualified symbolic names now require exactly one
+canonical ref match, while fully qualified refs remain explicit authority.
+Symlinked worktree components are rejected; the canonical root's device/inode
+is checked around each Git process and again at the dispatch publication
+boundary, with byte-exact rollback on replacement. Git also runs with
+`GIT_NO_LAZY_FETCH=1`, so a missing promisor object fails locally without
+invoking the repository's configured transport or credential path.
+
+Independent reviews A06 and A07 then reproduced one remaining high-severity ABA
+gap: pre/post pathname inode checks did not determine the working directory
+used by a Git child while an attacker swapped and restored the repository
+between those checks. The resolver now acquires the worktree component-wise
+with no-follow `openat`, runs every Git child from the retained descriptor via
+`/proc/self/fd`, and keeps that descriptor live through dispatch publication or
+rollback. Dispatch-scoped cleanup closes every proof on every exit path. New
+deterministic resolver and dispatch regressions swap in a repository with a
+different commit/tree only while each subprocess runs; Git remains bound to the
+original directory object, and a substitute expected tree is rejected with
+byte-identical session and event ledgers.
+
+Independent regression review A10 found that one descriptor-close failure
+aborted cleanup of later proofs after session and event publication had already
+committed, leaking a later descriptor and reporting failure for durable success.
+Proof cleanup now attempts every retained close and propagates the first error.
+Dispatch performs that cleanup inside its publication rollback boundary, so a
+reported close failure has byte-identical pre-dispatch ledgers; successful
+publication cannot subsequently become an exceptional caller result due to
+proof cleanup. The deterministic two-proof regression injects the first close
+failure, proves both
+real descriptors closed and exact rollback, then proves a clean retry commits.
+
+Independent regression review A13 found that the syntactic direct-object test
+accepted either supported hash width without consulting the repository, so Git
+could expand a 40-hex prefix in a SHA-256 repository. Direct hexadecimal
+identities are now admitted only when their width matches an input object format
+advertised by the bound repository. Resolver and dispatch regressions reject a
+40-hex SHA-256 prefix without mutation and accept the exact 64-hex commit.
+
+Independent reviews A15 and A16 found two further path/authority gaps. The
+object-format query could rediscover a transient substitute `.git` directory
+before later resolution returned to the authentic SHA-256 repository, and
+lexical normalization could erase a symlink followed by `..` before the
+no-follow walk. The resolver now rejects lexical parent components before
+normalization and authenticates one retained repository authority before any
+Git operation. Ordinary `.git` directories and linked-worktree gitfiles,
+gitfile targets, `commondir` files, and common-directory targets are opened
+without following symlinks and retained through dispatch publication. Every Git
+child receives the same worktree, Git-directory, and common-directory
+descriptors explicitly. Direct object input must additionally equal the full ID
+returned by Git. Exact resolver and workflow regressions swap a SHA-1 `.git`
+directory into a SHA-256 worktree only during the format child, reject the
+40-hex prefix with an expected tree and no ledger mutation, and still accept
+the authentic 64-hex ID. Companion regressions reject a symlink/`..` path before
+Git runs and prove linked-worktree gitfile/common-directory resolution.
+
+Focused regressions cover symbolic and exact refs, branch/tag ambiguity,
+nonexistent full-looking SHAs, object/tree authentication, expected-tree
+mismatch, detached-head review semantics, symlink retargeting, root
+rename/replacement, publication-boundary rollback, partial-clone missing-object
+behavior, exact issued/event identity, governed launch behavior, and
+byte-identical atomic rejection. The partial-clone checks use a sentinel
+transport and prove that neither dry-run nor confirmation invokes it. The
+QPBT-045 contract is exercised without a cache implementation change: an
+invalid exact main reaches zero warm/build, publication, and metric actions.
+The focused resolver suite passes 18/18 and the workflow module passes 94/94.
+The single dependency-free aggregate run passed 416/418; its two unrelated
+Unix-socket cases were denied by the managed sandbox with `EPERM`, then both
+passed in a bounded unsandboxed follow-up. The canonical checker, compileall,
+and canonical workflow validation pass. A fresh immutable independent review
+remains required before activation.
+
 ## 0.1.12 (2026-09-03)
 
 The user-authorized repository mirror is now explicit. The root coordinator may
