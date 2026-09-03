@@ -1977,6 +1977,9 @@ class WorkflowStore:
                     identity = git_identity_proofs.get(session_id)
                     if identity is not None:
                         recheck_git_identity_worktree(identity)
+                # Cleanup is part of publication: a close failure rolls the
+                # ledger back, while the proof bundle still attempts every close.
+                git_identity_proofs.close()
             except GitIdentityError as error:
                 self._restore_dispatch_transaction(
                     sessions_path=sessions_path,

@@ -1536,6 +1536,83 @@ class WorkflowStoreTests(unittest.TestCase):
         self.assertTrue(events[-1]["payload"]["all_or_nothing_request"])
         self.assertTrue(events[-1]["payload"]["atomic_batch"])
 
+    def test_multi_proof_close_failure_closes_all_and_rolls_back_before_retry(self) -> None:
+        first = collaboration_planned_session("i002-reviewer-a01-close-failure")
+        second = collaboration_planned_session("i002-reviewer-a02-close-failure")
+        state = documents()
+        state["sessions.json"]["planned"] = [second, first]
+        sessions_path = self.state_dir / "sessions.json"
+        sessions_path.write_text(json.dumps(state["sessions.json"]), encoding="utf-8")
+        before_sessions = sessions_path.read_bytes()
+        before_events = self.events.read_bytes()
+        original_close = git_identity.GitIdentity.close
+        closed_descriptors: list[int] = []
+
+        def fail_first_close(identity: git_identity.GitIdentity) -> None:
+            descriptor = identity._worktree_fd
+            original_close(identity)
+            closed_descriptors.append(descriptor)
+            if len(closed_descriptors) == 1:
+                raise OSError("injected proof close failure")
+
+        with (
+            mock.patch.object(
+                git_identity.GitIdentity,
+                "close",
+                autospec=True,
+                side_effect=fail_first_close,
+            ),
+            self.assertRaisesRegex(OSError, "injected proof close failure"),
+        ):
+            self.store.dispatch_sessions(
+                capacity=2,
+                stage_id="STAGE-01",
+                session_ids=[second["id"], first["id"]],
+                launch_confirmations=launch_confirmations(first, second),
+            )
+
+        self.assertEqual(2, len(closed_descriptors))
+        for descriptor in closed_descriptors:
+            with self.assertRaises(OSError):
+                os.fstat(descriptor)
+        self.assertEqual(before_sessions, sessions_path.read_bytes())
+        self.assertEqual(before_events, self.events.read_bytes())
+        rolled_back = self.store.validate()["sessions.json"]
+        self.assertEqual(
+            [second["id"], first["id"]],
+            [session["id"] for session in rolled_back["planned"]],
+        )
+        self.assertEqual([], rolled_back["issued"])
+
+        retried = self.store.dispatch_sessions(
+            capacity=2,
+            stage_id="STAGE-01",
+            session_ids=[second["id"], first["id"]],
+            launch_confirmations=launch_confirmations(first, second),
+        )
+        self.assertEqual("issued", retried["status"])
+        self.assertEqual([first["id"], second["id"]], retried["issued"])
+        committed = self.store.validate()["sessions.json"]
+        self.assertEqual([], committed["planned"])
+        self.assertEqual(
+            [first["id"], second["id"]],
+            [session["id"] for session in committed["issued"]],
+        )
+        committed_events = [
+            json.loads(line)
+            for line in self.events.read_text(encoding="utf-8").splitlines()
+            if line
+        ]
+        self.assertEqual(
+            [first["id"], second["id"]],
+            [
+                event["payload"]["session_id"]
+                for event in committed_events
+                if event["event"] == "session.issued"
+            ],
+        )
+        self.assertEqual("sessions.dispatched", committed_events[-1]["event"])
+
     def test_dispatch_batch_with_blocked_member_leaves_every_candidate_planned(self) -> None:
         blocked_issue = issue("QPBT-003", "planned", ["QPBT-002"])
         state = documents()

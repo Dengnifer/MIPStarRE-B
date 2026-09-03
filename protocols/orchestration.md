@@ -60,7 +60,10 @@ transaction, records only the canonical path in the issued row, rechecks the
 descriptor and its current pathname immediately before publication and after
 event validation, and rolls back if the root was renamed or replaced. Every
 success, blocked return, and exceptional rollback closes all retained
-descriptors before releasing the workflow lock. A collaboration bootstrap must
+descriptors before releasing the workflow lock. Cleanup attempts every retained
+descriptor even if an individual close fails; cleanup is inside the publication
+transaction, so such a failure rolls back session and event bytes before it is
+reported to the caller. A collaboration bootstrap must
 start in that exact registered canonical directory; confirmation is the task
 release boundary and reauthenticates it before the task packet is sent.
 The generic record-add command cannot add an issued session; all issuance goes

@@ -61,11 +61,23 @@ class GitIdentityProofs(dict[str, GitIdentity]):
             previous.close()
         super().__setitem__(key, identity)
 
-    def __exit__(self, *_exception: object) -> None:
+    def close(self) -> None:
+        """Attempt every retained close, then propagate the first failure."""
+
         identities = list(self.values())
         self.clear()
+        first_error: BaseException | None = None
         for identity in identities:
-            identity.close()
+            try:
+                identity.close()
+            except BaseException as error:
+                if first_error is None:
+                    first_error = error
+        if first_error is not None:
+            raise first_error
+
+    def __exit__(self, *_exception: object) -> None:
+        self.close()
 
 
 def _git_environment() -> dict[str, str]:

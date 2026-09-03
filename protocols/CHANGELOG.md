@@ -40,6 +40,17 @@ different commit/tree only while each subprocess runs; Git remains bound to the
 original directory object, and a substitute expected tree is rejected with
 byte-identical session and event ledgers.
 
+Independent regression review A10 found that one descriptor-close failure
+aborted cleanup of later proofs after session and event publication had already
+committed, leaking a later descriptor and reporting failure for durable success.
+Proof cleanup now attempts every retained close and propagates the first error.
+Dispatch performs that cleanup inside its publication rollback boundary, so a
+reported close failure has byte-identical pre-dispatch ledgers; successful
+publication cannot subsequently become an exceptional caller result due to
+proof cleanup. The deterministic two-proof regression injects the first close
+failure, proves both
+real descriptors closed and exact rollback, then proves a clean retry commits.
+
 Focused regressions cover symbolic and exact refs, branch/tag ambiguity,
 nonexistent full-looking SHAs, object/tree authentication, expected-tree
 mismatch, detached-head review semantics, symlink retargeting, root
@@ -49,9 +60,9 @@ byte-identical atomic rejection. The partial-clone checks use a sentinel
 transport and prove that neither dry-run nor confirmation invokes it. The
 QPBT-045 contract is exercised without a cache implementation change: an
 invalid exact main reaches zero warm/build, publication, and metric actions.
-The focused resolver suite passes 14/14, the workflow module passes 89/89, the
+The focused resolver suite passes 14/14, the workflow module passes 90/90, the
 canonical checker passes 3/3, compileall and canonical workflow validation pass,
-and the dependency-free aggregate passes 409/409. A fresh immutable independent
+and the dependency-free aggregate passes 410/410. A fresh immutable independent
 review remains required before activation.
 
 ## 0.1.12 (2026-09-03)
