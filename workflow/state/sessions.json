@@ -29764,6 +29764,36 @@
         "credentials": 0
       },
       "notes": "Failed closed before worktree creation; retry will inject git rev-parse output verbatim."
+    },
+    {
+      "id": "i067-reviewer-a04-repaired-audit",
+      "name": "i067-reviewer-a04-repaired-audit",
+      "role": "reviewer",
+      "issue_id": "QPBT-067",
+      "attempt": 4,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "e1cf001915bd8463ca3b5b1555d912b08085c0af",
+      "base_revision_reason": "Current validated main checkpoint e1cf001915bd8463ca3b5b1555d912b08085c0af; resolved by git rev-parse before launch.",
+      "worktree": "/tmp/qpbt-067-review-a04",
+      "owned_paths": [],
+      "validation_command": "Read AGENTS.md, QPBT-067, QPBT-068, the repaired audit and repair reports, authenticated scout reports, protocols/local-development.md and orchestration.md, scripts/hot_main_cache.py, and tests/test_hot_main_cache.py. Freshly recompute immutable main/report identities and review whether the two QPBT-067 findings are corrected, checking arithmetic, source fidelity, symlink isolation claims, SIGKILL recovery wording, no-deletion boundary, and acceptance metrics. Write only /tmp/i067-review-a04-repaired-audit.md; do not edit repository/state/metrics/protocols, run tests/builds/cache/materialization/network/GitHub/credentials, or spawn agents.",
+      "result_envelope_path": "/tmp/i067-review-a04-repaired-audit.md",
+      "external_id": "/root/i067_reviewer_a04_repaired_audit",
+      "started_at": "2026-09-03T12:06:53.041265Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null
     }
   ]
 }
