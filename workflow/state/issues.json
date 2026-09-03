@@ -3394,10 +3394,77 @@
         "workflow/reviews/qpbt-067-cache-layout-a01.md"
       ],
       "created_at": "2026-09-03T09:12:00Z",
-      "updated_at": "2026-09-03T09:25:31.474972Z",
+      "updated_at": "2026-09-03T09:41:57.838588Z",
       "owner_session_id": "i067-orchestrator-a01-cache-layout",
-      "blocked_reason": null,
-      "unblock_condition": null
+      "blocked_reason": "Fresh review found an external writable packages/mathlib symlink in a registered seed and an uncovered SIGKILL backup-rename window; the audit conclusion is not yet safe as written.",
+      "unblock_condition": "Correct the report to qualify broad .lake privacy and distinguish exception rollback from process-crash recovery; obtain fresh immutable approval, then track implementation follow-up separately.",
+      "review_report": "workflow/reviews/qpbt-067-cache-layout-review-a02.md",
+      "review_findings": [
+        {
+          "id": "F-067-A02-001",
+          "severity": "high",
+          "status": "open",
+          "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:34-40",
+          "summary": "A registered issue worktree has a writable external .lake/packages/mathlib symlink; hard-link checks do not establish private .lake isolation."
+        },
+        {
+          "id": "F-067-A02-002",
+          "severity": "medium",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:2841-2846",
+          "summary": "A SIGKILL between backup rename and staged rename can leave the target without .lake; current tests cover exceptions but not process interruption."
+        }
+      ]
+    },
+    {
+      "id": "QPBT-068",
+      "title": "repair(workflow): close cache seed isolation and crash-recovery gaps",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-067",
+      "dependency_ids": [
+        "QPBT-051"
+      ],
+      "labels": [
+        "workflow",
+        "hot-cache",
+        "storage",
+        "lake",
+        "symlink-isolation",
+        "crash-recovery",
+        "safety",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Reproduce and document the registered issue-worktree packages/mathlib symlink target and distinguish broad .lake privacy from build-output hard-link isolation; preserve the exact QPBT-067 measurements and report provenance.",
+        "Define and implement a fail-closed seed policy for symlinks and external package layers: no writable external target may be reachable through a supposedly private .lake tree, while authenticated read-only/reflink/byte-copy fallback behavior remains explicit and portable.",
+        "Close the seed replacement interruption window around the backup and staged-tree renames so a process termination leaves either the prior validated .lake or a complete validated replacement; add deterministic or subprocess crash regressions and idempotent recovery evidence.",
+        "Preserve singleton warm/build locking, authenticated READY and artifact inventories, metric/target transaction semantics, authored QPBT bytes, and no shared writable .lake/build output; do not delete existing cache/worktree bytes.",
+        "Correct the QPBT-067 report and protocol wording, run focused and aggregate cache/workflow tests with exact ownership and diff gates, and obtain a fresh immutable review before integration."
+      ],
+      "source_refs": [
+        "workflow/reviews/qpbt-067-cache-layout-a01.md",
+        "workflow/reviews/qpbt-067-cache-layout-review-a02.md",
+        "protocols/local-development.md:64-78",
+        "scripts/hot_main_cache.py:2179-2229",
+        "scripts/hot_main_cache.py:2780-3005",
+        "tests/test_hot_main_cache.py:545-624",
+        "tests/test_hot_main_cache.py:2349-2368"
+      ],
+      "owned_paths": [
+        "scripts/hot_main_cache.py",
+        "tests/test_hot_main_cache.py",
+        "protocols/local-development.md",
+        "protocols/CHANGELOG.md",
+        "workflow/reviews/qpbt-067-cache-layout-a01.md",
+        "workflow/reviews/qpbt-068-cache-safety-a01.md"
+      ],
+      "owner_session_id": null,
+      "blocked_reason": "Awaiting QPBT-051 completion so cache transaction fixes are based on the final reviewed head; then repair the two QPBT-067 findings.",
+      "unblock_condition": "QPBT-051 done and a clean current main checkpoint is available for one orchestrator with disjoint ownership.",
+      "created_at": "2026-09-03T09:42:00Z",
+      "updated_at": "2026-09-03T09:42:00Z"
     }
   ]
 }
