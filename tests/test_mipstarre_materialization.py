@@ -836,6 +836,243 @@ class MaterializationTests(unittest.TestCase):
         self.assertTrue((staged_authored / "Nested").is_symlink())
         self.assertTrue((staged_authored / "attacker-created-Nested").is_dir())
 
+    def test_archive_directory_post_handoff_relocation_receives_no_bytes(self) -> None:
+        external = Path(self.temporary.name) / "external-archive-directory"
+        external.mkdir()
+        external_descriptor = os.open(external, source._directory_flags())
+        real_create = source._create_continuous_directory
+        injected = False
+
+        def relocate_after_handoff(
+            parent_descriptor: int,
+            name: str,
+            label: str,
+            parent_monitor: object,
+        ) -> object:
+            nonlocal injected
+            binding = real_create(
+                parent_descriptor, name, label, parent_monitor  # type: ignore[arg-type]
+            )
+            if name == "Quantum" and not injected:
+                injected = True
+                os.rename(
+                    name,
+                    "relocated-Quantum",
+                    src_dir_fd=parent_descriptor,
+                    dst_dir_fd=external_descriptor,
+                )
+            return binding
+
+        try:
+            with mock.patch.object(
+                source, "_create_continuous_directory", side_effect=relocate_after_handoff
+            ), mock.patch.object(source, "_require_transaction_capabilities"):
+                with self.assertRaisesRegex(source.MaterializationError, "could not prepare"):
+                    source.materialize(self.root, self.pin_path, self.archive)
+        finally:
+            os.close(external_descriptor)
+        self.assertTrue(injected)
+        relocated = external / "relocated-Quantum"
+        self.assertTrue(relocated.is_dir())
+        self.assertEqual([], list(relocated.iterdir()))
+
+    def test_authored_directory_post_handoff_relocation_receives_no_bytes(self) -> None:
+        destination = self.root / "MIPStarRE"
+        authored = destination / "QPBT" / "Nested"
+        authored.mkdir(parents=True)
+        (authored / "Owned.lean").write_bytes(b"def owned := true\n")
+        (destination / "untrusted").write_bytes(b"replace")
+        external = Path(self.temporary.name) / "external-authored-directory"
+        external.mkdir()
+        external_descriptor = os.open(external, source._directory_flags())
+        real_create = source._create_continuous_directory
+        injected = False
+
+        def relocate_after_handoff(
+            parent_descriptor: int,
+            name: str,
+            label: str,
+            parent_monitor: object,
+        ) -> object:
+            nonlocal injected
+            binding = real_create(
+                parent_descriptor, name, label, parent_monitor  # type: ignore[arg-type]
+            )
+            if name == "Nested" and not injected:
+                injected = True
+                os.rename(
+                    name,
+                    "relocated-Nested",
+                    src_dir_fd=parent_descriptor,
+                    dst_dir_fd=external_descriptor,
+                )
+            return binding
+
+        try:
+            with mock.patch.object(
+                source, "_create_continuous_directory", side_effect=relocate_after_handoff
+            ), mock.patch.object(source, "_require_transaction_capabilities"):
+                with self.assertRaisesRegex(source.MaterializationError, "could not prepare"):
+                    source.materialize(
+                        self.root, self.pin_path, self.archive, replace_existing=True
+                    )
+        finally:
+            os.close(external_descriptor)
+        self.assertTrue(injected)
+        relocated = external / "relocated-Nested"
+        self.assertTrue(relocated.is_dir())
+        self.assertEqual([], list(relocated.iterdir()))
+        self.assertEqual(b"def owned := true\n", (authored / "Owned.lean").read_bytes())
+
+    def test_archive_file_post_handoff_relocation_receives_no_bytes(self) -> None:
+        external = Path(self.temporary.name) / "external-archive-file"
+        external.mkdir()
+        external_descriptor = os.open(external, source._directory_flags())
+        real_create = source._create_continuous_file
+        injected = False
+
+        def relocate_after_handoff(
+            parent_descriptor: int,
+            name: str,
+            label: str,
+            parent_monitor: object,
+        ) -> object:
+            nonlocal injected
+            binding = real_create(
+                parent_descriptor, name, label, parent_monitor  # type: ignore[arg-type]
+            )
+            if name == "Measurement.lean" and not injected:
+                injected = True
+                os.rename(
+                    name,
+                    "relocated-Measurement.lean",
+                    src_dir_fd=parent_descriptor,
+                    dst_dir_fd=external_descriptor,
+                )
+            return binding
+
+        try:
+            with mock.patch.object(
+                source, "_create_continuous_file", side_effect=relocate_after_handoff
+            ), mock.patch.object(source, "_require_transaction_capabilities"):
+                with self.assertRaisesRegex(source.MaterializationError, "could not prepare"):
+                    source.materialize(self.root, self.pin_path, self.archive)
+        finally:
+            os.close(external_descriptor)
+        self.assertTrue(injected)
+        self.assertEqual(b"", (external / "relocated-Measurement.lean").read_bytes())
+
+    def test_authored_file_post_handoff_relocation_receives_no_bytes(self) -> None:
+        destination = self.root / "MIPStarRE"
+        authored = destination / "QPBT"
+        authored.mkdir(parents=True)
+        (authored / "Owned.lean").write_bytes(b"def owned := true\n")
+        (destination / "untrusted").write_bytes(b"replace")
+        external = Path(self.temporary.name) / "external-authored-file"
+        external.mkdir()
+        external_descriptor = os.open(external, source._directory_flags())
+        real_create = source._create_continuous_file
+        injected = False
+
+        def relocate_after_handoff(
+            parent_descriptor: int,
+            name: str,
+            label: str,
+            parent_monitor: object,
+        ) -> object:
+            nonlocal injected
+            binding = real_create(
+                parent_descriptor, name, label, parent_monitor  # type: ignore[arg-type]
+            )
+            if name == "Owned.lean" and not injected:
+                injected = True
+                os.rename(
+                    name,
+                    "relocated-Owned.lean",
+                    src_dir_fd=parent_descriptor,
+                    dst_dir_fd=external_descriptor,
+                )
+            return binding
+
+        try:
+            with mock.patch.object(
+                source, "_create_continuous_file", side_effect=relocate_after_handoff
+            ), mock.patch.object(source, "_require_transaction_capabilities"):
+                with self.assertRaisesRegex(source.MaterializationError, "could not prepare"):
+                    source.materialize(
+                        self.root, self.pin_path, self.archive, replace_existing=True
+                    )
+        finally:
+            os.close(external_descriptor)
+        self.assertTrue(injected)
+        self.assertEqual(b"", (external / "relocated-Owned.lean").read_bytes())
+        self.assertEqual(b"def owned := true\n", (authored / "Owned.lean").read_bytes())
+
+    def test_retained_backup_contamination_is_refused_and_preserved(self) -> None:
+        real_inventory = source._retained_transaction_inventory
+        injected = False
+
+        def contaminate_backup(*args: object) -> dict[str, object]:
+            nonlocal injected
+            backup_descriptor = int(args[4])
+            if not injected:
+                injected = True
+                descriptor = os.open(
+                    "unexpected",
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                    0o600,
+                    dir_fd=backup_descriptor,
+                )
+                try:
+                    os.write(descriptor, b"preserve")
+                finally:
+                    os.close(descriptor)
+            return real_inventory(*args)  # type: ignore[arg-type,return-value]
+
+        with mock.patch.object(
+            source, "_retained_transaction_inventory", side_effect=contaminate_backup
+        ):
+            with self.assertRaises(source.MaterializationError):
+                source.materialize(self.root, self.pin_path, self.archive)
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        evidence = next(runtime.glob("MIPStarRE.transaction.failed-*"))
+        self.assertTrue(injected)
+        self.assertEqual(b"preserve", (evidence / "backup" / "unexpected").read_bytes())
+
+    def test_retained_original_descendant_mutation_is_refused_and_preserved(self) -> None:
+        destination = self.root / "MIPStarRE"
+        destination.mkdir()
+        original = destination / "keep"
+        original.write_bytes(b"original")
+        real_inventory = source._retained_transaction_inventory
+        injected = False
+
+        def mutate_original(*args: object) -> dict[str, object]:
+            nonlocal injected
+            original_descriptor = int(args[5])
+            if not injected:
+                injected = True
+                descriptor = os.open(
+                    "keep", os.O_WRONLY | os.O_TRUNC | os.O_NOFOLLOW, dir_fd=original_descriptor
+                )
+                try:
+                    os.write(descriptor, b"modified")
+                finally:
+                    os.close(descriptor)
+            return real_inventory(*args)  # type: ignore[arg-type,return-value]
+
+        with mock.patch.object(
+            source, "_retained_transaction_inventory", side_effect=mutate_original
+        ):
+            with self.assertRaisesRegex(
+                source.MaterializationError, "recursive inventory changed"
+            ):
+                source.materialize(
+                    self.root, self.pin_path, self.archive, replace_existing=True
+                )
+        self.assertTrue(injected)
+        self.assertEqual(b"modified", original.read_bytes())
+
     def test_authored_source_namespace_substitution_prevents_publication(self) -> None:
         destination = self.root / "MIPStarRE"
         authored = destination / "QPBT"

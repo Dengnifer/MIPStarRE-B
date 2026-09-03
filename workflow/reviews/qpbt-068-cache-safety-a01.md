@@ -1,8 +1,8 @@
 # QPBT-068 Cache Safety Transaction Repair Report
 
-Current session: `i068-orchestrator-a16-retention-monitor`
-Repair parent/tree: `913766cf3f69b2c5f4135827ec9a7ab31e6c8fba` /
-`6f34fbef431400a71b21ceecff1d55686cef4ea4`
+Current session: `i068-orchestrator-a22-transaction-continuity`
+Repair parent/tree: `58bf04fa74e4235578a8b3994b14d6cbc655981e` /
+`eb9795667290f0d02b04b4e4e0e991bea6242895`
 Owned worktree: `.workflow-runtime/worktrees/qpbt-068-cache-safety-a04`
 
 ## Scope and authenticated inputs
@@ -141,7 +141,50 @@ admission on dry and live paths.
 | A19 journal integrity | `test_retained_journal_modification_prevents_success` (journal and commit-marker subtests) |
 | A19 transaction document | `test_transaction_document_creation_aba_is_detected_before_write` |
 
-## Validation
+## A20-A21 transaction-continuity repair
+
+The A20 transaction-security report authenticated at SHA-256
+`58a3a885620bff8752d18d6f891aa14c15cada2ddf6e653e7d6ed4422382f17b`;
+the A21 regression/protocol report authenticated at SHA-256
+`860ef19ed6dca7f84a84b4a50ad8f09dd7bdbc3d7f5dbee47edcbd4b0e9c60ae`.
+Both were read in full before this repair.
+
+| Finding | A22 disposition and exact implementation/regression evidence |
+|---|---|
+| F068-A20-001 | Fixed by wildcard `staging_entry_monitor` accounting and strict `_discard_seed_rollback_root`, which authenticates the held stage binding, drains both monitors, requires an exact empty inventory, and propagates failure. `test_seed_and_prepare_reject_unexpected_final_staging_entry` injects bytes into the held inode before final disposition and requires seed/prepare failure with stage, displaced tree, and journal evidence preserved. |
+| F068-A20-002 | Fixed by `_open_seed_journal_parent` and `_assert_seed_journal_ancestors`: each absolute component is opened no-follow or created descriptor-relatively below a preinstalled monitor, and all descriptors/bindings remain live through journal retention. `test_seed_and_prepare_journal_bootstrap_reject_ancestor_substitution` covers a preexisting intermediate symlink, substitution immediately before the no-follow ancestor open, and a genuine journal parent relocated after the complete handoff, symmetrically for seed/prepare, with no external child writes. |
+| F068-A20-003 | Fixed by `_create_copy_output`, `_create_continuous_directory`, `_create_continuous_file`, and retained parent/self monitors checked before first and subsequent writes. `test_cache_copy_post_handoff_relocation_receives_no_bytes` covers cache directories/files; `test_archive_directory_post_handoff_relocation_receives_no_bytes`, `test_archive_file_post_handoff_relocation_receives_no_bytes`, `test_authored_directory_post_handoff_relocation_receives_no_bytes`, and `test_authored_file_post_handoff_relocation_receives_no_bytes` cover both materializer sources. Every relocated external object remains byte-empty. |
+| F068-A20-004 / F068-A21-001 | These overlap on the same missing displaced-`.lake` recursive continuity check and are fixed once by `_descriptor_tree_inventory` plus `_lake_tree_identity_from_descriptor`, compared immediately before and after no-replace retention. A20-004 additionally required the parallel materializer fix: an empty wildcard-monitored backup and a pre-exchange `MIPStarRE/` descriptor identity plus recursive byte/identity inventory compared before publication, after exchange, in retained evidence, and again across `prepare` evidence normalization. Regressions are `test_seed_and_prepare_reject_in_place_displaced_tree_mutation`, `test_retained_backup_contamination_is_refused_and_preserved`, `test_retained_original_descendant_mutation_is_refused_and_preserved`, and `test_prepare_evidence_rejects_same_inode_staged_descendant_mutation`. |
+| F068-A21-002 | Fixed by running `_recover_interrupted_seed` on dry seed and setting `check_seed_recovery=True` for dry prepare. `test_dry_and_live_seed_prepare_refuse_interrupted_state_before_admission` covers journal and target-local staging state for dry/live seed/prepare, proves capability/input admission is not reached, and byte-compares the retained state. |
+
+The reopened prior findings are dispositioned against the same implementation
+and regression evidence: F068-A14-001 is fixed by the strict wildcard stage
+finalizer and root-to-leaf journal bootstrap; F068-A14-002 and F068-A19-001 are
+fixed by the post-handoff parent/self monitor matrix for archive, authored, and
+cache output; F068-A18-003 is fixed by normative backup emptiness plus recursive
+retained-stage authentication; and F068-A19-002 is fixed by carrying that exact
+recursive identity/content inventory across the materializer return boundary
+and recomputing it under the no-follow evidence chain. Only an independent
+review may mark these findings resolved in the workflow ledger.
+
+## A22 validation
+
+| Command | Result (suite-reported time) | Process wall time |
+|---|---|---:|
+| `python3 -m unittest discover -s tests -p 'test_mipstarre_materialization.py'` | 32/32 passed (5.080 s) | 5.22 s |
+| `python3 -m unittest discover -s tests -p 'test_hot_main_cache.py'` | 137/137 passed (81.736 s) | 81.97 s |
+| `python3 -m unittest discover -s tests -p 'test_workflow.py'` | 77/77 passed (1.385 s) | 1.50 s |
+| `python3 -m unittest discover -s tests -p 'test_check_workflow.py'` | 3/3 passed (0.012 s) | 0.08 s |
+| `python3 scripts/check_workflow.py --skip-tests` | workflow state valid | 0.19 s |
+| `python3 scripts/workflow.py validate` | valid: 69 issues, 34 PRs, 541 issued sessions, 7 stages | 0.20 s |
+| Built-in `compile(...)`, `git diff --check`, seven-path scope, and exact anchor checks | passed | below timer resolution |
+
+No aggregate suite was needed: both complete owned suites and the complete
+workflow/checker unit suites passed. No Lean/Lake/full build, real cache
+warm/seed/prepare, network, GitHub, credential, endpoint, canonical
+workflow-state, or research-metric action ran.
+
+## A16 validation (historical)
 
 | Command | Result (suite-reported time) | Process wall time |
 |---|---|---:|
@@ -168,7 +211,7 @@ credential, endpoint, canonical workflow-state, or research-metric action ran.
 A coordinator read-only check on 2026-09-04 observed 97% filesystem utilization
 with 164 GB free. Archived QPBT-040 and active QPBT-069 each hold a separate
 approximately 9.8 GB `.lake` after reflink was unsupported. A13 created no
-cache copy; A16 likewise creates no real cache copy and deletes neither tree.
+cache copy; A16 and A22 likewise create no real cache copy and delete neither tree.
 QPBT-069 remains an active lease. After
 independent review, a separately authorized reclamation pass may dry-run the
 archived QPBT-040 tree, but only after proving terminal session state, no Git
@@ -176,7 +219,6 @@ registration, no live lock/reference/lease, and an authenticated source cache;
 quarantine plus the configured grace interval and a repeated final check must
 precede deletion.
 
-This A16 candidate still requires a fresh immutable security/regression review,
-the existing QPBT-062 evidence inclusion gate, and the sequential
-`protocols/CHANGELOG.md` binder. It is not integration-ready until those gates
-are recorded against the frozen A16 commit.
+This A22 candidate still requires a fresh immutable security/regression review
+and the sequential `protocols/CHANGELOG.md` binder. It is not integration-ready
+until those gates are recorded against the frozen A22 commit.

@@ -123,24 +123,33 @@ matching commit markers, and durable success metrics. The live process still
 publishes a digest-bound diagnostic journal before exchange and can use only
 its continuously held descriptors and in-memory bindings to roll back a
 synchronous precommit failure. Journal bytes are never reloaded as mutation
-authority. The journal directory, each journal file, the outer staging root,
-and its `.lake` child are each created under a preinstalled permanent name
-monitor; an exact creation batch, held descriptor, name/descriptor comparison,
-and final clean drain precede the first child write. Every exchange, rollback,
+authority. The journal runtime path is opened root-to-leaf with held no-follow
+descriptors; every missing component is created beneath an already monitored
+parent, and every ancestor binding remains live through journal finalization.
+The journal directory, each journal file, the outer staging root, and its
+`.lake` child are each created under a preinstalled permanent name monitor; the
+staging root uses wildcard accounting, so an unexpected final entry is a
+committed-finalization failure rather than skipped cleanup. An exact creation
+batch, held descriptor, name/descriptor comparison, and final clean drain
+precede the first child write. Every exchange, rollback,
 failed retention, and committed retention consumes exact source and destination
 events, including derived `.lake.failed-*` and `.lake.retained-*` names. Journal
 and commit-marker descriptors are readable; exact type, size, and content are
 rechecked before and after journal retention, with modification and directory
 move events drained before success. Cache seeding creates and opens every
-descendant descriptor-relatively with no-follow handoffs, and both reflink and
-byte-copy paths write only through the held destination file descriptor.
+descendant descriptor-relatively with no-follow handoffs. Each new child also
+receives its own move monitor before the parent handoff completes; parent and
+child continuity are rechecked before the first and every subsequent output
+write. Both reflink and byte-copy paths write only through the held destination
+file descriptor.
 Successful journal and empty-staging finalization uses atomic
 no-replace moves to uniquely named retained evidence; seed and prepare never
 unlink or `rmdir` transaction objects. After a successful commit, the displaced
 old tree must still match its continuously open descriptor and recorded
-inventory; it is moved no-replace to a `.lake.retained-*` path and is never
-recursively deleted. Any collision, identity mismatch, monitor poison, or ABA
-preserves all objects and reports manual disposition.
+descriptor-relative recursive identity/content inventory immediately before
+retention and again after the no-replace move to `.lake.retained-*`; it is never
+recursively deleted. Any collision, identity mismatch, byte or inventory drift,
+monitor poison, or ABA preserves all objects and reports manual disposition.
 
 Metric append failures truncate and fsync on the original descriptor while the
 original metrics lock remains continuously held. Successful append plus fsync
@@ -169,16 +178,22 @@ publication uses `RENAME_NOREPLACE`. Stage, destination, transaction, marker,
 and backup names remain bound by no-follow descriptors and permanent event
 monitors through verification, retention, and rollback. Archive and
 authored-tree output is created descriptor-relatively with exact
-create/open/drain handoffs, and authored-source directory monitors remain live
-through copying, so an injected intermediate symlink cannot receive foundation
-bytes. Success
+create/open/drain handoffs and child move monitors that remain live until
+population completes. Parent and child continuity are checked before every
+write, and authored-source directory monitors remain live through copying, so
+an injected intermediate symlink or relocated genuine child cannot receive
+foundation bytes. Success
 revalidates the exact retained transaction and stage inventories immediately
 before return. Success and unambiguous failure move the transaction no-replace
 to unique evidence; a tracked current transaction name keeps a post-retention
 rollback unambiguous. Ambiguous, collided, or substituted objects are preserved
 in place; the materializer never recursively deletes transaction objects.
-The materializer returns the retained transaction's held inode identity and
-exact control-object inventory. `prepare` requires both while authenticating the
+The retained backup control directory is normatively empty under a wildcard
+monitor. For replacement, the displaced `MIPStarRE/` tree must match the
+pre-exchange descriptor-relative recursive identity/content inventory before
+publication, after exchange, and in retained evidence. The materializer returns
+the retained transaction's held inode identity and exact control-object and
+displaced-tree inventory. `prepare` requires both while authenticating the
 returned evidence through a no-follow descriptor chain, then rewrites the live
 `/proc/self/fd` spelling to the stable registered-worktree path before closing
 the target binding. The
@@ -192,7 +207,10 @@ unambiguous failure. After commit, a matching displaced tree is moved no-replace
 to retained state and its path is reported without changing a successful
 result; automatic transaction deletion is forbidden.
 
-Dry-run `prepare` performs the same non-mutating materializer-state, archive,
+Dry-run `seed` and `prepare` perform the same read-only interrupted-seed
+admission as their live forms, refusing journals and target-local staging state
+before capability, cache, archive, or materializer admission. Dry-run `prepare`
+then performs the same non-mutating materializer-state, archive,
 captured-module, pin, project-validator, and fail-closed-interface admissions as
 live `prepare`, in the same order, before delegating to dry-run `seed`. It does
 not materialize a foundation or publish a cache tree.

@@ -29,7 +29,7 @@ terminal report and independent review.
 | Source | Commit / tree / blob | Byte evidence | Disposition |
 |---|---|---|---|
 | Original QPBT-067 report | commit `4c4612b5f77800c3b549b60585e0ee21762e7d30`; tree `812749f12d268f84fc1802ce7af7c821d6a2af05`; blob `09df9dac0f3687f2a69baad90887d16d7af10781` | SHA-256 `afa401e27cb8e5e8a2a83501f3813c4e56fe58a26a692dd1fdc14a3a64e7ef97` | Authenticated from Git. |
-| `workflow/reviews/qpbt-062-branch-lifecycle-a01.md` | commit `889e7f8f16b09e5c6de23b3348508a48c2bc14c6`; tree `04cad9b46835ab529b849510c853a07b2c8bce27`; blob `fb4990be9374d38944d62007cbf3bceaf649def1` | 7,398 bytes; SHA-256 `fc8c515d300b2bfe7d7c3f171afd56df8cd599f2fcd9de91f49d1773c84e2795` | Authenticated from the reachable Git object. The path is absent from this candidate tree; approval remains deferred until the next immutable review manifest includes these exact bytes. |
+| `workflow/reviews/qpbt-062-branch-lifecycle-a01.md` | commit `889e7f8f16b09e5c6de23b3348508a48c2bc14c6`; tree `04cad9b46835ab529b849510c853a07b2c8bce27`; blob `fb4990be9374d38944d62007cbf3bceaf649def1` | 7,398 bytes; SHA-256 `fc8c515d300b2bfe7d7c3f171afd56df8cd599f2fcd9de91f49d1773c84e2795` | Authenticated from the reachable Git object. The A20 and A21 immutable review manifests included and independently authenticated these exact bytes, satisfying the deferred evidence-inclusion gate. |
 
 ## Inventory evidence
 
@@ -142,14 +142,17 @@ The implemented cache-readiness path is fail-closed:
 current command moves that snapshot to quarantine. The quarantine rules above
 remain a proposed cleanup contract. Synchronous seed failures atomically
 exchange a continuously bound displaced tree back before the metric commit
-point. The repaired QPBT-068 A13 candidate publishes a diagnostic digest-bound
+point. The repaired QPBT-068 A22 candidate publishes a diagnostic digest-bound
 journal before exchange, but does not treat that journal or its adjacent
 digest/commit marker as persistent ownership authority. A later process rejects
 all fixed journal/active staging state unchanged for manual disposition. The
 live transaction binds every target ancestor and the transaction objects by
 descriptors and permanent event monitors, publishes with atomic exchange or
 no-replace, and retains rather than deletes the journal, staging root, and
-authenticated old tree after commit. These are candidate behaviors, not
+authenticated old tree after commit. The journal runtime ancestors are created
+and held descriptor-relatively; output children receive move monitors before
+their handoff; and displaced trees are recursively byte/inode-inventoried before
+and after retention. These are candidate behaviors, not
 approved live guarantees, until a fresh immutable review approves the final
 head. Its foundation materializer separately keeps `MIPStarRE/` continuously
 present during replacement with one descriptor-bound exchange and retains the
@@ -170,7 +173,7 @@ disposition.
    writes to destination do not alter source, and fallback reports
    `reflinked=0` with exact copied file/byte counts. Existing regression
    `HotMainCacheTests.test_warm_hits_then_seed_is_private_and_writable`
-   (`tests/test_hot_main_cache.py:855`) covers private writable behavior.
+   (`tests/test_hot_main_cache.py:879`) covers private writable behavior.
 3. **Singleton/leases:** run concurrent warms for one key; assert one build,
    one READY publication, waiter hit metrics, and no staging READY. Register two
    seeds, then run dry-run cleanup; referenced key must not be a candidate.
@@ -179,13 +182,13 @@ disposition.
    tree, displaced and ambiguous objects remain intact, and no success metric
    escapes a precommit failure. Candidate regressions begin at
    `HotMainCacheTests.test_seed_rejects_unowned_backup_decoys_without_mutation`
-   (`tests/test_hot_main_cache.py:3680`), atomic replacement is covered by
+   (`tests/test_hot_main_cache.py:3732`), atomic replacement is covered by
    `HotMainCacheTests.test_seed_atomic_exchange_never_has_absent_destination`
-   (`:3976`), and ancestor ABA is covered symmetrically by
+   (`:4028`), and ancestor ABA is covered symmetrically by
    `HotMainCacheTests.test_seed_and_prepare_reject_ancestor_swap_restore`
-   (`:4759`). Existing failed-build retention is
+   (`:5197`). Existing failed-build retention is
    covered by `HotMainCacheTests.test_failed_build_is_retained_but_never_published`
-   (`:3474`).
+   (`:3526`).
 5. **Capacity guard:** on a filesystem with <10 GB free, dry-run must refuse
    byte-copy seeding before mutation and report required/apparent/physical bytes;
    reflink mode may proceed only after an explicit CoW capability check.

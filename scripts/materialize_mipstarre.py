@@ -29,7 +29,7 @@ HARD_MAX_MEMBERS = 5000
 HARD_MAX_MEMBER_BYTES = 2 * 1024 * 1024
 HARD_MAX_REGULAR_BYTES = 64 * 1024 * 1024
 BLOCK = 512
-TRANSACTION_SAFETY_VERSION = 1
+TRANSACTION_SAFETY_VERSION = 2
 RENAME_NOREPLACE = 1
 RENAME_EXCHANGE = 2
 _RENAMEAT2_FILESYSTEM_MAGICS = {
@@ -1013,6 +1013,110 @@ def _open_bound_directory(parent_descriptor: int, name: str, label: str) -> int:
         monitor.close()
 
 
+class _OutputBinding:
+    def __init__(
+        self,
+        parent_descriptor: int,
+        name: str,
+        descriptor: int,
+        parent_monitor: _BoundNameMonitor,
+        self_monitor: _BoundNameMonitor,
+        label: str,
+    ) -> None:
+        self.parent_descriptor = parent_descriptor
+        self.name = name
+        self.descriptor = descriptor
+        self.parent_monitor = parent_monitor
+        self.self_monitor = self_monitor
+        self.label = label
+
+    def assert_current(self) -> None:
+        self.self_monitor.assert_clean()
+        self.parent_monitor.assert_clean()
+        _assert_bound_name(
+            self.parent_descriptor, self.name, self.descriptor, self.label
+        )
+
+    def close(self) -> None:
+        self.self_monitor.close()
+
+
+def _create_continuous_directory(
+    parent_descriptor: int,
+    name: str,
+    label: str,
+    parent_monitor: _BoundNameMonitor,
+) -> _OutputBinding:
+    """Create a directory whose own move watch precedes the parent handoff."""
+
+    name = _child_name(name, label)
+    parent_monitor.assert_clean()
+    os.mkdir(name, 0o700, dir_fd=parent_descriptor)
+    descriptor: int | None = None
+    try:
+        parent_monitor.accept_owned_change(((name, _IN_CREATE),))
+        descriptor = os.open(name, _directory_flags(), dir_fd=parent_descriptor)
+        self_monitor = _BoundNameMonitor(descriptor, ())
+        try:
+            _assert_bound_name(parent_descriptor, name, descriptor, label)
+            self_monitor.assert_clean()
+            parent_monitor.assert_clean()
+        except BaseException:
+            self_monitor.close()
+            raise
+    except BaseException:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    return _OutputBinding(
+        parent_descriptor,
+        name,
+        descriptor,
+        parent_monitor,
+        self_monitor,
+        label,
+    )
+
+
+def _create_continuous_file(
+    parent_descriptor: int,
+    name: str,
+    label: str,
+    parent_monitor: _BoundNameMonitor,
+) -> _OutputBinding:
+    """Create a file whose own move watch precedes the parent handoff."""
+
+    name = _child_name(name, label)
+    parent_monitor.assert_clean()
+    descriptor = os.open(
+        name,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+        0o644,
+        dir_fd=parent_descriptor,
+    )
+    try:
+        parent_monitor.accept_owned_change(((name, _IN_CREATE),))
+        self_monitor = _BoundNameMonitor(descriptor, ())
+        try:
+            _assert_bound_name(parent_descriptor, name, descriptor, label)
+            self_monitor.assert_clean()
+            parent_monitor.assert_clean()
+        except BaseException:
+            self_monitor.close()
+            raise
+    except BaseException:
+        os.close(descriptor)
+        raise
+    return _OutputBinding(
+        parent_descriptor,
+        name,
+        descriptor,
+        parent_monitor,
+        self_monitor,
+        label,
+    )
+
+
 def _create_bound_directory(parent_descriptor: int, name: str, label: str) -> int:
     name = _child_name(name, label)
     monitor = _BoundNameMonitor(parent_descriptor, (name,))
@@ -1185,6 +1289,8 @@ def _populate_bound_tree(
     root_descriptor: int,
     directories: Sequence[str],
     files: Sequence[tuple[str, bytes]],
+    *,
+    root_binding: _OutputBinding | None = None,
 ) -> None:
     required_directories: set[str] = set()
     for relative in (*directories, *(name for name, _ in files)):
@@ -1196,7 +1302,23 @@ def _populate_bound_tree(
             required_directories.add(PurePosixPath(*path.parts[:depth]).as_posix())
 
     descriptors: dict[str, int] = {"": os.dup(root_descriptor)}
+    content_monitors: dict[str, _BoundNameMonitor] = {
+        "": _BoundNameMonitor(root_descriptor, None)
+    }
+    bindings: dict[str, _OutputBinding] = {}
+
+    def assert_continuity() -> None:
+        if root_binding is not None:
+            root_binding.assert_current()
+        for relative in sorted(bindings, key=lambda value: (value.count("/"), value)):
+            bindings[relative].assert_current()
+        for relative in sorted(
+            content_monitors, key=lambda value: (value.count("/"), value)
+        ):
+            content_monitors[relative].assert_clean()
+
     try:
+        assert_continuity()
         for relative in sorted(
             required_directories, key=lambda value: (value.count("/"), value)
         ):
@@ -1204,20 +1326,62 @@ def _populate_bound_tree(
             parent = path.parent.as_posix()
             if parent == ".":
                 parent = ""
-            descriptors[relative] = _create_bound_directory(
-                descriptors[parent], path.name, f"materialized directory {relative}"
+            assert_continuity()
+            binding = _create_continuous_directory(
+                descriptors[parent],
+                path.name,
+                f"materialized directory {relative}",
+                content_monitors[parent],
             )
+            bindings[relative] = binding
+            descriptors[relative] = binding.descriptor
+            content_monitors[relative] = _BoundNameMonitor(binding.descriptor, None)
+            assert_continuity()
         for relative, payload in sorted(files):
             path = PurePosixPath(relative)
             parent = path.parent.as_posix()
             if parent == ".":
                 parent = ""
-            _write_new_file(descriptors[parent], path.name, payload)
+            assert_continuity()
+            binding = _create_continuous_file(
+                descriptors[parent],
+                path.name,
+                f"materialized file {relative}",
+                content_monitors[parent],
+            )
+            try:
+                binding.assert_current()
+                assert_continuity()
+                view = memoryview(payload)
+                while view:
+                    binding.assert_current()
+                    assert_continuity()
+                    written = os.write(binding.descriptor, view)
+                    if written <= 0:
+                        raise OSError("short materialized file write")
+                    view = view[written:]
+                    content_monitors[parent].accept_owned_change(
+                        ((path.name, _IN_MODIFY),)
+                    )
+                    binding.assert_current()
+                    assert_continuity()
+                os.fsync(binding.descriptor)
+                binding.assert_current()
+                assert_continuity()
+            finally:
+                binding.close()
+                os.close(binding.descriptor)
         for relative in sorted(
             descriptors, key=lambda value: (value.count("/"), value), reverse=True
         ):
+            assert_continuity()
             os.fsync(descriptors[relative])
+        assert_continuity()
     finally:
+        for monitor in reversed(tuple(content_monitors.values())):
+            monitor.close()
+        for binding in reversed(tuple(bindings.values())):
+            binding.close()
         for descriptor in reversed(tuple(descriptors.values())):
             os.close(descriptor)
 
@@ -1228,6 +1392,8 @@ def _copy_authored_tree(
     source_name_monitor = _BoundNameMonitor(source_root_descriptor, ("QPBT",))
     source_descriptor: int | None = None
     source_monitors: list[_BoundNameMonitor] = []
+    destination_parent_monitor: _BoundNameMonitor | None = None
+    destination_binding: _OutputBinding | None = None
     try:
         source_name_monitor.assert_clean()
         try:
@@ -1245,14 +1411,32 @@ def _copy_authored_tree(
         )
         source_name_monitor.assert_clean()
         directories, files, source_monitors = _snapshot_bound_tree(source_descriptor)
-        destination_descriptor = _create_bound_directory(
-            destination_root_descriptor, "QPBT", "staged project-authored QPBT directory"
+        destination_parent_monitor = _BoundNameMonitor(
+            destination_root_descriptor, ("QPBT",)
         )
+        destination_binding = _create_continuous_directory(
+            destination_root_descriptor,
+            "QPBT",
+            "staged project-authored QPBT directory",
+            destination_parent_monitor,
+        )
+        destination_descriptor = destination_binding.descriptor
         try:
-            _populate_bound_tree(destination_descriptor, directories, files)
+            destination_binding.assert_current()
+            _populate_bound_tree(
+                destination_descriptor,
+                directories,
+                files,
+                root_binding=destination_binding,
+            )
+            destination_binding.assert_current()
             os.fsync(destination_descriptor)
         finally:
+            destination_binding.close()
+            destination_binding = None
             os.close(destination_descriptor)
+            destination_parent_monitor.close()
+            destination_parent_monitor = None
         for monitor in source_monitors:
             monitor.assert_clean()
         source_name_monitor.assert_clean()
@@ -1265,6 +1449,11 @@ def _copy_authored_tree(
     finally:
         for monitor in reversed(source_monitors):
             monitor.close()
+        if destination_binding is not None:
+            destination_binding.close()
+            os.close(destination_binding.descriptor)
+        if destination_parent_monitor is not None:
+            destination_parent_monitor.close()
         if source_descriptor is not None:
             os.close(source_descriptor)
         source_name_monitor.close()
@@ -1325,6 +1514,184 @@ def _descriptor_evidence_identity(descriptor: int) -> dict[str, int]:
     }
 
 
+def _descriptor_tree_inventory(root_descriptor: int, label: str) -> dict[str, Any]:
+    """Bind recursive names, inode identities, and bytes below a held directory."""
+
+    content_digest = hashlib.sha256()
+    identity_digest = hashlib.sha256()
+    files = 0
+    directories = 0
+    symlinks = 0
+    total_bytes = 0
+
+    def add_content(kind: str, relative: str, payload: str = "") -> None:
+        content_digest.update(kind.encode("ascii"))
+        content_digest.update(b"\0")
+        content_digest.update(relative.encode("utf-8"))
+        content_digest.update(b"\0")
+        content_digest.update(payload.encode("utf-8"))
+        content_digest.update(b"\n")
+
+    def add_identity(kind: str, relative: str, metadata: os.stat_result) -> None:
+        identity_digest.update(
+            (
+                f"{kind}\0{relative}\0{metadata.st_dev}:{metadata.st_ino}:"
+                f"{stat.S_IFMT(metadata.st_mode)}:{stat.S_IMODE(metadata.st_mode)}:"
+                f"{metadata.st_nlink}:{metadata.st_size}\n"
+            ).encode("utf-8")
+        )
+
+    def visit(directory_descriptor: int, relative: PurePosixPath) -> None:
+        nonlocal files, directories, symlinks, total_bytes
+        monitor = _BoundNameMonitor(directory_descriptor, None)
+        try:
+            monitor.assert_clean()
+            names = sorted(os.listdir(directory_descriptor))
+            for name in names:
+                _child_name(name, label)
+                monitor.assert_clean()
+                before = os.stat(name, dir_fd=directory_descriptor, follow_symlinks=False)
+                child_relative = (relative / name).as_posix()
+                if stat.S_ISDIR(before.st_mode):
+                    child = os.open(name, _directory_flags(), dir_fd=directory_descriptor)
+                    try:
+                        _assert_bound_name(
+                            directory_descriptor, name, child, f"{label} directory {child_relative}"
+                        )
+                        monitor.assert_clean()
+                        add_content("directory", child_relative)
+                        add_identity("directory", child_relative, before)
+                        directories += 1
+                        visit(child, relative / name)
+                        after = os.fstat(child)
+                        if (
+                            after.st_dev,
+                            after.st_ino,
+                            stat.S_IFMT(after.st_mode),
+                            stat.S_IMODE(after.st_mode),
+                            after.st_nlink,
+                            after.st_size,
+                        ) != (
+                            before.st_dev,
+                            before.st_ino,
+                            stat.S_IFMT(before.st_mode),
+                            stat.S_IMODE(before.st_mode),
+                            before.st_nlink,
+                            before.st_size,
+                        ):
+                            raise MaterializationError(
+                                f"{label} directory changed while inventoried"
+                            )
+                        _assert_bound_name(
+                            directory_descriptor, name, child, f"{label} directory {child_relative}"
+                        )
+                    finally:
+                        os.close(child)
+                elif stat.S_ISREG(before.st_mode):
+                    child = os.open(
+                        name,
+                        os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0),
+                        dir_fd=directory_descriptor,
+                    )
+                    child_monitor: _BoundNameMonitor | None = None
+                    try:
+                        _assert_bound_name(
+                            directory_descriptor, name, child, f"{label} file {child_relative}"
+                        )
+                        child_monitor = _BoundNameMonitor(child, ())
+                        child_monitor.assert_clean()
+                        monitor.assert_clean()
+                        file_digest = hashlib.sha256()
+                        read_bytes = 0
+                        while True:
+                            block = os.read(child, 1024 * 1024)
+                            if not block:
+                                break
+                            file_digest.update(block)
+                            read_bytes += len(block)
+                            child_monitor.assert_clean()
+                            monitor.assert_clean()
+                        after = os.fstat(child)
+                        if (
+                            after.st_dev,
+                            after.st_ino,
+                            stat.S_IFMT(after.st_mode),
+                            stat.S_IMODE(after.st_mode),
+                            after.st_nlink,
+                            after.st_size,
+                        ) != (
+                            before.st_dev,
+                            before.st_ino,
+                            stat.S_IFMT(before.st_mode),
+                            stat.S_IMODE(before.st_mode),
+                            before.st_nlink,
+                            before.st_size,
+                        ) or read_bytes != before.st_size:
+                            raise MaterializationError(f"{label} file changed while inventoried")
+                        add_content(
+                            "file", child_relative, f"{read_bytes}:{file_digest.hexdigest()}"
+                        )
+                        add_identity("file", child_relative, before)
+                        files += 1
+                        total_bytes += read_bytes
+                    finally:
+                        if child_monitor is not None:
+                            child_monitor.close()
+                        os.close(child)
+                elif stat.S_ISLNK(before.st_mode):
+                    link_target = os.readlink(name, dir_fd=directory_descriptor)
+                    after = os.stat(name, dir_fd=directory_descriptor, follow_symlinks=False)
+                    monitor.assert_clean()
+                    if (
+                        after.st_dev,
+                        after.st_ino,
+                        stat.S_IFMT(after.st_mode),
+                        stat.S_IMODE(after.st_mode),
+                        after.st_nlink,
+                        after.st_size,
+                    ) != (
+                        before.st_dev,
+                        before.st_ino,
+                        stat.S_IFMT(before.st_mode),
+                        stat.S_IMODE(before.st_mode),
+                        before.st_nlink,
+                        before.st_size,
+                    ):
+                        raise MaterializationError(f"{label} symlink changed while inventoried")
+                    add_content("symlink", child_relative, link_target)
+                    add_identity("symlink", child_relative, before)
+                    symlinks += 1
+                else:
+                    raise MaterializationError(f"{label} contains an unsupported entry type")
+            monitor.assert_clean()
+            if sorted(os.listdir(directory_descriptor)) != names:
+                raise MaterializationError(f"{label} directory changed while inventoried")
+            monitor.assert_clean()
+        finally:
+            monitor.close()
+
+    root = os.fstat(root_descriptor)
+    if not stat.S_ISDIR(root.st_mode):
+        raise MaterializationError(f"{label} root is not a directory")
+    visit(root_descriptor, PurePosixPath())
+    return {
+        "schema_version": 1,
+        "sha256": content_digest.hexdigest(),
+        "identity_sha256": identity_digest.hexdigest(),
+        "files": files,
+        "directories": directories,
+        "symlinks": symlinks,
+        "bytes": total_bytes,
+    }
+
+
+def _descriptor_tree_identity(descriptor: int, label: str) -> dict[str, Any]:
+    return {
+        **_descriptor_evidence_identity(descriptor),
+        "inventory": _descriptor_tree_inventory(descriptor, label),
+    }
+
+
 def _retained_transaction_inventory(
     transaction_descriptor: int,
     transaction_document_descriptor: int,
@@ -1332,6 +1699,7 @@ def _retained_transaction_inventory(
     stage_descriptor: int,
     backup_descriptor: int,
     original_descriptor: int | None,
+    original_identity: dict[str, Any] | None,
 ) -> dict[str, Any]:
     document = {
         **_descriptor_evidence_identity(transaction_document_descriptor),
@@ -1340,6 +1708,20 @@ def _retained_transaction_inventory(
     }
     stage_names = sorted(os.listdir(stage_descriptor))
     backup_names = sorted(os.listdir(backup_descriptor))
+    if backup_names:
+        raise MaterializationError("retained materialization backup is not empty")
+    if original_descriptor is not None:
+        if original_identity is None:
+            raise MaterializationError("retained original output lacks its pre-exchange identity")
+        stage_destination = _descriptor_tree_identity(
+            original_descriptor, "retained original MIPStarRE output"
+        )
+        if stage_destination != original_identity:
+            raise MaterializationError(
+                "retained original MIPStarRE output identity or recursive inventory changed"
+            )
+    else:
+        stage_destination = None
     return {
         "schema_version": 1,
         "transaction_entries": sorted(os.listdir(transaction_descriptor)),
@@ -1352,11 +1734,7 @@ def _retained_transaction_inventory(
             **_descriptor_evidence_identity(backup_descriptor),
             "entries": backup_names,
         },
-        "stage_destination": (
-            _descriptor_evidence_identity(original_descriptor)
-            if original_descriptor is not None
-            else None
-        ),
+        "stage_destination": stage_destination,
     }
 
 
@@ -1442,9 +1820,11 @@ def materialize(
     transaction_document: bytes | None = None
     stage_descriptor: int | None = None
     backup_descriptor: int | None = None
+    backup_monitor: _BoundNameMonitor | None = None
     stage_monitor: _BoundNameMonitor | None = None
     candidate_descriptor: int | None = None
     original_descriptor: int | None = None
+    original_identity: dict[str, Any] | None = None
     published = False
     original_present = False
     transaction_current_name: str | None = None
@@ -1503,6 +1883,7 @@ def materialize(
         assert transaction_document is not None
         assert stage_descriptor is not None
         assert backup_descriptor is not None
+        assert backup_monitor is not None
         assert stage_monitor is not None
         assert transaction_current_name is not None
         runtime_monitor.assert_clean()
@@ -1535,6 +1916,9 @@ def materialize(
         _assert_bound_name(
             transaction_descriptor, "backup", backup_descriptor, "retained materialization backup"
         )
+        backup_monitor.assert_clean()
+        if os.listdir(backup_descriptor):
+            raise MaterializationError("retained materialization backup is not empty")
         stage_monitor.assert_clean()
         expected_stage_names = {destination.name} if original_present else set()
         if set(os.listdir(stage_descriptor)) != expected_stage_names:
@@ -1547,6 +1931,12 @@ def materialize(
                 original_descriptor,
                 "retained original MIPStarRE output",
             )
+            if original_identity is None or _descriptor_tree_identity(
+                original_descriptor, "retained original MIPStarRE output"
+            ) != original_identity:
+                raise MaterializationError(
+                    "retained original MIPStarRE output identity or recursive inventory changed"
+                )
         else:
             _assert_name_absent(
                 stage_descriptor,
@@ -1555,6 +1945,7 @@ def materialize(
             )
         transaction_monitor.assert_clean()
         stage_monitor.assert_clean()
+        backup_monitor.assert_clean()
 
     def mark_published() -> None:
         nonlocal published
@@ -1612,6 +2003,16 @@ def materialize(
                     "existing MIPStarRE output",
                 )
                 root_monitor.assert_clean()
+                original_identity = _descriptor_tree_identity(
+                    original_descriptor, "existing MIPStarRE output"
+                )
+                root_monitor.assert_clean()
+                _assert_bound_name(
+                    root_descriptor,
+                    destination.name,
+                    original_descriptor,
+                    "existing MIPStarRE output",
+                )
                 try:
                     evidence = verify_materialized(
                         Path("/proc/self/fd") / str(root_descriptor), pin
@@ -1672,6 +2073,11 @@ def materialize(
                 backup_descriptor = _bind_or_create_directory(
                     transaction_descriptor, "backup", transaction_monitor
                 )
+                backup_monitor = _BoundNameMonitor(backup_descriptor, None)
+                backup_monitor.assert_clean()
+                if os.listdir(backup_descriptor):
+                    raise MaterializationError("materialization backup must start empty")
+                backup_monitor.assert_clean()
                 os.fsync(backup_descriptor)
                 stage_monitor = _BoundNameMonitor(stage_descriptor, None)
                 try:
@@ -1717,6 +2123,14 @@ def materialize(
                 root_monitor.assert_clean()
                 if original_present:
                     assert original_descriptor is not None
+                    assert original_identity is not None
+                    if _descriptor_tree_identity(
+                        original_descriptor, "existing MIPStarRE output"
+                    ) != original_identity:
+                        raise MaterializationError(
+                            "existing MIPStarRE output identity or recursive inventory changed"
+                        )
+                    root_monitor.assert_clean()
                     _atomic_exchange_bound(
                         stage_descriptor,
                         destination.name,
@@ -1739,6 +2153,12 @@ def materialize(
                             (destination.name, _IN_MOVED_TO),
                         )
                     )
+                    if _descriptor_tree_identity(
+                        original_descriptor, "displaced original MIPStarRE output"
+                    ) != original_identity:
+                        raise MaterializationError(
+                            "displaced original MIPStarRE output identity or recursive inventory changed"
+                        )
                 else:
                     _atomic_move_bound(
                         stage_descriptor,
@@ -1777,6 +2197,7 @@ def materialize(
                     stage_descriptor,
                     backup_descriptor,
                     original_descriptor if original_present else None,
+                    original_identity,
                 )
                 assert_retained_transaction_contents()
             except BaseException as error:
@@ -1865,6 +2286,7 @@ def materialize(
     finally:
         for monitor in (
             stage_monitor,
+            backup_monitor,
             transaction_monitor,
             runtime_monitor,
             workflow_monitor,
