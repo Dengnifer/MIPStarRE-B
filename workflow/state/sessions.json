@@ -31319,6 +31319,38 @@
         "network": 0,
         "nested_agents": 0
       }
+    },
+    {
+      "id": "i067-scout-a06-storage-layer",
+      "name": "i067-scout-a06-storage-layer",
+      "role": "scout",
+      "issue_id": "QPBT-067",
+      "attempt": 6,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 4,
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "2820c66f2a9f227cfe2a5da6d1448c6e52cb8262",
+      "base_revision_reason": "Exact QPBT-068 repaired cache candidate used as the latest storage implementation evidence; main seed report is separately hash-bound.",
+      "base_tree": "557a0f1bd5af2803a15c1d90417aa5568879161f",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-068-cache-safety-a04",
+      "owned_paths": [],
+      "validation_command": "Read-only actual-host storage capability and architecture scout using the QPBT-058 10.1GB no-reflink seed measurement; design authenticated immutable dependency sharing plus private mutable build output. Disposable /tmp probes only; write /tmp/i067-scout-a06-storage-layer.md. No repository/state/metrics/Git writes/Lean/Lake/build/real cache/network/GitHub/credentials/nested agents.",
+      "result_envelope_path": "/tmp/i067-scout-a06-storage-layer.md",
+      "started_at": "2026-09-03T14:41:30.495053Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "external_id": "/root/i067_scout_a06_storage_layer"
     }
   ]
 }
