@@ -2164,7 +2164,7 @@
         "Add focused and aggregate regressions for valid symbolic refs, exact commits, nonexistent full-looking SHAs, tree mismatch, PR-base versus detached-head identity, and atomic no-mutation failure",
         "Make the smallest sufficient tooling/protocol change, update protocols/CHANGELOG.md with evidence and measured impact, and obtain a fresh independent immutable review before integration"
       ],
-      "owner_session_id": "i044-orchestrator-a05-git-boundary",
+      "owner_session_id": "i044-orchestrator-a08-git-fd",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-050",
         "research/metrics/incidents.jsonl#INC-058",
@@ -2185,22 +2185,22 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:46:00Z",
-      "updated_at": "2026-09-03T13:58:17.590606Z",
+      "updated_at": "2026-09-03T14:17:33.413732Z",
       "blocked_reason": null,
-      "unblock_condition": "Fresh independent immutable reviewers must approve unchanged repair head 2eb8aef8ec091c991a1a6ec852a869b6269a6aee before integration.",
+      "unblock_condition": "Repair the confirmed ABA swap-run-restore race on a changed head, rerun deterministic resolver/dispatch regressions, and obtain a fresh immutable review.",
       "candidate_base_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
       "candidate_head_sha": "2eb8aef8ec091c991a1a6ec852a869b6269a6aee",
       "candidate_tree": "0398c5cd69a26d1929829ba147444c0b4595969d",
       "candidate_patch_sha256": "0d849ca4e9929b76b2523f630b6538d2355675ceb7df6e0378a8fd3f5f57c09f",
       "candidate_report": "/tmp/i044-orchestrator-a05-git-boundary.md",
       "candidate_report_sha256": "402249a8e19d8602280d74ed946547fa15a7489fa794f8acecdae55da9a2debd",
-      "candidate_status": "awaiting-review",
-      "review_report": "/tmp/i044-reviewer-a02-git-identity.md",
-      "review_manifest_sha256": "559f0ddaa9a40cc80f54fc73f5f521e7cdb0605d89808dacb38dad892ae7167b",
-      "review_head_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
+      "candidate_status": "changes-requested",
+      "review_report": "/tmp/i044-reviewer-a06-security.md",
+      "review_manifest_sha256": "00a398971e4fedc2314087d3d46b7b464501e0e409448d0934777b13fd85698c",
+      "review_head_sha": "2eb8aef8ec091c991a1a6ec852a869b6269a6aee",
       "review_verdict": "request_changes",
-      "secondary_review_report": "/tmp/i044-reviewer-a03-regression.md",
-      "secondary_review_manifest_sha256": "aeb5452bf27b5187f21fff8441cc9684fcdbe21015e27f4cc02047b2f354eefd",
+      "secondary_review_report": "/tmp/i044-reviewer-a07-regression.md",
+      "secondary_review_manifest_sha256": "76e71ca0aa99f10ee8d3897bd3d163009a793476492a05b9b2de97652bdadbc5",
       "secondary_review_verdict": "request_changes",
       "review_findings": [
         {
@@ -2223,6 +2223,13 @@
           "status": "open",
           "path": "scripts/git_identity.py:32",
           "summary": "Object proof in a partial clone can trigger unpinned lazy fetch and credential-helper activity because GIT_NO_LAZY_FETCH is not set."
+        },
+        {
+          "id": "F044-A06-001",
+          "severity": "high",
+          "status": "open",
+          "path": "scripts/git_identity.py:99",
+          "summary": "Pathname pre/post inode checks permit a swap-run-restore ABA substitution while the Git child resolves its working directory."
         }
       ]
     },
@@ -2993,7 +3000,7 @@
       "title": "feat(QPBT/Game): implement the executable CL minimal skeleton",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-056"
@@ -3030,9 +3037,9 @@
         "workflow/reviews/qpbt-057-f06a-a02.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T14:02:59.941998Z",
+      "updated_at": "2026-09-03T14:21:54.634064Z",
       "blocked_reason": null,
-      "unblock_condition": "Exact guarded integration and post-integration current-main validation remain.",
+      "unblock_condition": "Completed: approved candidate integrated byte-for-byte and current main passed the singleton full-build/cache gate.",
       "proof_completion_issue_id": "QPBT-061",
       "candidate_head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
       "candidate_tree": "6d7a6c951fef932c011bb38ea4788e760bc72cc4",
@@ -3080,7 +3087,7 @@
         }
       ],
       "candidate_base_sha": "fce3f96becebe568c6487d557aec550499e28840",
-      "candidate_status": "approved",
+      "candidate_status": "integrated",
       "superseded_candidate_head": "a9abedb3d08d1b020d310075fc2865ae21397eb8",
       "superseded_candidate_review": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md",
       "review_manifest_sha256": "ab9899e35ea31039af95dfa577b2df15de25543ce96e124cf89c755e55e94a99",
@@ -3091,7 +3098,10 @@
       "paper_review_head_sha": "a67031de5a3804360e113dd4a881e94376fc435f",
       "paper_review_verdict": "approve",
       "paper_review_findings": [],
-      "paper_review_scope": "Public statement fidelity and declared Stage-4A proof-debt boundary only; A07 resource-selection and current-head build blockers remain controlling."
+      "paper_review_scope": "Public statement fidelity and declared Stage-4A proof-debt boundary only; A07 resource-selection and current-head build blockers remain controlling.",
+      "integration_sha": "735a419a0f58fb531eaff04c62bd05e8e846f01e",
+      "integrated_tree": "1362a781beeb4e93a7aafa7c5a2381977b3b8386",
+      "integrated_pr_id": "LPR-035"
     },
     {
       "id": "QPBT-058",
@@ -3630,7 +3640,7 @@
       "title": "repair(workflow): close cache seed isolation and crash-recovery gaps",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "blocked",
       "parent_id": "QPBT-067",
       "dependency_ids": [
         "QPBT-051"
@@ -3670,17 +3680,17 @@
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
       "owner_session_id": "i068-orchestrator-a04-cache-transaction",
-      "blocked_reason": null,
-      "unblock_condition": "Repair F068-A02-001 through F068-A02-008 on a changed head, rerun focused and adversarial tests, and obtain a fresh immutable hostile review.",
+      "blocked_reason": "protocols/CHANGELOG.md remains exclusively owned by active QPBT-044; QPBT-068 cannot complete its required protocol entry concurrently.",
+      "unblock_condition": "After QPBT-044 releases protocols/CHANGELOG.md, bind the QPBT-068 protocol entry on the exact A04 candidate, then obtain a fresh immutable hostile review.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-03T13:41:56.474776Z",
-      "candidate_base_sha": "b37a33c7c280e29fad2ca2cd12c221b6fc38aa07",
-      "candidate_head_sha": "7f7da8438a8ee9b456e22d441e7d0c3284779f22",
-      "candidate_tree": "f2eaf03109057bec8dfa46cbf1ecb8315c1742e3",
-      "candidate_patch_sha256": "baab726903faed1eb2e903c3116752b6a39b00f389c320f15ff6a05c0573b094",
-      "candidate_report": "workflow/reviews/qpbt-068-cache-safety-a01.md",
-      "candidate_report_sha256": "d29dd5b2b12a8941041d89a8cc8ed0d1b29cf318b563cf5ef1d9c08fa5fcebb0",
-      "candidate_status": "changes-requested",
+      "updated_at": "2026-09-03T14:18:24.605284Z",
+      "candidate_base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+      "candidate_head_sha": "2820c66f2a9f227cfe2a5da6d1448c6e52cb8262",
+      "candidate_tree": "557a0f1bd5af2803a15c1d90417aa5568879161f",
+      "candidate_patch_sha256": "4bb6d75ecf8bcdc2418e834e4ee18372c73b0a91f0ec6ef557c911982515a119",
+      "candidate_report": "/tmp/i068-orchestrator-a04-cache-transaction.md",
+      "candidate_report_sha256": "ff120ea068b3acdc2aaeb77a6f1538976051170c7ccd1c5430fabd97b383c1f9",
+      "candidate_status": "awaiting-sequential-changelog-binder",
       "review_report": "workflow/reviews/qpbt-068-review-a02-cache-safety.md",
       "review_manifest_sha256": "3c7e8c4b00d4e378c8dd8e477f28cfef79c42ed70d2d794a5312c65563b3dd07",
       "review_head_sha": "7f7da8438a8ee9b456e22d441e7d0c3284779f22",
@@ -3689,58 +3699,66 @@
         {
           "id": "F068-A02-001",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:3204",
-          "summary": "Unauthenticated backup-shaped directories can replace and delete an existing .lake even when replace is false."
+          "summary": "Unauthenticated backup-shaped directories can replace and delete an existing .lake even when replace is false.",
+          "resolution_evidence": "A04 adds a durable authenticated transaction journal, identity-bound recovery, ambiguity rejection, and replace=false preservation regressions."
         },
         {
           "id": "F068-A02-002",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:2022",
-          "summary": "Accepted external read-only symlink targets remain mutable by their owner or writable parent and are not inventory-bound."
+          "summary": "Accepted external read-only symlink targets remain mutable by their owner or writable parent and are not inventory-bound.",
+          "resolution_evidence": "A04 rejects every external symlink first hop and final target, with contained/broken/cyclic regressions."
         },
         {
           "id": "F068-A02-003",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:3402",
-          "summary": "Shared-cache validation runs before target recovery, stranding a valid sole backup when READY is invalid."
+          "summary": "Shared-cache validation runs before target recovery, stranding a valid sole backup when READY is invalid.",
+          "resolution_evidence": "A04 runs target recovery under the target lock before input, environment, cache, or READY admission and adds SIGKILL regressions."
         },
         {
           "id": "F068-A02-004",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:2642",
-          "summary": "Metric rollback releases and reacquires the lock, allowing it to truncate a competing writer committed append."
+          "summary": "Metric rollback releases and reacquires the lock, allowing it to truncate a competing writer committed append.",
+          "resolution_evidence": "A04 retains the original locked descriptor through truncate/fsync rollback and proves ordering with two-process tests."
         },
         {
           "id": "F068-A02-005",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:124",
-          "summary": "QPBT-067 still falsely reports READY quarantine as implemented."
+          "summary": "QPBT-067 still falsely reports READY quarantine as implemented.",
+          "resolution_evidence": "A04 corrects the report to the actual fail-not-ready behavior."
         },
         {
           "id": "F068-A02-006",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:163",
-          "summary": "QPBT-067 still omits required parallel-lane and timing evidence plus the ordering exception."
+          "summary": "QPBT-067 still omits required parallel-lane and timing evidence plus the ordering exception.",
+          "resolution_evidence": "A04 records exact available timing and overlap evidence, nulls unavailable latency, and documents the non-retroactive ordering violation."
         },
         {
           "id": "F068-A02-007",
           "severity": "medium",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:9",
-          "summary": "QPBT-067 implementation anchors remain stale or unrelated."
+          "summary": "QPBT-067 implementation anchors remain stale or unrelated.",
+          "resolution_evidence": "A04 replaces stale anchors with symbol-qualified candidate anchors and corrected protocol locations."
         },
         {
           "id": "F068-A02-008",
           "severity": "medium",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/state/issues.json",
-          "summary": "QPBT-062 provenance remains unauthenticated in the QPBT-067 report and review packet."
+          "summary": "QPBT-062 provenance remains unauthenticated in the QPBT-067 report and review packet.",
+          "resolution_evidence": "A04 binds the exact QPBT-062 commit, tree, blob, byte size, and SHA-256; the next immutable manifest must include that byte."
         }
       ]
     }

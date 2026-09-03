@@ -9131,7 +9131,7 @@
     {
       "id": "LPR-035",
       "title": "feat(QPBT/Game): implement executable CL sampler skeleton",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-057"
       ],
@@ -9242,10 +9242,10 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "735a419a0f58fb531eaff04c62bd05e8e846f01e",
+      "merged_at": "2026-09-03T14:21:42.215465Z",
       "created_at": "2026-09-03T13:45:00.454064Z",
-      "updated_at": "2026-09-03T13:55:18.125672Z",
+      "updated_at": "2026-09-03T14:21:42.215465Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Types.lean",
         "workflow/reviews/qpbt-057-f06a-a02.md"
@@ -9261,7 +9261,27 @@
         "i057-reviewer-a10-build-api"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Exact guarded no-ff integration and one post-integration current-main validation remain."
+      "unexecuted_gate": null,
+      "post_integration_validation": {
+        "main_sha": "735a419a0f58fb531eaff04c62bd05e8e846f01e",
+        "main_tree": "1362a781beeb4e93a7aafa7c5a2381977b3b8386",
+        "cache_key": "e6767da55a90639333fdfbeb2abf87aa45118cc20c18117b55d8de0a0c15bb47",
+        "result": "passed",
+        "cache_result": "built",
+        "build_jobs": 8992,
+        "build_seconds": 635.032752,
+        "elapsed_seconds": 774.399684,
+        "cache_hit": 0,
+        "cache_miss": 1,
+        "lock_wait_seconds": 0.0,
+        "builders": 1,
+        "authored_qpbt_files": 7,
+        "authored_qpbt_bytes": 182257,
+        "authored_qpbt_sha256": "f132250ce47e8abf893b1b56ee869ab799624998c8d0b1de8d81750c1e52d142",
+        "status_recheck": "hit",
+        "preflight_failures": 1,
+        "preflight_failure": "First invocation omitted required source selector and failed closed before build."
+      }
     }
   ]
 }
