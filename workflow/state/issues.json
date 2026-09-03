@@ -2652,7 +2652,7 @@
         "Add focused regressions for each missing warm input, conflicting selectors, malformed paths, successful preflight, source-absent seeded worktrees, mandatory replace-existing materialization, and successful verified preparation, proving no lock-held build, snapshot, READY, or authored-source drift on failure.",
         "Update the local build/orchestration protocol and changelog with the preflight and preparation commands, run focused and aggregate workflow/checker/diff gates, obtain a fresh immutable review, and record the third-occurrence incident disposition."
       ],
-      "owner_session_id": "i051-fixer-a08-cache-transaction",
+      "owner_session_id": "i051-reviewer-a09-cache-transaction",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-052",
         "research/metrics/incidents.jsonl#INC-065",
@@ -2674,7 +2674,7 @@
         "workflow/reviews/qpbt-051-input-preflight.md"
       ],
       "created_at": "2026-09-01T19:00:00Z",
-      "updated_at": "2026-09-03T01:23:12.191132Z",
+      "updated_at": "2026-09-03T07:53:06.760119Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3119,7 +3119,7 @@
         "Document the exact G19-related operational/resource debt and its Stage 4C discharge plan under docs/paper-gaps, linked to QPBT-061, without claiming a new paper theorem or weakening source fidelity.",
         "Update checker mutation coverage, metadata, generated graph/chapter entry, and blueprint README; run deterministic generation twice, all blueprint tests, default and pinned-source checks, workflow validation, and diff hygiene, then obtain a fresh independent review."
       ],
-      "owner_session_id": "i060-orchestrator-a01-skeleton-boundary",
+      "owner_session_id": "i060-reviewer-a02-skeleton-boundary",
       "source_refs": [
         "protocols/formalization.md#Skeleton-stages",
         "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:553-712",
@@ -3138,7 +3138,7 @@
         "workflow/reviews/qpbt-060-f06a-skeleton-boundary-a01.md"
       ],
       "created_at": "2026-09-03T01:16:00.451829Z",
-      "updated_at": "2026-09-03T01:23:11.846876Z",
+      "updated_at": "2026-09-03T07:53:06.592535Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3184,6 +3184,179 @@
       "updated_at": "2026-09-03T01:16:00.451829Z",
       "blocked_reason": "Stage 4A skeleton and its exact blueprint debt contract are not yet integrated.",
       "unblock_condition": "QPBT-057 and QPBT-060 are done."
+    },
+    {
+      "id": "QPBT-062",
+      "title": "chore(workflow): make branch lifecycle and main heartbeat explicit",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-051"
+      ],
+      "labels": [
+        "workflow",
+        "branch-hygiene",
+        "main-heartbeat",
+        "worktree",
+        "exact-ownership",
+        "direct-user-requirement"
+      ],
+      "acceptance_gates": [
+        "Define one stable branch/worktree identity per implementation attempt using i<issue>-<role>-a<attempt>-<slug>, with immutable candidate head/base/tree recorded before review and no shared writable ownership.",
+        "Define a visible default-branch heartbeat: every guarded integration or canonical state transition produces a coherent local main checkpoint, and while active work exists the protocol reports main age, ahead/behind status, active lanes, and next integration gate; no empty or ceremonial commits.",
+        "Define branch completion and archival rules that preserve commits and reports, mark sessions terminal before archival, and make stale/unmerged branches auditable without destructive deletion; explicitly state the local-only GitHub-write prohibition.",
+        "Add a deterministic branch-topology audit artifact and focused validation for duplicate worktree/branch ownership, untracked active branches, stale default-branch checkpoints, and candidate heads not reachable from their recorded base.",
+        "Obtain an independent immutable review and record branch-age/parallelism metrics and protocol revision in the changelog."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "AGENTS.md#Ownership and delegation",
+        "protocols/orchestration.md",
+        "protocols/meta.md",
+        "workflow/state/sessions.json",
+        "workflow/state/prs.json"
+      ],
+      "owned_paths": [
+        "protocols/branch-lifecycle.md",
+        "workflow/reviews/qpbt-062-branch-lifecycle-a01.md"
+      ],
+      "created_at": "2026-09-03T16:00:00+08:00",
+      "updated_at": "2026-09-03T16:00:00+08:00",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-063",
+      "title": "scout(QPBT/Game): map typed sampler implementation",
+      "kind": "research",
+      "execution_category": "preflight",
+      "status": "ready",
+      "parent_id": "QPBT-058",
+      "dependency_ids": [],
+      "labels": [
+        "lean",
+        "typed-game",
+        "f07",
+        "scout",
+        "preparation"
+      ],
+      "acceptance_gates": [
+        "Map all 11 frozen F07 declarations to pinned source clauses and existing QPBT APIs.",
+        "Identify exact PMF/fiber/weight obligations and likely reusable Mathlib lemmas without changing the F07 contract.",
+        "Produce an authenticated, source-anchored handoff for the future QPBT-058 writer."
+      ],
+      "owner_session_id": "i058-scout-a01-typed-source",
+      "source_refs": [
+        "workflow/state/issues.json#QPBT-058",
+        "blueprint/metadata/nodes.json#F07-TYPED",
+        "references/2001.04383v3/sections/dependencies/types.tex:57-195"
+      ],
+      "owned_paths": [],
+      "created_at": "2026-09-03T16:05:00+08:00",
+      "updated_at": "2026-09-03T08:12:11.468637Z",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-065",
+      "title": "scout(QPBT/Game): prepare sequential Types integration gate",
+      "kind": "research",
+      "execution_category": "preflight",
+      "status": "ready",
+      "parent_id": "QPBT-038",
+      "dependency_ids": [],
+      "labels": [
+        "lean",
+        "integration",
+        "singleton-build",
+        "scout",
+        "preparation"
+      ],
+      "acceptance_gates": [
+        "Derive the exact F06/F06A/F07 integration order and immutable identity checks.",
+        "Specify the singleton combined-build/cache gate and allowed Stage-4A debt inventory.",
+        "Produce a root integration handoff without modifying Types.lean."
+      ],
+      "owner_session_id": "i038-scout-a14-types-integration",
+      "source_refs": [
+        "workflow/state/issues.json#QPBT-038",
+        "workflow/state/issues.json#QPBT-056",
+        "workflow/state/issues.json#QPBT-057",
+        "workflow/state/issues.json#QPBT-058",
+        "workflow/state/issues.json#QPBT-060"
+      ],
+      "owned_paths": [],
+      "created_at": "2026-09-03T16:05:00+08:00",
+      "updated_at": "2026-09-03T08:12:12.329887Z",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-064",
+      "title": "scout(QPBT/Game): map F06A proof discharge",
+      "kind": "research",
+      "execution_category": "preflight",
+      "status": "ready",
+      "parent_id": "QPBT-061",
+      "dependency_ids": [],
+      "labels": [
+        "lean",
+        "f06a",
+        "proof-complete",
+        "scout",
+        "preparation"
+      ],
+      "acceptance_gates": [
+        "Map both permitted Stage-4A holes to concrete FinTM2/source obligations.",
+        "Separate source-faithful theorem content from internal engineering lemmas and paper gaps.",
+        "Produce a bounded proof handoff without editing the candidate."
+      ],
+      "owner_session_id": "i061-scout-a01-f06a-proof",
+      "source_refs": [
+        "workflow/state/issues.json#QPBT-061",
+        "docs/paper-gaps/executable-cl-compiler.md",
+        "blueprint/metadata/gaps.json#G19"
+      ],
+      "owned_paths": [],
+      "created_at": "2026-09-03T16:05:00+08:00",
+      "updated_at": "2026-09-03T08:12:11.874926Z",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-066",
+      "title": "scout(workflow): audit branch topology and main heartbeat",
+      "kind": "research",
+      "execution_category": "preflight",
+      "status": "ready",
+      "parent_id": "QPBT-062",
+      "dependency_ids": [],
+      "labels": [
+        "workflow",
+        "branch-hygiene",
+        "main-heartbeat",
+        "scout",
+        "preparation"
+      ],
+      "acceptance_gates": [
+        "Inventory current refs/worktrees and identify duplicate, stale, or unowned branches.",
+        "Derive a measurable default-branch heartbeat and non-destructive archival policy.",
+        "Produce evidence for the QPBT-062 protocol implementation."
+      ],
+      "owner_session_id": "i062-scout-a01-branch-topology",
+      "source_refs": [
+        "workflow/state/issues.json#QPBT-062",
+        "AGENTS.md#Ownership and delegation",
+        "protocols/orchestration.md",
+        "protocols/meta.md"
+      ],
+      "owned_paths": [],
+      "created_at": "2026-09-03T16:05:00+08:00",
+      "updated_at": "2026-09-03T08:12:10.999047Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     }
   ]
 }
