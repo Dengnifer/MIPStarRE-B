@@ -9286,7 +9286,7 @@
     {
       "id": "LPR-036",
       "title": "feat(QPBT/Game): implement typed samplers and deciders",
-      "status": "draft",
+      "status": "approved",
       "issue_ids": [
         "QPBT-058"
       ],
@@ -9294,14 +9294,111 @@
       "head": "issue/qpbt-058-typed-a01",
       "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
       "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
-      "implementer_session_ids": [],
-      "checks": [],
-      "reviews": [],
+      "implementer_session_ids": [
+        "i058-integrator-a08-pr036-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-058-auth",
+          "name": "QPBT-058 immutable candidate authentication",
+          "command": "Authenticate formal base/tree, merge base, candidate head/tree/parent, exact two-path diff/blobs/hashes/binary patch, merge-tree result, and clean worktree",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "Exact formal base cc05598b, head e9fe2bd, merge base 937ea218, two candidate blobs and patch aa238529 authenticated; merge-tree is byte-preserving."
+        },
+        {
+          "id": "check-qpbt-058-scoped",
+          "name": "QPBT-058 scoped Lean elaboration and API probe",
+          "command": "lake env lean MIPStarRE/QPBT/Game/Types.lean; exact 11-signature and theorem-axiom probe",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "Whole file passed in 9.07s with only two inherited F06A warnings; 11/11 probe passed in 3.03s with no sorryAx in F07 theorem closures."
+        },
+        {
+          "id": "check-qpbt-058-target",
+          "name": "QPBT-058 affected target build",
+          "command": "lake build MIPStarRE.QPBT.Game.Types",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "3,101 jobs passed in 12.62s with only inherited lints and the two authorized F06A holes."
+        },
+        {
+          "id": "check-qpbt-058-full",
+          "name": "QPBT-058 private full build",
+          "command": "lake build",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "8,992 jobs passed in 7.29s on the isolated candidate worktree; one actual full compilation."
+        },
+        {
+          "id": "check-qpbt-058-blueprint-source",
+          "name": "QPBT-058 blueprint and pinned-source synchronization",
+          "command": "Default and pinned blueprint checks; blueprint tests; reference verification",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "Both 54-node/12-chapter checks passed; 36/36 tests passed; 39 files and 646 labels verified."
+        },
+        {
+          "id": "check-qpbt-058-hygiene",
+          "name": "QPBT-058 declaration, import, debt, workflow, and diff gates",
+          "command": "Exact F07 name/import/graph/fiber/shared-seed/downsize/debt scans; workflow validators; diff check",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "Exact 11-name F07 surface and four imports; zero F07 debt and exactly two inherited whole-file holes; workflow and diff hygiene passed."
+        },
+        {
+          "id": "check-qpbt-058-pr-bind",
+          "name": "LPR-036 no-byte-change adoption",
+          "command": "Authenticate candidate, six evidence checks, writer/manifest, two preliminary approvals, integration preflight, and clean worktree; make zero repository changes",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "/tmp/i058-integrator-a08-pr036-bind.md",
+          "result": "Exact candidate and 6/6 candidate checks authenticated; both pre-reviews approve with zero findings; preflight passes; zero candidate-byte changes; report SHA-256 7e91aa8."
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-058-pr036-a09-formal",
+          "reviewer_session_id": "i058-reviewer-a09-formal-pr",
+          "verdict": "approve",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "started_at": "2026-09-03T16:11:29.666564Z",
+          "completed_at": "2026-09-03T16:14:45Z",
+          "result_path": "/tmp/i058-reviewer-a09-formal-pr.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "ad128311a3ca2849a6af27496a7dcca7a900745f45b039652f8fa279a4443bc4",
+          "manifest_sha256": "f0e609cefa6ff4dc89bf3350cc3a1beb8cde2fd95a70c748dce82df7ef1b1f60",
+          "patch_sha256": "aa23852932f524484c7f443f26cdb83d1b2389c42086ccf61c337f389e3c5442",
+          "integration_gate": "approved for exact guarded integration; later first parent requires staged-patch reauthentication"
+        }
+      ],
       "findings": [],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-03T16:00:00Z",
-      "updated_at": "2026-09-03T16:00:00Z",
+      "updated_at": "2026-09-03T16:18:09.502063Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Game/Types.lean",
         "workflow/reviews/qpbt-058-f07-a01.md"
@@ -9312,7 +9409,7 @@
       "addresses": "QPBT-058",
       "manifest_sha256": "f733a64504c2d33a53eaa882545bf3aec655a8e96c5602fab1a81283ae3d2375",
       "requested_external_review": true,
-      "unexecuted_gate": "PR binder and PR-bound formal review remain required before integration."
+      "unexecuted_gate": "Guarded integration onto the current later main, post-integration scoped gates, and singleton final-snapshot warm remain required."
     }
   ]
 }

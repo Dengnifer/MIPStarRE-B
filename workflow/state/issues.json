@@ -2141,7 +2141,7 @@
       "title": "Prevent guessed full SHAs in local workflow admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-026",
@@ -2164,7 +2164,7 @@
         "Add focused and aggregate regressions for valid symbolic refs, exact commits, nonexistent full-looking SHAs, tree mismatch, PR-base versus detached-head identity, and atomic no-mutation failure",
         "Make the smallest sufficient tooling/protocol change, update protocols/CHANGELOG.md with evidence and measured impact, and obtain a fresh independent immutable review before integration"
       ],
-      "owner_session_id": "i044-orchestrator-a08-git-fd",
+      "owner_session_id": "i044-orchestrator-a11-close-failure",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-050",
         "research/metrics/incidents.jsonl#INC-058",
@@ -2185,16 +2185,16 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:46:00Z",
-      "updated_at": "2026-09-03T16:01:05.675897Z",
+      "updated_at": "2026-09-03T16:12:35.675154Z",
       "blocked_reason": null,
-      "unblock_condition": "Authenticate and independently review exact head 7c3652e with descriptor-lifetime, portability, rollback, and ABA regressions before integration.",
+      "unblock_condition": "On a changed head, close every proof descriptor despite individual close failures and make caller-visible outcome agree with durable dispatch state; add a deterministic multi-proof regression and obtain fresh immutable review.",
       "candidate_base_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
       "candidate_head_sha": "7c3652e4afb4457fbeb34c3b458d0970f863b510",
       "candidate_tree": "5ea2afb8ae1e65d0993d9d086fcb9031a39f73af",
       "candidate_patch_sha256": "b3322b76e8dab821d1d6524685d1fe0b2010d830a3b701ad72f13b0e668c7687",
       "candidate_report": "/tmp/i044-orchestrator-a08-git-fd.md",
       "candidate_report_sha256": "53c5b88bbbaf31b7aa88d9b5d38f174266a16e96dc3921323915382035a66eaa",
-      "candidate_status": "one-fresh-approval-awaiting-secondary",
+      "candidate_status": "changes-requested-a10",
       "review_report": "/tmp/i044-reviewer-a06-security.md",
       "review_manifest_sha256": "00a398971e4fedc2314087d3d46b7b464501e0e409448d0934777b13fd85698c",
       "review_head_sha": "2eb8aef8ec091c991a1a6ec852a869b6269a6aee",
@@ -2234,11 +2234,22 @@
       ],
       "repair_parent_sha": "2eb8aef8ec091c991a1a6ec852a869b6269a6aee",
       "repair_patch_sha256": "9170384aebc72d25f7c6ab502cd8f929846a8767479d4a89801fa765db756e8d",
-      "latest_review_report": "/tmp/i044-reviewer-a09-fd-immutable.md",
-      "latest_review_report_sha256": "8b3d5202700029feefd291c56fac1d0e2f536aebc1c308492df8b90341891cb2",
+      "latest_review_report": "/tmp/i044-reviewer-a10-regression.md",
+      "latest_review_report_sha256": "7219fda56c7bd504b876084f881ff3861c6170dfdff2cc99bb5a0055c5a7400d",
       "latest_review_manifest_sha256": "2b293764f79f6e573dca39d3a540f0b440f9aa42c0f06ca4414fa212cdf7b196",
       "latest_review_head_sha": "7c3652e4afb4457fbeb34c3b458d0970f863b510",
-      "latest_review_verdict": "approve"
+      "latest_review_verdict": "request_changes",
+      "approval_review_report_a09": "/tmp/i044-reviewer-a09-fd-immutable.md",
+      "approval_review_report_a09_sha256": "8b3d5202700029feefd291c56fac1d0e2f536aebc1c308492df8b90341891cb2",
+      "latest_review_findings": [
+        {
+          "id": "F044-A10-001",
+          "severity": "medium",
+          "status": "open",
+          "path": "scripts/git_identity.py:64",
+          "summary": "The first descriptor-close exception aborts later proof cleanup after dispatch publication, leaking descriptors and reporting failure after durable success."
+        }
+      ]
     },
     {
       "id": "QPBT-041",
@@ -3146,9 +3157,9 @@
         "workflow/reviews/qpbt-058-f07-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T16:03:01.436073Z",
+      "updated_at": "2026-09-03T16:18:09.823676Z",
       "blocked_reason": null,
-      "unblock_condition": "Obtain fresh immutable mathematical/source/API review of exact proof-complete head e9fe2bd before guarded integration.",
+      "unblock_condition": "Guardedly integrate exact head e9fe2bd onto the later committed main, reauthenticate the staged two-path patch, pass post-integration gates, and publish the singleton final-snapshot cache.",
       "cache_seed": {
         "session_id": "i058-coordinator-a03-cache-seed",
         "report": "workflow/reviews/qpbt-058-cache-seed-a03.md",
@@ -3172,10 +3183,14 @@
       "candidate_report_sha256": "9da56cd61229847c4d5d6f50f6f9d5f60fa418c85a728ac9818c1f56b1c9b156",
       "api_scout_report": "/tmp/i058-scout-a02-pmf-api.md",
       "api_scout_report_sha256": "4d68e28ca4d2598500a3f0edb7f10c22bc317c7df683619cb426d209a7ae4935",
-      "candidate_status": "preliminary-pending-immutable-review",
+      "candidate_status": "approved-awaiting-guarded-integration",
       "cache_preflight_report": "/tmp/i058-scout-a07-cache-preflight.md",
       "cache_preflight_report_sha256": "a41346e87c07e63aa3fc3404c5de33fb7cf35e210bef39ef64ff33a9c51a74ab",
-      "cache_preflight_verdict": "ready-after-integration"
+      "cache_preflight_verdict": "ready-after-integration",
+      "formal_review_report": "/tmp/i058-reviewer-a09-formal-pr.md",
+      "formal_review_report_sha256": "ad128311a3ca2849a6af27496a7dcca7a900745f45b039652f8fa279a4443bc4",
+      "formal_review_manifest_sha256": "f0e609cefa6ff4dc89bf3350cc3a1beb8cde2fd95a70c748dce82df7ef1b1f60",
+      "formal_review_verdict": "approve"
     },
     {
       "id": "QPBT-059",
