@@ -4024,3 +4024,7 @@
 {"schema_version":1,"timestamp":"2026-09-03T01:01:21.643290Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-051","fields":["owner_session_id"]}}
 {"schema_version":1,"timestamp":"2026-09-03T01:01:21.960940Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-059","fields":["owner_session_id"]}}
 {"schema_version":1,"timestamp":"2026-09-03T01:01:22.255906Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
+{"schema_version":1,"timestamp":"2026-09-03T01:09:30.684064Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issued-session","id":"i059-reviewer-a05-pack-contract","fields":["timing_quality","outcome_path","outcome","checks"]}}
+{"schema_version":1,"timestamp":"2026-09-03T01:09:35.558886Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"finished","session_id":"i059-reviewer-a05-pack-contract"}}
+{"schema_version":1,"timestamp":"2026-09-03T01:09:58.211140Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issued-session","id":"i059-reviewer-a05-pack-contract","fields":["source_report_sha256","canonical_report_sha256","notes"]}}
+{"schema_version":1,"timestamp":"2026-09-03T01:10:25.477347Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"archived","session_id":"i059-reviewer-a05-pack-contract"}}
