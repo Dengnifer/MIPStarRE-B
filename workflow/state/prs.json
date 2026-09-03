@@ -8688,11 +8688,14 @@
       "base": "main",
       "head": "issue/qpbt-051-preflight-a01",
       "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
-      "head_sha": "6f053f79512613f0576245bc9a8cd2a2a8ac7d81",
+      "head_sha": "69b77a6c12865173e204d16867b5390a7589a315",
       "implementer_session_ids": [
         "i051-integrator-a02-pr034-bind",
         "i051-fixer-a04-security",
-        "i051-fixer-a06-cache-security"
+        "i051-fixer-a06-cache-security",
+        "i051-fixer-a08-cache-transaction",
+        "i051-fixer-a09-cache-metric",
+        "i051-fixer-a10-cache-cleanup"
       ],
       "checks": [
         {
@@ -8903,6 +8906,17 @@
           "hot_cache_tests": "82/82",
           "workflow_tests": "3/3 checker; 77/77 workflow",
           "aggregate_tests": "376/378 sandbox + 2 host socket reruns"
+        },
+        {
+          "id": "check-qpbt-051-a10-cleanup",
+          "name": "QPBT-051 A10 post-fsync cleanup rollback",
+          "command": "py_compile; 90 focused hot-cache/workflow tests; exact two-path identity and authored-QPBT scan",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "69b77a6c12865173e204d16867b5390a7589a315",
+          "completed_at": "2026-09-03T10:18:31Z",
+          "result_path": "workflow/reviews/qpbt-051-repair-a10.md",
+          "result": "head 69b77a6c, tree e86475c4, sole parent 6f053f79, exact 2/2 paths; descriptor/unlock/stream cleanup regressions passed 90/90"
         }
       ],
       "reviews": [
@@ -9064,7 +9078,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T23:07:18.585757Z",
-      "updated_at": "2026-09-03T09:54:15.389609Z",
+      "updated_at": "2026-09-03T10:18:32.549229Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -9075,16 +9089,19 @@
       ],
       "motivation": "Eliminate the third recurrence of cache work beginning without a complete authenticated local input tuple and provide a deterministic no-build preparation path for private issue worktrees.",
       "description": "Preflight every canonical warm input before cache-hit handling or builder election, and add a prepare command that privately seeds, replacement-materializes, and verifies the pinned foundation while preserving authored QPBT bytes.",
-      "testing": "A09: 82/82 hot-cache tests; 3/3 checker; 77/77 workflow; aggregate 376/378 sandbox plus 2 host socket reruns",
+      "testing": "A10: py_compile; 90/90 focused hot-cache/workflow tests; exact two-path identity; authored-QPBT scan",
       "addresses": "QPBT-051",
       "provenance_session_ids": [
         "i051-orchestrator-a01-preflight",
         "i051-integrator-a02-pr034-bind",
         "i051-fixer-a04-security",
-        "i051-fixer-a06-cache-security"
+        "i051-fixer-a06-cache-security",
+        "i051-fixer-a08-cache-transaction",
+        "i051-fixer-a09-cache-metric",
+        "i051-fixer-a10-cache-cleanup"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable changed-head review of A09 metric rollback is required before integration."
+      "unexecuted_gate": "Fresh immutable changed-head review of A10 cleanup is required before integration."
     }
   ]
 }
