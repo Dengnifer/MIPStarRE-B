@@ -9573,14 +9573,14 @@
     {
       "id": "LPR-038",
       "title": "fix(blueprint/Game): lower the classical LDT game core",
-      "status": "changes_requested",
+      "status": "ready",
       "issue_ids": [
         "QPBT-074"
       ],
       "base": "main",
       "head": "issue/qpbt-074-game-contract-a01",
       "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
-      "head_sha": "37cdfae062c9b56a144c123a550636239c57fb60",
+      "head_sha": "edcda8f19765ab9db0a870b66bd6d25f439ceb8d",
       "implementer_session_ids": [
         "i074-orchestrator-a06-contract-repair"
       ],
@@ -9595,6 +9595,17 @@
           "completed_at": "2026-09-03T19:36:16.901943Z",
           "result_path": "/tmp/i074-orchestrator-a02-game-contract.md",
           "result": "Exact 20-path patch 27b51908; 55-node graph; 38/38 tests; 39 source files and 646 labels; deterministic regeneration changed zero bytes on its second run."
+        },
+        {
+          "id": "check-qpbt-074-a06-repair",
+          "name": "QPBT-074 exact contract repair validation",
+          "command": "Authenticate exact base/head/tree and cumulative/repair full-index patches; run default and pinned blueprint checks, 39 blueprint tests, reference verification, closure/debt/name/import/source/adversarial gates, byte-idempotent regeneration, and diff/Git integrity checks",
+          "status": "passed",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "edcda8f19765ab9db0a870b66bd6d25f439ceb8d",
+          "completed_at": "2026-09-03T21:11:48Z",
+          "result_path": "/tmp/i074-orchestrator-a06-contract-repair.md",
+          "result": "Exact 20-path cumulative patch aacb0514; 55-node graph; 39/39 tests; 39 source files and 646 labels; final two regeneration manifests byte-identical."
         }
       ],
       "reviews": [
@@ -9685,7 +9696,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-03T19:45:34.754453Z",
-      "updated_at": "2026-09-03T20:12:26.908826Z",
+      "updated_at": "2026-09-03T21:22:14.052490Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.dot",
@@ -9710,10 +9721,10 @@
       ],
       "motivation": "Expose the Magic game semantics dependency and freeze a source-faithful Game-layer classical-LDT core before downstream Lean implementation.",
       "description": "Adopt the exact QPBT-074 blueprint candidate after independent paper-fidelity and regression reviews, then integrate it with a guarded current-main merge.",
-      "testing": "Candidate default and pinned blueprint checks, 38 blueprint tests, reference verification, exact closure/debt/import gates, and byte-idempotent regeneration passed.",
+      "testing": "A06 passed default and pinned blueprint checks, 39 blueprint tests, reference verification, exact closure/debt/import/source checks, adversarial signature checks, and byte-idempotent regeneration.",
       "addresses": "QPBT-074",
       "requested_external_review": true,
-      "unexecuted_gate": "A06 repair, new immutable source review, refreshed current-main preflight, and guarded integration remain.",
+      "unexecuted_gate": "Fresh immutable source-integrity and regression reviews of edcda8f, refreshed current-main preflight, and guarded integration remain.",
       "integration_preflight": {
         "session_id": "i074-scout-a05-integration-preflight",
         "main_sha": "01b415ddda49234c58342cfd78f3802ffd00eab8",
@@ -9728,7 +9739,8 @@
         "result_sha256": "d3a349aaea305070a51396fe39985f0c1b2ba28a3d7895f04b1b1d410ecf9b17",
         "verdict": "ready-after-approvals",
         "completed_at": "2026-09-03T19:59:35Z"
-      }
+      },
+      "head_tree": "292efcca827e7020cab8c3e9fe3c66b74aaa9479"
     }
   ]
 }
