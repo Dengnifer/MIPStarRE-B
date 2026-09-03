@@ -241,8 +241,8 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 388,
-      "max_concurrency": 6,
+      "subagents_issued": 392,
+      "max_concurrency": 9,
       "outputs": [
         "research/report.md",
         "workflow/reviews/qpbt-018-021-closure-evidence-a18.md",

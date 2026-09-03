@@ -4000,7 +4000,7 @@
       "title": "fix(QPBT): disambiguate local Galois-field instances",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-037",
@@ -4030,9 +4030,19 @@
         "MIPStarRE/QPBT/Game/Types.lean"
       ],
       "created_at": "2026-09-03T17:38:00Z",
-      "updated_at": "2026-09-03T17:48:52.167162Z",
+      "updated_at": "2026-09-03T17:57:47.320096Z",
       "blocked_reason": null,
-      "unblock_condition": "Dispatch the exact one-file repair from current main and pass independent immutable review."
+      "unblock_condition": "Obtain two fresh immutable reviews of exact candidate 4bb8a089, then create and approve the local PR before guarded integration.",
+      "candidate_base_sha": "c0b166fa288b2aac0e008e375f8339bbf38c067f",
+      "candidate_head_sha": "4bb8a0897a5fbe4f7356c09329820801564e8879",
+      "candidate_tree": "7351759488dcec34213019ba7ad49ce78131efd5",
+      "candidate_patch_sha256": "8b220b5ec577355fccb760d06afd7952d01ea846b861015300436254b3e1a926",
+      "candidate_blob": "eeae36f9c54f9072c89cbde9edd19078fee9a5d0",
+      "candidate_report": "/tmp/i069-orchestrator-a01-instance-names.md",
+      "candidate_report_sha256": "da258bb174689dd815fc1f7afbe16bc70a958fb000a7d7dd320aa94cafbf0d7b",
+      "candidate_status": "implementation-complete-pending-immutable-review",
+      "review_manifest": ".workflow-runtime/qpbt-069-review-manifest-a02.json",
+      "review_manifest_sha256": "d0bafa2b4425d2a3e9b2be079afd27bbc223b7099263eae85eba88e017346e70"
     },
     {
       "id": "QPBT-070",
