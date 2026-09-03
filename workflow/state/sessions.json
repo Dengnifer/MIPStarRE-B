@@ -30129,6 +30129,41 @@
       "archive_status": "active",
       "outcome_path": null,
       "external_id": "/root/i068_reviewer_a02_cache_safety"
+    },
+    {
+      "id": "i057-reviewer-a08-paper-integrity",
+      "name": "i057-reviewer-a08-paper-integrity",
+      "role": "reviewer",
+      "issue_id": "QPBT-057",
+      "attempt": 8,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 2,
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "9eb476a41595fc70060ed9bb2ea91a50c793ede3",
+      "base_revision_reason": "Exact candidate base resolved and authenticated from the detached review worktree before launch.",
+      "candidate_head_sha": "a67031de5a3804360e113dd4a881e94376fc435f",
+      "candidate_tree": "71acb8bd5ea77959a03a1124c2fce018457b9605",
+      "review_manifest_path": ".workflow-runtime/manifests/i057-reviewer-a08-paper-integrity.json",
+      "review_manifest_sha256": "6bb9e448bff47c835e0f3d047bfb441035612c08e732d297c91aad44c8de3474",
+      "worktree": "/tmp/qpbt-057-review-a07",
+      "owned_paths": [],
+      "validation_command": "Authenticate the exact manifest and all listed bytes before reading them. Read the pinned paper first, then independently audit statement fidelity, quantifier/domain/error/runtime dependence, dual-rail and sampler semantics, resource selection, forbidden assumptions, and exact two-sorry debt. Write only /tmp/i057-review-a08-paper-integrity.md. No edits, Git writes, tests, Lean/Lake/build/cache, network, endpoint, GitHub, credentials, or nested agents.",
+      "result_envelope_path": "/tmp/i057-review-a08-paper-integrity.md",
+      "started_at": "2026-09-03T12:39:48.588988Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "external_id": "/root/i057_reviewer_a08_paper_integrity"
     }
   ]
 }
