@@ -2650,7 +2650,7 @@
         "Add focused regressions for each missing warm input, conflicting selectors, malformed paths, successful preflight, source-absent seeded worktrees, mandatory replace-existing materialization, and successful verified preparation, proving no lock-held build, snapshot, READY, or authored-source drift on failure.",
         "Update the local build/orchestration protocol and changelog with the preflight and preparation commands, run focused and aggregate workflow/checker/diff gates, obtain a fresh immutable review, and record the third-occurrence incident disposition."
       ],
-      "owner_session_id": "i051-fixer-a06-cache-security",
+      "owner_session_id": "i051-reviewer-a07-cache-security",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-052",
         "research/metrics/incidents.jsonl#INC-065",
@@ -2672,7 +2672,7 @@
         "workflow/reviews/qpbt-051-input-preflight.md"
       ],
       "created_at": "2026-09-01T19:00:00Z",
-      "updated_at": "2026-09-03T00:37:13.750485Z",
+      "updated_at": "2026-09-03T01:01:21.580094Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3041,7 +3041,7 @@
         "Pass blueprint tests, complete declaration/source checks, deterministic generation twice with byte-identical output, workflow validation, and diff hygiene; obtain one fresh immutable source/contract review before updating QPBT-057 to the superseding marker.",
         "After approval, let the existing QPBT-057 Types.lean owner implement only the corrected packSixTapes body/injectivity proof and private linear parser traces; introduce no new public declaration, premise, obligation, or paper gap."
       ],
-      "owner_session_id": "i059-fixer-a04-pack-contract",
+      "owner_session_id": "i059-reviewer-a05-pack-contract",
       "source_refs": [
         "references/2001.04383v3/sections/top-level/preliminaries.tex:96-143",
         "workflow/state/sessions.json#i057-reviewer-a03-pack-fidelity",
@@ -3059,7 +3059,7 @@
         "blueprint/src/generated/chapter-02-entries.tex"
       ],
       "created_at": "2026-09-03T00:12:21.251816Z",
-      "updated_at": "2026-09-03T00:48:26.143555Z",
+      "updated_at": "2026-09-03T01:01:21.904326Z",
       "blocked_reason": null,
       "unblock_condition": null
     }

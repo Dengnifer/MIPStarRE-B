@@ -8544,10 +8544,11 @@
       "base": "main",
       "head": "issue/qpbt-051-preflight-a01",
       "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
-      "head_sha": "a94f6e735f4408b281e2ed69ededa463a98778ec",
+      "head_sha": "9ce7c45a95b7e771082a32f0f59ecb16b9afd6c2",
       "implementer_session_ids": [
         "i051-integrator-a02-pr034-bind",
-        "i051-fixer-a04-security"
+        "i051-fixer-a04-security",
+        "i051-fixer-a06-cache-security"
       ],
       "checks": [
         {
@@ -8681,6 +8682,50 @@
           "completed_at": "2026-09-03T00:22:01.983041Z",
           "result_path": "/tmp/i051-repair-a04.md",
           "result": "Compilation, exact ownership, whitespace, authored-QPBT preservation, clean worktree, and workflow validation passed"
+        },
+        {
+          "id": "check-qpbt-051-a06-auth",
+          "name": "QPBT-051 A06 repair authentication",
+          "command": "Authenticate exact commit, tree, sole parent, exact five-path diff, patch and report SHA-256, clean worktree, and unchanged authored QPBT bytes",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "9ce7c45a95b7e771082a32f0f59ecb16b9afd6c2",
+          "completed_at": "2026-09-03T00:54:36.615439Z",
+          "result_path": "/tmp/i051-repair-a06.md",
+          "result": "head 9ce7c45a, tree 6775de49, sole parent a94f6e73, exact 5/5 paths, patch SHA-256 39a940e1, report SHA-256 37c2b456"
+        },
+        {
+          "id": "check-qpbt-051-a06-compile",
+          "name": "QPBT-051 A06 Python compilation",
+          "command": "python3 -m py_compile scripts/hot_main_cache.py tests/test_hot_main_cache.py",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "9ce7c45a95b7e771082a32f0f59ecb16b9afd6c2",
+          "completed_at": "2026-09-03T00:54:36.615439Z",
+          "result_path": "/tmp/i051-repair-a06.md",
+          "result": "final candidate Python compilation passed"
+        },
+        {
+          "id": "check-qpbt-051-a06-focused",
+          "name": "QPBT-051 A06 focused cache security regressions",
+          "command": "python3 tests/test_hot_main_cache.py -v",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "9ce7c45a95b7e771082a32f0f59ecb16b9afd6c2",
+          "completed_at": "2026-09-03T00:54:36.615439Z",
+          "result_path": "/tmp/i051-repair-a06.md",
+          "result": "77/77 passed, including direct captured-byte consumption, hook restoration, metric-failure rollback, post-publication interruption rollback, and nonfatal backup cleanup"
+        },
+        {
+          "id": "check-qpbt-051-a06-workflow-hygiene",
+          "name": "QPBT-051 A06 workflow and diff hygiene",
+          "command": "python3 tests/test_check_workflow.py; python3 tests/test_workflow.py; python3 scripts/workflow.py validate; git diff --check HEAD^..HEAD; exact path and authored-QPBT scans",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "9ce7c45a95b7e771082a32f0f59ecb16b9afd6c2",
+          "completed_at": "2026-09-03T00:54:36.615439Z",
+          "result_path": "/tmp/i051-repair-a06.md",
+          "result": "3/3 checker and 77/77 workflow tests passed; workflow, exact five-path scope, diff hygiene, clean worktree, and authored-QPBT preservation passed"
         }
       ],
       "reviews": [
@@ -8781,7 +8826,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T23:07:18.585757Z",
-      "updated_at": "2026-09-03T00:33:33.619037Z",
+      "updated_at": "2026-09-03T00:55:52.009461Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -8792,15 +8837,16 @@
       ],
       "motivation": "Eliminate the third recurrence of cache work beginning without a complete authenticated local input tuple and provide a deterministic no-build preparation path for private issue worktrees.",
       "description": "Preflight every canonical warm input before cache-hit handling or builder election, and add a prepare command that privately seeds, replacement-materializes, and verifies the pinned foundation while preserving authored QPBT bytes.",
-      "testing": "A04 exact identity and five-path scope authenticated; 72 focused cache tests, 80 checker/workflow tests, effective 370-test aggregate coverage, Python compilation, diff hygiene, and authored-QPBT preservation passed.",
+      "testing": "A06 exact identity and five-path scope authenticated; 77/77 focused cache tests, 3/3 checker tests, 77/77 workflow tests, Python compilation, diff hygiene, workflow validation, and authored-QPBT preservation passed. The aggregate sandbox run passed 373/375; only two unrelated Unix-socket fixtures were denied by sandbox permissions.",
       "addresses": "QPBT-051",
       "provenance_session_ids": [
         "i051-orchestrator-a01-preflight",
         "i051-integrator-a02-pr034-bind",
-        "i051-fixer-a04-security"
+        "i051-fixer-a04-security",
+        "i051-fixer-a06-cache-security"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "F051-A03-001 and F051-A03-003 remain open after A05: remove mutable temporary-path pin/manifest reopens and cover every post-publication failure with rollback before a fresh changed-head review."
+      "unexecuted_gate": "Fresh immutable A07 review must confirm F051-A03-001 and F051-A03-003 on changed head 9ce7c45a and reconfirm the prior F051-A03-002 resolution before integration."
     }
   ]
 }
