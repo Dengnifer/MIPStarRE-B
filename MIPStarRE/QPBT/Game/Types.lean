@@ -1556,15 +1556,40 @@ private theorem ExecutableCLSampler.downsizedDimension_eq
     s n * Q.exponent n = s n * Nat.log 2 (Q.fieldSize n) := by
   simp [AdmissibleFieldFamily.fieldSize, Nat.log_pow (by omega : 1 < 2)]
 
+private noncomputable def ExecutableCLSampler.compiledDownsize
+    (S : ExecutableCLSampler Q s ell)
+    (machine : IndexedSixInputBitMachine)
+    (execution : forall n (hn : 0 < n)
+      (query : CLSamplerQuery binaryFieldFamily
+        (fun index => s index * Q.exponent index) ell n hn
+        (S.downsizedAssociated n) (S.downsizedDecomposition n)),
+      machine.Execution query.canonicalTapes query.expectedOutput)
+    (fieldProgram : FieldExponentProgram binaryFieldFamily) :
+    ExecutableCLSampler binaryFieldFamily
+      (fun n => s n * Q.exponent n) ell where
+  associated := S.downsizedAssociated
+  decomposition := S.downsizedDecomposition
+  machine := machine
+  execution := execution
+  fieldProgram := fieldProgram
+
+private structure ExecutableCLSampler.DownsizeCompiler
+    (S : ExecutableCLSampler Q s ell) where
+  machine : IndexedSixInputBitMachine
+  execution : forall n (hn : 0 < n)
+      (query : CLSamplerQuery binaryFieldFamily
+        (fun index => s index * Q.exponent index) ell n hn
+        (S.downsizedAssociated n) (S.downsizedDecomposition n)),
+    machine.Execution query.canonicalTapes query.expectedOutput
+  fieldProgram : FieldExponentProgram binaryFieldFamily
+  runtime : forall _hEll : 1 <= ell,
+    RuntimeBigO
+      (S.compiledDownsize machine execution fieldProgram).time
+      (fun n => S.time n * Nat.log 2 (Q.fieldSize n))
+
 private theorem ExecutableCLSampler.downsizeCompiler_exists
     (S : ExecutableCLSampler Q s ell) :
-    Nonempty (Sigma fun machine : IndexedSixInputBitMachine =>
-      (forall n (hn : 0 < n)
-        (query : CLSamplerQuery binaryFieldFamily
-          (fun index => s index * Q.exponent index) ell n hn
-          (S.downsizedAssociated n) (S.downsizedDecomposition n)),
-        machine.Execution query.canonicalTapes query.expectedOutput) ×
-      FieldExponentProgram binaryFieldFamily) := by
+    Nonempty (ExecutableCLSampler.DownsizeCompiler S) := by
   sorry
 
 /-- Downsize an executable sampler to its binary-coordinate realization. -/
@@ -1572,14 +1597,9 @@ noncomputable def ExecutableCLSampler.downsize
     (S : ExecutableCLSampler Q s ell) :
     ExecutableCLSampler binaryFieldFamily
       (fun n => s n * Q.exponent n) ell :=
-  let compiler := Classical.choice S.downsizeCompiler_exists
-  {
-    associated := S.downsizedAssociated
-    decomposition := S.downsizedDecomposition
-    machine := compiler.1
-    execution := compiler.2.1
-    fieldProgram := compiler.2.2
-  }
+  let compiler : ExecutableCLSampler.DownsizeCompiler S :=
+    Classical.choice S.downsizeCompiler_exists
+  S.compiledDownsize compiler.machine compiler.execution compiler.fieldProgram
 
 /-- Downsizing expands dimension by the binary logarithm of the field size. -/
 theorem ExecutableCLSampler.downsize_dimension
