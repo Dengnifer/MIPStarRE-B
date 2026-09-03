@@ -29716,6 +29716,54 @@
       "outcome_path": null,
       "external_id": "/root/i068_orchestrator_a01_cache_safety",
       "status": "running"
+    },
+    {
+      "id": "i067-reviewer-a03-repaired-audit",
+      "name": "i067-reviewer-a03-repaired-audit",
+      "role": "reviewer",
+      "issue_id": "QPBT-067",
+      "attempt": 3,
+      "backend": "codex-collaboration",
+      "read_only": true,
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "pr_id": null,
+      "base_revision": "d7a7d62f1d1b677bb4fffc0181bfbf6eabca7f11",
+      "base_revision_reason": "Current pushed main checkpoint containing the repaired QPBT-067 report and active-lane dispatch state.",
+      "worktree": "/tmp/qpbt-067-review-a03",
+      "owned_paths": [],
+      "validation_command": "Read AGENTS.md, QPBT-067, QPBT-068, workflow/reviews/qpbt-067-cache-layout-a01.md, workflow/reviews/qpbt-067-cache-layout-review-a02.md, workflow/reviews/qpbt-067-report-repair-a02.md, all authenticated scout reports, protocols/local-development.md, protocols/orchestration.md, scripts/hot_main_cache.py, and tests/test_hot_main_cache.py. Freshly recompute the immutable main/report identities and review whether the two prior findings are actually corrected, checking arithmetic, source fidelity, symlink isolation claims, SIGKILL recovery wording, no-deletion boundary, and acceptance metrics. Write only /tmp/i067-review-a03-repaired-audit.md; do not edit repository/state/metrics/protocols, run tests/builds/cache/materialization/network/GitHub/credentials, or spawn agents.",
+      "result_envelope_path": "/tmp/i067-review-a03-repaired-audit.md",
+      "started_at": "2026-09-03T11:55:59Z",
+      "ended_at": "2026-09-03T11:55:59Z",
+      "elapsed_seconds": 0.0,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "workflow/reviews/qpbt-067-review-a03-preflight.md",
+      "external_id": "/root/i067_reviewer_a03_repaired_audit",
+      "status": "archived",
+      "timing_quality": "agent-reported-approximate",
+      "outcome": "failed-preflight-invalid-base-sha",
+      "failure_reason": "Manual base SHA did not resolve; exact git rev-parse identity required.",
+      "checks": {
+        "supplied_base": "d7a7d62f1d1b677bb4fffc0181bfbf6eabca7f11",
+        "authenticated_base": "d7a7d62d6dcf41a295535ff003bfb1d52f92beae",
+        "worktree_provisioned": false,
+        "review_started": false,
+        "repository_writes": 0,
+        "git_writes": 0,
+        "tests": 0,
+        "builds": 0,
+        "network": 0,
+        "github": 0,
+        "credentials": 0
+      },
+      "notes": "Failed closed before worktree creation; retry will inject git rev-parse output verbatim."
     }
   ]
 }
