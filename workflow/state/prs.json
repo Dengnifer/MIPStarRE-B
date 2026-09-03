@@ -8688,7 +8688,7 @@
       "base": "main",
       "head": "issue/qpbt-051-preflight-a01",
       "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
-      "head_sha": "7ed086c834f41525cff78d1fc42ee22bcd7852e2",
+      "head_sha": "6f053f79512613f0576245bc9a8cd2a2a8ac7d81",
       "implementer_session_ids": [
         "i051-integrator-a02-pr034-bind",
         "i051-fixer-a04-security",
@@ -8886,6 +8886,23 @@
           "focused_tests": "80/80",
           "workflow_tests": "77/77",
           "aggregate_tests": "376/378 sandbox + 2 host socket reruns"
+        },
+        {
+          "id": "check-qpbt-051-a09-metric-rollback",
+          "name": "QPBT-051 A09 metric append rollback repair",
+          "command": "py_compile; focused metric regressions; full hot-cache suite; checker/workflow tests; aggregate socket reruns; exact three-path identity",
+          "status": "passed",
+          "base_sha": "e8b790a32c230aaf0f17ca2aa389ef41f94867f3",
+          "head_sha": "6f053f79512613f0576245bc9a8cd2a2a8ac7d81",
+          "completed_at": "2026-09-03T09:32:45Z",
+          "result_path": "/tmp/i051-repair-a09.md",
+          "report_sha256": "726ab4c5d77e11bedbaa84fe1caa846b0ea8fe0a71f4dd85d835d72e49debc3a",
+          "patch_sha256": "81f6943945765efe3b87e5114c58ab1f1205671af17825ea0ab358f072518cca",
+          "repair_paths": "3/3",
+          "focused_metric_tests": "2/2",
+          "hot_cache_tests": "82/82",
+          "workflow_tests": "3/3 checker; 77/77 workflow",
+          "aggregate_tests": "376/378 sandbox + 2 host socket reruns"
         }
       ],
       "reviews": [
@@ -9028,7 +9045,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-02T23:07:18.585757Z",
-      "updated_at": "2026-09-03T08:44:29.799641Z",
+      "updated_at": "2026-09-03T09:33:14.296340Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -9039,7 +9056,7 @@
       ],
       "motivation": "Eliminate the third recurrence of cache work beginning without a complete authenticated local input tuple and provide a deterministic no-build preparation path for private issue worktrees.",
       "description": "Preflight every canonical warm input before cache-hit handling or builder election, and add a prepare command that privately seeds, replacement-materializes, and verifies the pinned foundation while preserving authored QPBT bytes.",
-      "testing": "A08: 80/80 focused, 3/3 checker, 77/77 workflow, aggregate sandbox 376/378 plus two host socket reruns; exact repair identity authenticated",
+      "testing": "A09: 82/82 hot-cache tests; 3/3 checker; 77/77 workflow; aggregate 376/378 sandbox plus 2 host socket reruns",
       "addresses": "QPBT-051",
       "provenance_session_ids": [
         "i051-orchestrator-a01-preflight",
@@ -9048,7 +9065,7 @@
         "i051-fixer-a06-cache-security"
       ],
       "requested_external_review": true,
-      "unexecuted_gate": "Repair partial metric append rollback for F051-A03-003 on a changed head, then obtain a fresh immutable review before integration."
+      "unexecuted_gate": "Fresh immutable changed-head review of A09 metric rollback is required before integration."
     }
   ]
 }
