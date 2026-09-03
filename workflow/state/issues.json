@@ -2055,7 +2055,7 @@
       "title": "feat(QPBT/Game): integrate Types interfaces through sequential proof gates",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2096,16 +2096,30 @@
       ],
       "owned_paths": [],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-03T17:05:45.012297Z",
+      "updated_at": "2026-09-03T17:10:28.227683Z",
       "blocked_reason": null,
-      "unblock_condition": "Authenticate the integrated 81-name Types surface and singleton 8d209d6 hot-main build, then close the parent."
+      "unblock_condition": null,
+      "closure_report": "/tmp/i038-orchestrator-a16-close-types.md",
+      "closure_report_sha256": "239d6f0e00f5919e13385a3c00c7ce566bde56561e2128a61b05ba29b2130200",
+      "closure_verdict": "close",
+      "closure_audit_report": "/tmp/i038-auditor-a15-types-closure.md",
+      "closure_audit_report_sha256": "5f80578c9e0a47322a0058199968b5ab3c910077f30cc0ca8f7bff38971c2091",
+      "integrated_surface": {
+        "commit": "8d209d6d2b17d96d0f96c2a9b2f95495c57561eb",
+        "tree": "c234100c01d4b11398e4c098ada6dd28e7e64932",
+        "declarations": 81,
+        "imports": 4,
+        "authorized_sorries": 2,
+        "build_jobs": 8992,
+        "cache_key": "21a7b15fd273fef0829d2ef790f152e6e0af02d4ba75a905e0583a758bcac187"
+      }
     },
     {
       "id": "QPBT-040",
       "title": "Validate the combined QPBT-014 Lean snapshot",
       "kind": "audit",
       "execution_category": "preflight",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-036",
@@ -2126,15 +2140,22 @@
         "Seed one private integration worktree, run four scoped checks, four target builds, declaration/source synchronization, an exact Stage-4A debt scan permitting only the four blueprint-declared theorem-body holes, and exactly one combined lake build.",
         "Record cache key, hit or miss, lock wait, build count and duration, candidate identity, statement-integrity summary, exact allowed-debt inventory, and independent review disposition."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i040-orchestrator-a01-combined",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#QPBT-040--Validate-the-combined-QPBT-014-snapshot-no-PR"
       ],
-      "owned_paths": [],
+      "owned_paths": [
+        "workflow/reviews/qpbt-040-q014-combined-a01.md"
+      ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-03T01:30:30.099718Z",
-      "blocked_reason": "All four QPBT-014 Lean child issues must be reviewed and integrated first.",
-      "unblock_condition": "QPBT-036, QPBT-037, QPBT-038, and QPBT-039 done."
+      "updated_at": "2026-09-03T17:16:10.836924Z",
+      "blocked_reason": null,
+      "unblock_condition": "Run the exact combined-snapshot gates on 8d209d6, reusing its singleton full-build cache without recompilation, then obtain independent review.",
+      "validated_snapshot": {
+        "commit": "8d209d6d2b17d96d0f96c2a9b2f95495c57561eb",
+        "tree": "c234100c01d4b11398e4c098ada6dd28e7e64932",
+        "state_only_successor": "c6f5032cedfd1b77160487e5acfc83ad39cdac16"
+      }
     },
     {
       "id": "QPBT-044",
