@@ -2158,6 +2158,125 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual([], [item for item in metrics if item.get("result") == "seeded"])
         self.assertEqual([], list(target.glob(".lake-seed-*")))
 
+    def _assert_seed_metric_cleanup_failure_rolls_back(
+        self,
+        manager: cache_module.HotMainCache,
+        target_name: str,
+        cleanup_patch: object,
+        message: str,
+    ) -> None:
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree(target_name)
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
+
+        with cleanup_patch:
+            with self.assertRaisesRegex(OSError, message):
+                manager.seed(target, replace=True)
+
+        self.assertEqual(
+            "preserve\n", (original_lake / "original-marker").read_text(encoding="ascii")
+        )
+        self.assertFalse((original_lake / "build" / "QPBT.olean").exists())
+        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertEqual([], list(target.glob(".lake-seed-*")))
+        metrics = [
+            json.loads(line)
+            for line in (self.runtime / "metrics" / "hot-main.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
+        self.assertEqual([], [item for item in metrics if item.get("result") == "seeded"])
+
+    def test_seed_metric_descriptor_close_failure_rolls_back_metric_and_replaced_seed(self) -> None:
+        manager = self.manager()
+        injected = False
+        real_close = cache_module.os.close
+
+        def fail_metric_close(descriptor: int) -> None:
+            nonlocal injected
+            try:
+                opened = Path(os.readlink(f"/proc/self/fd/{descriptor}")).resolve()
+            except OSError:
+                opened = None
+            if not injected and opened == manager.metrics_path.resolve():
+                injected = True
+                real_close(descriptor)
+                raise OSError("injected metric descriptor close failure")
+            real_close(descriptor)
+
+        self._assert_seed_metric_cleanup_failure_rolls_back(
+            manager,
+            "seed-metric-descriptor-close-failure",
+            mock.patch.object(cache_module.os, "close", side_effect=fail_metric_close),
+            "metric descriptor close failure",
+        )
+
+    def test_seed_metric_unlock_failure_rolls_back_metric_and_replaced_seed(self) -> None:
+        manager = self.manager()
+        injected = False
+        real_flock = cache_module.fcntl.flock
+
+        def fail_metric_unlock(descriptor: int, operation: int) -> None:
+            nonlocal injected
+            try:
+                opened = Path(os.readlink(f"/proc/self/fd/{descriptor}")).resolve()
+            except OSError:
+                opened = None
+            if (
+                not injected
+                and operation == fcntl.LOCK_UN
+                and opened == manager.metrics_lock_path.resolve()
+            ):
+                injected = True
+                raise OSError("injected metrics lock unlock failure")
+            real_flock(descriptor, operation)
+
+        self._assert_seed_metric_cleanup_failure_rolls_back(
+            manager,
+            "seed-metric-unlock-failure",
+            mock.patch.object(cache_module.fcntl, "flock", side_effect=fail_metric_unlock),
+            "metrics lock unlock failure",
+        )
+
+    def test_seed_metric_stream_close_failure_rolls_back_metric_and_replaced_seed(self) -> None:
+        manager = self.manager()
+        injected = False
+        real_exit = cache_module.ExclusiveLock.__exit__
+
+        def fail_metric_stream_close(
+            lock: cache_module.ExclusiveLock,
+            exception_type: object,
+            exception: object,
+            traceback: object,
+        ) -> None:
+            nonlocal injected
+            if not injected and lock.path == manager.metrics_lock_path:
+                injected = True
+                original_close = lock.stream.close
+
+                def fail_close() -> None:
+                    original_close()
+                    raise OSError("injected metrics lock stream close failure")
+
+                lock.stream.close = fail_close
+                try:
+                    real_exit(lock, exception_type, exception, traceback)
+                finally:
+                    lock.stream.close = original_close
+                return
+            real_exit(lock, exception_type, exception, traceback)
+
+        self._assert_seed_metric_cleanup_failure_rolls_back(
+            manager,
+            "seed-metric-stream-close-failure",
+            mock.patch.object(
+                cache_module.ExclusiveLock, "__exit__", new=fail_metric_stream_close
+            ),
+            "metrics lock stream close failure",
+        )
+
     def test_prepare_backup_cleanup_interruption_is_nonfatal_after_commit(self) -> None:
         manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
         manager.warm(

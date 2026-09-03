@@ -2026,9 +2026,20 @@ class ExclusiveLock:
         return self
 
     def __exit__(self, exception_type: Any, exception: Any, traceback: Any) -> None:
-        if self.stream is not None:
+        if self.stream is None:
+            return
+        cleanup_error: BaseException | None = None
+        try:
             fcntl.flock(self.stream.fileno(), fcntl.LOCK_UN)
+        except BaseException as error:
+            cleanup_error = error
+        try:
             self.stream.close()
+        except BaseException as error:
+            if cleanup_error is None:
+                cleanup_error = error
+        if cleanup_error is not None:
+            raise cleanup_error
 
 
 CommandCallback = Callable[[Path, Sequence[str], Path], int | None]
@@ -2557,29 +2568,54 @@ class HotMainCache:
             **metric,
         }
         encoded = (json.dumps(envelope, ensure_ascii=True, separators=(",", ":")) + "\n").encode("utf-8")
-        with ExclusiveLock(self.metrics_lock_path):
-            self.metrics_path.parent.mkdir(parents=True, exist_ok=True)
-            descriptor = os.open(self.metrics_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
-            checkpoint: int | None = None
-            try:
-                checkpoint = os.fstat(descriptor).st_size
-                written = os.write(descriptor, encoded)
-                if written != len(encoded):
-                    raise OSError(errno.EIO, "short hot-cache metric write")
-                os.fsync(descriptor)
-            except BaseException as error:
-                if checkpoint is None:
-                    raise
+        checkpoint: int | None = None
+        try:
+            with ExclusiveLock(self.metrics_lock_path):
+                self.metrics_path.parent.mkdir(parents=True, exist_ok=True)
+                descriptor = os.open(
+                    self.metrics_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644
+                )
                 try:
-                    os.ftruncate(descriptor, checkpoint)
+                    checkpoint = os.fstat(descriptor).st_size
+                    written = os.write(descriptor, encoded)
+                    if written != len(encoded):
+                        raise OSError(errno.EIO, "short hot-cache metric write")
                     os.fsync(descriptor)
-                except BaseException as rollback_error:
-                    raise OSError(
-                        f"hot-cache metric append failed ({error}); rollback failed: {rollback_error}"
-                    ) from error
+                finally:
+                    os.close(descriptor)
+        except BaseException as error:
+            if checkpoint is None:
                 raise
-            finally:
-                os.close(descriptor)
+            try:
+                self._rollback_metric_append(checkpoint)
+            except BaseException as rollback_error:
+                raise OSError(
+                    f"hot-cache metric append failed ({error}); rollback failed: {rollback_error}"
+                ) from error
+            raise
+
+    def _rollback_metric_append(self, checkpoint: int) -> None:
+        """Durably remove a metric append after any append/cleanup failure."""
+
+        lock = ExclusiveLock(self.metrics_lock_path)
+        lock.__enter__()
+        descriptor: int | None = None
+        try:
+            descriptor = os.open(self.metrics_path, os.O_RDWR | os.O_CREAT, 0o644)
+            os.ftruncate(descriptor, checkpoint)
+            os.fsync(descriptor)
+        finally:
+            if descriptor is not None:
+                try:
+                    os.close(descriptor)
+                except BaseException:
+                    pass
+            try:
+                lock.__exit__(None, None, None)
+            except BaseException:
+                # The truncation and fsync above establish the rollback.  A
+                # second cleanup failure must not mask that durable result.
+                pass
 
     def _run_logged(
         self,
