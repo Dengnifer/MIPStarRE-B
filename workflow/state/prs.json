@@ -9569,6 +9569,66 @@
         "integration_worktree_validate": "passed",
         "canonical_post_fast_forward_validate": "passed"
       }
+    },
+    {
+      "id": "LPR-038",
+      "title": "fix(blueprint/Game): lower the classical LDT game core",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-074"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-074-game-contract-a01",
+      "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+      "head_sha": "37cdfae062c9b56a144c123a550636239c57fb60",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-074-a02-candidate",
+          "name": "QPBT-074 candidate validation",
+          "command": "Authenticate exact base/head/tree, 20-path patch, default and pinned blueprint checks, 38 blueprint tests, source inventory, and byte-idempotent regeneration",
+          "status": "passed",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "37cdfae062c9b56a144c123a550636239c57fb60",
+          "completed_at": "2026-09-03T19:36:16.901943Z",
+          "result_path": "/tmp/i074-orchestrator-a02-game-contract.md",
+          "result": "Exact 20-path patch 27b51908; 55-node graph; 38/38 tests; 39 source files and 646 labels; deterministic regeneration changed zero bytes on its second run."
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-03T19:45:34.754453Z",
+      "updated_at": "2026-09-03T19:45:34.754453Z",
+      "changed_paths": [
+        "blueprint/check.py",
+        "blueprint/generated/graph.dot",
+        "blueprint/generated/graph.json",
+        "blueprint/metadata/gaps.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/chapter-03-entries.tex",
+        "blueprint/src/generated/chapter-04-entries.tex",
+        "blueprint/src/generated/chapter-05-entries.tex",
+        "blueprint/src/generated/chapter-06-entries.tex",
+        "blueprint/src/generated/chapter-07-entries.tex",
+        "blueprint/src/generated/chapter-08-entries.tex",
+        "blueprint/src/generated/chapter-09-entries.tex",
+        "blueprint/src/generated/chapter-10-entries.tex",
+        "blueprint/src/generated/chapter-11-entries.tex",
+        "blueprint/src/generated/chapter-12-entries.tex",
+        "blueprint/src/generated/gaps.tex",
+        "blueprint/tests/test_check.py",
+        "docs/paper-gaps/canonical-line-zero-direction.md",
+        "workflow/reviews/qpbt-074-game-contract-a01.md"
+      ],
+      "motivation": "Expose the Magic game semantics dependency and freeze a source-faithful Game-layer classical-LDT core before downstream Lean implementation.",
+      "description": "Adopt the exact QPBT-074 blueprint candidate after independent paper-fidelity and regression reviews, then integrate it with a guarded current-main merge.",
+      "testing": "Candidate default and pinned blueprint checks, 38 blueprint tests, reference verification, exact closure/debt/import gates, and byte-idempotent regeneration passed.",
+      "addresses": "QPBT-074",
+      "requested_external_review": true,
+      "unexecuted_gate": "Two fresh immutable reviews and guarded current-main integration remain."
     }
   ]
 }
