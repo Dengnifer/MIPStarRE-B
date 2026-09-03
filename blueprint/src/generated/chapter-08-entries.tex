@@ -4,7 +4,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/classical-ldt.tex:399-443 [original 4561-4605], label lem:ld-soundness}}
 \BlueprintField{Statement}{The pinned tensor-code test soundness theorem yields a global codeword measurement from a high-success two-prover test strategy.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Analysis.ClassicalLDTAdapter}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.tensorCodeSoundness}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-DISTANCE, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F09-LDT-GAME}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-DISTANCE, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F09-LDT-GAME, F09A-LDT-GAME-CORE}}
 \BlueprintField{Prerequisites}{\seqsplit{F02-CODE, F04-ASYMPTOTIC, F09-LDT-GAME}}
 \BlueprintField{Consumers}{\seqsplit{L01-LDT-SOUNDNESS}}
 \BlueprintField{Encoding}{Pin arXiv:2111.08131v3 and explicitly translate its tensor-code test into the paper's simultaneous individual-degree test.}
@@ -18,7 +18,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/dependencies/classical-ldt.tex:399-443 [original 4561-4605], label lem:ld-soundness}}
 \BlueprintField{Statement}{Under the admissible-field and sampler-dimension hypotheses used by the proof, high simultaneous individual-LDT success produces a projective global low-individual-degree polynomial measurement with polynomial consistency error.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Analysis.ClassicalLDTAdapter}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.simultaneousIndividualLDTSoundness}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-DISTANCE, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F09-LDT-GAME}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-DISTANCE, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F09-LDT-GAME, F09A-LDT-GAME-CORE}}
 \BlueprintField{Prerequisites}{\seqsplit{E04-TENSOR-CODE, F09-LDT-GAME}}
 \BlueprintField{Consumers}{\seqsplit{R02-AXIS-LDT}}
 \BlueprintField{Encoding}{Correct the Reed-Solomon tuple to length q, dimension d+1, distance q-d; encode sampler coordinates explicitly.}
@@ -37,7 +37,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/appendix-apply-classical-ldt.tex:300-321 [original 14306-14327], label lem:qld-4-7}}
 \BlueprintField{Statement}{State and prove the axis-parallel LDT over Fin n without n dividing q, and prove equivalence to the CL-indexed theorem when divisibility is available.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Analysis.ClassicalLDTAdapter}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.directAxisLDTSoundness},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.directAxisLDT\_equiv\_cl}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-DISTANCE, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F09-LDT-GAME}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-DISTANCE, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F09-LDT-GAME, F09A-LDT-GAME-CORE}}
 \BlueprintField{Prerequisites}{\seqsplit{L01-LDT-SOUNDNESS}}
 \BlueprintField{Consumers}{\seqsplit{A12-GLOBAL}}
 \BlueprintField{Encoding}{Axis indices are Fin n rather than field elements; set n=2*m+2 at the QPBT consumer.}

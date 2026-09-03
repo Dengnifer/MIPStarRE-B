@@ -200,6 +200,26 @@
       "disposition": "Pull a downsized prefix back through the coordinate equivalence before selecting the original linear map, then conjugate that map. Discharge level zero directly with the unique zero certificate.",
       "public_effect": "Internal typing and proof-completeness repairs only; the F06 map and sampler downsize statements are unchanged.",
       "issue": "QPBT-055"
+    },
+    {
+      "id": "G22",
+      "class": "undefined-degenerate-case",
+      "source": "classical-ldt.tex:92-102,129-160,216-223,324-330,366-370 [4254-4264,4291-4322,4378-4385,4486-4492,4528-4532]; top-level/preliminaries.tex:306-320,342-383 [1203-1217,1239-1280]",
+      "affected_nodes": ["F09A-LDT-GAME-CORE", "F09-LDT-GAME", "G02-GAME"],
+      "paper_problem": "The line definition permits direction v=0, but the canonical map is invoked with kernel basis {v} although the canonical-complement construction requires a linearly independent set. The decider also asks for the parameter t on a zero-direction line, where every t gives the same point and a reported polynomial need not be constant.",
+      "disposition": "Totalize only the degenerate case by canonicalLineProjection 0 = LinearMap.id; represent the singleton through u by (u,0); take the distinguished evaluation parameter t=0; and still check the full incidence equation so every point other than the base rejects.",
+      "public_effect": "Nonzero directions use exactly the paper's least-pivot RREF projector. The positive-probability zero event becomes a specified singleton test at coefficient/evaluation parameter zero. No nonzero-direction premise, resampling, conditioning, arbitrary line map, or arbitrary decider input is exposed.",
+      "issue": "QPBT-074"
+    },
+    {
+      "id": "G23",
+      "class": "representation-order-ambiguity",
+      "source": "classical-ldt.tex:194-207 [4356-4369]; finite-fields.tex:250-263 [1566-1579]",
+      "affected_nodes": ["F09A-LDT-GAME-CORE", "F09-LDT-GAME", "G02-GAME"],
+      "paper_problem": "The chi selector treats a field element as an integer, while the paper specifies only a natural binary representation in the selected basis and does not state which basis coordinate is most significant.",
+      "disposition": "Freeze the explicit little-endian boundary index(s) = sum_i bit(D.coordinates s i) * 2^i, with coordinate zero least significant. Prove it is an equivalence with Fin (2^k); the callable fieldElementIndex_testBit theorem states that index bit i equals decide (D.coordinates s i = 1), in the same order used by the project codec.",
+      "public_effect": "Only a transparent representation convention is fixed. fieldElementIndex_testBit makes the ordered codec boundary callable. Every chi fiber has size 2^k/m, so a uniform selector remains uniform under any fixed bijective endian convention. No opaque Fintype.equivFin choice is used.",
+      "issue": "QPBT-074"
     }
   ]
 }

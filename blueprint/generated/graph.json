@@ -154,11 +154,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -217,11 +219,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -278,11 +282,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -338,11 +344,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -400,11 +408,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -463,11 +473,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -523,11 +535,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -583,11 +597,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -644,11 +660,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -709,12 +727,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -773,12 +793,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -834,12 +856,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -898,12 +922,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -961,12 +987,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -1157,7 +1185,8 @@
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
-        "F09-LDT-GAME"
+        "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE"
       ]
     },
     {
@@ -1167,6 +1196,7 @@
         "F02-CODE",
         "F05-PAULI",
         "F06-CL",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "K03A-FIELD-ARITHMETIC"
       ],
@@ -1251,6 +1281,7 @@
         "A01-INDICATOR",
         "E04-TENSOR-CODE",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G02-GAME",
         "K03B-LOW-DEGREE-COMPLEXITY"
       ],
@@ -2019,7 +2050,8 @@
       "boundary_hypotheses": "Question, answer, and coordinate carriers are explicit finite decidable types. Shared-space predicates use one coordinate type for both players. Canonical Fin dimensions represent arbitrary finite coordinate Hilbert spaces. No executable sampler, machine description, cost model, caller-supplied semantic obligation, placeholder declaration, or public bridge assumption enters this node.",
       "chapter": "02",
       "consumers": [
-        "F07A-DETYPING"
+        "F07A-DETYPING",
+        "F08-MAGIC-GAME"
       ],
       "encoding": "Reuse the accepted PureStrategy and MeasurementConsistentOn declarations. FiniteGame stores a PMF and Bool predicate. FiniteGameStrategy is a one-field game-indexed wrapper, not a second strategy representation. Quantify all finite Hilbert coordinates canonically by Fin dimensions, define game value by real sSup, Schmidt rank by Matrix.rank of the coefficient matrix, and Ent by WithTop Nat sInf so the empty attainable set is infinity.",
       "fidelity": "faithful-boundary",
@@ -2183,7 +2215,8 @@
       "boundary_hypotheses": "All mathematical spaces and randomness in this node are finite. F01 FieldData is consumed only for mathematical downsizing and remains owned by F01. F06 ends at conditionally-linear.tex:552 and retains exactly its mathematical callables. F06A-EXECUTABLE-CL alone owns the binary-string representation, six-input dimension/marginal/linear/factor query machine with canonical blank normalization, associated sampler distribution and step count, valid-query finite maximum and global positive-index RuntimeBigO, executable downsizing transformation, dimension s(n) * log q(n), associated downsized maps, and O(TIME_S(n) log q(n)) runtime at conditionally-linear.tex:553-712. F07A-DETYPING, QPBT-043, K03, and K04 own none of that generic executable layer.",
       "chapter": "02",
       "consumers": [
-        "F06A-EXECUTABLE-CL"
+        "F06A-EXECUTABLE-CL",
+        "F09A-LDT-GAME-CORE"
       ],
       "encoding": "The certificate is indexed by the current coordinate register, level, and realized function. Level zero certifies only the zero map; a successor partitions the register into disjoint complementary head/tail sets, applies a supported linear head map, and selects a recursively certified tail function by an element of the head-map range. The paper's level inclusion follows from its zero-to-one base witness and structural promotion of recursive tails; Lean may equivalently prepend an empty zero head and retain the original function on the full recursive tail. Downsize repairs G21 internally by pulling prefixes back through the coordinate equivalence before conjugating each source map and by handling level zero with the existing zero certificate. Samplers map one uniform ambient vector to an explicit pair PMF. CLSampler.sample_directSum identifies the summed sampler with the independent product PMF after reindexing both left/right outputs by Fin.append.",
       "fidelity": "faithful-boundary",
@@ -2740,6 +2773,7 @@
       },
       "prerequisites": [
         "F03-MEASUREMENT",
+        "F04A-GAME-SEMANTICS",
         "F07-TYPED"
       ],
       "public": false,
@@ -2761,28 +2795,40 @@
       "transitive_definitions": [
         "F01-FIELD",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
+        "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED"
       ]
     },
     {
-      "boundary_hypotheses": "The raw game is parameterized by explicit field, dimension, degree, and repetition data.",
+      "boundary_hypotheses": "Explicit field, dimension, degree, and general repetition data. F09A supplies the G22 zero-direction totalization and G23 little-endian convention; no Game module imports this Analysis module.",
       "chapter": "02",
       "consumers": [
         "E04-TENSOR-CODE",
         "L01-LDT-SOUNDNESS"
       ],
-      "encoding": "Separate axis-parallel and diagonal line constructors and prove representative invariance.",
+      "encoding": "Reuse F09A canonical geometry and repetition-one decider without redefining them. This Analysis-layer node owns only polynomial answer measurements, arbitrary repetition, and soundness-facing adapters.",
       "fidelity": "faithful-boundary",
-      "gap_ids": [],
+      "gap_ids": [
+        "G22",
+        "G23"
+      ],
       "id": "F09-LDT-GAME",
-      "integrity": null,
+      "integrity": {
+        "lean_assumptions": "The proof-complete F09A finite game core and explicit measurement/repetition data, inheriting the documented G22/G23 boundaries.",
+        "lean_conclusion": "The general-repetition and measurement/analysis layer over the same F09A geometry and decider semantics.",
+        "paper_assumptions": "The simultaneous individual LDT parameters, general repetition count, canonical line distributions, and polynomial answers.",
+        "paper_conclusion": "The simultaneous individual low-degree verifier and its polynomial answer measurements.",
+        "verdict": "faithful boundary"
+      },
       "kind": "definition",
       "lean": {
         "module": "MIPStarRE.QPBT.Analysis.ClassicalLDTAdapter",
         "names": [
-          "MIPStarRE.QPBT.AffineLine",
           "MIPStarRE.QPBT.linePointDistribution",
           "MIPStarRE.QPBT.simultaneousIndividualLDT"
         ]
@@ -2790,7 +2836,8 @@
       "prerequisites": [
         "F02-CODE",
         "F03-MEASUREMENT",
-        "F07-TYPED"
+        "F07-TYPED",
+        "F09A-LDT-GAME-CORE"
       ],
       "public": false,
       "source": {
@@ -2805,7 +2852,7 @@
         ],
         "path": "references/2001.04383v3/sections/dependencies/classical-ldt.tex"
       },
-      "statement": "Define affine lines, canonical representatives, line-point distributions, the simultaneous individual low-degree verifier, and polynomial answer measurements.",
+      "statement": "Build the general-repetition simultaneous individual low-degree verifier, polynomial answer measurements, and soundness-facing analysis adapters on the finite canonical line and repetition-one game core.",
       "status": "not-started",
       "title": "Simultaneous individual low-degree game",
       "transitive_definitions": [
@@ -2814,7 +2861,240 @@
         "F03-MEASUREMENT",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
-        "F07-TYPED"
+        "F07-TYPED",
+        "F09A-LDT-GAME-CORE"
+      ]
+    },
+    {
+      "additional_sources": [
+        {
+          "generated_lines": [
+            262,
+            273
+          ],
+          "label": "def:line-point-dist",
+          "original_lines": [
+            4424,
+            4435
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/classical-ldt.tex"
+        },
+        {
+          "generated_lines": [
+            306,
+            377
+          ],
+          "label": "fig:ld-decider",
+          "original_lines": [
+            4468,
+            4539
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/classical-ldt.tex"
+        },
+        {
+          "generated_lines": [
+            235,
+            238
+          ],
+          "label": "",
+          "original_lines": [
+            5281,
+            5284
+          ],
+          "path": "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex"
+        },
+        {
+          "generated_lines": [
+            248,
+            254
+          ],
+          "label": "",
+          "original_lines": [
+            5294,
+            5300
+          ],
+          "path": "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex"
+        },
+        {
+          "generated_lines": [
+            271,
+            289
+          ],
+          "label": "",
+          "original_lines": [
+            5317,
+            5335
+          ],
+          "path": "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex"
+        },
+        {
+          "generated_lines": [
+            306,
+            383
+          ],
+          "label": "def:canonical-complement",
+          "original_lines": [
+            1203,
+            1280
+          ],
+          "path": "references/2001.04383v3/sections/top-level/preliminaries.tex"
+        },
+        {
+          "generated_lines": [
+            250,
+            263
+          ],
+          "label": "",
+          "original_lines": [
+            1566,
+            1579
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/finite-fields.tex"
+        }
+      ],
+      "boundary_hypotheses": "Natural k,m,d, concrete FieldData k, and hm : m \u2223 2^k. Positivity of m is derived. No nonzero-direction premise, resampling, arbitrary field equivalence, line map, parameter witness, incidence proof, decoder, decider, bridge, residual, package, or generic assumptions structure is exposed. Malformed outer bit encodings remain a G02 rejection obligation.",
+      "chapter": "02",
+      "consumers": [
+        "F09-LDT-GAME",
+        "G02-GAME"
+      ],
+      "encoding": "Use the least nonzero coordinate for the one-row RREF projector. Totalize only v=0 by the identity projector and distinguished incident parameter zero (G22). Encode a field element by the little-endian sum of its ordered basis-coordinate bits, then define chi by integer block quotient (G23). Zero exactly coordinates j with j.val < i.val. Use coefficient vectors of lengths d+1 and m*d+1 and check incidence before evaluation; the dependent Bool decider covers three same-type cases, four line/point orientations, and accepts every unlisted pair.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [
+        "G22",
+        "G23"
+      ],
+      "id": "F09A-LDT-GAME-CORE",
+      "implementation_contract": {
+        "allowed_minimal_sorries": [],
+        "imports": [
+          "MIPStarRE.QPBT.Basic.Polynomial",
+          "MIPStarRE.QPBT.Game.Types"
+        ],
+        "owned_file": "MIPStarRE/QPBT/Game/ClassicalLDT.lean",
+        "proof_complete_sorry_count": 0,
+        "reused_api": [
+          "MIPStarRE.QPBT.FieldData.coordinates",
+          "MIPStarRE.QPBT.FieldPoint",
+          "MIPStarRE.QPBT.FieldVector",
+          "MIPStarRE.QPBT.ConditionallyLinearMap",
+          "MIPStarRE.QPBT.CLSampler.sample",
+          "PMF.map",
+          "PMF.uniformOfFintype"
+        ],
+        "signature_manifest": {
+          "begin_marker": "<!-- BEGIN F09A-SIGNATURES -->",
+          "end_marker": "<!-- END F09A-SIGNATURES -->",
+          "path": "workflow/reviews/qpbt-074-game-contract-a01.md",
+          "sha256": "49cdac4cc305006f9bce3679c5f2c5784edf54ab1d2a5cd6685167cfee7a2840"
+        },
+        "validation_commands": [
+          "lake env lean MIPStarRE/QPBT/Game/ClassicalLDT.lean"
+        ],
+        "writer_lane": "game"
+      },
+      "integrity": {
+        "lean_assumptions": "The concrete F01 field and basis data, Nat divisibility, explicit finite vector coordinates, the G23 little-endian convention, and the G22 totalization at direction zero; no additional mathematical premise.",
+        "lean_conclusion": "The same finite game core with exact nonzero RREF geometry and exhaustive typed decider, plus a documented identity/parameter-zero branch for the source's undefined zero direction.",
+        "paper_assumptions": "A field F_(2^k), m dividing 2^k, canonical line maps indexed by singleton kernel bases, the three CL register maps, bounded polynomial encodings, and the simultaneous individual LDT decider specialized to repetition one.",
+        "paper_conclusion": "Canonical line representatives, uniform axis selection, exact axis/diagonal line-point distributions, level-1/2/3 CL maps, bounded line answers, and the repetition-one consistency/evaluation decider.",
+        "verdict": "documented mismatch"
+      },
+      "kind": "definition",
+      "lean": {
+        "module": "MIPStarRE.QPBT.Game.ClassicalLDT",
+        "names": [
+          "MIPStarRE.QPBT.ClassicalLDTSeed",
+          "MIPStarRE.QPBT.classicalLDTSeedEquiv",
+          "MIPStarRE.QPBT.standardDirection",
+          "MIPStarRE.QPBT.truncateDirection",
+          "MIPStarRE.QPBT.firstNonzeroCoordinate",
+          "MIPStarRE.QPBT.fieldElementIndex",
+          "MIPStarRE.QPBT.chi",
+          "MIPStarRE.QPBT.canonicalLineProjection",
+          "MIPStarRE.QPBT.AffineLine",
+          "MIPStarRE.QPBT.AffineLine.pointAt",
+          "MIPStarRE.QPBT.AffineLine.parameter?",
+          "MIPStarRE.QPBT.AxisLineQuestion",
+          "MIPStarRE.QPBT.DiagonalLineQuestion",
+          "MIPStarRE.QPBT.AxisLineQuestion.line",
+          "MIPStarRE.QPBT.DiagonalLineQuestion.line",
+          "MIPStarRE.QPBT.pointCLMap",
+          "MIPStarRE.QPBT.axisLineCLMap",
+          "MIPStarRE.QPBT.diagonalLineCLMap",
+          "MIPStarRE.QPBT.axisLinePointDistribution",
+          "MIPStarRE.QPBT.diagonalLinePointDistribution",
+          "MIPStarRE.QPBT.BoundedUnivariatePolynomial",
+          "MIPStarRE.QPBT.BoundedUnivariatePolynomial.eval",
+          "MIPStarRE.QPBT.IndividualLDTQuestion",
+          "MIPStarRE.QPBT.IndividualLDTAnswer",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne",
+          "MIPStarRE.QPBT.fieldElementIndex_apply",
+          "MIPStarRE.QPBT.fieldElementIndex_testBit",
+          "MIPStarRE.QPBT.chi_val",
+          "MIPStarRE.QPBT.chi_fiber_card",
+          "MIPStarRE.QPBT.chi_map_uniform",
+          "MIPStarRE.QPBT.truncateDirection_apply_of_lt",
+          "MIPStarRE.QPBT.truncateDirection_apply_of_le",
+          "MIPStarRE.QPBT.truncateDirection_idempotent",
+          "MIPStarRE.QPBT.canonicalLineProjection_zero",
+          "MIPStarRE.QPBT.canonicalLineProjection_apply_of_ne_zero",
+          "MIPStarRE.QPBT.canonicalLineProjection_direction_of_ne_zero",
+          "MIPStarRE.QPBT.canonicalLineProjection_idempotent",
+          "MIPStarRE.QPBT.canonicalLineProjection_sub_mem_span",
+          "MIPStarRE.QPBT.canonicalLineProjection_add_smul",
+          "MIPStarRE.QPBT.AffineLine.parameter?_sound",
+          "MIPStarRE.QPBT.AffineLine.parameter?_isSome_iff",
+          "MIPStarRE.QPBT.AffineLine.parameter?_unique_of_ne_zero",
+          "MIPStarRE.QPBT.AffineLine.parameter?_zero_direction",
+          "MIPStarRE.QPBT.pointCLMap_apply",
+          "MIPStarRE.QPBT.axisLineCLMap_apply",
+          "MIPStarRE.QPBT.diagonalLineCLMap_apply",
+          "MIPStarRE.QPBT.axisLinePointDistribution_eq_map",
+          "MIPStarRE.QPBT.diagonalLinePointDistribution_eq_map",
+          "MIPStarRE.QPBT.axisLinePointDistribution_incident",
+          "MIPStarRE.QPBT.diagonalLinePointDistribution_incident",
+          "MIPStarRE.QPBT.axisLine_selector_uniform",
+          "MIPStarRE.QPBT.diagonalLine_prefix_agrees",
+          "MIPStarRE.QPBT.BoundedUnivariatePolynomial.eval_zero",
+          "MIPStarRE.QPBT.BoundedUnivariatePolynomial.eval_congr",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_point_point",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_axisLine_axisLine",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_diagonalLine_diagonalLine",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_axisLine_point",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_point_axisLine",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_diagonalLine_point",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_point_diagonalLine",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_nonincident",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_unlisted",
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_zero_direction"
+        ]
+      },
+      "prerequisites": [
+        "F01-FIELD",
+        "F02-CODE",
+        "F06-CL"
+      ],
+      "public": false,
+      "source": {
+        "generated_lines": [
+          88,
+          258
+        ],
+        "label": "def:line",
+        "original_lines": [
+          4250,
+          4420
+        ],
+        "path": "references/2001.04383v3/sections/dependencies/classical-ldt.tex"
+      },
+      "statement": "Define the exact canonical affine-line geometry; the explicit little-endian fieldElementIndex and zero-based chi selector; prefix direction truncation; the level-1, level-2, and level-3 classical-LDT CL maps and their exact line-point pushforwards; bounded scalar polynomial answers; and the exhaustive typed repetition-one Bool decider.",
+      "status": "paper-gap",
+      "title": "Canonical lines and repetition-one low-degree game core",
+      "transitive_definitions": [
+        "F01-FIELD",
+        "F02-CODE",
+        "F06-CL"
       ]
     },
     {
@@ -2940,21 +3220,24 @@
       ]
     },
     {
-      "boundary_hypotheses": "Declare universe uType uQuestion uAnswer and require [Fintype] and [DecidableEq] for the type index and every sigma fiber, plus admissible parameters and finite samplers. The definition contains no success or projectivity assumption.",
+      "boundary_hypotheses": "Declare universe uType uQuestion uAnswer and require [Fintype] and [DecidableEq] for the generic type index and every generic sigma fiber, plus admissible parameters and finite samplers. The three concrete classical-LDT question carriers reuse F09A's structural finite instances, never downstream orphan instances. F09A fixes the G22 zero-direction behavior and G23 little-endian codec boundary. The definition contains no success, projectivity, nonzero-direction, arbitrary-decider, or Analysis-layer premise.",
       "chapter": "03",
       "consumers": [
         "G03-COMPLETENESS",
         "K04-GAME-COMPLEXITY",
         "N01-NAIMARK"
       ],
-      "encoding": "Question and answer carriers are sigma types over the paper's type graph. Explicit finite codecs embed each dependent answer fiber into one uniform finite POVM alphabet and decode it back; every decider edge is a constructor, preventing omitted cases. The question distribution is a PMF, so normalization is bundled.",
-      "fidelity": "exact",
-      "gap_ids": [],
+      "encoding": "Question and answer carriers are sigma types over the paper's type graph. Explicit finite codecs embed each dependent answer fiber into one uniform finite POVM alphabet and decode it back; malformed encodings reject. Shared line-question and bounded-polynomial declarations are imported from F09A, including its constructive Fintype instances for AxisLineQuestion, DiagonalLineQuestion, and IndividualLDTQuestion; G02 must not declare orphan replacements. F09A supersedes the earlier A43 placement advice. Every decider edge is a constructor, and the LDT edge calls the F09A repetition-one Bool decider rather than duplicating it; successfully decoded unlisted typed pairs accept. The question distribution is a PMF, so normalization is bundled.",
+      "fidelity": "faithful-boundary",
+      "gap_ids": [
+        "G22",
+        "G23"
+      ],
       "id": "G02-GAME",
       "integrity": {
-        "lean_assumptions": "Parameters and their field model; admissibility is required by consumers, not built into the raw game data.",
-        "lean_conclusion": "A dependent finite game with the same distribution and seven exhaustive check constructors.",
-        "paper_assumptions": "An admissible parameter tuple used to instantiate the sampler and decider.",
+        "lean_assumptions": "Parameters and their field model; F09A's typed finite game core, including the documented G22 zero-direction and G23 little-endian boundaries; admissibility is required by consumers, not built into the raw game data.",
+        "lean_conclusion": "A dependent finite game with the same distribution and seven exhaustive check constructors; malformed outer LDT encodings reject before the F09A decider is called.",
+        "paper_assumptions": "An admissible parameter tuple used to instantiate the sampler and seven checks, including the repetition-one simultaneous individual LDT check.",
         "paper_conclusion": "The typed question distribution, answer formats, and seven acceptance checks define the QPBT game.",
         "verdict": "faithful boundary"
       },
@@ -2974,6 +3257,7 @@
         "F05-PAULI",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS"
       ],
       "public": true,
@@ -2996,11 +3280,16 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
+        "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS"
       ]
     },
@@ -3049,11 +3338,16 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
+        "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -3109,12 +3403,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -3169,12 +3465,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "K01-CANONICAL",
@@ -3231,12 +3529,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "K01-CANONICAL",
@@ -3393,12 +3693,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "K01-CANONICAL",
@@ -3460,7 +3762,8 @@
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
-        "F09-LDT-GAME"
+        "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE"
       ]
     },
     {
@@ -3508,12 +3811,16 @@
         "F01-FIELD",
         "F02-CODE",
         "F03-MEASUREMENT",
+        "F04-ASYMPTOTIC",
+        "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -3565,11 +3872,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -3623,7 +3932,8 @@
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
-        "F09-LDT-GAME"
+        "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE"
       ]
     },
     {
@@ -3672,11 +3982,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME"
       ]
@@ -3730,11 +4042,13 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -3787,12 +4101,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -3855,12 +4171,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -3917,12 +4235,14 @@
         "F04-ASYMPTOTIC",
         "F04-CONSISTENCY",
         "F04-DISTANCE",
+        "F04A-GAME-SEMANTICS",
         "F05-PAULI",
         "F06-CL",
         "F06A-EXECUTABLE-CL",
         "F07-TYPED",
         "F08-MAGIC-GAME",
         "F09-LDT-GAME",
+        "F09A-LDT-GAME-CORE",
         "G01-PARAMETERS",
         "G02-GAME",
         "R03-RESTRICTED"
@@ -3931,7 +4251,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "dba17ecb0eda9759386ef66eb671263a4d83229ffd12b2aabde66bd3b6e7010b",
+  "source_sha256": "c4521dbf6210971400f91ed91c872c1f19cf603702b3f2c13000d2d7332628b2",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
@@ -3958,6 +4278,7 @@
     "F07-TYPED",
     "F07A-DETYPING",
     "F08-MAGIC-GAME",
+    "F09A-LDT-GAME-CORE",
     "F09-LDT-GAME",
     "E04-TENSOR-CODE",
     "F10-PAULI-BINARY",

@@ -4,7 +4,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/qpbt-parameters.tex:12-23 [original 5651-5662], label def:introparams}}
 \BlueprintField{Statement}{For R>=4 choose the paper's odd exponent field size q, power-of-two m, and d=1 using the universal soundness constants.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.CanonicalParameters}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.canonicalParameters}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, F09-LDT-GAME, G01-PARAMETERS, G02-GAME, R03-RESTRICTED}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F04A-GAME-SEMANTICS, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, F09-LDT-GAME, F09A-LDT-GAME-CORE, G01-PARAMETERS, G02-GAME, R03-RESTRICTED}}
 \BlueprintField{Prerequisites}{\seqsplit{S01-SOUNDNESS}}
 \BlueprintField{Consumers}{\seqsplit{K02-DELTA, K03-INTRO-COMPLEXITY}}
 \BlueprintField{Encoding}{Use natural ceilings and an explicitly chosen least even c; retain proof fields separately from data.}
@@ -23,7 +23,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/qpbt-parameters.tex:29-72 [original 5668-5711], label lem:delta-bound}}
 \BlueprintField{Statement}{Canonical parameters are admissible, satisfy 2\textasciicircum{}m>=R, and turn QPBT robustness into a universal polylog(R)*epsilon\textasciicircum{}b plus inverse-polylog(R) bound.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.CanonicalParameters}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.canonicalParameters\_admissible},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.canonicalRobustness\_bound}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, F09-LDT-GAME, G01-PARAMETERS, G02-GAME, K01-CANONICAL, R03-RESTRICTED}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F04A-GAME-SEMANTICS, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, F09-LDT-GAME, F09A-LDT-GAME-CORE, G01-PARAMETERS, G02-GAME, K01-CANONICAL, R03-RESTRICTED}}
 \BlueprintField{Prerequisites}{\seqsplit{K01-CANONICAL}}
 \BlueprintField{Consumers}{\seqsplit{none}}
 \BlueprintField{Encoding}{State inequalities over reals after coercing naturals; make logarithm bases explicit and prove conversions.}
@@ -42,7 +42,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/qpbt-parameters.tex:73-84 [original 5712-5723], label lem:introparams-complexity}}
 \BlueprintField{Statement}{Given the binary representation of an integer R>=4, the canonical integer tuple (q,m,d) is computable in time polylog(R).}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.CanonicalParameters}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.canonicalParameters\_complexity}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, F09-LDT-GAME, G01-PARAMETERS, G02-GAME, K01-CANONICAL, R03-RESTRICTED}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F04A-GAME-SEMANTICS, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, F09-LDT-GAME, F09A-LDT-GAME-CORE, G01-PARAMETERS, G02-GAME, K01-CANONICAL, R03-RESTRICTED}}
 \BlueprintField{Prerequisites}{\seqsplit{K01-CANONICAL}}
 \BlueprintField{Consumers}{\seqsplit{K04-GAME-COMPLEXITY}}
 \BlueprintField{Encoding}{Separate executable algorithms from asymptotic predicates; choose one explicit machine/cost model before proof completion.}
@@ -99,7 +99,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/qpbt-parameters.tex:85-127 [original 5724-5766], label lem:qld-complexity}}
 \BlueprintField{Statement}{For canonical parameters from R>=4, the QPBT decider runs in poly(R) time, CL marginals and factor spaces are computable in polylog(R) time, and the decider's Turing-machine description is computable from binary R in polylog(R) time.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.CanonicalParameters}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliBasisGame\_complexity}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, F09-LDT-GAME, G01-PARAMETERS, G02-GAME, K01-CANONICAL, R03-RESTRICTED}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F04A-GAME-SEMANTICS, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, F09-LDT-GAME, F09A-LDT-GAME-CORE, G01-PARAMETERS, G02-GAME, K01-CANONICAL, R03-RESTRICTED}}
 \BlueprintField{Prerequisites}{\seqsplit{G02-GAME, K03-INTRO-COMPLEXITY, K03A-FIELD-ARITHMETIC, K03B-LOW-DEGREE-COMPLEXITY}}
 \BlueprintField{Consumers}{\seqsplit{none}}
 \BlueprintField{Encoding}{Formalize exactly the three displayed complexity items and their executable decider/CL algorithms in the common K03 cost model; do not add sampler or generic question/answer-length claims to this anchor.}
