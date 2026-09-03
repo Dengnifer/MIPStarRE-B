@@ -3217,7 +3217,7 @@
       "title": "chore(workflow): make branch lifecycle and main heartbeat explicit",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-051"
@@ -3250,7 +3250,7 @@
         "workflow/reviews/qpbt-062-branch-lifecycle-a01.md"
       ],
       "created_at": "2026-09-03T16:00:00+08:00",
-      "updated_at": "2026-09-03T11:45:39.061513Z",
+      "updated_at": "2026-09-03T12:11:23.058249Z",
       "blocked_reason": null,
       "unblock_condition": null
     },
@@ -3421,10 +3421,10 @@
         "workflow/reviews/qpbt-067-cache-layout-a01.md"
       ],
       "created_at": "2026-09-03T09:12:00Z",
-      "updated_at": "2026-09-03T11:32:12.681729Z",
+      "updated_at": "2026-09-03T12:13:28.243790Z",
       "owner_session_id": "i067-orchestrator-a01-cache-layout",
-      "blocked_reason": "Fresh review found an external writable packages/mathlib symlink in a registered seed and an uncovered SIGKILL backup-rename window; the audit conclusion is not yet safe as written.",
-      "unblock_condition": "Correct the report to qualify broad .lake privacy and distinguish exception rollback from process-crash recovery; obtain fresh immutable approval, then track implementation follow-up separately.",
+      "blocked_reason": "Fresh immutable A04 review corrected the two original findings but found four new source-fidelity, metric-completeness, and provenance gaps; QPBT-067 remains unapproved.",
+      "unblock_condition": "Repair the false quarantine claim, refresh all source anchors, bind measured parallel-lane and timing metrics with the ordering exception, publish/authenticate the QPBT-062 source artifact, then obtain a fresh immutable approval.",
       "review_report": "workflow/reviews/qpbt-067-cache-layout-review-a02.md",
       "review_findings": [
         {
@@ -3447,7 +3447,56 @@
       "repair_commit": "be115acbdcab7d2020fec694357eb64671b09238",
       "repair_source_commit": "b2368ddbd72bda81c4fae325b5809115b968f054",
       "repair_tree": "97b724312e2b0f440da6f469f3771f4cd7174a55",
-      "repair_status": "awaiting-fresh-immutable-review"
+      "repair_status": "awaiting-a05-report-repair-and-fresh-review",
+      "latest_review_report": "workflow/reviews/qpbt-067-review-a04-repaired-audit.md",
+      "latest_review_report_sha256": "9cca717f91d092b37a4a24ad93008da6bebea7aef4e2c1bab4ee13d0c983286f",
+      "latest_review_verdict": "request_changes",
+      "latest_review_candidate_base": "e1cf001915bd8463ca3b5b1555d912b08085c0af",
+      "latest_review_candidate_head": "e1cf001915bd8463ca3b5b1555d912b08085c0af",
+      "latest_review_candidate_tree": "765f626bd25596ab92521a235a255ed2fb6c9ceb",
+      "latest_review_session_id": "i067-reviewer-a04-repaired-audit",
+      "latest_review_findings": [
+        {
+          "id": "F-067-A04-001",
+          "severity": "high",
+          "status": "open",
+          "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:122-126",
+          "summary": "The repaired audit still claims mismatched READY quarantine is implemented, but hot_main_cache.py has no quarantine path; proposed retention must not be reported as live behavior."
+        },
+        {
+          "id": "F-067-A04-002",
+          "severity": "medium",
+          "status": "open",
+          "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:15-17, workflow/reviews/qpbt-067-cache-layout-a01.md:39-44",
+          "summary": "Several source line anchors are stale or point to unrelated code, preventing reproducible source authentication of the audit claims."
+        },
+        {
+          "id": "F-067-A04-003",
+          "severity": "high",
+          "status": "open",
+          "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:164-175",
+          "summary": "The acceptance metrics omit measured parallel-lane count and audit timing/latency evidence and do not bind the required ordering exception before QPBT-068 opened."
+        },
+        {
+          "id": "F-067-A04-004",
+          "severity": "medium",
+          "path": "workflow/state/issues.json:3412-3418",
+          "status": "open",
+          "summary": "QPBT-067 cites workflow/reviews/qpbt-062-branch-lifecycle-a01.md, but that source artifact was absent from the reviewed candidate tree and was not authenticated."
+        }
+      ],
+      "resolved_prior_findings": [
+        {
+          "id": "F-067-A02-001",
+          "resolved_by_review": "i067-reviewer-a04-repaired-audit",
+          "evidence": "A04 confirms the report qualifies broad .lake privacy and records the external writable packages/mathlib symlink without claiming whole-tree isolation."
+        },
+        {
+          "id": "F-067-A02-002",
+          "resolved_by_review": "i067-reviewer-a04-repaired-audit",
+          "evidence": "A04 confirms the report distinguishes synchronous exception rollback from the uncovered SIGKILL rename window and does not claim implemented recovery."
+        }
+      ]
     },
     {
       "id": "QPBT-068",
