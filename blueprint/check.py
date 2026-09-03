@@ -53,7 +53,7 @@ IMPLEMENTATION_CONTRACT_KEYS = {
     "validation_commands", "allowed_minimal_sorries", "proof_complete_sorry_count",
 }
 IMPLEMENTATION_WRITER_LANES = {
-    "field", "approximation", "polynomial", "pauli", "types", "parameters",
+    "field", "approximation", "polynomial", "pauli", "types", "parameters", "game",
 }
 SIGNATURE_MANIFEST_KEYS = {"path", "begin_marker", "end_marker", "sha256"}
 GAME_SEMANTICS_OWNER_ID = "F04A-GAME-SEMANTICS"
@@ -616,6 +616,156 @@ DETYPING_LEAN_NAMES = [
     "MIPStarRE.QPBT.detyping_decider_time",
     "MIPStarRE.QPBT.detyping_descriptions_time",
 ]
+MAGIC_GAME_OWNER_ID = "F08-MAGIC-GAME"
+MAGIC_GAME_PREREQUISITES = [
+    "F03-MEASUREMENT", GAME_SEMANTICS_OWNER_ID, "F07-TYPED",
+]
+CLASSICAL_LDT_GAME_CORE_ID = "F09A-LDT-GAME-CORE"
+CLASSICAL_LDT_ANALYSIS_ID = "F09-LDT-GAME"
+QPBT_GAME_ID = "G02-GAME"
+CLASSICAL_LDT_GAP_IDS = ["G22", "G23"]
+CLASSICAL_LDT_GAME_CORE_SOURCE_ANCHORS = [
+    {
+        "path": "references/2001.04383v3/sections/dependencies/classical-ldt.tex",
+        "label": "def:line",
+        "generated_lines": [88, 258],
+        "original_lines": [4250, 4420],
+    },
+    {
+        "path": "references/2001.04383v3/sections/dependencies/classical-ldt.tex",
+        "label": "fig:ld-decider",
+        "generated_lines": [306, 377],
+        "original_lines": [4468, 4539],
+    },
+    {
+        "path": "references/2001.04383v3/sections/top-level/preliminaries.tex",
+        "label": "def:canonical-complement",
+        "generated_lines": [306, 383],
+        "original_lines": [1203, 1280],
+    },
+    {
+        "path": "references/2001.04383v3/sections/dependencies/finite-fields.tex",
+        "label": "",
+        "generated_lines": [250, 263],
+        "original_lines": [1566, 1579],
+    },
+]
+CLASSICAL_LDT_GAME_CORE_PREREQUISITES = ["F01-FIELD", "F02-CODE", "F06-CL"]
+CLASSICAL_LDT_GAME_CORE_LEAN_NAMES = [
+    "MIPStarRE.QPBT.ClassicalLDTSeed",
+    "MIPStarRE.QPBT.classicalLDTSeedEquiv",
+    "MIPStarRE.QPBT.standardDirection",
+    "MIPStarRE.QPBT.truncateDirection",
+    "MIPStarRE.QPBT.firstNonzeroCoordinate",
+    "MIPStarRE.QPBT.fieldElementIndex",
+    "MIPStarRE.QPBT.chi",
+    "MIPStarRE.QPBT.canonicalLineProjection",
+    "MIPStarRE.QPBT.AffineLine",
+    "MIPStarRE.QPBT.AffineLine.pointAt",
+    "MIPStarRE.QPBT.AffineLine.parameter?",
+    "MIPStarRE.QPBT.AxisLineQuestion",
+    "MIPStarRE.QPBT.DiagonalLineQuestion",
+    "MIPStarRE.QPBT.AxisLineQuestion.line",
+    "MIPStarRE.QPBT.DiagonalLineQuestion.line",
+    "MIPStarRE.QPBT.pointCLMap",
+    "MIPStarRE.QPBT.axisLineCLMap",
+    "MIPStarRE.QPBT.diagonalLineCLMap",
+    "MIPStarRE.QPBT.axisLinePointDistribution",
+    "MIPStarRE.QPBT.diagonalLinePointDistribution",
+    "MIPStarRE.QPBT.BoundedUnivariatePolynomial",
+    "MIPStarRE.QPBT.BoundedUnivariatePolynomial.eval",
+    "MIPStarRE.QPBT.IndividualLDTQuestion",
+    "MIPStarRE.QPBT.IndividualLDTAnswer",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne",
+    "MIPStarRE.QPBT.fieldElementIndex_apply",
+    "MIPStarRE.QPBT.chi_val",
+    "MIPStarRE.QPBT.chi_fiber_card",
+    "MIPStarRE.QPBT.chi_map_uniform",
+    "MIPStarRE.QPBT.truncateDirection_apply_of_lt",
+    "MIPStarRE.QPBT.truncateDirection_apply_of_le",
+    "MIPStarRE.QPBT.truncateDirection_idempotent",
+    "MIPStarRE.QPBT.canonicalLineProjection_zero",
+    "MIPStarRE.QPBT.canonicalLineProjection_apply_of_ne_zero",
+    "MIPStarRE.QPBT.canonicalLineProjection_direction_of_ne_zero",
+    "MIPStarRE.QPBT.canonicalLineProjection_idempotent",
+    "MIPStarRE.QPBT.canonicalLineProjection_sub_mem_span",
+    "MIPStarRE.QPBT.canonicalLineProjection_add_smul",
+    "MIPStarRE.QPBT.AffineLine.parameter?_sound",
+    "MIPStarRE.QPBT.AffineLine.parameter?_isSome_iff",
+    "MIPStarRE.QPBT.AffineLine.parameter?_unique_of_ne_zero",
+    "MIPStarRE.QPBT.AffineLine.parameter?_zero_direction",
+    "MIPStarRE.QPBT.pointCLMap_apply",
+    "MIPStarRE.QPBT.axisLineCLMap_apply",
+    "MIPStarRE.QPBT.diagonalLineCLMap_apply",
+    "MIPStarRE.QPBT.axisLinePointDistribution_eq_map",
+    "MIPStarRE.QPBT.diagonalLinePointDistribution_eq_map",
+    "MIPStarRE.QPBT.axisLinePointDistribution_incident",
+    "MIPStarRE.QPBT.diagonalLinePointDistribution_incident",
+    "MIPStarRE.QPBT.axisLine_selector_uniform",
+    "MIPStarRE.QPBT.diagonalLine_prefix_agrees",
+    "MIPStarRE.QPBT.BoundedUnivariatePolynomial.eval_zero",
+    "MIPStarRE.QPBT.BoundedUnivariatePolynomial.eval_congr",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne_point_point",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne_axisLine_axisLine",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne_diagonalLine_diagonalLine",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne_axisLine_point",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne_point_axisLine",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne_diagonalLine_point",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne_point_diagonalLine",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne_nonincident",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne_unlisted",
+    "MIPStarRE.QPBT.simultaneousIndividualLDTOne_zero_direction",
+]
+CLASSICAL_LDT_GAME_CORE_IMPLEMENTATION_CONTRACT = {
+    "writer_lane": "game",
+    "owned_file": "MIPStarRE/QPBT/Game/ClassicalLDT.lean",
+    "imports": ["MIPStarRE.QPBT.Basic.Polynomial", "MIPStarRE.QPBT.Game.Types"],
+    "signature_manifest": {
+        "path": "workflow/reviews/qpbt-074-game-contract-a01.md",
+        "begin_marker": "<!-- BEGIN F09A-SIGNATURES -->",
+        "end_marker": "<!-- END F09A-SIGNATURES -->",
+        "sha256": "14996321efee287931c76a2c0423ab24c04c3c36c67e695cd00bb41feba576a8",
+    },
+    "reused_api": [
+        "MIPStarRE.QPBT.FieldData.coordinates",
+        "MIPStarRE.QPBT.FieldPoint",
+        "MIPStarRE.QPBT.FieldVector",
+        "MIPStarRE.QPBT.ConditionallyLinearMap",
+        "MIPStarRE.QPBT.CLSampler.sample",
+        "PMF.map",
+        "PMF.uniformOfFintype",
+    ],
+    "validation_commands": ["lake env lean MIPStarRE/QPBT/Game/ClassicalLDT.lean"],
+    "allowed_minimal_sorries": [],
+    "proof_complete_sorry_count": 0,
+}
+CLASSICAL_LDT_ANALYSIS_PREREQUISITES = [
+    "F02-CODE", "F03-MEASUREMENT", "F07-TYPED", CLASSICAL_LDT_GAME_CORE_ID,
+]
+QPBT_GAME_PREREQUISITES = [
+    "F02-CODE", "F05-PAULI", "F07-TYPED", MAGIC_GAME_OWNER_ID,
+    CLASSICAL_LDT_GAME_CORE_ID, "G01-PARAMETERS",
+]
+# These digests exclude only the derived closure. Every source-facing field,
+# integrity table, declaration, import, disposition, and ownership boundary is fixed.
+CLASSICAL_LDT_NODE_CONTRACT_SHA256 = {
+    CLASSICAL_LDT_GAME_CORE_ID:
+        "8e8f1f9957f3b6973b72d20b7b24e98d9c70ec634886439f52972f7fb3e9fa60",
+    CLASSICAL_LDT_ANALYSIS_ID:
+        "ea75ce0aacd9580f5e0cca8928e0751bb82e7bdf93dda5b0821dbde01be6395c",
+    QPBT_GAME_ID:
+        "5d366060ade1ad335507f773522021d9f3e51aaf98fc4a4d5171ac87dec07777",
+}
+CLASSICAL_LDT_GAP_CONTRACT_SHA256 = {
+    "G22": "7aafc72bbfd306f1aebbc0d31690eb1b5343bb726e69b9f6944828dda5860375",
+    "G23": "e05c26fb20b0bd431d4bc53d739686f761d483b94465818c07343df8967cf578",
+}
+CLASSICAL_LDT_AUTHENTICATED_MARKDOWN = {
+    Path("workflow/reviews/qpbt-074-game-contract-a01.md"):
+        "d7033ed46372ba1e99c3b15305e3de1593acd640c00515408549f17153009321",
+    Path("docs/paper-gaps/canonical-line-zero-direction.md"):
+        "94d4d890d3f8fed1764ddcd72cbba10b9a87a8ff91786787e67166534eedbd7f",
+}
 NON_DETYPING_COMPLEXITY_CONTRACTS = {
     "K03-INTRO-COMPLEXITY": {
         "generated_lines": [73, 84],
@@ -706,6 +856,25 @@ def load_json(path: Path) -> Any:
 
 def canonical_json(value: Any) -> str:
     return json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
+
+
+def node_contract_sha256(node: dict[str, Any]) -> str:
+    """Hash every canonical node field except its mechanically derived closure."""
+    contract = {key: value for key, value in node.items()
+                if key != "transitive_definitions"}
+    return hashlib.sha256(canonical_json(contract).encode("utf-8")).hexdigest()
+
+
+def authenticated_markdown_errors(repository_root: Path) -> list[str]:
+    """Authenticate the source-contract and paper-gap records required by F09A."""
+    errors: list[str] = []
+    for relative_path, expected_hash in CLASSICAL_LDT_AUTHENTICATED_MARKDOWN.items():
+        path = repository_root / relative_path
+        if not path.is_file():
+            errors.append(f"F09A-LDT-GAME-CORE: authenticated record missing: {relative_path}")
+        elif hashlib.sha256(path.read_bytes()).hexdigest() != expected_hash:
+            errors.append(f"F09A-LDT-GAME-CORE: authenticated record hash mismatch: {relative_path}")
+    return errors
 
 
 def _duplicates(values: list[str]) -> set[str]:
@@ -871,7 +1040,8 @@ def _implementation_contract_errors(node: dict[str, Any],
 
 def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
                   externals_doc: dict[str, Any]) -> list[str]:
-    errors = executable_cl_historical_report_errors(ROOT.parent)
+    errors = (executable_cl_historical_report_errors(ROOT.parent) +
+              authenticated_markdown_errors(ROOT.parent))
     if nodes_doc.get("schema_version") != 1:
         errors.append("nodes schema_version must be 1")
     nodes = nodes_doc.get("nodes")
@@ -1033,6 +1203,13 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
             errors.append(
                 f"{GAME_SEMANTICS_OWNER_ID}: game-semantics callable names must remain exact"
             )
+    magic_game = nodes_by_id.get(MAGIC_GAME_OWNER_ID)
+    if magic_game is None:
+        errors.append(f"missing exact Magic Square game owner {MAGIC_GAME_OWNER_ID}")
+    elif magic_game.get("prerequisites") != MAGIC_GAME_PREREQUISITES:
+        errors.append(
+            f"{MAGIC_GAME_OWNER_ID}: F04A game-semantics direct prerequisite must remain exact"
+        )
     detyping = nodes_by_id.get(DETYPING_OWNER_ID)
     if detyping is None:
         errors.append(f"missing exact detyping owner {DETYPING_OWNER_ID}")
@@ -1103,6 +1280,76 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
         errors.append(
             "F07-TYPED: generic dependent-fiber finiteness contract must remain exact"
         )
+    classical_ldt_core = nodes_by_id.get(CLASSICAL_LDT_GAME_CORE_ID)
+    if classical_ldt_core is None:
+        errors.append(f"missing exact classical-LDT game core {CLASSICAL_LDT_GAME_CORE_ID}")
+    else:
+        observed_anchors = [classical_ldt_core.get("source"),
+                            *classical_ldt_core.get("additional_sources", [])]
+        if observed_anchors != CLASSICAL_LDT_GAME_CORE_SOURCE_ANCHORS:
+            errors.append(
+                f"{CLASSICAL_LDT_GAME_CORE_ID}: source ranges must remain exact"
+            )
+        if classical_ldt_core.get("prerequisites") != (
+                CLASSICAL_LDT_GAME_CORE_PREREQUISITES):
+            errors.append(
+                f"{CLASSICAL_LDT_GAME_CORE_ID}: prerequisites must remain exact"
+            )
+        if classical_ldt_core.get("lean", {}).get("module") != (
+                "MIPStarRE.QPBT.Game.ClassicalLDT"):
+            errors.append(
+                f"{CLASSICAL_LDT_GAME_CORE_ID}: must remain in the Game layer"
+            )
+        if classical_ldt_core.get("lean", {}).get("names") != (
+                CLASSICAL_LDT_GAME_CORE_LEAN_NAMES):
+            errors.append(
+                f"{CLASSICAL_LDT_GAME_CORE_ID}: public declaration and law names must remain exact"
+            )
+        if classical_ldt_core.get("implementation_contract") != (
+                CLASSICAL_LDT_GAME_CORE_IMPLEMENTATION_CONTRACT):
+            errors.append(
+                f"{CLASSICAL_LDT_GAME_CORE_ID}: implementation contract must remain exact"
+            )
+    classical_ldt_analysis = nodes_by_id.get(CLASSICAL_LDT_ANALYSIS_ID)
+    if classical_ldt_analysis is None:
+        errors.append(f"missing exact classical-LDT analysis owner {CLASSICAL_LDT_ANALYSIS_ID}")
+    else:
+        if classical_ldt_analysis.get("prerequisites") != (
+                CLASSICAL_LDT_ANALYSIS_PREREQUISITES):
+            errors.append(
+                f"{CLASSICAL_LDT_ANALYSIS_ID}: F09A direct prerequisite must remain exact"
+            )
+        if classical_ldt_analysis.get("lean", {}).get("module") != (
+                "MIPStarRE.QPBT.Analysis.ClassicalLDTAdapter"):
+            errors.append(
+                f"{CLASSICAL_LDT_ANALYSIS_ID}: must remain in the downstream Analysis layer"
+            )
+    qpbt_game = nodes_by_id.get(QPBT_GAME_ID)
+    if qpbt_game is None:
+        errors.append(f"missing exact QPBT game owner {QPBT_GAME_ID}")
+    else:
+        if qpbt_game.get("prerequisites") != QPBT_GAME_PREREQUISITES:
+            errors.append(
+                f"{QPBT_GAME_ID}: F09A direct prerequisite must remain exact"
+            )
+        if qpbt_game.get("lean", {}).get("module") != "MIPStarRE.QPBT.Game.Verifier":
+            errors.append(f"{QPBT_GAME_ID}: must remain in the Game layer")
+        if (qpbt_game.get("status") != "not-started" or
+                qpbt_game.get("fidelity") != "faithful-boundary"):
+            errors.append(
+                f"{QPBT_GAME_ID}: progress and inherited G22/G23 fidelity must remain exact"
+            )
+    for node_id, expected_hash in CLASSICAL_LDT_NODE_CONTRACT_SHA256.items():
+        node = nodes_by_id.get(node_id)
+        if node is not None and node_contract_sha256(node) != expected_hash:
+            errors.append(f"{node_id}: source-reviewed semantic contract must remain exact")
+    gaps_by_id = {gap.get("id"): gap for gap in gaps}
+    for gap_id, expected_hash in CLASSICAL_LDT_GAP_CONTRACT_SHA256.items():
+        gap = gaps_by_id.get(gap_id)
+        if gap is None:
+            errors.append(f"missing exact classical-LDT paper gap {gap_id}")
+        elif hashlib.sha256(canonical_json(gap).encode("utf-8")).hexdigest() != expected_hash:
+            errors.append(f"{gap_id}: source range and disposition must remain exact")
     if str((detyping or {}).get("integrity", {}).get("lean_assumptions", "")) != (
         F07A_LEAN_ASSUMPTIONS
     ):

@@ -939,6 +939,174 @@ class BlueprintCheckTests(unittest.TestCase):
         )
         self.assertIn(r"\linebreak", rendered)
 
+    def test_game_layer_edges_and_classical_ldt_contract_are_fail_closed(self) -> None:
+        by_id = {node["id"]: node for node in self.nodes["nodes"]}
+        core = by_id[check.CLASSICAL_LDT_GAME_CORE_ID]
+        self.assertEqual(check.MAGIC_GAME_PREREQUISITES,
+                         by_id[check.MAGIC_GAME_OWNER_ID]["prerequisites"])
+        self.assertEqual(check.CLASSICAL_LDT_GAME_CORE_SOURCE_ANCHORS,
+                         [core["source"], *core["additional_sources"]])
+        self.assertEqual(check.CLASSICAL_LDT_GAME_CORE_LEAN_NAMES, core["lean"]["names"])
+        self.assertEqual(63, len(core["lean"]["names"]))
+        self.assertEqual(check.CLASSICAL_LDT_GAME_CORE_IMPLEMENTATION_CONTRACT,
+                         core["implementation_contract"])
+        self.assertEqual(["MIPStarRE.QPBT.Basic.Polynomial", "MIPStarRE.QPBT.Game.Types"],
+                         core["implementation_contract"]["imports"])
+        self.assertEqual([], core["implementation_contract"]["allowed_minimal_sorries"])
+        self.assertEqual(0, core["implementation_contract"]["proof_complete_sorry_count"])
+
+        direct_edge_cases = (
+            (check.MAGIC_GAME_OWNER_ID, check.GAME_SEMANTICS_OWNER_ID,
+             "F04A game-semantics direct prerequisite"),
+            (check.CLASSICAL_LDT_ANALYSIS_ID, check.CLASSICAL_LDT_GAME_CORE_ID,
+             "F09A direct prerequisite"),
+            (check.QPBT_GAME_ID, check.CLASSICAL_LDT_GAME_CORE_ID,
+             "F09A direct prerequisite"),
+        )
+        for node_id, dependency, phrase in direct_edge_cases:
+            with self.subTest(node=node_id, dependency=dependency):
+                bad = copy.deepcopy(self.nodes)
+                node = next(item for item in bad["nodes"] if item["id"] == node_id)
+                node["prerequisites"].remove(dependency)
+                self.assertTrue(any(phrase in error for error in self.errors(nodes=bad)))
+
+        bad_closure = copy.deepcopy(self.nodes)
+        magic = next(item for item in bad_closure["nodes"]
+                     if item["id"] == check.MAGIC_GAME_OWNER_ID)
+        magic["transitive_definitions"].remove(check.GAME_SEMANTICS_OWNER_ID)
+        self.assertTrue(any(
+            "transitive_definitions must equal definition-ancestor closure" in error
+            for error in self.errors(nodes=bad_closure)
+        ))
+
+        layer_cases = (
+            (check.CLASSICAL_LDT_GAME_CORE_ID, "MIPStarRE.QPBT.Analysis.ClassicalLDT",
+             "must remain in the Game layer"),
+            (check.CLASSICAL_LDT_ANALYSIS_ID, "MIPStarRE.QPBT.Game.ClassicalLDTAdapter",
+             "must remain in the downstream Analysis layer"),
+            (check.QPBT_GAME_ID, "MIPStarRE.QPBT.Analysis.Verifier",
+             "must remain in the Game layer"),
+        )
+        for node_id, module, phrase in layer_cases:
+            with self.subTest(node=node_id, module=module):
+                bad = copy.deepcopy(self.nodes)
+                next(item for item in bad["nodes"]
+                     if item["id"] == node_id)["lean"]["module"] = module
+                self.assertTrue(any(phrase in error for error in self.errors(nodes=bad)))
+
+        for name in check.CLASSICAL_LDT_GAME_CORE_LEAN_NAMES:
+            with self.subTest(removed_name=name):
+                bad = copy.deepcopy(self.nodes)
+                node = next(item for item in bad["nodes"]
+                            if item["id"] == check.CLASSICAL_LDT_GAME_CORE_ID)
+                node["lean"]["names"].remove(name)
+                self.assertTrue(any(
+                    "public declaration and law names must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        contract_mutations = (
+            ("imports", ["MIPStarRE.QPBT.Game.Types"]),
+            ("allowed_minimal_sorries", ["MIPStarRE.QPBT.pauliSoundness"]),
+            ("proof_complete_sorry_count", 1),
+        )
+        for field, value in contract_mutations:
+            with self.subTest(contract_field=field):
+                bad = copy.deepcopy(self.nodes)
+                node = next(item for item in bad["nodes"]
+                            if item["id"] == check.CLASSICAL_LDT_GAME_CORE_ID)
+                node["implementation_contract"][field] = value
+                self.assertTrue(any(
+                    f"{check.CLASSICAL_LDT_GAME_CORE_ID}: implementation contract must remain exact"
+                    in error for error in self.errors(nodes=bad)
+                ))
+
+        for anchor_index in range(len(check.CLASSICAL_LDT_GAME_CORE_SOURCE_ANCHORS)):
+            with self.subTest(anchor=anchor_index):
+                bad = copy.deepcopy(self.nodes)
+                node = next(item for item in bad["nodes"]
+                            if item["id"] == check.CLASSICAL_LDT_GAME_CORE_ID)
+                anchors = [node["source"], *node["additional_sources"]]
+                anchors[anchor_index]["generated_lines"][0] += 1
+                self.assertTrue(any(
+                    f"{check.CLASSICAL_LDT_GAME_CORE_ID}: source ranges must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        for node_id in (check.CLASSICAL_LDT_GAME_CORE_ID,
+                        check.CLASSICAL_LDT_ANALYSIS_ID, check.QPBT_GAME_ID):
+            with self.subTest(integrity=node_id):
+                bad = copy.deepcopy(self.nodes)
+                node = next(item for item in bad["nodes"] if item["id"] == node_id)
+                node["integrity"]["lean_conclusion"] += " Weakened."
+                self.assertTrue(any(
+                    f"{node_id}: source-reviewed semantic contract must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        wrong_g02_fidelity = copy.deepcopy(self.nodes)
+        next(item for item in wrong_g02_fidelity["nodes"]
+             if item["id"] == check.QPBT_GAME_ID)["fidelity"] = "exact"
+        self.assertTrue(any(
+            "progress and inherited G22/G23 fidelity must remain exact" in error
+            for error in self.errors(nodes=wrong_g02_fidelity)
+        ))
+
+    def test_classical_ldt_gaps_and_records_are_fail_closed(self) -> None:
+        by_gap = {gap["id"]: gap for gap in self.gaps["gaps"]}
+        for gap_id in check.CLASSICAL_LDT_GAP_IDS:
+            self.assertEqual("QPBT-074", by_gap[gap_id]["issue"])
+            self.assertEqual(
+                [check.CLASSICAL_LDT_GAME_CORE_ID,
+                 check.CLASSICAL_LDT_ANALYSIS_ID, check.QPBT_GAME_ID],
+                by_gap[gap_id]["affected_nodes"],
+            )
+            for field in ("source", "disposition"):
+                with self.subTest(gap=gap_id, field=field):
+                    bad = copy.deepcopy(self.gaps)
+                    gap = next(item for item in bad["gaps"] if item["id"] == gap_id)
+                    gap[field] += " weakened"
+                    self.assertTrue(any(
+                        f"{gap_id}: source range and disposition must remain exact" in error
+                        for error in self.errors(gaps=bad)
+                    ))
+            for node_id in by_gap[gap_id]["affected_nodes"]:
+                with self.subTest(gap=gap_id, reciprocal_node=node_id):
+                    bad = copy.deepcopy(self.nodes)
+                    node = next(item for item in bad["nodes"] if item["id"] == node_id)
+                    node["gap_ids"].remove(gap_id)
+                    self.assertTrue(any(
+                        f"gap {gap_id}: missing reciprocal link from {node_id}" in error
+                        for error in self.errors(nodes=bad)
+                    ))
+
+        self.assertIn("canonicalLineProjection 0 = LinearMap.id", by_gap["G22"]["disposition"])
+        self.assertIn("full incidence equation", by_gap["G22"]["disposition"])
+        self.assertIn("little-endian", by_gap["G23"]["disposition"])
+        self.assertIn("coordinate zero least significant", by_gap["G23"]["disposition"])
+
+        canonical_bytes = {
+            path: (ROOT.parent / path).read_bytes()
+            for path in check.CLASSICAL_LDT_AUTHENTICATED_MARKDOWN
+        }
+        self.assertEqual([], check.authenticated_markdown_errors(ROOT.parent))
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository_root = Path(temporary_directory)
+            for path, content in canonical_bytes.items():
+                destination = repository_root / path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(content)
+            self.assertEqual([], check.authenticated_markdown_errors(repository_root))
+            for path, content in canonical_bytes.items():
+                with self.subTest(tampered_record=str(path)):
+                    destination = repository_root / path
+                    destination.write_bytes(content + b"tampered\n")
+                    self.assertTrue(any(
+                        "authenticated record hash mismatch" in error
+                        for error in check.authenticated_markdown_errors(repository_root)
+                    ))
+                    destination.write_bytes(content)
+
     def test_additional_source_schema_and_rendering_are_checked(self) -> None:
         anchor = {
             "path": "references/2001.04383v3/sections/dependencies/measurements.tex",
@@ -980,7 +1148,7 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertIn(r"\BlueprintField{Signature manifest}", rendered)
 
         self.assertEqual(
-            {"field", "approximation", "polynomial", "pauli", "types", "parameters"},
+            {"field", "approximation", "polynomial", "pauli", "types", "parameters", "game"},
             check.IMPLEMENTATION_WRITER_LANES,
         )
         for writer_lane in sorted(check.IMPLEMENTATION_WRITER_LANES):
