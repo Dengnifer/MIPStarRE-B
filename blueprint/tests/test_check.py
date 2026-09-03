@@ -496,8 +496,10 @@ class BlueprintCheckTests(unittest.TestCase):
                     )
                 elif mutation == "fabricated_machine":
                     node["encoding"] = node["encoding"].replace(
-                        "packSixTapes first fixes tape order with List.ofFn and is an "
-                        "injective administrative encoding only.",
+                        "packSixTapes first fixes tape order with List.ofFn, expands false "
+                        "as 01 and true as 10, and appends the 00 terminator after each of "
+                        "the six tapes. It is an injective, linear, self-delimiting "
+                        "encoding of exact length 2 * (sum tape lengths + 6).",
                         "an axiomatized one-tape machine.",
                     )
                 else:
@@ -523,6 +525,12 @@ class BlueprintCheckTests(unittest.TestCase):
                       node["boundary_hypotheses"])
         self.assertIn("concrete FieldExponentProgram", node["boundary_hypotheses"])
         self.assertIn("field-exponent execution", node["boundary_hypotheses"])
+        self.assertIn("linear dual-rail, 00-terminated representation",
+                      node["boundary_hypotheses"])
+        self.assertIn("expands false as 01 and true as 10", node["encoding"])
+        self.assertIn("appends the 00 terminator after each of the six tapes",
+                      node["encoding"])
+        self.assertIn("exact length 2 * (sum tape lengths + 6)", node["encoding"])
         self.assertIn("CLPrefix/CLFactorInput domains",
                       node["integrity"]["lean_assumptions"])
         self.assertIn("exact PMF.map pushforward", node["integrity"]["lean_conclusion"])
@@ -531,6 +539,9 @@ class BlueprintCheckTests(unittest.TestCase):
             ("statement", "positive-index", "all-index"),
             ("encoding", "canonical field codec", "arbitrary caller codec"),
             ("encoding", "dependent valid u/y subtypes", "untyped strings"),
+            ("encoding", "expands false as 01 and true as 10", "uses an opaque codec"),
+            ("encoding", "00 terminator after each of the six tapes", "one final terminator"),
+            ("encoding", "exact length 2 * (sum tape lengths + 6)", "unspecified length"),
             ("boundary_hypotheses", "valid-query finite maximum", "upper-bound field"),
             ("boundary_hypotheses", "canonical blank normalization",
              "arbitrary raw-payload invariance"),
@@ -632,6 +643,8 @@ class BlueprintCheckTests(unittest.TestCase):
             manifest["end_marker"], 1
         )[0].strip()
         self.assertEqual([], check.executable_cl_signature_errors(block))
+        self.assertEqual(56, len(node["lean"]["names"]))
+        self.assertEqual(4, len(node["implementation_contract"]["imports"]))
 
         for required in (
             "abbrev CLPrefix",
@@ -643,11 +656,23 @@ class BlueprintCheckTests(unittest.TestCase):
             "fieldProgram : FieldExponentProgram Q",
             "(S.validQueries n hn).sup (S.executedSteps n hn)",
             "Nat.max (S.queryTime n hn) (S.fieldProgram.steps n hn)",
+            "(List.ofFn input).flatMap fun tape =>",
+            "| false => [false, true]",
+            "| true => [true, false]) ++ [false, false]",
         ):
             with self.subTest(missing=required):
                 self.assertIn(required, block)
                 mutated = block.replace(required, "REMOVED_CONTRACT_TERM")
                 self.assertTrue(check.executable_cl_signature_errors(mutated))
+
+        cantor_body = (
+            "Computability.encodingNatBool.encode "
+            "(Encodable.encode (List.ofFn input))"
+        )
+        self.assertTrue(any(
+            "forbidden pattern" in error
+            for error in check.executable_cl_signature_errors(f"{block}\n{cantor_body}")
+        ))
 
         for forbidden in (
             "factor_cover : Prop",
