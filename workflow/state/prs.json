@@ -9282,6 +9282,37 @@
         "preflight_failures": 1,
         "preflight_failure": "First invocation omitted required source selector and failed closed before build."
       }
+    },
+    {
+      "id": "LPR-036",
+      "title": "feat(QPBT/Game): implement typed samplers and deciders",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-058"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-058-typed-a01",
+      "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+      "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+      "implementer_session_ids": [],
+      "checks": [],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-03T16:00:00Z",
+      "updated_at": "2026-09-03T16:00:00Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-058-f07-a01.md"
+      ],
+      "motivation": "Land the source-faithful F07 typed graph, shared-seed sampler, exact marginal/downsize laws, and dependent decider boundary.",
+      "description": "Adopt the proof-complete exact 11-declaration candidate after immutable mathematical and Lean/API pre-review, then obtain a PR-bound formal approval before guarded integration.",
+      "testing": "Candidate scoped Lean, affected target, full build, exact API/debt scans, blueprint synchronization, and two independent immutable pre-reviews passed.",
+      "addresses": "QPBT-058",
+      "manifest_sha256": "f733a64504c2d33a53eaa882545bf3aec655a8e96c5602fab1a81283ae3d2375",
+      "requested_external_review": true,
+      "unexecuted_gate": "PR binder and PR-bound formal review remain required before integration."
     }
   ]
 }
