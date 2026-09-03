@@ -238,7 +238,8 @@
         "QPBT-075",
         "QPBT-076",
         "QPBT-077",
-        "QPBT-078"
+        "QPBT-078",
+        "QPBT-079"
       ],
       "started_at": "2026-08-30T19:45:39.120486Z",
       "ended_at": null,
@@ -249,7 +250,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 434,
+      "subagents_issued": 438,
       "max_concurrency": 10,
       "outputs": [
         "research/report.md",
