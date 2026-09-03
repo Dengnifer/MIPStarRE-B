@@ -2955,7 +2955,7 @@
       "title": "feat(QPBT/Game): implement the executable CL minimal skeleton",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "planned",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-056"
@@ -2992,7 +2992,7 @@
         "workflow/reviews/qpbt-057-f06a-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T11:14:15.821105Z",
+      "updated_at": "2026-09-03T11:26:17.879364Z",
       "blocked_reason": "Fresh immutable review found candidate a9abedb3 is based on 20745fe, not declared base 6b43c72, and its diff includes 8,143 unrelated deletions.",
       "unblock_condition": "Reconstruct/rebase the exact Types.lean implementation onto current main 6b43c72, regenerate immutable head/tree/patch/report, and obtain a fresh review.",
       "proof_completion_issue_id": "QPBT-061",
@@ -3421,7 +3421,7 @@
         "workflow/reviews/qpbt-067-cache-layout-a01.md"
       ],
       "created_at": "2026-09-03T09:12:00Z",
-      "updated_at": "2026-09-03T09:41:57.838588Z",
+      "updated_at": "2026-09-03T11:32:12.681729Z",
       "owner_session_id": "i067-orchestrator-a01-cache-layout",
       "blocked_reason": "Fresh review found an external writable packages/mathlib symlink in a registered seed and an uncovered SIGKILL backup-rename window; the audit conclusion is not yet safe as written.",
       "unblock_condition": "Correct the report to qualify broad .lake privacy and distinguish exception rollback from process-crash recovery; obtain fresh immutable approval, then track implementation follow-up separately.",
@@ -3441,7 +3441,13 @@
           "path": "scripts/hot_main_cache.py:2841-2846",
           "summary": "A SIGKILL between backup rename and staged rename can leave the target without .lake; current tests cover exceptions but not process interruption."
         }
-      ]
+      ],
+      "repair_report": "workflow/reviews/qpbt-067-report-repair-a02.md",
+      "repair_report_sha256": "1639adb10dfed370a524eaa7af1fa903ed2ffc7a6aa9b612cc491bb508ff84f5",
+      "repair_commit": "be115acbdcab7d2020fec694357eb64671b09238",
+      "repair_source_commit": "b2368ddbd72bda81c4fae325b5809115b968f054",
+      "repair_tree": "97b724312e2b0f440da6f469f3771f4cd7174a55",
+      "repair_status": "awaiting-fresh-immutable-review"
     },
     {
       "id": "QPBT-068",
