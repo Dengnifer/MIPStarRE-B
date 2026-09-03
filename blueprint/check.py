@@ -291,16 +291,14 @@ EXECUTABLE_CL_IMPLEMENTATION_CONTRACT = {
         "MIPStarRE.QPBT.Basic.Field",
     ],
     "signature_manifest": {
-        "path": "workflow/reviews/qpbt-054-f06a-repair-a04.md",
-        "begin_marker": "<!-- BEGIN F06A-A04-SIGNATURES -->",
-        "end_marker": "<!-- END F06A-A04-SIGNATURES -->",
-        "sha256": "cfe433e36d0670c344b29ab5107557842e7d4fc8358fba2713b8ff2ee107a3a1",
+        "path": "workflow/reviews/qpbt-059-f06a-pack-contract-a01.md",
+        "begin_marker": "<!-- BEGIN F06A-QPBT059-SIGNATURES -->",
+        "end_marker": "<!-- END F06A-QPBT059-SIGNATURES -->",
+        "sha256": "368008b7b4ba84ff1dafe842acdb8af7005902a0fe9a376a8f7a690c86ba6b15",
     },
     "reused_api": [
         "Computability.Encoding",
         "Computability.encodeNat",
-        "Computability.encodingNatBool",
-        "Encodable.encode",
         "List.ofFn",
         "Finset.sup",
         "Nat.log",
@@ -316,6 +314,15 @@ EXECUTABLE_CL_IMPLEMENTATION_CONTRACT = {
     "allowed_minimal_sorries": [],
     "proof_complete_sorry_count": 0,
 }
+EXECUTABLE_CL_HISTORICAL_REPORT_PATH = Path(
+    "workflow/reviews/qpbt-054-f06a-repair-a04.md"
+)
+EXECUTABLE_CL_HISTORICAL_REPORT_SHA256 = (
+    "22db8cee76ff159412ced50941eb61d25bf94b7e4570147bd347d87cd0018ba7"
+)
+EXECUTABLE_CL_HISTORICAL_REPORT_HASH_ERROR = (
+    "F06A-EXECUTABLE-CL: historical signature report hash mismatch"
+)
 EXECUTABLE_CL_SIGNATURE_REQUIRED_TERMS = (
     "(hn : 0 < n)",
     "abbrev CLPrefix",
@@ -340,7 +347,10 @@ EXECUTABLE_CL_SIGNATURE_REQUIRED_TERMS = (
     "fieldProgram : FieldExponentProgram Q",
     "(S.validQueries n hn).sup (S.executedSteps n hn)",
     "Nat.max (S.queryTime n hn) (S.fieldProgram.steps n hn)",
-    "Computability.encodingNatBool.encode (Encodable.encode (List.ofFn input))",
+    "(List.ofFn input).flatMap fun tape =>",
+    "tape.flatMap (fun bit =>",
+    "| false => [false, true]",
+    "| true => [true, false]) ++ [false, false]",
     "Finset.univ",
     "s n * Q.exponent n",
     "s n * Nat.log 2 (Q.fieldSize n)",
@@ -358,6 +368,7 @@ EXECUTABLE_CL_SIGNATURE_FORBIDDEN_PATTERNS = (
     r"\brun\s*:\s*SixTapeInput\s*->\s*List Bool\s*->\s*Nat\s*->\s*Prop\b",
     r"\bdef\s+CLSamplerQuery\.tapes\b",
     r"\btime_eq_validQueryMax\b",
+    r"Computability\.encodingNatBool\.encode\s*\(Encodable\.encode\s*\(List\.ofFn\s+input\)\)",
     r"\b(?:sorry|axiom|constant|opaque)\b",
 )
 
@@ -375,6 +386,17 @@ def executable_cl_signature_errors(signature_block: str) -> list[str]:
         if re.search(pattern, signature_block, flags=re.IGNORECASE)
     )
     return errors
+
+
+def executable_cl_historical_report_errors(repository_root: Path) -> list[str]:
+    """Authenticate the full superseded F06A contract report bytes."""
+    report_path = repository_root / EXECUTABLE_CL_HISTORICAL_REPORT_PATH
+    if not report_path.is_file():
+        return ["F06A-EXECUTABLE-CL: historical signature report file does not exist"]
+    if hashlib.sha256(report_path.read_bytes()).hexdigest() != (
+            EXECUTABLE_CL_HISTORICAL_REPORT_SHA256):
+        return [EXECUTABLE_CL_HISTORICAL_REPORT_HASH_ERROR]
+    return []
 
 
 EXECUTABLE_CL_CONTRACT = {
@@ -402,7 +424,9 @@ EXECUTABLE_CL_CONTRACT = {
         "unused tape; it does not assert invariance under arbitrary unused-tape "
         "contents. "
         "stage.val encodes paper j = stage.val + 1. packSixTapes first fixes tape "
-        "order with List.ofFn and is an injective administrative encoding only. "
+        "order with List.ofFn, expands false as 01 and true as 10, and appends the "
+        "00 terminator after each of the six tapes. It is an injective, linear, "
+        "self-delimiting encoding of exact length 2 * (sum tape lengths + 6). "
         "CLQueryDecomposition carries selected "
         "marginals, prefix-range-indexed factors, factor-space linear maps, and the "
         "lem:cl-kth realization equations, partition, support, and dependency laws as "
@@ -420,8 +444,9 @@ EXECUTABLE_CL_CONTRACT = {
         "has six logical input tapes with canonical blank normalization; the boundary "
         "does not claim the paper's stronger arbitrary unused-payload invariance. Its "
         "execution field contains a genuine TM2OutputsInTime witness and its exact "
-        "step count is runInTime.toEvalsTo.steps. Any FinTM2 "
-        "packing is injective administration and cannot replace the six-tape boundary. "
+        "step count is runInTime.toEvalsTo.steps. The FinTM2 input packing is exactly "
+        "the paper's linear dual-rail, 00-terminated representation and preserves the "
+        "six logical tape boundaries. "
         "Every paper-labelled pointwise claim carries 0 < n, and downsizing carries "
         "1 <= level. The paper does not specify how downsize computes log q(n); the "
         "faithful executable boundary therefore attaches a concrete FieldExponentProgram "
@@ -452,7 +477,8 @@ EXECUTABLE_CL_CONTRACT = {
     "lean_assumptions": (
         "An exponent family with Odd (exponent n) guarded by 0 < n, the canonical F01 "
         "source-coherent coordinate codec, an explicit Fin 6 binary query boundary "
-        "with canonical blanks on unused tapes, data-valued nonunique "
+        "with canonical blanks on unused tapes, the paper's injective linear dual-rail "
+        "packing with one 00 terminator per tape, data-valued nonunique "
         "CLQueryDecomposition records whose "
         "CLPrefix/CLFactorInput domains satisfy the F06 laws, an operational six-input "
         "machine, a concrete intrinsic FieldExponentProgram, genuine TM2OutputsInTime "
@@ -478,7 +504,8 @@ EXECUTABLE_CL_CONTRACT = {
         "to dimension s(n)*Nat.log 2(Q.fieldSize n), exact pointwise map "
         "correspondence for every 0 < n, exact PMF.map pushforward from one shared "
         "sampler law, and a proved global-positive RuntimeBigO compiler-cost theorem "
-        "under 1 <= level. The G16/K03A representation-coherence obligation remains "
+        "under 1 <= level. The packed six-tape input is self-delimiting and has exact "
+        "length 2 * (sum tape lengths + 6). The G16/K03A representation-coherence obligation remains "
         "tracked and is not exposed as a public input."
     ),
     "verdict": "faithful boundary",
@@ -828,7 +855,7 @@ def _implementation_contract_errors(node: dict[str, Any],
 
 def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
                   externals_doc: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
+    errors = executable_cl_historical_report_errors(ROOT.parent)
     if nodes_doc.get("schema_version") != 1:
         errors.append("nodes schema_version must be 1")
     nodes = nodes_doc.get("nodes")
