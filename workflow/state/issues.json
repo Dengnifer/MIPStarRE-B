@@ -819,7 +819,18 @@
         "MIPStarRE/QPBT/Soundness.lean"
       ],
       "created_at": "2026-08-30T23:54:39.078758Z",
-      "updated_at": "2026-08-30T23:54:39.078758Z"
+      "updated_at": "2026-09-03T17:42:47.705320Z",
+      "contract_audit_report": "/tmp/i005-scout-a40-soundness-contract.md",
+      "contract_audit_report_sha256": "4873ca375a79994bd8cb5800e57f86015121e12f8ed09b97e55b5173bb6baca6",
+      "contract_audit_verdict": "block",
+      "missing_blueprint_dependencies": [
+        "A03-WIN",
+        "A14-PAULI-HELPER",
+        "N01-NAIMARK",
+        "R05-ROBUSTNESS"
+      ],
+      "blocked_reason": "The exact soundness contract depends on QPBT-015 game and decoder signatures plus A03, A14, N01, and R05 declarations that are not represented by the current issue dependencies.",
+      "unblock_condition": "Freeze and integrate QPBT-015, map A03, A14, N01, and R05 to delivery issues, and declare the exact shared root import owner before dispatch."
     },
     {
       "id": "QPBT-017",
@@ -2119,13 +2130,14 @@
       "title": "Validate the combined QPBT-014 Lean snapshot",
       "kind": "audit",
       "execution_category": "preflight",
-      "status": "in_progress",
+      "status": "blocked",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-036",
         "QPBT-037",
         "QPBT-038",
-        "QPBT-039"
+        "QPBT-039",
+        "QPBT-069"
       ],
       "labels": [
         "lean",
@@ -2148,14 +2160,18 @@
         "workflow/reviews/qpbt-040-q014-combined-a01.md"
       ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-03T17:16:10.836924Z",
-      "blocked_reason": null,
-      "unblock_condition": "Run the exact combined-snapshot gates on 8d209d6, reusing its singleton full-build cache without recompilation, then obtain independent review.",
+      "updated_at": "2026-09-03T17:39:26.375089Z",
+      "blocked_reason": "The A01 combined import gate found duplicate generated local Galois-field instance names between Pauli and Types.",
+      "unblock_condition": "Integrate the independently reviewed QPBT-069 one-file repair, then rerun the exact combined import and snapshot gates in a fresh QPBT-040 attempt.",
       "validated_snapshot": {
         "commit": "8d209d6d2b17d96d0f96c2a9b2f95495c57561eb",
         "tree": "c234100c01d4b11398e4c098ada6dd28e7e64932",
         "state_only_successor": "c6f5032cedfd1b77160487e5acfc83ad39cdac16"
-      }
+      },
+      "latest_report": "workflow/reviews/qpbt-040-q014-combined-a01.md",
+      "latest_report_sha256": "6faab1e2352ac10c6bb03724a5d6c59f2333b84c40208a6fdd8084c4fbfc9aea",
+      "latest_verdict": "block",
+      "latest_finding_count": 1
     },
     {
       "id": "QPBT-044",
@@ -2206,22 +2222,22 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:46:00Z",
-      "updated_at": "2026-09-03T17:24:52.236795Z",
+      "updated_at": "2026-09-03T17:42:47.530221Z",
       "blocked_reason": null,
-      "unblock_condition": "Obtain fresh immutable defensive reviews of exact head 546e6dc and confirm F044-A13-001 plus cumulative identity/transaction properties before integration.",
+      "unblock_condition": "Repair F044-A15-001 and F044-A16-001 on exact head 546e6dc, preserve all prior identity and transaction guarantees, rerun focused and aggregate tests, then obtain fresh immutable reviews.",
       "candidate_base_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
       "candidate_head_sha": "546e6dcad0e16c53c5ced59e25b7f9c78f13a467",
       "candidate_tree": "67b18735b16c8963474a5f6c0490e7eefb581db1",
       "candidate_patch_sha256": "fbbf8690ae34885c342047e8f4144bec78f20a83463ed8e107184f704e80857c",
       "candidate_report": "/tmp/i044-orchestrator-a14-sha256-length.md",
       "candidate_report_sha256": "6e6fce5ce7cebb963f77e8ebad3a4d76e6a84256c36e71a2e1e615fae3344ba8",
-      "candidate_status": "repair-complete-pending-immutable-review",
+      "candidate_status": "changes-requested",
       "review_report": "/tmp/i044-reviewer-a06-security.md",
       "review_manifest_sha256": "00a398971e4fedc2314087d3d46b7b464501e0e409448d0934777b13fd85698c",
       "review_head_sha": "2eb8aef8ec091c991a1a6ec852a869b6269a6aee",
       "review_verdict": "request_changes",
-      "secondary_review_report": "/tmp/i044-reviewer-a07-regression.md",
-      "secondary_review_manifest_sha256": "76e71ca0aa99f10ee8d3897bd3d163009a793476492a05b9b2de97652bdadbc5",
+      "secondary_review_report": "/tmp/i044-reviewer-a16-regression.md",
+      "secondary_review_manifest_sha256": "9edc6d85da2ab78a5381954b322c8be2b3a5e3d5d80cfe2448f9ba377792a433",
       "secondary_review_verdict": "request_changes",
       "review_findings": [
         {
@@ -2255,10 +2271,10 @@
       ],
       "repair_parent_sha": "818ecbdede4f2e490e8e0f113c868e6ba9a80eb2",
       "repair_patch_sha256": "9170384aebc72d25f7c6ab502cd8f929846a8767479d4a89801fa765db756e8d",
-      "latest_review_report": "/tmp/i044-reviewer-a13-regression.md",
-      "latest_review_report_sha256": "fff5f8abea53b34d3acbd08483d3de88339e156ded675ef04b28994660ff6acb",
-      "latest_review_manifest_sha256": "ba77253ea403e8d1a6dbf1ce4fa538ea411fe10fc01f05704fe4d0947a8aeff8",
-      "latest_review_head_sha": "818ecbdede4f2e490e8e0f113c868e6ba9a80eb2",
+      "latest_review_report": "/tmp/i044-reviewer-a15-object-format.md",
+      "latest_review_report_sha256": "53ac176b0a320581a0482a4bc4d26b4bb7aaa8c3c7968fefadef88629303c197",
+      "latest_review_manifest_sha256": "9edc6d85da2ab78a5381954b322c8be2b3a5e3d5d80cfe2448f9ba377792a433",
+      "latest_review_head_sha": "546e6dcad0e16c53c5ced59e25b7f9c78f13a467",
       "latest_review_verdict": "request_changes",
       "approval_review_report_a09": "/tmp/i044-reviewer-a09-fd-immutable.md",
       "approval_review_report_a09_sha256": "8b3d5202700029feefd291c56fac1d0e2f536aebc1c308492df8b90341891cb2",
@@ -2269,10 +2285,25 @@
           "status": "resolved",
           "path": "scripts/git_identity.py:18",
           "summary": "SHA-256 repositories accepted a 40-hex commit prefix as a full identity.",
-          "resolution_evidence": "A14 queries descriptor-bound Git input object formats before direct-object resolution and adds resolver plus workflow regressions rejecting 40-hex prefixes while accepting exact 64-hex commits."
+          "resolution_evidence": "A14 queries descriptor-bound Git input object formats before direct-object resolution and adds nominal resolver and workflow regressions."
+        },
+        {
+          "id": "F044-A15-001",
+          "severity": "high",
+          "status": "open",
+          "path": "scripts/git_identity.py:254",
+          "summary": "A separately queried object format can come from transiently substituted Git metadata, allowing a SHA-256 repository to accept a 40-hex prefix."
+        },
+        {
+          "id": "F044-A16-001",
+          "severity": "medium",
+          "status": "open",
+          "path": "scripts/git_identity.py:363",
+          "summary": "Lexical normalization can erase a symlink followed by dot-dot before the no-follow worktree walk and authenticate a different directory from the supplied pathname."
         }
       ],
-      "repair_parent_patch_sha256": "db72e5c67362b7fea32b2a3984dd9117c13c26d0f8859b401abebb28c49a0c93"
+      "repair_parent_patch_sha256": "db72e5c67362b7fea32b2a3984dd9117c13c26d0f8859b401abebb28c49a0c93",
+      "secondary_review_report_sha256": "22552a7c8967eb21e69529e0dd7382fd58397bcdc4b43b60de707ce0495f7ddf"
     },
     {
       "id": "QPBT-041",
@@ -3953,6 +3984,85 @@
       "secondary_review_report_sha256": "65dff9813338a2da76bf2e7ef199d8fc7588bf74037e5ef489347456d2e85963",
       "secondary_review_verdict": "request_changes",
       "latest_review_head_sha": "f03c94e074f2ebfd7e99e05394c4116126455895"
+    },
+    {
+      "id": "QPBT-069",
+      "title": "fix(QPBT): disambiguate local Galois-field instances",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "ready",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-037",
+        "QPBT-038"
+      ],
+      "labels": [
+        "lean",
+        "integration",
+        "instance-naming",
+        "minimal-repair",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Give the two local Galois-field instances in MIPStarRE/QPBT/Game/Types.lean stable explicit names without changing their priority, locality, types, or implementation.",
+        "Both import orders for MIPStarRE.QPBT.Basic.Pauli and MIPStarRE.QPBT.Game.Types elaborate in fresh probe files, eliminating the exact duplicate generated declaration reported by QPBT-040 A01.",
+        "The changed Types file type-checks, its target build passes against a private worktree cache, and no new sorry, axiom, constant, or public assumption is introduced.",
+        "The candidate changes only MIPStarRE/QPBT/Game/Types.lean, records exact base/head/tree/patch identities, and receives fresh immutable independent review before guarded integration.",
+        "After guarded integration, QPBT-040 reruns the combined import and snapshot gates before QPBT-014 may close."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "workflow/reviews/qpbt-040-q014-combined-a01.md",
+        "MIPStarRE/QPBT/Basic/Pauli.lean:22",
+        "MIPStarRE/QPBT/Game/Types.lean:17"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean"
+      ],
+      "created_at": "2026-09-03T17:38:00Z",
+      "updated_at": "2026-09-03T17:38:00Z",
+      "blocked_reason": null,
+      "unblock_condition": "Dispatch the exact one-file repair from current main and pass independent immutable review."
+    },
+    {
+      "id": "QPBT-070",
+      "title": "feat(workflow): accept argument-safe update payload files",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-044"
+      ],
+      "labels": [
+        "workflow",
+        "cli",
+        "structured-data",
+        "third-occurrence",
+        "deferred"
+      ],
+      "acceptance_gates": [
+        "Reproduce the three shell-inline JSON quoting failures recorded by INC-055 and INC-081 without mutating canonical state.",
+        "Add an argument-safe file input for workflow update operations while retaining repeated --set compatibility and atomic validation semantics.",
+        "Add focused regressions for apostrophes, quotes, multiline prose, malformed payloads, and no-mutation failure behavior.",
+        "Make the smallest sufficient protocol and tooling change, validate the aggregate workflow suite, and obtain independent immutable review before integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-055",
+        "research/metrics/incidents.jsonl#INC-081",
+        "scripts/workflow.py"
+      ],
+      "owned_paths": [
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "created_at": "2026-09-03T17:38:00Z",
+      "updated_at": "2026-09-03T17:38:00Z",
+      "blocked_reason": "Deferred behind the active QPBT-044 workflow identity repair and Stage-4A Lean critical path.",
+      "unblock_condition": "QPBT-044 is done and a workflow lane is free without delaying Lean implementation."
     }
   ]
 }
