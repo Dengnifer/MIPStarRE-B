@@ -77,6 +77,107 @@ class _SeedReplacement:
     old_moved: bool = False
     new_published: bool = False
     metric_committed: bool = False
+    original_identity: dict[str, Any] | None = None
+    original_descriptor: int | None = None
+
+
+@dataclass
+class _BoundSeedTarget:
+    """Descriptor-bound registered worktree identity for one target operation."""
+
+    target_project: Path
+    worktree_root: Path
+    project_descriptor: int
+    worktree_descriptor: int
+    worktree_parent_descriptor: int
+    project_identity: tuple[int, int]
+    worktree_identity: tuple[int, int]
+    worktree_parent_identity: tuple[int, int]
+    project_generation: tuple[int, ...]
+    worktree_generation: tuple[int, ...]
+    worktree_parent_generation: tuple[int, ...]
+
+    @property
+    def access_path(self) -> Path:
+        return Path("/proc/self/fd") / str(self.project_descriptor)
+
+    def assert_current(self) -> None:
+        for path, descriptor, identity, generation, label in (
+            (
+                self.target_project,
+                self.project_descriptor,
+                self.project_identity,
+                self.project_generation,
+                "target project",
+            ),
+            (
+                self.worktree_root,
+                self.worktree_descriptor,
+                self.worktree_identity,
+                self.worktree_generation,
+                "target worktree",
+            ),
+            (
+                self.worktree_root.parent,
+                self.worktree_parent_descriptor,
+                self.worktree_parent_identity,
+                self.worktree_parent_generation,
+                "target worktree parent",
+            ),
+        ):
+            try:
+                lexical = path.stat(follow_symlinks=False)
+                bound = os.fstat(descriptor)
+            except OSError as error:
+                raise CacheError(f"{label} identity changed during seed/prepare") from error
+            if (
+                stat.S_ISLNK(lexical.st_mode)
+                or _authored_directory_identity(lexical) != identity
+                or _authored_directory_identity(bound) != identity
+                or _authored_directory_scan_identity(bound) != generation
+            ):
+                raise CacheError(f"{label} identity changed during seed/prepare")
+
+    def refresh_after_project_mutation(self) -> None:
+        """Admit only a descriptor-relative mutation performed by this operation."""
+
+        try:
+            lexical = self.target_project.stat(follow_symlinks=False)
+            lexical_worktree = self.worktree_root.stat(follow_symlinks=False)
+            lexical_parent = self.worktree_root.parent.stat(follow_symlinks=False)
+            project = os.fstat(self.project_descriptor)
+            worktree = os.fstat(self.worktree_descriptor)
+            worktree_parent = os.fstat(self.worktree_parent_descriptor)
+        except OSError as error:
+            raise CacheError("target identity changed during seed/prepare mutation") from error
+        if (
+            stat.S_ISLNK(lexical.st_mode)
+            or _authored_directory_identity(lexical) != self.project_identity
+            or stat.S_ISLNK(lexical_worktree.st_mode)
+            or _authored_directory_identity(lexical_worktree) != self.worktree_identity
+            or stat.S_ISLNK(lexical_parent.st_mode)
+            or _authored_directory_identity(lexical_parent) != self.worktree_parent_identity
+            or _authored_directory_identity(project) != self.project_identity
+            or _authored_directory_identity(worktree) != self.worktree_identity
+            or _authored_directory_identity(worktree_parent)
+            != self.worktree_parent_identity
+            or _authored_directory_scan_identity(worktree_parent)
+            != self.worktree_parent_generation
+            or (
+                self.worktree_identity != self.project_identity
+                and _authored_directory_scan_identity(worktree)
+                != self.worktree_generation
+            )
+        ):
+            raise CacheError("target identity changed during seed/prepare mutation")
+        self.project_generation = _authored_directory_scan_identity(project)
+        if self.worktree_identity == self.project_identity:
+            self.worktree_generation = _authored_directory_scan_identity(worktree)
+
+    def close(self) -> None:
+        os.close(self.project_descriptor)
+        os.close(self.worktree_descriptor)
+        os.close(self.worktree_parent_descriptor)
 
 
 @dataclass(frozen=True)
@@ -2008,7 +2109,11 @@ def _validate_lake_symlink_policy(root: Path) -> None:
         if not path.is_symlink():
             continue
         raw_target = Path(os.readlink(path))
-        first_hop = raw_target if raw_target.is_absolute() else path.parent / raw_target
+        first_hop = (
+            raw_target
+            if raw_target.is_absolute()
+            else root_resolved / path.relative_to(root).parent / raw_target
+        )
         first_hop = Path(os.path.abspath(first_hop))
         if not path_is_within(first_hop, root_resolved):
             raise CacheError(f"symlink first hop escapes private Lake tree: {path}")
@@ -2627,7 +2732,11 @@ class HotMainCache:
             "lock_path": str(self.lock_path),
         }
 
-    def _append_metric(self, metric: Mapping[str, Any]) -> None:
+    def _append_metric(
+        self,
+        metric: Mapping[str, Any],
+        commit_guard: Callable[[], None] | None = None,
+    ) -> None:
         envelope = {
             "schema_version": SCHEMA_VERSION,
             "timestamp": utc_now(),
@@ -2648,10 +2757,16 @@ class HotMainCache:
             )
             checkpoint = os.fstat(descriptor).st_size
             try:
+                if commit_guard is not None:
+                    commit_guard()
                 written = os.write(descriptor, encoded)
                 if written != len(encoded):
                     raise OSError(errno.EIO, "short hot-cache metric write")
+                if commit_guard is not None:
+                    commit_guard()
                 os.fsync(descriptor)
+                if commit_guard is not None:
+                    commit_guard()
                 committed = True
             except BaseException as error:
                 try:
@@ -3139,7 +3254,7 @@ class HotMainCache:
 
     def _eligible_seed_target(
         self, supplied_target: Path, *, check_inputs: bool = True
-    ) -> tuple[Path, Path]:
+    ) -> _BoundSeedTarget:
         lexical_target = reject_symlink_components(supplied_target)
         if not lexical_target.is_dir():
             raise CacheError(f"target worktree must be an existing real directory: {lexical_target}")
@@ -3177,14 +3292,51 @@ class HotMainCache:
         ):
             raise CacheError("target worktree is not attached to the main repository")
 
-        if check_inputs:
-            try:
-                self._capture_identity_inputs(target_project)
-            except CacheError as error:
-                raise CacheError(
-                    f"target worktree has cache-key inputs incompatible with this cache: {error}"
-                ) from error
-        return target_project, matched_root
+        flags = _authored_directory_flags()
+        project_descriptor: int | None = None
+        worktree_descriptor: int | None = None
+        worktree_parent_descriptor: int | None = None
+        try:
+            project_descriptor = os.open(target_project, flags)
+            worktree_descriptor = os.open(matched_root, flags)
+            worktree_parent_descriptor = os.open(matched_root.parent, flags)
+            project = os.fstat(project_descriptor)
+            worktree = os.fstat(worktree_descriptor)
+            worktree_parent = os.fstat(worktree_parent_descriptor)
+            binding = _BoundSeedTarget(
+                target_project=target_project,
+                worktree_root=matched_root,
+                project_descriptor=project_descriptor,
+                worktree_descriptor=worktree_descriptor,
+                worktree_parent_descriptor=worktree_parent_descriptor,
+                project_identity=_authored_directory_identity(project),
+                worktree_identity=_authored_directory_identity(worktree),
+                worktree_parent_identity=_authored_directory_identity(worktree_parent),
+                project_generation=_authored_directory_scan_identity(project),
+                worktree_generation=_authored_directory_scan_identity(worktree),
+                worktree_parent_generation=_authored_directory_scan_identity(worktree_parent),
+            )
+            binding.assert_current()
+            if git_resolved_path(matched_root, "--show-toplevel") != matched_root:
+                raise CacheError("target worktree identity changed while binding")
+            binding.assert_current()
+            if check_inputs:
+                try:
+                    self._capture_identity_inputs(binding.target_project)
+                except CacheError as error:
+                    raise CacheError(
+                        f"target worktree has cache-key inputs incompatible with this cache: {error}"
+                    ) from error
+                binding.assert_current()
+            return binding
+        except Exception:
+            if project_descriptor is not None:
+                os.close(project_descriptor)
+            if worktree_descriptor is not None:
+                os.close(worktree_descriptor)
+            if worktree_parent_descriptor is not None:
+                os.close(worktree_parent_descriptor)
+            raise
 
     def _validate_seeded_destination(self, destination: Path) -> None:
         if not self.is_ready(deep=True):
@@ -3414,84 +3566,39 @@ class HotMainCache:
             replacement.committed_path, (digest + "\n").encode("ascii")
         )
 
-    def _recover_interrupted_seed(self, target_project: Path) -> None:
-        destination = target_project / ".lake"
-        backups = sorted(target_project.glob(".lake.backup-*"), key=lambda path: path.name)
-        loaded = self._load_seed_journal(target_project)
-        if loaded is None:
-            if backups:
-                raise CacheError(
-                    "unowned interrupted seed backup requires manual recovery: "
-                    + ", ".join(map(str, backups))
-                )
-            return
-        journal, digest = loaded
-        journal_dir = self._seed_transaction_dir(target_project)
-        backup = target_project / journal["backup_basename"]
-        if backups != ([backup] if backup.exists() or backup.is_symlink() else []):
-            raise CacheError(
-                "ambiguous interrupted seed backups require manual recovery: "
-                + ", ".join(map(str, backups))
-            )
-        staging = target_project / journal["staging_basename"]
-        retained = target_project / journal["retained_basename"]
-        for path, label in ((backup, "backup"), (staging, "staging"), (retained, "retained")):
-            if path.is_symlink():
-                raise CacheError(f"seed transaction {label} path is symlinked: {path}")
-        committed = self._journal_is_committed(journal_dir, journal, digest)
-        destination_present = destination.exists() or destination.is_symlink()
-        backup_present = backup.exists() or backup.is_symlink()
-        destination_is_original = (
-            destination_present and self._lake_tree_matches(destination, journal["original"])
-        )
-        destination_is_replacement = (
-            destination_present and self._lake_tree_matches(destination, journal["replacement"])
-        )
-        backup_is_original = (
-            backup_present and self._lake_tree_matches(backup, journal["original"])
-        )
+    def _recover_interrupted_seed(self, target: _BoundSeedTarget) -> None:
+        """Reject persistent transaction state without treating it as authority."""
 
-        if destination_is_original and not backup_present:
-            self._clear_seed_journal(journal_dir)
-            return
-        if not destination_present and backup_is_original:
-            os.replace(backup, destination)
-            _fsync_directory(target_project)
-            self._clear_seed_journal(journal_dir)
-            return
-        if destination_is_replacement and backup_is_original:
-            if committed:
-                retained_backup = self._discard_seed_backup(backup, True)
-                if retained_backup is None:
-                    self._clear_seed_journal(journal_dir)
-                return
-            if retained.exists():
-                raise CacheError(f"seed transaction retained path already exists: {retained}")
-            os.replace(destination, retained)
-            _fsync_directory(target_project)
-            os.replace(backup, destination)
-            _fsync_directory(target_project)
-            self._clear_seed_journal(journal_dir)
-            return
-        if committed and destination_is_replacement and not backup_present:
-            self._clear_seed_journal(journal_dir)
-            return
-        raise CacheError(
-            "interrupted seed transaction state does not match its authenticated journal; "
-            f"retained paths: {destination}, {backup}, {staging}, {retained}"
-        )
+        target.assert_current()
+        target_project = target.target_project
+        journal_dir = self._seed_transaction_dir(target_project)
+        backups = sorted(target_project.glob(".lake.backup-*"), key=lambda path: path.name)
+        if journal_dir.exists() or journal_dir.is_symlink() or backups:
+            retained = [journal_dir, *backups]
+            raise CacheError(
+                "interrupted seed state has no independent ownership proof and requires "
+                "manual recovery; retained paths: " + ", ".join(map(str, retained))
+            )
+        target.assert_current()
 
     @staticmethod
     def _rollback_seed_replacement(
+        target: _BoundSeedTarget,
         replacement: _SeedReplacement,
     ) -> list[str]:
         errors: list[str] = []
-        destination = replacement.destination
-        backup = replacement.backup
-        rollback_new = replacement.rollback_root / ".lake-failed-publication"
+        destination = target.access_path / replacement.destination.name
+        backup = target.access_path / replacement.backup.name
+        rollback_root = target.access_path / replacement.rollback_root.name
+        rollback_new = rollback_root / ".lake-failed-publication"
         if replacement.new_published and (destination.exists() or destination.is_symlink()):
             try:
-                os.replace(destination, rollback_new)
+                os.replace(
+                    replacement.destination.name,
+                    f"{replacement.rollback_root.name}/.lake-failed-publication",
+                    src_dir_fd=target.project_descriptor,
+                    dst_dir_fd=target.project_descriptor,
+                )
             except OSError as error:
                 errors.append(f"could not withdraw failed publication: {error}")
         if replacement.old_moved and (backup.exists() or backup.is_symlink()):
@@ -3499,7 +3606,12 @@ class HotMainCache:
                 errors.append(f"original cache remains recoverable at {backup}")
             else:
                 try:
-                    os.replace(backup, destination)
+                    os.replace(
+                        replacement.backup.name,
+                        replacement.destination.name,
+                        src_dir_fd=target.project_descriptor,
+                        dst_dir_fd=target.project_descriptor,
+                    )
                 except OSError as error:
                     errors.append(f"could not restore original cache from {backup}: {error}")
         elif replacement.old_moved:
@@ -3507,14 +3619,20 @@ class HotMainCache:
         return errors
 
     def _new_seed_replacement(
-        self, target_project: Path, *, rollback_prefix: str
+        self, target: _BoundSeedTarget, *, rollback_prefix: str
     ) -> _SeedReplacement:
+        target.assert_current()
+        target_project = target.target_project
         transaction_id = secrets.token_hex(16)
         journal_dir = self._seed_transaction_dir(target_project)
+        rollback_created = Path(
+            tempfile.mkdtemp(prefix=rollback_prefix, dir=target.access_path)
+        )
+        target.refresh_after_project_mutation()
         return _SeedReplacement(
             destination=target_project / ".lake",
             backup=target_project / f".lake.backup-{transaction_id}",
-            rollback_root=Path(tempfile.mkdtemp(prefix=rollback_prefix, dir=target_project)),
+            rollback_root=target_project / rollback_created.name,
             transaction_id=transaction_id,
             journal_dir=journal_dir,
             journal_path=journal_dir / "journal.json",
@@ -3523,11 +3641,15 @@ class HotMainCache:
         )
 
     @staticmethod
-    def _discard_seed_rollback_root(replacement: _SeedReplacement) -> None:
+    def _discard_seed_rollback_root(
+        target: _BoundSeedTarget, replacement: _SeedReplacement
+    ) -> None:
         try:
-            if replacement.rollback_root.exists():
-                make_owner_writable(replacement.rollback_root)
-                shutil.rmtree(replacement.rollback_root)
+            rollback_root = target.access_path / replacement.rollback_root.name
+            if rollback_root.exists():
+                make_owner_writable(rollback_root)
+                shutil.rmtree(rollback_root)
+                target.refresh_after_project_mutation()
         except BaseException:
             pass
 
@@ -3537,10 +3659,82 @@ class HotMainCache:
         target_digest = self._seed_target_digest(lexical_target)
         return lexical_target, self.runtime_dir / "locks" / f"seed-{target_digest}.lock"
 
+    def _assert_seed_target_registered(self, target: _BoundSeedTarget) -> None:
+        target.assert_current()
+
+    @staticmethod
+    def _adapt_materializer_to_bound_target(
+        module: Any, target: _BoundSeedTarget
+    ) -> bool:
+        """Let the authenticated materializer traverse the bound project fd."""
+
+        if not hasattr(module, "_assert_real_directory") or not hasattr(
+            module, "_reject_symlink_components"
+        ):
+            return False
+        bound_root = target.access_path
+        original_assert = module._assert_real_directory
+        original_reject = module._reject_symlink_components
+
+        def assert_real_directory(path: Path) -> None:
+            absolute = Path(os.path.abspath(path))
+            if absolute != bound_root:
+                original_assert(path)
+                return
+            value = os.fstat(target.project_descriptor)
+            if not stat.S_ISDIR(value.st_mode):
+                raise module.MaterializationError("bound project is no longer a directory")
+
+        def reject_symlink_components(path: Path) -> None:
+            absolute = Path(os.path.abspath(path))
+            try:
+                relative = absolute.relative_to(bound_root)
+            except ValueError:
+                original_reject(path)
+                return
+            descriptor = os.dup(target.project_descriptor)
+            try:
+                for component in relative.parts:
+                    try:
+                        value = os.stat(
+                            component, dir_fd=descriptor, follow_symlinks=False
+                        )
+                    except FileNotFoundError:
+                        return
+                    if stat.S_ISLNK(value.st_mode):
+                        raise module.MaterializationError(
+                            f"path contains a symlink component: {path}"
+                        )
+                    if not stat.S_ISDIR(value.st_mode):
+                        return
+                    child = os.open(
+                        component,
+                        _authored_directory_flags(),
+                        dir_fd=descriptor,
+                    )
+                    os.close(descriptor)
+                    descriptor = child
+            finally:
+                os.close(descriptor)
+
+        module._assert_real_directory = assert_real_directory
+        module._reject_symlink_components = reject_symlink_components
+        return True
+        checked = self._eligible_seed_target(target.target_project, check_inputs=False)
+        try:
+            if (
+                checked.project_identity != target.project_identity
+                or checked.worktree_identity != target.worktree_identity
+                or checked.worktree_parent_identity != target.worktree_parent_identity
+            ):
+                raise CacheError("target worktree identity changed during seed/prepare")
+        finally:
+            checked.close()
+        target.assert_current()
+
     def _publish_seed_locked(
         self,
-        target_project: Path,
-        worktree_root: Path,
+        target: _BoundSeedTarget,
         *,
         replace: bool,
         cache_lock: ExclusiveLock,
@@ -3550,8 +3744,10 @@ class HotMainCache:
     ) -> dict[str, Any]:
         """Publish a seed while the caller retains the target operation lock."""
 
-        destination = replacement.destination
-        if destination != target_project / ".lake":
+        target.assert_current()
+        target_project = target.target_project
+        destination = target.access_path / replacement.destination.name
+        if replacement.destination != target_project / ".lake":
             raise CacheError("seed replacement state does not match the target project")
         if destination.is_symlink():
             raise CacheError(f"refusing to replace symlinked .lake directory: {destination}")
@@ -3561,41 +3757,70 @@ class HotMainCache:
             raise CacheError(
                 f"target .lake already exists; pass --replace to replace it: {destination}"
             )
-        staging_root = target_project / f".lake-seed-{replacement.transaction_id}"
+        staging_root = target.access_path / f".lake-seed-{replacement.transaction_id}"
         if staging_root.exists() or staging_root.is_symlink():
             raise CacheError(f"seed staging path already exists: {staging_root}")
-        staging_root.mkdir()
-        replacement.staging_root = staging_root
+        os.mkdir(staging_root.name, dir_fd=target.project_descriptor)
+        target.refresh_after_project_mutation()
+        replacement.staging_root = target_project / staging_root.name
         try:
             staging_lake = staging_root / ".lake"
             copy_stats = reflink_copytree(self.lake_dir, staging_lake)
             make_owner_writable(staging_lake)
             self._validate_seeded_destination(staging_lake)
+            target.assert_current()
             if destination.exists():
+                replacement.original_identity = self._lake_tree_identity(destination)
+                replacement.original_descriptor = os.open(
+                    replacement.destination.name,
+                    _authored_directory_flags(),
+                    dir_fd=target.project_descriptor,
+                )
+                original_stat = os.fstat(replacement.original_descriptor)
+                if _authored_directory_identity(original_stat) != (
+                    replacement.original_identity["device"],
+                    replacement.original_identity["inode"],
+                ):
+                    raise CacheError("target .lake identity changed while binding replacement")
                 self._write_seed_journal(replacement, target_project, staging_lake)
+                target.assert_current()
                 try:
-                    os.replace(destination, replacement.backup)
+                    os.replace(
+                        replacement.destination.name,
+                        replacement.backup.name,
+                        src_dir_fd=target.project_descriptor,
+                        dst_dir_fd=target.project_descriptor,
+                    )
                 finally:
                     replacement.old_moved = (
-                        replacement.backup.exists() or replacement.backup.is_symlink()
+                        (target.access_path / replacement.backup.name).exists()
+                        or (target.access_path / replacement.backup.name).is_symlink()
                     )
-                _fsync_directory(target_project)
+                target.refresh_after_project_mutation()
+                os.fsync(target.project_descriptor)
             try:
-                os.replace(staging_lake, destination)
+                os.replace(
+                    f"{staging_root.name}/.lake",
+                    replacement.destination.name,
+                    src_dir_fd=target.project_descriptor,
+                    dst_dir_fd=target.project_descriptor,
+                )
             finally:
                 replacement.new_published = (
                     not staging_lake.exists()
                     and not staging_lake.is_symlink()
                     and (destination.exists() or destination.is_symlink())
                 )
-            _fsync_directory(target_project)
+            target.refresh_after_project_mutation()
+            os.fsync(target.project_descriptor)
             self._validate_seeded_destination(destination)
+            target.assert_current()
             return {
                 **self.status(),
                 "action": "seed",
                 "result": "seeded",
-                "target": str(destination),
-                "worktree_root": str(worktree_root),
+                "target": str(replacement.destination),
+                "worktree_root": str(target.worktree_root),
                 "replaced": replacement.old_moved,
                 "transaction_id": replacement.transaction_id,
                 "backup_retained": None,
@@ -3613,27 +3838,74 @@ class HotMainCache:
                 if staging_root.exists():
                     make_owner_writable(staging_root)
                     shutil.rmtree(staging_root)
+                    target.refresh_after_project_mutation()
             except BaseException:
                 pass
 
-    @staticmethod
-    def _discard_seed_backup(backup: Path, moved_old: bool) -> str | None:
-        if not moved_old or not backup.exists():
+    def _retain_seed_backup(
+        self, target: _BoundSeedTarget, replacement: _SeedReplacement
+    ) -> str | None:
+        if not replacement.old_moved:
             return None
+        target.assert_current()
+        expected = replacement.original_identity
+        descriptor = replacement.original_descriptor
+        backup = target.access_path / replacement.backup.name
+        retained_name = f".lake.retained-{replacement.transaction_id}"
+        retained = target.access_path / retained_name
+        if expected is None or descriptor is None:
+            raise CacheError("seed backup has no live ownership binding")
+        if retained.exists() or retained.is_symlink():
+            raise CacheError(f"seed retained path already exists: {target.target_project / retained_name}")
         try:
-            make_owner_writable(backup)
-            shutil.rmtree(backup)
+            descriptor_identity = os.fstat(descriptor)
+        except OSError as error:
+            raise CacheError("seed backup ownership descriptor is unavailable") from error
+        if (
+            _authored_directory_identity(descriptor_identity)
+            != (expected.get("device"), expected.get("inode"))
+            or not self._lake_tree_matches(backup, expected)
+        ):
+            raise CacheError("seed backup identity changed; retained for manual recovery")
+        os.replace(
+            replacement.backup.name,
+            retained_name,
+            src_dir_fd=target.project_descriptor,
+            dst_dir_fd=target.project_descriptor,
+        )
+        try:
+            retained_identity = retained.stat(follow_symlinks=False)
+            if _authored_directory_identity(retained_identity) != _authored_directory_identity(
+                descriptor_identity
+            ):
+                raise CacheError("seed backup identity changed during retention")
+            target.refresh_after_project_mutation()
+            os.fsync(target.project_descriptor)
         except BaseException:
-            return str(backup) if backup.exists() or backup.is_symlink() else None
-        return None
+            if not backup.exists() and retained.exists():
+                os.replace(
+                    retained_name,
+                    replacement.backup.name,
+                    src_dir_fd=target.project_descriptor,
+                    dst_dir_fd=target.project_descriptor,
+                )
+                target.refresh_after_project_mutation()
+                os.fsync(target.project_descriptor)
+            raise
+        return str(target.target_project / retained_name)
 
     def _rollback_seed_transaction(
-        self, replacement: _SeedReplacement, error: BaseException, *, action: str
+        self,
+        target: _BoundSeedTarget,
+        replacement: _SeedReplacement,
+        error: BaseException,
+        *,
+        action: str,
     ) -> None:
-        rollback_errors = self._rollback_seed_replacement(replacement)
+        rollback_errors = self._rollback_seed_replacement(target, replacement)
         if not rollback_errors and replacement.journal_dir.exists():
             try:
-                _fsync_directory(replacement.destination.parent)
+                os.fsync(target.project_descriptor)
                 self._clear_seed_journal(replacement.journal_dir)
             except BaseException as journal_error:
                 rollback_errors.append(f"could not clear recovered transaction journal: {journal_error}")
@@ -3646,69 +3918,77 @@ class HotMainCache:
     def seed(self, target_project: Path, *, replace: bool = False, dry_run: bool = False) -> dict[str, Any]:
         lexical_target, target_lock_path = self._target_lock_path(target_project)
         if dry_run:
-            target_project, worktree_root = self._eligible_seed_target(lexical_target)
-            return {
-                **self.status(),
-                "action": "seed",
-                "dry_run": True,
-                "target": str(target_project / ".lake"),
-                "worktree_root": str(worktree_root),
-                "replace": replace,
-            }
+            target = self._eligible_seed_target(lexical_target)
+            try:
+                return {
+                    **self.status(),
+                    "action": "seed",
+                    "dry_run": True,
+                    "target": str(target.target_project / ".lake"),
+                    "worktree_root": str(target.worktree_root),
+                    "replace": replace,
+                }
+            finally:
+                target.close()
         started = time.monotonic()
         with ExclusiveLock(target_lock_path) as target_lock:
-            target_project, worktree_root = self._eligible_seed_target(
-                lexical_target, check_inputs=False
-            )
-            self._recover_interrupted_seed(target_project)
-            target_project, checked_root = self._eligible_seed_target(target_project)
-            if checked_root != worktree_root:
-                raise CacheError("target worktree identity changed during seed recovery")
-            destination = target_project / ".lake"
-            if destination.exists() and not replace:
-                raise CacheError(
-                    f"target .lake already exists; pass --replace to replace it: {destination}"
-                )
-            with ExclusiveLock(self.lock_path) as cache_lock:
-                if not self.is_ready(deep=True):
-                    raise CacheError(
-                        "hot-main cache is missing or failed deep artifact verification"
-                    )
-            replacement = self._new_seed_replacement(
-                target_project, rollback_prefix=".lake-seed-rollback-"
-            )
+            target = self._eligible_seed_target(lexical_target, check_inputs=False)
+            replacement: _SeedReplacement | None = None
             try:
-                result = self._publish_seed_locked(
-                    target_project,
-                    worktree_root,
-                    replace=replace,
-                    cache_lock=cache_lock,
-                    target_lock=target_lock,
-                    started=started,
-                    replacement=replacement,
-                )
-                self._append_metric(result)
-                replacement.metric_committed = True
-                self._mark_seed_committed(replacement)
-            except BaseException as error:
-                if replacement.metric_committed:
-                    self._discard_seed_rollback_root(replacement)
+                self._recover_interrupted_seed(target)
+                checked_target = self._eligible_seed_target(lexical_target)
+                target.close()
+                target = checked_target
+                destination = target.access_path / ".lake"
+                if destination.exists() and not replace:
                     raise CacheError(
-                        f"seed committed but transaction finalization failed: {error}"
-                    ) from error
+                        "target .lake already exists; pass --replace to replace it: "
+                        f"{target.target_project / '.lake'}"
+                    )
+                with ExclusiveLock(self.lock_path) as cache_lock:
+                    if not self.is_ready(deep=True):
+                        raise CacheError(
+                            "hot-main cache is missing or failed deep artifact verification"
+                        )
+                replacement = self._new_seed_replacement(
+                    target, rollback_prefix=".lake-seed-rollback-"
+                )
                 try:
-                    self._rollback_seed_transaction(replacement, error, action="seed")
-                finally:
-                    self._discard_seed_rollback_root(replacement)
-                raise
-            result["backup_retained"] = self._discard_seed_backup(
-                replacement.backup, replacement.old_moved
-            )
-            if replacement.journal_dir.exists() and result["backup_retained"] is None:
-                _fsync_directory(target_project)
-                self._clear_seed_journal(replacement.journal_dir)
-            self._discard_seed_rollback_root(replacement)
-            return result
+                    result = self._publish_seed_locked(
+                        target,
+                        replace=replace,
+                        cache_lock=cache_lock,
+                        target_lock=target_lock,
+                        started=started,
+                        replacement=replacement,
+                    )
+                    self._assert_seed_target_registered(target)
+                    self._append_metric(result, target.assert_current)
+                    replacement.metric_committed = True
+                    self._mark_seed_committed(replacement)
+                    target.assert_current()
+                except BaseException as error:
+                    if replacement.metric_committed:
+                        self._discard_seed_rollback_root(target, replacement)
+                        raise CacheError(
+                            f"seed committed but transaction finalization failed: {error}"
+                        ) from error
+                    try:
+                        self._rollback_seed_transaction(target, replacement, error, action="seed")
+                    finally:
+                        self._discard_seed_rollback_root(target, replacement)
+                    raise
+                result["backup_retained"] = self._retain_seed_backup(target, replacement)
+                if replacement.journal_dir.exists():
+                    os.fsync(target.project_descriptor)
+                    self._clear_seed_journal(replacement.journal_dir)
+                self._discard_seed_rollback_root(target, replacement)
+                self._assert_seed_target_registered(target)
+                return result
+            finally:
+                if replacement is not None and replacement.original_descriptor is not None:
+                    os.close(replacement.original_descriptor)
+                target.close()
 
     def prepare(self, target_project: Path, *, replace_seed: bool = False, dry_run: bool = False) -> dict[str, Any]:
         """Seed and verify a build-ready issue worktree without compiling it."""
@@ -3723,46 +4003,53 @@ class HotMainCache:
             }
         started = time.monotonic()
         with ExclusiveLock(target_lock_path) as target_lock:
-            target_project, worktree_root = self._eligible_seed_target(
-                lexical_target, check_inputs=False
-            )
-            self._recover_interrupted_seed(target_project)
-            destination = target_project / ".lake"
-            if destination.exists() and not replace_seed:
-                raise CacheError(
-                    f"target .lake already exists; pass --replace to replace it: {destination}"
-                )
-            inputs = self._preflight_authenticated_inputs()
-            target_project, checked_root = self._eligible_seed_target(target_project)
-            if checked_root != worktree_root:
-                raise CacheError("target worktree identity changed during preparation recovery")
-            authored_before = authored_tree_facts_on_disk(target_project)
-            with ExclusiveLock(self.lock_path) as cache_lock:
-                if not self.is_ready(deep=True):
-                    raise CacheError(
-                        "hot-main cache is missing or failed deep artifact verification"
-                    )
-            replacement = self._new_seed_replacement(
-                target_project, rollback_prefix=".lake-prepare-rollback-"
-            )
+            target = self._eligible_seed_target(lexical_target, check_inputs=False)
+            replacement: _SeedReplacement | None = None
             try:
+                self._recover_interrupted_seed(target)
+                destination = target.access_path / ".lake"
+                if destination.exists() and not replace_seed:
+                    raise CacheError(
+                        "target .lake already exists; pass --replace to replace it: "
+                        f"{target.target_project / '.lake'}"
+                    )
+                inputs = self._preflight_authenticated_inputs()
+                checked_target = self._eligible_seed_target(lexical_target)
+                target.close()
+                target = checked_target
+                authored_before = authored_tree_facts_on_disk(target.target_project)
+                target.assert_current()
+                with ExclusiveLock(self.lock_path) as cache_lock:
+                    if not self.is_ready(deep=True):
+                        raise CacheError(
+                            "hot-main cache is missing or failed deep artifact verification"
+                        )
+                replacement = self._new_seed_replacement(
+                    target, rollback_prefix=".lake-prepare-rollback-"
+                )
                 seeded = self._publish_seed_locked(
-                    target_project,
-                    worktree_root,
+                    target,
                     replace=replace_seed,
                     cache_lock=cache_lock,
                     target_lock=target_lock,
                     started=started,
                     replacement=replacement,
                 )
-                target_inputs = self._capture_identity_inputs(target_project)
+                target.assert_current()
+                operational_project = target.access_path
+                target_inputs = self._capture_identity_inputs(target.target_project)
                 module_relative = "scripts/materialize_mipstarre.py"
                 pin_relative = "references/mipstarre-upstream.json"
                 module = self._load_identity_module(
                     module_relative,
                     "_hot_cache_prepare_mipstarre",
                     target_inputs[module_relative],
-                    target_project,
+                    target.target_project,
+                )
+                module_project = (
+                    operational_project
+                    if self._adapt_materializer_to_bound_target(module, target)
+                    else target.target_project
                 )
                 pin = self._load_captured_pin(
                     module, pin_relative, target_inputs[pin_relative]
@@ -3770,7 +4057,7 @@ class HotMainCache:
                 self._validate_captured_project(
                     module, "validate_project_pins", target_inputs, pin
                 )
-                pin_path = target_project / pin_relative
+                pin_path = module_project / pin_relative
 
                 def captured_pin_loader(requested: Path) -> Mapping[str, Any]:
                     if Path(os.path.abspath(requested)) != pin_path:
@@ -3780,26 +4067,29 @@ class HotMainCache:
                 def captured_project_validator(
                     requested_root: Path, requested_pin: Mapping[str, Any]
                 ) -> None:
-                    if Path(os.path.abspath(requested_root)) != target_project or requested_pin is not pin:
+                    if Path(os.path.abspath(requested_root)) != module_project or requested_pin is not pin:
                         raise CacheError("foundation materializer changed its authenticated project inputs")
-                    if self._capture_identity_inputs(target_project) != target_inputs:
+                    target.assert_current()
+                    if self._capture_identity_inputs(target.target_project) != target_inputs:
                         raise CacheError("target cache-key inputs changed during foundation materialization")
 
                 module.load_pin = captured_pin_loader
                 module.validate_project_pins = captured_project_validator
                 materialized = module.materialize(
-                    target_project,
+                    module_project,
                     pin_path,
                     Path(os.environ[MIPSTARRE_ARCHIVE_ENV]),
                     replace_existing=True,
                 )
-                authored_after_materialize = authored_tree_facts_on_disk(target_project)
+                target.refresh_after_project_mutation()
+                authored_after_materialize = authored_tree_facts_on_disk(target.target_project)
                 if authored_after_materialize != authored_before:
                     raise CacheError("authored QPBT inventory changed during issue-worktree preparation")
-                if self._capture_identity_inputs(target_project) != target_inputs:
+                if self._capture_identity_inputs(target.target_project) != target_inputs:
                     raise CacheError("target cache-key inputs changed during foundation materialization")
-                verified = module.verify_materialized(target_project, pin)
-                authored_final = authored_tree_facts_on_disk(target_project)
+                verified = module.verify_materialized(module_project, pin)
+                target.assert_current()
+                authored_final = authored_tree_facts_on_disk(target.target_project)
                 verifier_authored = {
                     key: verified.get(key)
                     for key in (
@@ -3816,45 +4106,52 @@ class HotMainCache:
                     raise CacheError(
                         "authored QPBT inventory changed or verifier evidence differs during issue-worktree preparation"
                     )
-                if self._capture_identity_inputs(target_project) != target_inputs:
+                if self._capture_identity_inputs(target.target_project) != target_inputs:
                     raise CacheError("target cache-key inputs changed during foundation verification")
-                checked_target, checked_root = self._eligible_seed_target(target_project)
-                if checked_target != target_project or checked_root != worktree_root:
-                    raise CacheError("target worktree identity changed during issue-worktree preparation")
-                self._validate_seeded_destination(target_project / ".lake")
+                self._assert_seed_target_registered(target)
+                self._validate_seeded_destination(operational_project / ".lake")
+                target.assert_current()
                 seeded["elapsed_seconds"] = round(time.monotonic() - started, 6)
                 prepared = {
                     "action": "prepare", "result": "prepared", "inputs": inputs,
                     "seed": seeded, "foundation": materialized, "verification": verified,
                     "authored_qpbt": authored_final,
                 }
-                self._append_metric(seeded)
+                self._append_metric(seeded, target.assert_current)
                 replacement.metric_committed = True
                 self._mark_seed_committed(replacement)
+                target.assert_current()
+                seeded["backup_retained"] = self._retain_seed_backup(target, replacement)
+                if replacement.journal_dir.exists():
+                    os.fsync(target.project_descriptor)
+                    self._clear_seed_journal(replacement.journal_dir)
+                self._discard_seed_rollback_root(target, replacement)
+                self._assert_seed_target_registered(target)
+                return prepared
             except BaseException as error:
-                if replacement.metric_committed:
-                    self._discard_seed_rollback_root(replacement)
+                if replacement is not None and replacement.metric_committed:
+                    self._discard_seed_rollback_root(target, replacement)
                     raise CacheError(
                         "issue-worktree preparation committed but transaction "
                         f"finalization failed: {error}"
                     ) from error
-                try:
-                    self._rollback_seed_transaction(
-                        replacement, error, action="issue-worktree preparation"
-                    )
-                finally:
-                    self._discard_seed_rollback_root(replacement)
+                if replacement is not None:
+                    try:
+                        self._rollback_seed_transaction(
+                            target,
+                            replacement,
+                            error,
+                            action="issue-worktree preparation",
+                        )
+                    finally:
+                        self._discard_seed_rollback_root(target, replacement)
                 if isinstance(error, CacheError):
                     raise
                 raise CacheError(f"issue-worktree foundation preparation failed: {error}") from error
-            seeded["backup_retained"] = self._discard_seed_backup(
-                replacement.backup, replacement.old_moved
-            )
-            if replacement.journal_dir.exists() and seeded["backup_retained"] is None:
-                _fsync_directory(target_project)
-                self._clear_seed_journal(replacement.journal_dir)
-            self._discard_seed_rollback_root(replacement)
-            return prepared
+            finally:
+                if replacement is not None and replacement.original_descriptor is not None:
+                    os.close(replacement.original_descriptor)
+                target.close()
 
 
 def _resolve(root: Path, value: str) -> Path:

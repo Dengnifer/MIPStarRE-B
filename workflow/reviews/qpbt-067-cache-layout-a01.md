@@ -136,14 +136,16 @@ The implemented cache-readiness path is fail-closed:
 `HotMainCache.is_ready` returns false for a mismatched `READY` digest; no
 current command moves that snapshot to quarantine. The quarantine rules above
 remain a proposed cleanup contract. Synchronous seed failures restore a private
-backup before the metric commit point. The preliminary QPBT-068 candidate adds
-digest-bound journal publication in `HotMainCache._write_seed_journal`
-(`scripts/hot_main_cache.py:3244`), cache-independent state recovery in
-`HotMainCache._recover_interrupted_seed` (`:3417`), and journaled renames in
-`HotMainCache._publish_seed_locked` (`:3540`). These are candidate behaviors,
-not approved live guarantees, until a fresh immutable review approves the final
-head. Cleanup quarantine remains separate from exception rollback and seed
-transaction recovery.
+backup before the metric commit point. The repaired QPBT-068 candidate publishes
+a diagnostic digest-bound journal before the first rename, but does not treat
+that journal or its adjacent digest/commit marker as persistent ownership
+authority. A later process rejects all journal/backup state unchanged for manual
+disposition. The live transaction binds the worktree and project by descriptors,
+performs target renames descriptor-relatively, and retains rather than
+recursively deletes the authenticated old tree after commit. These are candidate
+behaviors, not approved live guarantees, until a fresh immutable review approves
+the final head. Cleanup quarantine remains separate from live exception rollback
+and manual crash disposition.
 
 ## Measurable acceptance tests
 
@@ -165,9 +167,11 @@ transaction recovery.
 4. **Crash/rollback:** inject interruption at staging, READY publication, and
    seed replacement; assert no partial published tree, old destination restored,
    and quarantine/failure record contains reason without READY. Candidate
-   journal regressions begin at
-   `HotMainCacheTests.test_seed_rejects_unowned_backup_decoys_without_mutation`
-   (`tests/test_hot_main_cache.py:3386`); existing failed-build retention is
+   journal regressions begin at the symbol-qualified
+   `HotMainCacheTests.test_seed_rejects_unowned_backup_decoys_without_mutation`;
+   target-incarnation regressions cover recovery, copy, validation,
+   materialization, and metric commit, while committed-backup tests cover
+   substitution and ABA. Existing failed-build retention is
    covered by `HotMainCacheTests.test_failed_build_is_retained_but_never_published`
    (`:3176`).
 5. **Capacity guard:** on a filesystem with <10 GB free, dry-run must refuse

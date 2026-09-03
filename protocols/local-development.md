@@ -87,27 +87,40 @@ receives a private writable copy. Hard-linked or directly shared `.lake/build`
 trees are forbidden because Lean processes can update artifacts. Replacement
 uses a private backup and distinct old-moved/new-published transaction state.
 Publication, validation, and the success-metric append share one rollback
-boundary; the original is restored on any precommit failure. Backup deletion
-is best-effort only after that commit point. Seed validation walks every copied
+boundary; the original is restored on any precommit failure. The registered
+worktree root, project root, and worktree parent remain bound by no-follow
+descriptors and stable filesystem identities for the complete operation.
+Target-local staging and replacement renames are descriptor-relative, and
+identity guards run during copy, validation, registration checks, and while the
+metric append lock and descriptor are held. A rename/substitution or
+swap-and-restore generation change fails closed and rolls back only through the
+bound project descriptor. Seed validation walks every copied
 symlink without following it: both the lexical first hop and fully resolved
 target must remain inside the private `.lake`. Broken, cyclic, and every
 external package or layer link fail closed; mode bits are not evidence of
 durable immutability.
 
-Seed and prepare hold the per-target lock while authenticating and recovering
-an interrupted replacement journal. Recovery never infers ownership from a
-`.lake.backup-*` filename: an invalid/missing journal or unowned backup-shaped
-entry fails unchanged. A valid uncommitted journal restores the authenticated
-prior tree before cache or input admission. The journal is digest-bound and
-durably published before the first rename; recovery is idempotent and does not
-consult the shared cache. An uncommitted replacement is retained separately
-before the original is restored. A replacement with a durable success metric
-is committed even if the process dies before writing the matching commit
-marker; recovery keeps it and deletes only its journal-authenticated backup.
+Seed and prepare hold the per-target lock while checking for interrupted
+replacement state. A journal and adjacent digest are both mutable repository-
+local bytes and therefore are not an independent ownership proof. No later
+process consumes them as authority: any journal directory or
+`.lake.backup-*` entry blocks the operation before cache/input admission,
+without rename, chmod, unlink, or recursive deletion, and reports every path
+for manual disposition. This includes canonical self-consistent journals,
+matching commit markers, and durable success metrics. The live process still
+publishes a digest-bound journal before its first rename and can use its
+in-memory descriptors to roll back a synchronous precommit failure. After a
+successful commit, the old tree must still match its continuously open
+descriptor and recorded inventory; it is renamed descriptor-relatively to a
+`.lake.retained-*` path and is never recursively deleted by seed or prepare.
+Identity mismatch or ABA leaves the journal and all candidate trees for manual
+recovery.
 Metric append failures truncate and fsync on the original descriptor while the
 original metrics lock remains continuously held. Successful append plus fsync
-is the commit point; descriptor or lock cleanup faults after it do not roll back
-the target or a competing writer's record.
+is the commit point. The target identity guard runs before write, before fsync,
+and after fsync; a guard failure truncates under that same lock. Descriptor or
+lock cleanup faults after commit do not roll back the target or a competing
+writer's record.
 
 Before issue-worktree compilation, run `python3 scripts/hot_main_cache.py
 prepare --worktree /absolute/issue-worktree` with the same three environment
@@ -121,8 +134,9 @@ must equal both the initial inventory and the verifier evidence. It never
 invokes Lean or Lake. Pass `--replace` only to transactionally replace an
 existing private `.lake`; its backup is retained until every preparation check
 succeeds and the success-metric append completes, and is restored on a later
-failure. Backup deletion is best-effort after that commit point and a retained
-backup is reported without changing a successful result.
+failure. After commit, a matching backup is moved to retained state and its
+path is reported without changing a successful result; automatic backup
+deletion is forbidden.
 
 The cache record includes key, source SHA, elected owner, hit/miss, lock wait,
 dependency-cache duration, build duration, total duration, exit status, and log

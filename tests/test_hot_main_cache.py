@@ -137,6 +137,19 @@ def run_git(root: Path, *arguments: str) -> str:
     return result.stdout.strip()
 
 
+def byte_snapshot(root: Path) -> dict[str, tuple[str, bytes | str]]:
+    snapshot: dict[str, tuple[str, bytes | str]] = {}
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            snapshot[relative] = ("symlink", os.readlink(path))
+        elif path.is_file():
+            snapshot[relative] = ("file", path.read_bytes())
+        elif path.is_dir():
+            snapshot[relative] = ("directory", b"")
+    return snapshot
+
+
 def initialize_repository(root: Path) -> str:
     root.mkdir(parents=True)
     run_git(root, "init", "-b", "main")
@@ -2060,7 +2073,7 @@ class HotMainCacheTests(unittest.TestCase):
             verify_materialized=lambda *_args: {"status": "verified", **authored},
         )
 
-        def fail_metric(_metric: object) -> None:
+        def fail_metric(_metric: object, *_args: object) -> None:
             self.assertEqual(1, len(list(target.glob(".lake.backup-*"))))
             raise OSError("injected metric failure")
 
@@ -2088,10 +2101,12 @@ class HotMainCacheTests(unittest.TestCase):
         (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
         real_replace = os.replace
 
-        def fail_old_move(source: object, destination: object) -> None:
-            if Path(source) == original_lake and Path(destination).name.startswith(".lake.backup-"):
+        def fail_old_move(
+            source: object, destination: object, **kwargs: object
+        ) -> None:
+            if Path(source).name == ".lake" and Path(destination).name.startswith(".lake.backup-"):
                 raise OSError("injected old-to-backup rename failure")
-            real_replace(source, destination)
+            real_replace(source, destination, **kwargs)
 
         with mock.patch.object(cache_module.os, "replace", side_effect=fail_old_move):
             with self.assertRaisesRegex(OSError, "old-to-backup rename failure"):
@@ -2169,7 +2184,7 @@ class HotMainCacheTests(unittest.TestCase):
         original_lake.mkdir()
         (original_lake / "original-marker").write_text("preserve\n", encoding="ascii")
 
-        def fail_metric(_metric: object) -> None:
+        def fail_metric(_metric: object, *_args: object) -> None:
             self.assertEqual(1, len(list(target.glob(".lake.backup-*"))))
             raise OSError("injected seed metric failure")
 
@@ -3363,13 +3378,15 @@ class HotMainCacheTests(unittest.TestCase):
         def interrupted_seed() -> None:
             renames = 0
 
-            def kill_at_boundary(source: object, destination: object) -> None:
+            def kill_at_boundary(
+                source: object, destination: object, **kwargs: object
+            ) -> None:
                 nonlocal renames
-                real_replace(source, destination)
+                real_replace(source, destination, **kwargs)
                 destination_path = Path(destination)
                 if (
                     destination_path.name.startswith(".lake.backup-")
-                    or destination_path == target / ".lake"
+                    or destination_path.name == ".lake"
                 ):
                     renames += 1
                     if renames == rename_number:
@@ -3397,7 +3414,7 @@ class HotMainCacheTests(unittest.TestCase):
                 backup.mkdir()
                 (backup / "decoy-bytes").write_bytes(b"decoy")
                 with self.assertRaisesRegex(
-                    cache_module.CacheError, "unowned interrupted seed backup"
+                    cache_module.CacheError, "no independent ownership proof"
                 ):
                     manager.seed(target)
                 self.assertEqual(b"decoy", (backup / "decoy-bytes").read_bytes())
@@ -3408,7 +3425,166 @@ class HotMainCacheTests(unittest.TestCase):
                 else:
                     self.assertFalse(destination.exists())
 
-    def test_seed_first_rename_recovery_preserves_replace_false(self) -> None:
+    def test_seed_rejects_self_consistent_unowned_committed_journal_byte_exact(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("unowned-self-consistent-journal")
+        destination = target / ".lake"
+        destination.mkdir()
+        (destination / "current").write_bytes(b"current bytes\n")
+        transaction_id = "a" * 32
+        backup = target / f".lake.backup-{transaction_id}"
+        backup.mkdir()
+        (backup / "claimed-original").write_bytes(b"claimed original bytes\n")
+        journal_dir = manager._seed_transaction_dir(target)
+        journal_dir.mkdir(parents=True)
+        value = {
+            "schema_version": 1,
+            "transaction_version": 1,
+            "transaction_id": transaction_id,
+            "target_project": str(target),
+            "destination": str(destination),
+            "target_lock_digest": manager._seed_target_digest(target),
+            "replace": True,
+            "backup_basename": backup.name,
+            "staging_basename": f".lake-seed-{transaction_id}",
+            "retained_basename": f".lake.retained-{transaction_id}",
+            "original": manager._lake_tree_identity(backup),
+            "replacement": manager._lake_tree_identity(destination),
+            "cache_key": manager.identity.cache_key,
+            "main_commit": manager.identity.main_commit,
+            "cache_manifest_sha256": cache_module.sha256_file(manager.manifest_path),
+        }
+        payload = manager._journal_bytes(value)
+        digest = hashlib.sha256(payload).hexdigest()
+        (journal_dir / "journal.json").write_bytes(payload)
+        (journal_dir / "journal.sha256").write_text(digest + "\n", encoding="ascii")
+        (journal_dir / "COMMITTED").write_text(digest + "\n", encoding="ascii")
+        target_before = byte_snapshot(target)
+        journal_before = byte_snapshot(journal_dir)
+
+        with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
+            manager.seed(target, replace=True)
+
+        self.assertEqual(target_before, byte_snapshot(target))
+        self.assertEqual(journal_before, byte_snapshot(journal_dir))
+
+    def _swap_worktree_aba(self, target: Path, substitute: Path) -> None:
+        parked = target.with_name(target.name + "-parked")
+        os.replace(target, parked)
+        os.replace(substitute, target)
+        os.replace(target, substitute)
+        os.replace(parked, target)
+
+    def test_seed_rejects_target_swap_restore_during_copy_without_changing_either(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("seed-target-aba")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original").write_bytes(b"original\n")
+        substitute = self.base / "seed-target-aba-substitute"
+        substitute.mkdir()
+        (substitute / ".lake").mkdir()
+        (substitute / ".lake" / "substitute").write_bytes(b"substitute\n")
+        target_before = byte_snapshot(target)
+        substitute_before = byte_snapshot(substitute)
+        real_copy = cache_module.reflink_copytree
+
+        def copy_after_aba(source: Path, destination: Path) -> object:
+            self._swap_worktree_aba(target, substitute)
+            return real_copy(source, destination)
+
+        with mock.patch.object(cache_module, "reflink_copytree", side_effect=copy_after_aba):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+                manager.seed(target, replace=True)
+
+        self.assertEqual(target_before, byte_snapshot(target))
+        self.assertEqual(substitute_before, byte_snapshot(substitute))
+
+    def test_seed_rejects_target_swap_restore_during_recovery_without_mutation(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("seed-recovery-target-aba")
+        substitute = self.base / "seed-recovery-target-aba-substitute"
+        substitute.mkdir()
+        (substitute / "substitute").write_bytes(b"substitute\n")
+        target_before = byte_snapshot(target)
+        substitute_before = byte_snapshot(substitute)
+        real_recover = manager._recover_interrupted_seed
+
+        def recover_after_aba(bound: object) -> None:
+            self._swap_worktree_aba(target, substitute)
+            real_recover(bound)
+
+        with mock.patch.object(
+            manager, "_recover_interrupted_seed", side_effect=recover_after_aba
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+                manager.seed(target)
+
+        self.assertEqual(target_before, byte_snapshot(target))
+        self.assertEqual(substitute_before, byte_snapshot(substitute))
+
+    def test_seed_rejects_target_swap_restore_during_validation_byte_exact(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("seed-validation-target-aba")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original").write_bytes(b"original\n")
+        substitute = self.base / "seed-validation-target-aba-substitute"
+        substitute.mkdir()
+        (substitute / ".lake").mkdir()
+        (substitute / ".lake" / "substitute").write_bytes(b"substitute\n")
+        target_before = byte_snapshot(target)
+        substitute_before = byte_snapshot(substitute)
+        real_validate = manager._validate_seeded_destination
+        calls = 0
+
+        def validate_then_aba(destination: Path) -> None:
+            nonlocal calls
+            real_validate(destination)
+            calls += 1
+            if calls == 1:
+                self._swap_worktree_aba(target, substitute)
+
+        with mock.patch.object(
+            manager, "_validate_seeded_destination", side_effect=validate_then_aba
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+                manager.seed(target, replace=True)
+
+        self.assertEqual(target_before, byte_snapshot(target))
+        self.assertEqual(substitute_before, byte_snapshot(substitute))
+
+    def test_seed_rejects_target_swap_restore_at_metric_commit_byte_exact(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("seed-metric-target-aba")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original").write_bytes(b"original\n")
+        substitute = self.base / "seed-metric-target-aba-substitute"
+        substitute.mkdir()
+        (substitute / ".lake").mkdir()
+        (substitute / ".lake" / "substitute").write_bytes(b"substitute\n")
+        target_before = byte_snapshot(target)
+        substitute_before = byte_snapshot(substitute)
+        real_append = manager._append_metric
+
+        def append_after_aba(metric: object, guard: object) -> None:
+            self._swap_worktree_aba(target, substitute)
+            real_append(metric, guard)
+
+        with mock.patch.object(manager, "_append_metric", side_effect=append_after_aba):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+                manager.seed(target, replace=True)
+
+        self.assertEqual(target_before, byte_snapshot(target))
+        self.assertEqual(substitute_before, byte_snapshot(substitute))
+
+    def test_seed_first_rename_requires_manual_recovery_unchanged(self) -> None:
         manager = self.manager()
         manager.warm(_test_command_callback=fake_success)
         target = self.issue_worktree("journal-replace-false")
@@ -3416,10 +3592,11 @@ class HotMainCacheTests(unittest.TestCase):
         original.mkdir()
         (original / "original-marker").write_bytes(b"keep")
         self._crash_seed_after_rename(manager, target, 1)
-        with self.assertRaisesRegex(cache_module.CacheError, "target .lake already exists"):
+        backup = next(target.glob(".lake.backup-*"))
+        with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target)
-        self.assertEqual(b"keep", (original / "original-marker").read_bytes())
-        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertFalse(original.exists())
+        self.assertEqual(b"keep", (backup / "original-marker").read_bytes())
 
     def test_seed_recovers_before_invalid_cache_admission(self) -> None:
         manager = self.manager()
@@ -3431,10 +3608,11 @@ class HotMainCacheTests(unittest.TestCase):
         self._crash_seed_after_rename(manager, target, 1)
         cache_module.make_owner_writable(manager.snapshot_dir)
         manager.ready_path.write_text("0" * 64 + "\n", encoding="ascii")
-        with self.assertRaisesRegex(cache_module.CacheError, "deep artifact verification"):
+        backup = next(target.glob(".lake.backup-*"))
+        with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target, replace=True)
-        self.assertEqual(b"keep", (original / "original-marker").read_bytes())
-        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertFalse(original.exists())
+        self.assertEqual(b"keep", (backup / "original-marker").read_bytes())
 
     def test_prepare_recovers_before_input_admission(self) -> None:
         manager = self.manager()
@@ -3449,10 +3627,11 @@ class HotMainCacheTests(unittest.TestCase):
             "_preflight_authenticated_inputs",
             side_effect=cache_module.CacheError("injected input admission failure"),
         ):
-            with self.assertRaisesRegex(cache_module.CacheError, "input admission failure"):
+            with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
                 manager.prepare(target, replace_seed=True)
-        self.assertEqual(b"keep", (original / "original-marker").read_bytes())
-        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        backup = next(target.glob(".lake.backup-*"))
+        self.assertFalse(original.exists())
+        self.assertEqual(b"keep", (backup / "original-marker").read_bytes())
 
     def test_seed_rejects_tampered_journal_without_mutation(self) -> None:
         manager = self.manager()
@@ -3465,7 +3644,7 @@ class HotMainCacheTests(unittest.TestCase):
         backup = next(target.glob(".lake.backup-*"))
         journal = manager._seed_transaction_dir(target) / "journal.json"
         journal.write_bytes(journal.read_bytes().replace(b'"replace":true', b'"replace":false'))
-        with self.assertRaisesRegex(cache_module.CacheError, "authentication failed"):
+        with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target, replace=True)
         self.assertFalse(original.exists())
         self.assertEqual(b"keep", (backup / "original-marker").read_bytes())
@@ -3480,7 +3659,7 @@ class HotMainCacheTests(unittest.TestCase):
         self._crash_seed_after_rename(manager, target, 1)
         backup = next(target.glob(".lake.backup-*"))
         (backup / "unrecorded").write_bytes(b"changed")
-        with self.assertRaisesRegex(cache_module.CacheError, "does not match"):
+        with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target, replace=True)
         self.assertFalse(original.exists())
         self.assertEqual(b"changed", (backup / "unrecorded").read_bytes())
@@ -3497,13 +3676,13 @@ class HotMainCacheTests(unittest.TestCase):
         extra = target / ".lake.backup-extra"
         extra.mkdir()
         (extra / "decoy").write_bytes(b"decoy")
-        with self.assertRaisesRegex(cache_module.CacheError, "ambiguous interrupted"):
+        with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target, replace=True)
         self.assertFalse(original.exists())
         self.assertEqual(b"keep", (owned / "original-marker").read_bytes())
         self.assertEqual(b"decoy", (extra / "decoy").read_bytes())
 
-    def test_seed_second_rename_recovery_restores_and_retains_replacement(self) -> None:
+    def test_seed_second_rename_requires_manual_recovery_unchanged(self) -> None:
         manager = self.manager()
         manager.warm(_test_command_callback=fake_success)
         target = self.issue_worktree("journal-second-rename")
@@ -3511,13 +3690,12 @@ class HotMainCacheTests(unittest.TestCase):
         original.mkdir()
         (original / "original-marker").write_bytes(b"keep")
         self._crash_seed_after_rename(manager, target, 2)
-        with self.assertRaisesRegex(cache_module.CacheError, "target .lake already exists"):
+        backup = next(target.glob(".lake.backup-*"))
+        with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target)
-        self.assertEqual(b"keep", (original / "original-marker").read_bytes())
-        retained = list(target.glob(".lake.retained-*"))
-        self.assertEqual(1, len(retained))
-        self.assertTrue((retained[0] / "build" / "QPBT.olean").is_file())
-        self.assertEqual([], list(target.glob(".lake.backup-*")))
+        self.assertTrue((original / "build" / "QPBT.olean").is_file())
+        self.assertEqual(b"keep", (backup / "original-marker").read_bytes())
+        self.assertEqual([], list(target.glob(".lake.retained-*")))
 
     def test_seed_metric_commit_recovers_before_commit_marker(self) -> None:
         manager = self.manager()
@@ -3542,12 +3720,118 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual(-signal.SIGKILL, process.exitcode)
         self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
         self.assertEqual(1, len(list(target.glob(".lake.backup-*"))))
-        with self.assertRaisesRegex(cache_module.CacheError, "target .lake already exists"):
+        backup = next(target.glob(".lake.backup-*"))
+        with self.assertRaisesRegex(cache_module.CacheError, "no independent ownership proof"):
             manager.seed(target)
         self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
         self.assertFalse((target / ".lake" / "original-marker").exists())
-        self.assertEqual([], list(target.glob(".lake.backup-*")))
-        self.assertFalse(manager._seed_transaction_dir(target).exists())
+        self.assertEqual(b"old", (backup / "original-marker").read_bytes())
+        self.assertTrue(manager._seed_transaction_dir(target).exists())
+
+    def test_prepare_rejects_target_swap_restore_during_materialization_byte_exact(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        manager.warm(
+            _test_command_callback=fake_success,
+            _test_source_verifier=fake_source_verifier,
+        )
+        target = self.issue_worktree("prepare-target-aba")
+        original_lake = target / ".lake"
+        original_lake.mkdir()
+        (original_lake / "original").write_bytes(b"original\n")
+        substitute = self.base / "prepare-target-aba-substitute"
+        substitute.mkdir()
+        (substitute / ".lake").mkdir()
+        (substitute / ".lake" / "substitute").write_bytes(b"substitute\n")
+        target_before = byte_snapshot(target)
+        substitute_before = byte_snapshot(substitute)
+        archive = self.base / "prepare-target-aba.tar.gz"
+        archive.write_bytes(b"authenticated")
+        authored = cache_module.authored_tree_facts_on_disk(target)
+
+        def materialize_with_aba(*_args: object, **_kwargs: object) -> dict[str, str]:
+            self._swap_worktree_aba(target, substitute)
+            return {"status": "published"}
+
+        fake_module = types.SimpleNamespace(
+            load_pin=lambda _path: {},
+            validate_project_pins=lambda _root, _pin: None,
+            materialize=materialize_with_aba,
+            verify_materialized=lambda *_args: {"status": "verified", **authored},
+        )
+        with mock.patch.dict(
+            os.environ, {cache_module.MIPSTARRE_ARCHIVE_ENV: str(archive)}, clear=True
+        ), mock.patch.object(
+            manager, "_preflight_authenticated_inputs", return_value={"required": True}
+        ), mock.patch.object(manager, "_load_identity_module", return_value=fake_module):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+                manager.prepare(target, replace_seed=True)
+
+        self.assertEqual(target_before, byte_snapshot(target))
+        self.assertEqual(substitute_before, byte_snapshot(substitute))
+
+    def test_committed_backup_substitution_is_retained_unchanged_for_manual_recovery(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("backup-substitution")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original").write_bytes(b"original\n")
+        genuine_saved = target / ".genuine-saved"
+        substitute_bytes = b"substitute\n"
+        real_retain = manager._retain_seed_backup
+
+        def substitute_before_retention(
+            bound: object, replacement: object
+        ) -> object:
+            backup = target / replacement.backup.name
+            os.replace(backup, genuine_saved)
+            backup.mkdir()
+            (backup / "substitute").write_bytes(substitute_bytes)
+            return real_retain(bound, replacement)
+
+        with mock.patch.object(
+            manager, "_retain_seed_backup", side_effect=substitute_before_retention
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+                manager.seed(target, replace=True)
+
+        backup = next(target.glob(".lake.backup-*"))
+        self.assertEqual(substitute_bytes, (backup / "substitute").read_bytes())
+        self.assertEqual(b"original\n", (genuine_saved / "original").read_bytes())
+        self.assertTrue((target / ".lake" / "build" / "QPBT.olean").is_file())
+        self.assertTrue(manager._seed_transaction_dir(target).is_dir())
+
+    def test_committed_backup_swap_restore_aba_fails_before_retention(self) -> None:
+        manager = self.manager()
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("backup-aba")
+        original = target / ".lake"
+        original.mkdir()
+        (original / "original").write_bytes(b"original\n")
+        substitute = target / ".backup-substitute"
+        substitute.mkdir()
+        (substitute / "substitute").write_bytes(b"substitute\n")
+        real_retain = manager._retain_seed_backup
+
+        def aba_before_retention(bound: object, replacement: object) -> object:
+            backup = target / replacement.backup.name
+            parked = target / ".backup-parked"
+            os.replace(backup, parked)
+            os.replace(substitute, backup)
+            os.replace(backup, substitute)
+            os.replace(parked, backup)
+            return real_retain(bound, replacement)
+
+        with mock.patch.object(
+            manager, "_retain_seed_backup", side_effect=aba_before_retention
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "identity changed"):
+                manager.seed(target, replace=True)
+
+        backup = next(target.glob(".lake.backup-*"))
+        self.assertEqual(b"original\n", (backup / "original").read_bytes())
+        self.assertEqual(b"substitute\n", (substitute / "substitute").read_bytes())
+        self.assertTrue(manager._seed_transaction_dir(target).is_dir())
 
     def _warm_with_external_link(self, manager: cache_module.HotMainCache, external: Path) -> None:
         def build_with_link(
