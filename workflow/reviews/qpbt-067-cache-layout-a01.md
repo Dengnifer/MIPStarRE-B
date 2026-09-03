@@ -33,7 +33,15 @@ The filesystem is ext4 (`findmnt`: `ext4 rw,nosuid,nodev,relatime,stripe=96`),
 4-KB blocks, with 185 GB free and 97% used (`df -h`). Inode pressure is low
 (11% used). No file under the 18 runtime issue `.lake` trees has link count
 greater than one. Representative files have distinct device/inode pairs across
-all snapshots and seeds. Thus no hard-link sharing is present. Existing seed
+all snapshots and seeds. Thus no hard-link sharing is present for the examined
+files, especially `.lake/build`; this does not establish whole-`.lake`
+isolation when symlinks resolve outside the destination. The live registered
+worktree `.workflow-runtime/worktrees/qpbt-037-pauli-a01/.lake/packages/mathlib`
+was observed as an absolute symlink to
+`/home/drx/.cache/mipstarre-dev/hot-main/repo/.lake/packages/mathlib`; the
+resolved target was mode `775` and writable at review time. Consequently,
+package-target ownership/read-only and realpath containment checks are still
+required before claiming a seed is private. Existing seed
 metrics (45 JSONL records in `metrics/hot-main.jsonl`) report
 `copy.files=124925`, approximately 10.10 GB per full seed, and
 `reflinked=0,copied=124925`; this volume is using the conservative byte-copy
@@ -85,7 +93,7 @@ and should add an explicit append-only reference record before reclaiming.
 
 | Option | Soundness against singleton compilation / private writable output | Space and portability assessment |
 |---|---|---|
-| Immutable shared snapshot, copy on seed | Preserves one lock-elected build and authenticated READY; seed remains private. | Current behavior; safe everywhere, but byte-copy costs about 10 GB per seed on ext4. |
+| Immutable shared snapshot, copy on seed | Preserves one lock-elected build and authenticated READY; inspected build files have no hard links. Whole-`.lake` privacy is not established until symlink targets are contained/owned and non-writable. | Current behavior; safe everywhere once the target policy is enforced, but byte-copy costs about 10 GB per seed on ext4. |
 | Reflink copy-on-write seed | Same semantics if destination inode/link checks and deep inventory remain; writes diverge by extent. | Preferred optimization when `FICLONE` succeeds. Must record `reflinked`/`copied` counts and retain byte-copy fallback; filesystem-dependent. |
 | Hard links to `.lake/build` | Violates protocol: Lean can mutate artifacts and cross-worktree writes become visible. | Prohibited regardless of apparent savings; test link counts and reject. |
 | Overlayfs / CoW delta over immutable package+build layers | Could share read-only package bytes and isolate writable deltas; singleton warm still required. | Requires privileged/mount support, careful lowerdir authentication, whiteout handling, and portability fallback; not justified until measured on this host. |
@@ -111,12 +119,18 @@ attempt is terminal); retain successful snapshots while referenced, then for a
 the grace interval, no active lease, valid lock-state audit, and a final
 manifest/READY check; move to quarantine before any irreversible deletion.
 
-Crash recovery must be idempotent: staging directories without `READY` are never
-addressable; a snapshot with a mismatched READY digest is quarantined, never
-repaired in place; seed replacement uses the existing private backup and rolls
-back on validation failure (local-development.md:77-78). A process interrupted
-between copy and publication must leave either the old destination or a complete
-validated destination, not a partially shared `.lake` tree.
+The implemented live-process path is exception rollback: staging directories
+without `READY` are never addressable; a snapshot with a mismatched READY digest
+is quarantined, never repaired in place; and seed replacement uses the existing
+private backup and restores it when post-publication validation fails
+(local-development.md:77-78). This rollback path does not prove process-crash
+recovery. In `scripts/hot_main_cache.py:2841-2846`, a SIGKILL between the rename
+of the old `.lake` to `.lake.backup-*` and the rename of the staged tree can
+leave the target without `.lake`; no automatic recovery guarantee is currently
+implemented. Treat that state as an observed risk requiring a future
+lock-serialized recovery implementation and subprocess SIGKILL tests. Do not
+claim that interruption between copy and publication currently preserves either
+the old destination or a complete validated destination.
 
 ## Measurable acceptance tests
 
