@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "next_sequence": 54,
+  "next_sequence": 60,
   "issues": [
     {
       "id": "QPBT-000",
@@ -3012,6 +3012,54 @@
       ],
       "created_at": "2026-09-02T21:17:11Z",
       "updated_at": "2026-09-02T21:17:11Z",
+      "blocked_reason": null,
+      "unblock_condition": null
+    },
+    {
+      "id": "QPBT-059",
+      "title": "fix(QPBT/Game): use the paper linear six-tape encoding",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "ready",
+      "parent_id": "QPBT-057",
+      "dependency_ids": [
+        "QPBT-056"
+      ],
+      "labels": [
+        "lean-blueprint",
+        "conditionally-linear",
+        "f06a",
+        "source-fidelity",
+        "encoding",
+        "contract-repair",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Publish a new superseding F06A signature marker that preserves the exact 56 public names, signatures, quantifier order, four-import union, G19 exponent boundary, and all accepted semantic clauses while replacing only the Cantor packSixTapes body with the paper dual-rail 0-to-01, 1-to-10, 00-terminated six-tuple codec and its injectivity contract; do not edit historical review reports.",
+        "Update the fail-closed blueprint checker, mutation tests, F06A metadata, graph, and generated chapter-02 entry to bind the new marker hash, exact linear length/self-delimiting semantics, and removal of Cantor encoding from the packing role without changing dependency topology or conflating this formalization defect with paper gap G19.",
+        "Record the proven source-fidelity failure from i057-reviewer-a03-pack-fidelity: the old all-false list codes satisfy c_(m+1)=1+c_m^2 and therefore distort logical tape length exponentially; distinguish this from any claim that the old abstract runtime proposition is false.",
+        "Pass blueprint tests, complete declaration/source checks, deterministic generation twice with byte-identical output, workflow validation, and diff hygiene; obtain one fresh immutable source/contract review before updating QPBT-057 to the superseding marker.",
+        "After approval, let the existing QPBT-057 Types.lean owner implement only the corrected packSixTapes body/injectivity proof and private linear parser traces; introduce no new public declaration, premise, obligation, or paper gap."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "references/2001.04383v3/sections/top-level/preliminaries.tex:96-143",
+        "workflow/state/sessions.json#i057-reviewer-a03-pack-fidelity",
+        "research/metrics/sessions.jsonl#i057-reviewer-a03-pack-fidelity",
+        "workflow/reviews/qpbt-054-f06a-repair-a04.md#F06A-A04-SIGNATURES",
+        "blueprint/metadata/nodes.json#F06A-EXECUTABLE-CL",
+        "blueprint/metadata/gaps.json#G19"
+      ],
+      "owned_paths": [
+        "workflow/reviews/qpbt-059-f06a-pack-contract-a01.md",
+        "blueprint/check.py",
+        "blueprint/tests/test_check.py",
+        "blueprint/metadata/nodes.json",
+        "blueprint/generated/graph.json",
+        "blueprint/src/generated/chapter-02-entries.tex"
+      ],
+      "created_at": "2026-09-03T00:12:21.251816Z",
+      "updated_at": "2026-09-03T00:12:21.251816Z",
       "blocked_reason": null,
       "unblock_condition": null
     }
