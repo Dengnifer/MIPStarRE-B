@@ -1639,4 +1639,159 @@ theorem ExecutableCLSampler.downsize_time
 
 end
 
+/-! ## Typed conditionally-linear samplers and deciders
+
+This section formalizes the finite mathematical interface from
+`types.tex:57-195`.  An ordered edge selects the two endpoint maps, which are
+then evaluated on one shared uniform seed.
+-/
+
+universe uType uQuestion uAnswer
+
+/-- A finite nonempty graph represented by its symmetric ordered-edge support. -/
+structure TypeGraph (TypeId : Type uType)
+    [Fintype TypeId] [DecidableEq TypeId] where
+  orderedEdges : Finset (TypeId × TypeId)
+  symmetric : forall u v,
+    (u, v) ∈ orderedEdges ↔ (v, u) ∈ orderedEdges
+  nonempty : orderedEdges.Nonempty
+
+/-- The uniform distribution on a graph's ordered-edge support. -/
+noncomputable def TypeGraph.distribution
+    {TypeId : Type uType} [Fintype TypeId] [DecidableEq TypeId]
+    (G : TypeGraph TypeId) : PMF (TypeId × TypeId) :=
+  PMF.uniformOfFinset G.orderedEdges G.nonempty
+
+/-- The graph distribution has exactly the uniform ordered-edge point law. -/
+@[simp] theorem TypeGraph.distribution_apply
+    {TypeId : Type uType} [Fintype TypeId] [DecidableEq TypeId]
+    (G : TypeGraph TypeId) (u v : TypeId) :
+    G.distribution (u, v) =
+      if (u, v) ∈ G.orderedEdges
+      then (G.orderedEdges.card : ENNReal)⁻¹ else 0 := by
+  classical
+  by_cases h : (u, v) ∈ G.orderedEdges <;>
+    simp [TypeGraph.distribution, h]
+
+/-- A question tagged by its type, with an arbitrary dependent content fiber. -/
+abbrev TypedQuestion
+    (TypeId : Type uType) (Question : TypeId -> Type uQuestion) :=
+  Sigma Question
+
+/-- Type-indexed CL maps for the two players over a finite type graph. -/
+structure TypedSampler (TypeId : Type uType)
+    [Fintype TypeId] [DecidableEq TypeId] (k n level : Nat) where
+  graph : TypeGraph TypeId
+  alice : TypeId -> ConditionallyLinearMap k n level
+  bob : TypeId -> ConditionallyLinearMap k n level
+
+/-- Sample an ordered edge, then evaluate its endpoint maps on one shared seed. -/
+noncomputable def TypedSampler.sample
+    {TypeId : Type uType} [Fintype TypeId] [DecidableEq TypeId]
+    {k n level : Nat} (S : TypedSampler TypeId k n level) :
+    PMF (((t : TypeId) × FieldVector k n) ×
+      ((t : TypeId) × FieldVector k n)) :=
+  S.graph.distribution.bind fun edge =>
+    let edgeSampler : CLSampler k n level :=
+      { alice := S.alice edge.1, bob := S.bob edge.2 }
+    edgeSampler.sample.map fun pair =>
+      (⟨edge.1, pair.1⟩, ⟨edge.2, pair.2⟩)
+
+/-- Projecting a typed sample to its tags recovers the graph distribution. -/
+theorem TypedSampler.sample_types
+    {TypeId : Type uType} [Fintype TypeId] [DecidableEq TypeId]
+    {k n level : Nat} (S : TypedSampler TypeId k n level) :
+    PMF.map (fun questions :
+      ((t : TypeId) × FieldVector k n) ×
+        ((t : TypeId) × FieldVector k n) =>
+        (questions.1.1, questions.2.1)) S.sample =
+      S.graph.distribution := by
+  unfold TypedSampler.sample
+  rw [PMF.map_bind]
+  calc
+    _ = S.graph.distribution.bind (fun edge => PMF.pure edge) := by
+      congr 1
+      funext edge
+      rw [PMF.map_comp]
+      have hconstant :
+          ((fun questions :
+              ((t : TypeId) × FieldVector k n) ×
+                ((t : TypeId) × FieldVector k n) =>
+              (questions.1.1, questions.2.1)) ∘
+            (fun pair : FieldVector k n × FieldVector k n =>
+              (⟨edge.1, pair.1⟩, ⟨edge.2, pair.2⟩))) =
+            Function.const (FieldVector k n × FieldVector k n) edge := by
+        funext pair
+        exact Prod.eta edge
+      rw [hconstant, PMF.map_const]
+    _ = S.graph.distribution := PMF.bind_pure _
+
+/-- Downsize both type-indexed CL families in the selected field basis. -/
+noncomputable def TypedSampler.downsize
+    {TypeId : Type uType} [Fintype TypeId] [DecidableEq TypeId]
+    {k n level : Nat} (D : FieldData k)
+    (S : TypedSampler TypeId k n level) :
+    TypedSampler TypeId 1 (n * k) level where
+  graph := S.graph
+  alice t := (S.alice t).downsize D
+  bob t := (S.bob t).downsize D
+
+/-- Typed downsizing is the exact coordinate pushforward of the sample law. -/
+theorem TypedSampler.sample_downsize
+    {TypeId : Type uType} [Fintype TypeId] [DecidableEq TypeId]
+    {k n level : Nat} (D : FieldData k)
+    (S : TypedSampler TypeId k n level) :
+    (S.downsize D).sample =
+      PMF.map (fun questions =>
+        (⟨questions.1.1, downsizeVector D n questions.1.2⟩,
+          ⟨questions.2.1, downsizeVector D n questions.2.2⟩)) S.sample := by
+  unfold TypedSampler.sample
+  rw [PMF.map_bind]
+  congr 1
+  funext edge
+  simp only [TypedSampler.downsize]
+  let edgeSampler : CLSampler k n level :=
+    { alice := S.alice edge.1, bob := S.bob edge.2 }
+  let tagSource : FieldVector k n × FieldVector k n ->
+      (((t : TypeId) × FieldVector k n) ×
+        ((t : TypeId) × FieldVector k n)) := fun pair =>
+    (⟨edge.1, pair.1⟩, ⟨edge.2, pair.2⟩)
+  let tagDown : FieldVector 1 (n * k) × FieldVector 1 (n * k) ->
+      (((t : TypeId) × FieldVector 1 (n * k)) ×
+        ((t : TypeId) × FieldVector 1 (n * k))) := fun pair =>
+    (⟨edge.1, pair.1⟩, ⟨edge.2, pair.2⟩)
+  let coordinate :
+      (((t : TypeId) × FieldVector k n) ×
+        ((t : TypeId) × FieldVector k n)) ->
+      (((t : TypeId) × FieldVector 1 (n * k)) ×
+        ((t : TypeId) × FieldVector 1 (n * k))) := fun questions =>
+    (⟨questions.1.1, downsizeVector D n questions.1.2⟩,
+      ⟨questions.2.1, downsizeVector D n questions.2.2⟩)
+  change (edgeSampler.downsize D).sample.map tagDown =
+    (edgeSampler.sample.map tagSource).map coordinate
+  rw [CLSampler.sample_downsize, PMF.map_comp, PMF.map_comp]
+  congr 1
+
+/-- A total typed acceptance predicate over arbitrary dependent fibers. -/
+structure TypedDecider
+    (TypeId : Type uType)
+    (AliceQuestion BobQuestion : TypeId -> Type uQuestion)
+    (AliceAnswer BobAnswer : TypeId -> Type uAnswer) where
+  decide : forall leftType rightType,
+    AliceQuestion leftType -> BobQuestion rightType ->
+    AliceAnswer leftType -> BobAnswer rightType -> Bool
+
+/-- Apply a typed decider without erasing its dependent fibers. -/
+def TypedDecider.accepts
+    {TypeId : Type uType}
+    {AliceQuestion BobQuestion : TypeId -> Type uQuestion}
+    {AliceAnswer BobAnswer : TypeId -> Type uAnswer}
+    (D : TypedDecider TypeId AliceQuestion BobQuestion AliceAnswer BobAnswer)
+    (leftType rightType : TypeId)
+    (leftQuestion : AliceQuestion leftType)
+    (rightQuestion : BobQuestion rightType)
+    (leftAnswer : AliceAnswer leftType)
+    (rightAnswer : BobAnswer rightType) : Bool :=
+  D.decide leftType rightType leftQuestion rightQuestion leftAnswer rightAnswer
+
 end MIPStarRE.QPBT
