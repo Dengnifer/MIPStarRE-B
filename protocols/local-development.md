@@ -261,6 +261,20 @@ making its own `linkat` call and performs no later payload or metadata write.
 That ordering does not prevent an excluded same-identity process from first
 linking a producer descriptor or relocating a bound ancestor between syscalls.
 
+One live foundation materialization owns exactly one nonblocking inotify
+instance. Its shared event hub routes every drained kernel event by watch
+descriptor into a private queue for each applicable logical monitor, so polling
+one object cannot consume another object's evidence. Multiple logical monitors
+for the same watched inode receive the same event independently. Closing a
+logical monitor only unsubscribes it: kernel watches remain installed until the
+materialization authority closes, preventing one subscriber from removing a
+sibling's watch. Queue overflow, malformed input, empty reads, read errors, and
+unroutable watch descriptors permanently poison the complete authority;
+`IN_IGNORED`, unmount, and self-delete poison every subscriber to the affected
+watch. A terminal or identity-reused watch descriptor remains poisoned for the
+authority's lifetime. Expected owned mutations still require an exact
+name-and-mask multiset before a logical monitor can continue.
+
 The cache record includes key, source SHA, elected owner, hit/miss, lock wait,
 dependency-cache duration, build duration, total duration, exit status, and log
 path. Cache cleanup is explicit and outside ordinary agent runs.

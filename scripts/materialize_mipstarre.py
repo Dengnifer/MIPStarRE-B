@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from contextlib import contextmanager
+from contextvars import ContextVar
 import ctypes
 import errno
 import fcntl
@@ -52,6 +53,7 @@ _IN_MOVE_SELF = 0x00000800
 _IN_UNMOUNT = 0x00002000
 _IN_Q_OVERFLOW = 0x00004000
 _IN_IGNORED = 0x00008000
+_IN_MASK_ADD = 0x20000000
 _INOTIFY_EVENT = struct.Struct("iIII")
 
 
@@ -189,10 +191,10 @@ def _assert_name_absent(parent: int, name: str, label: str) -> None:
     raise MaterializationError(f"{label} appeared concurrently")
 
 
-class _BoundNameMonitor:
-    """Permanently reject substitution or ABA of selected directory children."""
+class _InotifyHub:
+    """Route one inotify event stream to independently consumed logical monitors."""
 
-    def __init__(self, parent_descriptor: int, names: Sequence[str] | None):
+    def __init__(self) -> None:
         libc = _linux_libc()
         initialize = getattr(libc, "inotify_init1", None)
         add_watch = getattr(libc, "inotify_add_watch", None)
@@ -208,7 +210,9 @@ class _BoundNameMonitor:
             raise MaterializationError(
                 f"could not initialize materialization monitor: {os.strerror(error_number)}"
             )
-        mask = (
+        self.descriptor = descriptor
+        self._add_watch_call = add_watch
+        self._mask = (
             _IN_MODIFY
             | _IN_ATTRIB
             | _IN_MOVED_FROM
@@ -220,64 +224,173 @@ class _BoundNameMonitor:
             | _IN_UNMOUNT
             | _IN_Q_OVERFLOW
         )
-        ctypes.set_errno(0)
-        watch = add_watch(descriptor, os.fsencode(f"/proc/self/fd/{parent_descriptor}"), mask)
-        if watch < 0:
-            error_number = ctypes.get_errno()
-            os.close(descriptor)
-            raise MaterializationError(
-                f"could not bind materialization monitor: {os.strerror(error_number)}"
-            )
-        self.descriptor = descriptor
-        self.watch = watch
-        self.names = None if names is None else {os.fsencode(name) for name in names}
+        self._subscribers: dict[int, set[_BoundNameMonitor]] = {}
+        self._watch_identities: dict[int, tuple[int, int, int]] = {}
+        self._poisoned_watches: set[int] = set()
         self.poisoned = False
+        self.closed = False
 
-    def _drain(self) -> tuple[list[tuple[bytes, int]], bool]:
-        relevant: list[tuple[bytes, int]] = []
-        fatal = False
+    @staticmethod
+    def _identity(descriptor: int) -> tuple[int, int, int]:
+        metadata = os.fstat(descriptor)
+        return metadata.st_dev, metadata.st_ino, stat.S_IFMT(metadata.st_mode)
+
+    def _poison_all(self) -> None:
+        self.poisoned = True
+        for subscribers in self._subscribers.values():
+            for subscriber in subscribers:
+                subscriber.poisoned = True
+
+    def _poison_watch(self, watch: int) -> None:
+        self._poisoned_watches.add(watch)
+        for subscriber in self._subscribers.get(watch, ()):
+            subscriber.poisoned = True
+
+    def _route(self, watch: int, mask: int, name: bytes) -> None:
+        if mask & _IN_Q_OVERFLOW:
+            self._poison_all()
+            return
+        if watch == -1 or watch not in self._watch_identities:
+            self._poison_all()
+            return
+        if mask & (_IN_IGNORED | _IN_UNMOUNT | _IN_DELETE_SELF):
+            self._poison_watch(watch)
+            return
+        for subscriber in tuple(self._subscribers.get(watch, ())):
+            if subscriber.closed:
+                continue
+            if mask & _IN_MOVE_SELF:
+                subscriber._events.append((b"", _IN_MOVE_SELF))
+            elif subscriber.names is None or name in subscriber.names:
+                operation = mask & (
+                    _IN_MODIFY
+                    | _IN_ATTRIB
+                    | _IN_MOVED_FROM
+                    | _IN_MOVED_TO
+                    | _IN_CREATE
+                    | _IN_DELETE
+                )
+                subscriber._events.append((name, operation))
+
+    def drain(self) -> None:
+        if self.closed:
+            self._poison_all()
+            return
         while True:
             try:
                 payload = os.read(self.descriptor, 64 * 1024)
             except BlockingIOError:
-                break
+                return
             except OSError:
-                self.poisoned = True
-                return relevant, True
+                self._poison_all()
+                return
             if not payload:
-                self.poisoned = True
-                return relevant, True
+                self._poison_all()
+                return
             offset = 0
             while offset < len(payload):
                 if len(payload) - offset < _INOTIFY_EVENT.size:
-                    fatal = True
-                    break
+                    self._poison_all()
+                    return
                 watch, mask, _cookie, name_size = _INOTIFY_EVENT.unpack_from(payload, offset)
                 offset += _INOTIFY_EVENT.size
                 if len(payload) - offset < name_size:
-                    fatal = True
-                    break
-                name = payload[offset : offset + name_size].split(b"\0", 1)[0]
+                    self._poison_all()
+                    return
+                raw_name = payload[offset : offset + name_size]
                 offset += name_size
-                if watch not in {-1, self.watch} or mask & (
-                    _IN_Q_OVERFLOW | _IN_IGNORED | _IN_UNMOUNT | _IN_DELETE_SELF
-                ):
-                    fatal = True
-                elif mask & _IN_MOVE_SELF:
-                    relevant.append((b"", _IN_MOVE_SELF))
-                elif self.names is None or name in self.names:
-                    operation = mask & (
-                        _IN_MODIFY
-                        | _IN_ATTRIB
-                        | _IN_MOVED_FROM
-                        | _IN_MOVED_TO
-                        | _IN_CREATE
-                        | _IN_DELETE
-                    )
-                    relevant.append((name, operation))
-        if fatal:
-            self.poisoned = True
-        return relevant, fatal
+                if name_size:
+                    name, terminator, padding = raw_name.partition(b"\0")
+                    if not terminator or any(padding):
+                        self._poison_all()
+                        return
+                else:
+                    name = b""
+                self._route(watch, mask, name)
+
+    def subscribe(self, monitor: _BoundNameMonitor, parent_descriptor: int) -> int:
+        if self.closed:
+            monitor.poisoned = True
+            raise MaterializationError("materialization monitor authority is closed")
+        self.drain()
+        identity = self._identity(parent_descriptor)
+        ctypes.set_errno(0)
+        watch = self._add_watch_call(
+            self.descriptor,
+            os.fsencode(f"/proc/self/fd/{parent_descriptor}"),
+            self._mask | _IN_MASK_ADD,
+        )
+        if watch < 0:
+            error_number = ctypes.get_errno()
+            raise MaterializationError(
+                f"could not bind materialization monitor: {os.strerror(error_number)}"
+            )
+        prior_identity = self._watch_identities.setdefault(watch, identity)
+        self._subscribers.setdefault(watch, set()).add(monitor)
+        if prior_identity != identity or watch in self._poisoned_watches or self.poisoned:
+            self._poison_watch(watch)
+        self.drain()
+        return watch
+
+    def unsubscribe(self, monitor: _BoundNameMonitor) -> None:
+        if self.closed:
+            return
+        self.drain()
+        subscribers = self._subscribers.get(monitor.watch)
+        if subscribers is not None:
+            subscribers.discard(monitor)
+
+    def close(self) -> None:
+        if self.closed:
+            return
+        self.closed = True
+        self._poison_all()
+        os.close(self.descriptor)
+
+
+_ACTIVE_INOTIFY_HUB: ContextVar[_InotifyHub | None] = ContextVar(
+    "materialize_mipstarre_inotify_hub", default=None
+)
+
+
+@contextmanager
+def _monitor_authority() -> Iterator[_InotifyHub]:
+    existing = _ACTIVE_INOTIFY_HUB.get()
+    if existing is not None:
+        yield existing
+        return
+    hub = _InotifyHub()
+    token = _ACTIVE_INOTIFY_HUB.set(hub)
+    try:
+        yield hub
+    finally:
+        _ACTIVE_INOTIFY_HUB.reset(token)
+        try:
+            hub.close()
+        except OSError:
+            pass
+
+
+class _BoundNameMonitor:
+    """Permanently reject substitution or ABA of selected directory children."""
+
+    def __init__(self, parent_descriptor: int, names: Sequence[str] | None):
+        hub = _ACTIVE_INOTIFY_HUB.get()
+        if hub is None:
+            raise MaterializationError("materialization monitor lacks a shared event authority")
+        self.hub = hub
+        self.names = None if names is None else {os.fsencode(name) for name in names}
+        self._events: list[tuple[bytes, int]] = []
+        self.poisoned = False
+        self.closed = False
+        self.watch = -1
+        self.watch = hub.subscribe(self, parent_descriptor)
+
+    def _drain(self) -> tuple[list[tuple[bytes, int]], bool]:
+        self.hub.drain()
+        relevant = self._events
+        self._events = []
+        return relevant, self.poisoned
 
     def assert_clean(self) -> None:
         relevant, fatal = self._drain()
@@ -294,7 +407,10 @@ class _BoundNameMonitor:
             raise MaterializationError("materialization mutation lacked its exact monitor events")
 
     def close(self) -> None:
-        os.close(self.descriptor)
+        if self.closed:
+            return
+        self.hub.unsubscribe(self)
+        self.closed = True
 
 
 def _atomic_move_bound(
@@ -1923,6 +2039,22 @@ def validate_project_pins(repo_root: Path, pin: Mapping[str, Any]) -> None:
 
 
 def materialize(
+    repo_root: Path,
+    pin_path: Path,
+    archive_path: Path,
+    *,
+    replace_existing: bool = False,
+) -> dict[str, Any]:
+    with _monitor_authority():
+        return _materialize(
+            repo_root,
+            pin_path,
+            archive_path,
+            replace_existing=replace_existing,
+        )
+
+
+def _materialize(
     repo_root: Path,
     pin_path: Path,
     archive_path: Path,

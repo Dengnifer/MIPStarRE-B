@@ -157,6 +157,284 @@ class MaterializationTests(unittest.TestCase):
             expected_tar_bytes=len(raw),
         )
 
+    def test_shared_hub_retains_more_than_128_real_monitors(self) -> None:
+        watch_root = Path(self.temporary.name) / "many-watches"
+        watch_root.mkdir()
+        descriptors: list[int] = []
+        monitors: list[source._BoundNameMonitor] = []
+        hub_descriptor = -1
+        try:
+            with source._monitor_authority() as hub:
+                hub_descriptor = hub.descriptor
+                for index in range(160):
+                    directory = watch_root / f"watch-{index:03d}"
+                    directory.mkdir()
+                    descriptor = os.open(directory, source._directory_flags())
+                    descriptors.append(descriptor)
+                    monitors.append(source._BoundNameMonitor(descriptor, None))
+
+                self.assertEqual(160, len(monitors))
+                self.assertEqual({hub_descriptor}, {monitor.hub.descriptor for monitor in monitors})
+                for monitor in monitors:
+                    monitor.assert_clean()
+
+                os.mkdir("owned", dir_fd=descriptors[0])
+                monitors[-1].assert_clean()
+                monitors[0].accept_owned_change((("owned", source._IN_CREATE),))
+        finally:
+            for monitor in reversed(monitors):
+                monitor.close()
+            for descriptor in reversed(descriptors):
+                os.close(descriptor)
+        with self.assertRaises(OSError):
+            os.fstat(hub_descriptor)
+
+    def test_shared_hub_routes_cross_watch_events_independently_of_poll_order(self) -> None:
+        first_path = Path(self.temporary.name) / "route-first"
+        second_path = Path(self.temporary.name) / "route-second"
+        first_path.mkdir()
+        second_path.mkdir()
+        first_descriptor = os.open(first_path, source._directory_flags())
+        second_descriptor = os.open(second_path, source._directory_flags())
+        first_monitor: source._BoundNameMonitor | None = None
+        second_monitor: source._BoundNameMonitor | None = None
+        try:
+            with source._monitor_authority():
+                first_monitor = source._BoundNameMonitor(first_descriptor, ("first",))
+                second_monitor = source._BoundNameMonitor(second_descriptor, ("second",))
+
+                os.mkdir("first", dir_fd=first_descriptor)
+                second_monitor.assert_clean()
+                first_monitor.accept_owned_change((("first", source._IN_CREATE),))
+
+                os.mkdir("second", dir_fd=second_descriptor)
+                first_monitor.assert_clean()
+                second_monitor.accept_owned_change((("second", source._IN_CREATE),))
+        finally:
+            if second_monitor is not None:
+                second_monitor.close()
+            if first_monitor is not None:
+                first_monitor.close()
+            os.close(second_descriptor)
+            os.close(first_descriptor)
+
+    def test_duplicate_watch_subscribers_fan_out_and_close_independently(self) -> None:
+        watched = Path(self.temporary.name) / "duplicate-watch"
+        watched.mkdir()
+        descriptor = os.open(watched, source._directory_flags())
+        first: source._BoundNameMonitor | None = None
+        second: source._BoundNameMonitor | None = None
+        try:
+            with source._monitor_authority() as hub:
+                first = source._BoundNameMonitor(descriptor, None)
+                second = source._BoundNameMonitor(descriptor, None)
+                self.assertEqual(first.watch, second.watch)
+
+                os.mkdir("fanout", dir_fd=descriptor)
+                second.accept_owned_change((("fanout", source._IN_CREATE),))
+                first.accept_owned_change((("fanout", source._IN_CREATE),))
+
+                second.close()
+                second.close()
+                os.mkdir("survivor", dir_fd=descriptor)
+                first.accept_owned_change((("survivor", source._IN_CREATE),))
+                os.fstat(hub.descriptor)
+        finally:
+            if second is not None:
+                second.close()
+            if first is not None:
+                first.close()
+            os.close(descriptor)
+
+    def test_watch_local_terminal_events_do_not_poison_other_watches(self) -> None:
+        removed_path = Path(self.temporary.name) / "removed-watch"
+        survivor_path = Path(self.temporary.name) / "surviving-watch"
+        removed_path.mkdir()
+        survivor_path.mkdir()
+        removed_descriptor = os.open(removed_path, source._directory_flags())
+        survivor_descriptor = os.open(survivor_path, source._directory_flags())
+        removed_monitor: source._BoundNameMonitor | None = None
+        survivor_monitor: source._BoundNameMonitor | None = None
+        try:
+            with source._monitor_authority():
+                removed_monitor = source._BoundNameMonitor(removed_descriptor, None)
+                survivor_monitor = source._BoundNameMonitor(survivor_descriptor, None)
+                remove_watch = getattr(source._linux_libc(), "inotify_rm_watch")
+                remove_watch.argtypes = [ctypes.c_int, ctypes.c_int]
+                remove_watch.restype = ctypes.c_int
+                self.assertEqual(
+                    0,
+                    remove_watch(
+                        removed_monitor.hub.descriptor,
+                        removed_monitor.watch,
+                    ),
+                )
+
+                survivor_monitor.assert_clean()
+                with self.assertRaisesRegex(source.MaterializationError, "became ambiguous"):
+                    removed_monitor.assert_clean()
+
+                os.mkdir("still-routed", dir_fd=survivor_descriptor)
+                survivor_monitor.accept_owned_change((("still-routed", source._IN_CREATE),))
+        finally:
+            if survivor_monitor is not None:
+                survivor_monitor.close()
+            if removed_monitor is not None:
+                removed_monitor.close()
+            os.close(survivor_descriptor)
+            os.close(removed_descriptor)
+
+    def test_real_queue_overflow_permanently_poisons_every_subscriber(self) -> None:
+        queue_limit = int(Path("/proc/sys/fs/inotify/max_queued_events").read_text())
+        if queue_limit > 65536:
+            self.skipTest("inotify queue limit exceeds the bounded real-overflow workload")
+        noisy_path = Path(self.temporary.name) / "overflow-noisy"
+        quiet_path = Path(self.temporary.name) / "overflow-quiet"
+        noisy_path.mkdir()
+        quiet_path.mkdir()
+        noisy_descriptor = os.open(noisy_path, source._directory_flags())
+        quiet_descriptor = os.open(quiet_path, source._directory_flags())
+        noisy_monitor: source._BoundNameMonitor | None = None
+        quiet_monitor: source._BoundNameMonitor | None = None
+        try:
+            with source._monitor_authority() as hub:
+                noisy_monitor = source._BoundNameMonitor(noisy_descriptor, None)
+                quiet_monitor = source._BoundNameMonitor(quiet_descriptor, None)
+                descriptor = os.open(
+                    "left",
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                    0o600,
+                    dir_fd=noisy_descriptor,
+                )
+                os.close(descriptor)
+                noisy_monitor.accept_owned_change((("left", source._IN_CREATE),))
+
+                current, destination = "left", "right"
+                for _ in range(queue_limit // 2 + 1024):
+                    os.rename(
+                        current,
+                        destination,
+                        src_dir_fd=noisy_descriptor,
+                        dst_dir_fd=noisy_descriptor,
+                    )
+                    current, destination = destination, current
+
+                with self.assertRaisesRegex(source.MaterializationError, "became ambiguous"):
+                    quiet_monitor.assert_clean()
+                self.assertTrue(hub.poisoned)
+                with self.assertRaisesRegex(source.MaterializationError, "became ambiguous"):
+                    noisy_monitor.assert_clean()
+        finally:
+            if quiet_monitor is not None:
+                quiet_monitor.close()
+            if noisy_monitor is not None:
+                noisy_monitor.close()
+            os.close(quiet_descriptor)
+            os.close(noisy_descriptor)
+
+    def test_stream_failures_globally_poison_all_subscribers(self) -> None:
+        first_path = Path(self.temporary.name) / "stream-first"
+        second_path = Path(self.temporary.name) / "stream-second"
+        first_path.mkdir()
+        second_path.mkdir()
+        first_descriptor = os.open(first_path, source._directory_flags())
+        second_descriptor = os.open(second_path, source._directory_flags())
+        try:
+            for label in ("short-header", "unterminated-name", "empty", "read-error"):
+                with self.subTest(label=label), source._monitor_authority() as hub:
+                    first = source._BoundNameMonitor(first_descriptor, None)
+                    second = source._BoundNameMonitor(second_descriptor, None)
+
+                    def failure(_descriptor: int, _size: int) -> bytes:
+                        if label == "short-header":
+                            return b"\0"
+                        if label == "unterminated-name":
+                            return source._INOTIFY_EVENT.pack(
+                                first.watch, source._IN_CREATE, 0, 4
+                            ) + b"name"
+                        if label == "empty":
+                            return b""
+                        raise OSError(errno.EIO, "injected read failure")
+
+                    try:
+                        with mock.patch.object(source.os, "read", side_effect=failure):
+                            with self.assertRaisesRegex(
+                                source.MaterializationError, "became ambiguous"
+                            ):
+                                first.assert_clean()
+                        self.assertTrue(hub.poisoned)
+                        with self.assertRaisesRegex(
+                            source.MaterializationError, "became ambiguous"
+                        ):
+                            second.assert_clean()
+                    finally:
+                        second.close()
+                        first.close()
+        finally:
+            os.close(second_descriptor)
+            os.close(first_descriptor)
+
+    def test_reused_watch_descriptor_is_permanently_ambiguous(self) -> None:
+        first_path = Path(self.temporary.name) / "reuse-first"
+        second_path = Path(self.temporary.name) / "reuse-second"
+        first_path.mkdir()
+        second_path.mkdir()
+        first_descriptor = os.open(first_path, source._directory_flags())
+        second_descriptor = os.open(second_path, source._directory_flags())
+        first: source._BoundNameMonitor | None = None
+        second: source._BoundNameMonitor | None = None
+        try:
+            with source._monitor_authority() as hub:
+                first = source._BoundNameMonitor(first_descriptor, None)
+                reused_watch = first.watch
+                real_add_watch = hub._add_watch_call
+
+                def reuse_watch(_descriptor: int, _path: bytes, _mask: int) -> int:
+                    return reused_watch
+
+                hub._add_watch_call = reuse_watch
+                try:
+                    second = source._BoundNameMonitor(second_descriptor, None)
+                finally:
+                    hub._add_watch_call = real_add_watch
+                self.assertTrue(first.poisoned)
+                self.assertTrue(second.poisoned)
+                with self.assertRaisesRegex(source.MaterializationError, "became ambiguous"):
+                    second.assert_clean()
+        finally:
+            if second is not None:
+                second.close()
+            if first is not None:
+                first.close()
+            os.close(second_descriptor)
+            os.close(first_descriptor)
+
+    def test_shared_hub_closes_after_partial_monitor_construction_failure(self) -> None:
+        watched = Path(self.temporary.name) / "partial-monitor"
+        watched.mkdir()
+        descriptor = os.open(watched, source._directory_flags())
+        hub_descriptor = -1
+        monitor: source._BoundNameMonitor | None = None
+        try:
+            with self.assertRaisesRegex(source.MaterializationError, "Too many open files"):
+                with source._monitor_authority() as hub:
+                    hub_descriptor = hub.descriptor
+                    monitor = source._BoundNameMonitor(descriptor, None)
+
+                    def fail_add_watch(_descriptor: int, _path: bytes, _mask: int) -> int:
+                        ctypes.set_errno(errno.EMFILE)
+                        return -1
+
+                    hub._add_watch_call = fail_add_watch
+                    source._BoundNameMonitor(descriptor, None)
+        finally:
+            if monitor is not None:
+                monitor.close()
+            os.close(descriptor)
+        self.assertIsNone(source._ACTIVE_INOTIFY_HUB.get())
+        with self.assertRaises(OSError):
+            os.fstat(hub_descriptor)
+
     def test_publish_verify_and_cached_rerun_preserve_authored_tree(self) -> None:
         authored = self.root / "MIPStarRE" / "QPBT"
         authored.mkdir(parents=True)
