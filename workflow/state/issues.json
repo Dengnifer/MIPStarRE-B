@@ -5696,7 +5696,7 @@
       "title": "fix(cache): bound materializer inotify instance use",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "in_progress",
       "parent_id": "QPBT-068",
       "dependency_ids": [
         "QPBT-051"
@@ -5716,7 +5716,7 @@
         "Pass the complete materializer, hot-cache, workflow, and checker suites plus exact source/archive materialization in a disposable checkout; obtain a fresh immutable review.",
         "Retry exactly one singleton production warm on the repaired main snapshot, pass one private prepare canary, and preserve the failed transaction evidence until disposition is recorded."
       ],
-      "owner_session_id": "i084-orchestrator-a02-inotify-hub",
+      "owner_session_id": "i084-orchestrator-a04-closed-monitor",
       "source_refs": [
         ".workflow-runtime/cache/failures/47165fe685b84536f6f5d2c93b9cd511865ca391c6d6510dac4f20ae0ab3350c-20260904T145103-2/failure.json",
         ".workflow-runtime/cache/failures/47165fe685b84536f6f5d2c93b9cd511865ca391c6d6510dac4f20ae0ab3350c-20260904T145103-2/build.log",
@@ -5731,16 +5731,16 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-04T06:55:07.385848Z",
-      "updated_at": "2026-09-04T09:58:39.481119Z",
-      "blocked_reason": "Exact four-file candidate is frozen and A03 security/correctness review is issued; integration and production warm await its verdict.",
-      "unblock_condition": "Obtain A03 approval, integrate PR #35, then perform exactly one production warm and one private prepare canary.",
+      "updated_at": "2026-09-04T10:13:48.185115Z",
+      "blocked_reason": "R1-F1 repair is issued to the sole writable orchestrator on the existing candidate worktree.",
+      "unblock_condition": "Complete and validate the closed-monitor repair, then obtain changed-head approval.",
       "candidate_base_sha": "72d76a719f29f7304bd84ea1e7761a6b6f40a269",
       "candidate_head_sha": "cbe3a9e9aaaf2f9a7ad64fc8d8396ce43b18fb21",
       "candidate_tree": "4887c2d9102625cb29aaca4dbf441a1acd4930a6",
       "candidate_patch_sha256": "9b76e3c607371ffc1bd31866ef3a3a6c29126a46236768c3c9500af6525be191",
       "candidate_report": ".workflow-runtime/runs/i084-orchestrator-a02-inotify-hub/result.json",
       "candidate_report_sha256": "dae1036c22e5f4a2d308d0fb11b3dbf166215176c884b5370bd0bbcb8f085e2e",
-      "candidate_status": "immutable-review-running",
+      "candidate_status": "repair-issued",
       "github_repository": "Dengnifer/MIPStarRE-B",
       "github_issue_number": 34,
       "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/34",
@@ -5748,14 +5748,29 @@
       "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/35",
       "github_branch": "issue/qpbt-084-inotify-a01",
       "github_pr_status": "draft",
-      "active_review_session_id": "i084-reviewer-a03-inotify-security",
+      "active_review_session_id": null,
       "active_review_projection": {
         "commit": "740258b58a053ed38b7a2af88d0a9d7fe2ff6332",
         "tree": "1f179806d1bc44277b9ceaaa724621040be9523f",
         "manifest_sha256": "b982ad247fbc59f07f05b6302ee2515751e75b38a2cfe04d035baf892a320213",
         "patch_sha256": "9b76e3c607371ffc1bd31866ef3a3a6c29126a46236768c3c9500af6525be191",
         "source_head": "cbe3a9e9aaaf2f9a7ad64fc8d8396ce43b18fb21"
-      }
+      },
+      "latest_review_report": ".workflow-runtime/runs/i084-reviewer-a03-inotify-security/result.json",
+      "latest_review_report_sha256": "9fc6d6cb3ce09e4288cf13d806ce914ad73160bfe65e0ac1da784599276fe62b",
+      "latest_review_manifest_sha256": "b982ad247fbc59f07f05b6302ee2515751e75b38a2cfe04d035baf892a320213",
+      "latest_review_head_sha": "cbe3a9e9aaaf2f9a7ad64fc8d8396ce43b18fb21",
+      "latest_review_verdict": "request_changes",
+      "latest_review_findings": [
+        {
+          "id": "R1-F1",
+          "severity": "medium",
+          "status": "open",
+          "path": "scripts/materialize_mipstarre.py:389",
+          "summary": "A closed logical monitor can certify an unmonitored interval.",
+          "required_change": "Make _drain permanently reject or poison closed monitors and extend the close regression to require assert_clean and accept_owned_change to fail after close."
+        }
+      ]
     },
     {
       "id": "QPBT-085",
