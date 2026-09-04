@@ -5791,33 +5791,33 @@
         "workflow/state/stages.json"
       ],
       "created_at": "2026-09-04T07:03:45.766516Z",
-      "updated_at": "2026-09-04T08:58:11.299137Z",
-      "blocked_reason": "Both A03 findings are resolved and all focused plus aggregate gates pass; one fresh immutable changed-head approval remains.",
-      "unblock_condition": "Freeze the committed repair head and obtain one independent A04 approval.",
-      "latest_review_report": ".workflow-runtime/runs/i085-reviewer-a03-final-policy/result.json",
-      "latest_review_report_sha256": "de968ede1f9cb2b9e076d8281f258eaf640889628af7e6ec63c2d872ff98c1e8",
-      "latest_review_manifest_sha256": "277b52fa4a3a2bbd602b53ed1790c2f9e03bebb748fbaa7d67ba918df0a2bcac",
-      "latest_review_head_sha": "2ac7561373a77949d9abcb8ababd54b0f1d27882",
+      "updated_at": "2026-09-04T09:21:04.529466Z",
+      "blocked_reason": "Both A04 checkpoint-consistency findings are resolved; focused ledger validation and one fresh immutable changed-head approval remain.",
+      "unblock_condition": "Validate the repaired ledgers, commit the repair head, freeze an immutable projection, and obtain A05 approval.",
+      "latest_review_report": ".workflow-runtime/runs/i085-reviewer-a04-repair/result.json",
+      "latest_review_report_sha256": "be2426f48d04a63ac2233e0c4c8232899c34d783b2bb6ba35c138f7480675aae",
+      "latest_review_manifest_sha256": "b23b78c4339e20875598a21825dd5ed24950300e125ce063abefbf89e17423d5",
+      "latest_review_head_sha": "86401f8dbd696c43f5f12f9a9882825a1c5f734d",
       "latest_review_verdict": "request_changes",
       "latest_review_findings": [
         {
-          "id": "R3-F1",
+          "id": "R4-F1",
           "severity": "medium",
           "status": "resolved",
-          "path": "workflow/state/stages.json:259",
-          "summary": "Stage 4A issuance total and research report were stale.",
-          "resolution_evidence": "Canonical Stage 4A count and report now both record 486; workflow validation and the host-access aggregate checker pass."
+          "path": "research/report.md:27",
+          "summary": "The 08:47:24Z checkpoint understated terminal metric rows by one.",
+          "resolution_evidence": "The historical checkpoint now records 694 terminal metric rows, matching the 694 archived sessions that existed at 08:47:24Z."
         },
         {
-          "id": "R3-F2",
-          "severity": "low",
+          "id": "R4-F2",
+          "severity": "medium",
           "status": "resolved",
-          "path": "scripts/local_agent.py:2193",
-          "summary": "The codex exec review help probe omitted the mandated leaf configuration.",
-          "resolution_evidence": "The help argv now includes CODEX_LEAF_CONFIG_ARGUMENTS exactly once; the focused assertion, 64/64 local-agent tests, and 503/503 aggregate tests pass."
+          "path": "workflow/events.jsonl",
+          "summary": "The final Stage 4A incident_ids state lacked a corresponding canonical event.",
+          "resolution_evidence": "A non-backdated workflow.py stage update records the unchanged incident_ids list through INC-096."
         }
       ],
-      "candidate_status": "A03-findings-resolved-awaiting-A04",
+      "candidate_status": "A04-findings-resolved-awaiting-A05",
       "repair_validation": {
         "local_agent_tests": "64/64",
         "workflow_tests": "94/94",
@@ -5828,7 +5828,14 @@
         "jsonl_parse": "passed",
         "diff_check": "passed",
         "sandbox_attempt": "501/503 with two Unix-socket EPERM fixture denials",
-        "host_access_rerun": "503/503"
+        "host_access_rerun": "503/503",
+        "a04_metadata_workflow_tests": "94/94",
+        "a04_metadata_checker_tests": "3/3",
+        "a04_metadata_workflow_validate": "passed",
+        "a04_metadata_jsonl_parse": "passed",
+        "a04_metric_rows": 695,
+        "historical_checkpoint_metric_rows": 694,
+        "a04_metadata_diff_check": "passed"
       },
       "active_review_session_id": "i085-reviewer-a04-repair",
       "active_review_projection": {
@@ -5837,7 +5844,11 @@
         "manifest_sha256": "b23b78c4339e20875598a21825dd5ed24950300e125ce063abefbf89e17423d5",
         "patch_sha256": "14cc6690e467fc10e4a9e3ecd08cdc2a5fb50e97a6aea73e8eb912b95708890a",
         "source_head": "86401f8dbd696c43f5f12f9a9882825a1c5f734d"
-      }
+      },
+      "github_repository": "Dengnifer/MIPStarRE-B",
+      "github_issue_number": 36,
+      "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/36",
+      "github_issue_status": "open"
     }
   ]
 }

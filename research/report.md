@@ -24,7 +24,7 @@ availability reasons rather than receiving estimates.
 
 At the `2026-09-04T08:47:24Z` checkpoint, the same service exposed cumulative
 goal-level usage of `106,171,856` tokens and `222,913` seconds. The session
-ledger contained 695 issued rows, while the research ledger contained 693
+ledger contained 695 issued rows, while the research ledger contained 694
 terminal metric rows and 96 incident rows. These aggregates still cannot be
 allocated to collaboration sessions: only Codex CLI result envelopes expose
 per-session token counts. Track B now has an owner-imposed three-session

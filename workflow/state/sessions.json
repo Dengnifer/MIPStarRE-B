@@ -187,6 +187,39 @@
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "priority": 1,
       "notes": "Dry-run correctly refused issue status blocked; retained only as an unissued post-QPBT-068 preflight reservation."
+    },
+    {
+      "id": "i084-reviewer-a03-inotify-security",
+      "name": "i084-reviewer-a03-inotify-security",
+      "role": "reviewer",
+      "issue_id": "QPBT-084",
+      "attempt": 3,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "backend": "codex-cli",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "740258b58a053ed38b7a2af88d0a9d7fe2ff6332",
+      "base_revision_reason": "Standalone immutable 10-file projection of the exact QPBT-084 four-file candidate from source base 72d76a719f29f7304bd84ea1e7761a6b6f40a269 through source head cbe3a9e9aaaf2f9a7ad64fc8d8396ce43b18fb21; manifest b982ad247fbc59f07f05b6302ee2515751e75b38a2cfe04d035baf892a320213 and patch 9b76e3c607371ffc1bd31866ef3a3a6c29126a46236768c3c9500af6525be191 bind every disclosed byte.",
+      "base_tree": "1f179806d1bc44277b9ceaaa724621040be9523f",
+      "worktree": "/tmp/qpbt-084-review-a03",
+      "owned_paths": [],
+      "validation_command": "Authenticate projection commit/tree, manifest b982ad24, patch 9b76e3c6, exactly 10 evidence files, clean status, no remotes or alternates; review shared-inotify security, correctness, resource behavior, tests, and protocol claims; return findings-first JSON without writes.",
+      "result_envelope_path": ".workflow-runtime/runs/i084-reviewer-a03-inotify-security/result.json",
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "timing_quality": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Pending Codex CLI terminal usage event"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "external_id": null
     }
   ],
   "issued": [
@@ -39088,7 +39121,7 @@
       "role": "reviewer",
       "issue_id": "QPBT-085",
       "attempt": 4,
-      "status": "running",
+      "status": "archived",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "priority": 1,
       "backend": "codex-cli",
@@ -39102,18 +39135,43 @@
       "validation_command": "Authenticate projection commit/tree, manifest b23b78c4, patch 14cc6690, exactly 28 evidence files, clean status, no remotes or alternates; review the complete QPBT-085 policy and both A03 dispositions against every owner concurrency gate; return findings-first JSON without writes.",
       "result_envelope_path": ".workflow-runtime/runs/i085-reviewer-a04-repair/result.json",
       "started_at": "2026-09-04T08:56:55.969149Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
-      "timing_quality": null,
+      "ended_at": "2026-09-04T09:17:16.374433Z",
+      "elapsed_seconds": 1220.187835,
+      "timing_quality": "runtime-measured",
       "token_usage": {
-        "input": null,
-        "output": null,
-        "total": null,
-        "availability_reason": "Pending Codex CLI terminal usage event"
+        "input": 6107081,
+        "output": 38036,
+        "total": 6145117,
+        "availability_reason": null,
+        "cached_input": 5832832,
+        "reasoning_output": 20169
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
-      "external_id": null
+      "archive_status": "archived",
+      "outcome_path": ".workflow-runtime/runs/i085-reviewer-a04-repair/result.json",
+      "external_id": "01a06ba2-a5fe-7a93-9989-b4f676fde692",
+      "result_digest": "04bcbd2990ff8635df8fe9716c261df4666cf9cb663a44280bf2c974d5691be9",
+      "outcome": "request-changes",
+      "checks": {
+        "projection_commit": "08a0e83a29fd58b0ab7208f4fe2d9d7eda5433e3",
+        "projection_tree": "b16f23298afef7f8fe48962338fb4b4e2eaf3c37",
+        "source_base_sha": "9aaee76a42d1a3f9c0d1a146d3c79f4769f843f3",
+        "source_head_sha": "86401f8dbd696c43f5f12f9a9882825a1c5f734d",
+        "source_head_tree": "e7945384d8548d2e1f276be82ced1b3177b1353b",
+        "manifest_sha256": "b23b78c4339e20875598a21825dd5ed24950300e125ce063abefbf89e17423d5",
+        "patch_sha256": "14cc6690e467fc10e4a9e3ecd08cdc2a5fb50e97a6aea73e8eb912b95708890a",
+        "result_sha256": "be2426f48d04a63ac2233e0c4c8232899c34d783b2bb6ba35c138f7480675aae",
+        "events_sha256": "f0f3260dceb1b7b431958bdd27aaae1ddf6f85fe215df30ae4db5f8a8f24684c",
+        "archive_result_sha256": "732aa01f7b039d01da4c43912b5ba438894f9361603af031b1d4cb1e1e66dc2f",
+        "archive_stdout_sha256": "80bd9a1e0005f629700170335e95579b27f06a32696356b97454ef59674229be",
+        "manifest_entries": 26,
+        "evidence_file_count": 28,
+        "verdict": "request_changes",
+        "findings": 2,
+        "repository_writes": 0,
+        "subagents": 0,
+        "archive_status": "archived"
+      },
+      "notes": "A04 authenticated the exact repaired policy head and confirmed R3-F1/R3-F2 resolved. It found two checkpoint-consistency defects: the historical report understated terminal metrics by one, and Stage 4A incident_ids lacked a corresponding reconciliation event. Both receive a bounded root repair before A05."
     }
   ]
 }
