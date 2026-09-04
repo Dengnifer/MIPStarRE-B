@@ -34,6 +34,34 @@ would occur after the bootstrap transport and miss nested resumes, so QPBT-081
 adds no misleading partial code or test. Independent review remains required
 before activation.
 
+## 0.1.13 candidate (QPBT-068 A32) - 2026-09-04
+
+Fresh reviews A29 and A30 found that the A28 description mixed cooperative
+workflow guarantees with adversarial same-identity claims. A same-identity
+process can link a producer's `O_TMPFILE` descriptor or relocate an ancestor
+between syscalls, and a recursive inventory releases nested authority before
+the enclosing traversal returns. Those counterexamples are accepted; the
+stronger confinement and exact-snapshot claims are withdrawn, not presented as
+implementation fixes.
+
+The supported boundary is cooperating repository agents that obey target locks
+and do not concurrently mutate owned source, target, staging, transaction, or
+retained-evidence trees. Monitors and repeated descriptor-relative checks detect
+observed interference. Recursive inventory is a non-atomic monitored traversal
+record, and a single-link requirement rejects aliases present when a file is
+visited. For regular outputs, this program populates, metadata-finalizes, and
+fsyncs a zero-link `O_TMPFILE` before making its own `linkat`, then performs no
+later payload or metadata write. This order is not same-identity access control.
+
+Dry seed and prepare remain non-mutating with respect to detached-file
+publication: their output now says `detached_file_publication_checked: false`
+because dry admission does not create an `O_TMPFILE` or exercise either
+`linkat` route. Live failure regressions cover `O_TMPFILE` refusal and ordered
+failure of both direct and `/proc/self/fd` publication routes in the cache and
+materializer. Each case preserves the existing destination and retains partial
+staging or transaction evidence. Cache publication wraps the combined
+two-route error in the public `CacheError` contract.
+
 ## 0.1.13 candidate (QPBT-044) - 2026-09-03
 
 INC-050, INC-058, and INC-059 are the three occurrences of
