@@ -9774,7 +9774,7 @@
     {
       "id": "LPR-039",
       "title": "fix(blueprint/F07A): freeze executable detyping boundaries",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-080"
       ],
@@ -9782,7 +9782,9 @@
       "head": "issue/qpbt-080-detyping-boundary-a01",
       "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
       "head_sha": "c323bd874727a9364d821f4215f6f08fdf48c511",
-      "implementer_session_ids": [],
+      "implementer_session_ids": [
+        "i080-orchestrator-a06-review-repair"
+      ],
       "checks": [
         {
           "id": "check-qpbt-080-a01-candidate",
@@ -9801,7 +9803,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T01:27:00Z",
-      "updated_at": "2026-09-04T01:32:55.532834Z",
+      "updated_at": "2026-09-04T02:02:33.747682Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.dot",
@@ -9818,11 +9820,91 @@
       "testing": "A01 reports 42/42 blueprint tests, default and pinned-source checks, byte-idempotent regeneration, exact nine-path ownership, and clean diff.",
       "addresses": "QPBT-080",
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable source-fidelity and regression review, any required repair, guarded current-main integration, and post-merge checks remain.",
+      "unexecuted_gate": "Repair the three shared findings on a new head, rerun deterministic blueprint gates, obtain fresh correctly bound exact-head source and regression approvals, then perform guarded current-main integration.",
       "head_tree": "f591197007ebb3b3b76d38691d581f842680419e",
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-080-review-manifest-a04.json",
       "review_manifest_sha256": "f07e7f2cffb899d4d59f95f2f02aa0985a09456f7400eaaad14959ccacbffd3b",
-      "review_status": "a04-a05-running"
+      "review_status": "changes-requested-by-two-authenticated-candidate-reports-formal-binding-deferred",
+      "candidate_review_reports": [
+        {
+          "session_id": "i080-reviewer-a04-source-fidelity",
+          "report": "/tmp/i080-reviewer-a04-source-fidelity.md",
+          "sha256": "85c12aa41677036793680360984e7ef9032482927cfbeea7610f6c9fefb2ccec",
+          "verdict": "request_changes",
+          "finding_ids": [
+            "F080-A04-001",
+            "F080-A04-002",
+            "F080-A04-003"
+          ]
+        },
+        {
+          "session_id": "i080-reviewer-a05-regression",
+          "report": "/tmp/i080-reviewer-a05-regression.md",
+          "sha256": "5bae2dd4273133ec71f16874567805fe42ae6f9b0ee4816f4cc14dd396dd34cb",
+          "verdict": "request_changes",
+          "finding_ids": [
+            "F080-A05-001",
+            "F080-A05-002",
+            "F080-A05-003",
+            "F080-A05-004"
+          ]
+        }
+      ],
+      "review_binding_note": "The A04 and A05 sessions immutably recorded candidate head as their session base_revision, while the PR validator requires the PR base. Preserve the reports as authenticated candidate evidence, do not alter immutable session authority, and bind fresh post-repair reviewers correctly."
+    },
+    {
+      "id": "LPR-040",
+      "title": "fix(cache): close final transaction boundaries",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-068"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-068-cache-safety-a05",
+      "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+      "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-068-a28-candidate",
+          "name": "QPBT-068 A28 candidate validation",
+          "command": "Authenticate exact base, repair parent, head, tree, eight-path patches, 34 materializer tests, 143 cache tests, 77 workflow tests, 3 checker tests, validators, compileall, diff, ownership, and anchors",
+          "status": "passed",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "completed_at": "2026-09-04T03:42:32.007320Z",
+          "result_path": "/tmp/i068-orchestrator-a28-boundary-repair.md",
+          "result": "Exact eight-path cumulative patch 7eea7c34 and repair patch 8ffda670; 257/257 assigned tests plus validators and static gates pass."
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-04T03:43:00Z",
+      "updated_at": "2026-09-04T03:44:38.062738Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/local-development.md",
+        "scripts/hot_main_cache.py",
+        "scripts/materialize_mipstarre.py",
+        "tests/test_hot_main_cache.py",
+        "tests/test_mipstarre_materialization.py",
+        "workflow/reviews/qpbt-067-cache-layout-a01.md",
+        "workflow/reviews/qpbt-068-cache-safety-a01.md"
+      ],
+      "motivation": "Close the remaining cache and materializer write-boundary, late-mutation, dry-admission, and hard-link alias defects before any production cache is used for Lean work.",
+      "description": "Adopt the cumulative QPBT-068 cache transaction repair only after exact-manifest security and regression approval, guarded integration, and a production acceptance cycle.",
+      "testing": "A28 reports 34/34 materializer, 143/143 cache, 77/77 workflow, and 3/3 checker tests plus workflow validators, compileall, exact ownership, anchor, and diff gates.",
+      "addresses": "QPBT-068",
+      "requested_external_review": true,
+      "unexecuted_gate": "Fresh immutable security and regression review, guarded current-main integration, and production warm/seed/prepare acceptance remain.",
+      "head_tree": "c92bc515a1554b606bf976b87963a81b7e8a5b1f",
+      "candidate_implementer_session_id": "i068-orchestrator-a28-boundary-repair",
+      "binding_note": "A28 was canonically dispatched before LPR-040 existed and has immutable pr_id null; preserve that authority and bind any later writable integration session explicitly.",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a29.json",
+      "review_manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
+      "review_status": "a29-a30-running"
     }
   ]
 }
