@@ -9774,14 +9774,14 @@
     {
       "id": "LPR-039",
       "title": "fix(blueprint/F07A): freeze executable detyping boundaries",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-080"
       ],
       "base": "main",
       "head": "issue/qpbt-080-detyping-boundary-a01",
       "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
-      "head_sha": "c323bd874727a9364d821f4215f6f08fdf48c511",
+      "head_sha": "10b4fdee0ec15f545a789af467a9525c0d10a0d9",
       "implementer_session_ids": [
         "i080-orchestrator-a06-review-repair"
       ],
@@ -9796,14 +9796,58 @@
           "completed_at": "2026-09-04T01:18:00Z",
           "result_path": "/tmp/i080-orchestrator-a01-detyping-boundary.md",
           "result": "Exact nine-path patch 504d3b19; 42/42 tests; default and pinned checks pass; second regeneration changed zero bytes."
+        },
+        {
+          "id": "check-qpbt-080-a06-repair",
+          "name": "QPBT-080 review repair validation",
+          "command": "Authenticate exact repair and cumulative patches, nine-path allowlist, 42 blueprint tests, default and pinned checks, byte-idempotent regeneration, and diff ownership gates",
+          "status": "passed",
+          "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+          "head_sha": "10b4fdee0ec15f545a789af467a9525c0d10a0d9",
+          "completed_at": "2026-09-04T04:04:15Z",
+          "result_path": "/tmp/i080-orchestrator-a06-review-repair.md",
+          "result": "Repair patch bd1ba420 and cumulative patch 921e0df4 authenticated; 42/42 tests and default plus pinned checks pass; generation is byte-idempotent."
         }
       ],
-      "reviews": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-080-pr039-a08-source-fidelity",
+          "reviewer_session_id": "i080-reviewer-a08-source-fidelity",
+          "verdict": "approve",
+          "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+          "head_sha": "10b4fdee0ec15f545a789af467a9525c0d10a0d9",
+          "started_at": "2026-09-04T04:05:42.866878Z",
+          "completed_at": "2026-09-04T04:19:30.452364Z",
+          "result_path": "/tmp/i080-reviewer-a08-source-fidelity.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "d00f0136f9ee3d8efc66cb3756520e45631c82ff97a496144a114b65cb02f957",
+          "manifest_sha256": "494049bbe37173c63d8706ed51d24f860c68251cf13011b41cf69c767af954ee",
+          "patch_sha256": "921e0df4c346c05a7592df30eca2c294c56e72a10297bba1dd2adccd95713c8d",
+          "integration_gate": "approved exact repaired head; retain immutable binding through guarded integration"
+        },
+        {
+          "id": "review-qpbt-080-pr039-a09-regression",
+          "reviewer_session_id": "i080-reviewer-a09-regression",
+          "verdict": "approve",
+          "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+          "head_sha": "10b4fdee0ec15f545a789af467a9525c0d10a0d9",
+          "started_at": "2026-09-04T04:06:44.354660Z",
+          "completed_at": "2026-09-04T04:19:31.464632Z",
+          "result_path": "/tmp/i080-reviewer-a09-regression.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "774b676535461defb094178d48b514c1b66612a272399fcb94ac4727635a8f2d",
+          "manifest_sha256": "494049bbe37173c63d8706ed51d24f860c68251cf13011b41cf69c767af954ee",
+          "patch_sha256": "921e0df4c346c05a7592df30eca2c294c56e72a10297bba1dd2adccd95713c8d",
+          "integration_gate": "approved exact repaired head; retain immutable binding through guarded integration"
+        }
+      ],
       "findings": [],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T01:27:00Z",
-      "updated_at": "2026-09-04T02:02:33.747682Z",
+      "updated_at": "2026-09-04T04:23:01.639329Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.dot",
@@ -9817,14 +9861,14 @@
       ],
       "motivation": "Freeze the executable, width-transport, runtime, and compiler boundaries required before the F07A Lean skeleton can be source faithful.",
       "description": "Adopt the exact QPBT-080 blueprint candidate after fresh source-fidelity and regression reviews adjudicate the recorded G26 wording disagreement.",
-      "testing": "A01 reports 42/42 blueprint tests, default and pinned-source checks, byte-idempotent regeneration, exact nine-path ownership, and clean diff.",
+      "testing": "A06 and the coordinator independently authenticated repair/cumulative patch identities, 42/42 blueprint tests, default and pinned-source checks, exact ownership, and byte-idempotent generation.",
       "addresses": "QPBT-080",
       "requested_external_review": true,
-      "unexecuted_gate": "Repair the three shared findings on a new head, rerun deterministic blueprint gates, obtain fresh correctly bound exact-head source and regression approvals, then perform guarded current-main integration.",
-      "head_tree": "f591197007ebb3b3b76d38691d581f842680419e",
-      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-080-review-manifest-a04.json",
-      "review_manifest_sha256": "f07e7f2cffb899d4d59f95f2f02aa0985a09456f7400eaaad14959ccacbffd3b",
-      "review_status": "changes-requested-by-two-authenticated-candidate-reports-formal-binding-deferred",
+      "unexecuted_gate": "Guarded integration against current main, followed by full blueprint/reference/workflow validation.",
+      "head_tree": "abd0a44a2ecb8cd50b934d9efa88edbe47b7b5b5",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-080-review-manifest-a08.json",
+      "review_manifest_sha256": "494049bbe37173c63d8706ed51d24f860c68251cf13011b41cf69c767af954ee",
+      "review_status": "approved-two-independent-reviews",
       "candidate_review_reports": [
         {
           "session_id": "i080-reviewer-a04-source-fidelity",
@@ -9855,7 +9899,7 @@
     {
       "id": "LPR-040",
       "title": "fix(cache): close final transaction boundaries",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-068"
       ],
@@ -9877,12 +9921,116 @@
           "result": "Exact eight-path cumulative patch 7eea7c34 and repair patch 8ffda670; 257/257 assigned tests plus validators and static gates pass."
         }
       ],
-      "reviews": [],
-      "findings": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-068-pr040-a30-regression",
+          "reviewer_session_id": "i068-reviewer-a30-regression-protocol",
+          "verdict": "request_changes",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "started_at": "2026-09-04T03:44:37.223986Z",
+          "completed_at": "2026-09-04T04:09:28.931954Z",
+          "result_path": "/tmp/i068-reviewer-a30-regression-protocol.md",
+          "finding_ids": [
+            "F068-A30-001",
+            "F068-A30-002"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "9b49fbc42ca4406b1529783f32f2a480883fca37b291ed26bf8c3a1e0b6f8a48",
+          "manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
+          "patch_sha256": "7eea7c34f682257c701bd42e0a95ceb5ebaf4dfccddb2130888eb04c6e19b503",
+          "integration_gate": "blocked until recursive terminal inventory retains descendant authority through the enclosing decision and detached-file capability behavior is repaired or accurately narrowed, then fresh exact-head review passes"
+        },
+        {
+          "id": "review-qpbt-068-pr040-a29-transaction-security",
+          "reviewer_session_id": "i068-reviewer-a29-transaction-security",
+          "verdict": "request_changes",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "started_at": "2026-09-04T03:44:36.735379Z",
+          "completed_at": "2026-09-04T04:12:47.318737Z",
+          "result_path": "/tmp/i068-reviewer-a29-transaction-security.md",
+          "finding_ids": [
+            "F068-A29-001",
+            "F068-A29-002"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "ac5174bac58233fe311dad06fe7817f9928045d45e04d5f9efbf54800f0fe9ed",
+          "manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
+          "patch_sha256": "7eea7c34f682257c701bd42e0a95ceb5ebaf4dfccddb2130888eb04c6e19b503",
+          "integration_gate": "blocked until the same-UID adversary claim is made true by an enforceable isolation boundary or accurately narrowed, with deterministic regression and fresh review"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F068-A30-001",
+          "introduced_review_id": "review-qpbt-068-pr040-a30-regression",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "Final recursive inventories close descendant monitors and descriptors before the enclosing final decision, allowing a same-size mutation or late hard link to leave returned evidence stale.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 1191,
+          "required_change": "Retain descendant directory and file authority through the whole terminal inventory and final drain/recheck, with cache, materializer, retained-evidence, and prepare regressions for post-subtree same-size mutation and external hard linking."
+        },
+        {
+          "id": "F068-A30-002",
+          "introduced_review_id": "review-qpbt-068-pr040-a30-regression",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "severity": "medium",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "Dry capability admission does not probe O_TMPFILE or either linkat publication route and no failure regression covers those paths.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 4491,
+          "required_change": "Probe or accurately narrow detached-file capability admission and add fail-closed O_TMPFILE and linkat-route regressions preserving existing destinations and ambiguous staging evidence."
+        },
+        {
+          "id": "F068-A29-001",
+          "introduced_review_id": "review-qpbt-068-pr040-a29-transaction-security",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "A same-UID actor can externally link a non-O_EXCL O_TMPFILE through the producer descriptor namespace before later writes or metadata mutations, causing external output before eventual rejection.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 2830,
+          "required_change": "Use an enforceable isolation boundary for the detached descriptor lifetime or narrow the threat model to exclude descriptor-namespace access, and regress every pre-mutation exposure schedule."
+        },
+        {
+          "id": "F068-A29-002",
+          "introduced_review_id": "review-qpbt-068-pr040-a29-transaction-security",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "Relocating a bound output directory or ancestor after its last continuity check redirects completed cache or materializer file publication outside the intended tree before later rejection.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 3105,
+          "required_change": "Use an enforceable namespace boundary or accurately narrow the threat model, and add post-final-check pre-recursion/linkat relocation regressions that match the resulting contract."
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T03:43:00Z",
-      "updated_at": "2026-09-04T03:44:38.062738Z",
+      "updated_at": "2026-09-04T04:14:31.322695Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -9898,13 +10046,13 @@
       "testing": "A28 reports 34/34 materializer, 143/143 cache, 77/77 workflow, and 3/3 checker tests plus workflow validators, compileall, exact ownership, anchor, and diff gates.",
       "addresses": "QPBT-068",
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable security and regression review, guarded current-main integration, and production warm/seed/prepare acceptance remain.",
+      "unexecuted_gate": "Repair or accurately narrow all four A29/A30 findings on a new exact head, rerun focused and aggregate gates, obtain fresh immutable approvals, then perform guarded integration and production acceptance.",
       "head_tree": "c92bc515a1554b606bf976b87963a81b7e8a5b1f",
       "candidate_implementer_session_id": "i068-orchestrator-a28-boundary-repair",
       "binding_note": "A28 was canonically dispatched before LPR-040 existed and has immutable pr_id null; preserve that authority and bind any later writable integration session explicitly.",
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a29.json",
       "review_manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
-      "review_status": "a29-a30-running"
+      "review_status": "changes-requested-by-a29-and-a30"
     }
   ]
 }
