@@ -39267,7 +39267,7 @@
       "role": "orchestrator",
       "issue_id": "QPBT-084",
       "attempt": 4,
-      "status": "running",
+      "status": "archived",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "priority": 1,
       "backend": "codex-cli",
@@ -39284,18 +39284,53 @@
       "validation_command": "Authenticate cbe3a9e/4887c2d clean start; make closed monitors permanently reject assertions while sibling routing and idempotent close remain valid; run complete materializer, hot-cache, workflow, checker, compile, validator, ownership and diff gates; commit only two owned files; no production warm, Lean, Lake, GitHub, Track A, or children.",
       "result_envelope_path": ".workflow-runtime/runs/i084-orchestrator-a04-closed-monitor/result.json",
       "started_at": "2026-09-04T10:16:32.384865Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
-      "timing_quality": null,
+      "ended_at": "2026-09-04T10:26:30.164607Z",
+      "elapsed_seconds": 597.581437,
+      "timing_quality": "runtime-measured",
       "token_usage": {
-        "input": null,
-        "output": null,
-        "total": null,
-        "availability_reason": "Pending Codex CLI terminal usage event"
+        "input": 2350853,
+        "output": 22734,
+        "total": 2373587,
+        "availability_reason": null,
+        "cached_input": 2244480,
+        "reasoning_output": 15601
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
-      "external_id": null
+      "archive_status": "archived",
+      "outcome_path": ".workflow-runtime/runs/i084-orchestrator-a04-closed-monitor/result.json",
+      "external_id": "01a06beb-87a2-7a20-ae33-b016510c7247",
+      "result_digest": "a660267206a13c6a3447dd888ec07cfa3bd7442d82158b77d69e93146d9a9bb7",
+      "outcome": "implemented-coordinator-committed",
+      "checks": {
+        "start_commit": "cbe3a9e9aaaf2f9a7ad64fc8d8396ce43b18fb21",
+        "start_tree": "4887c2d9102625cb29aaca4dbf441a1acd4930a6",
+        "final_commit": "ebe1cf8ccc4436f8a515e315746275a4a293ae1b",
+        "final_tree": "6dafbfd5c518d8860184350e6c69f407725821d0",
+        "parent": "cbe3a9e9aaaf2f9a7ad64fc8d8396ce43b18fb21",
+        "cumulative_patch_sha256": "900a43cd507e4bcc1a3c188fa6f1a00f113b04d41fbec7398ccef8a338c54395",
+        "repair_patch_sha256": "16bc64e0e5bbfce224639a4f88af9419defa969a4015136c379bbb6dde11d907",
+        "result_sha256": "640b2aec5c66dd635ee96d208f0d06973579edbe82275b4fd746352c65a8c336",
+        "events_sha256": "720f213c20a965185c8e7197290d8d31311ca82568c526cfa6098660fbeaefc3",
+        "archive_result_sha256": "3a1a5cc4d4c9116e511ed94c189776f6df574eb286aca5b5880cc41e69427b86",
+        "archive_stdout_sha256": "2a2e2d2cf59e64e33b46cf91e30d1d5b3e6c8762dc11c9226a9b22fb45ef1129",
+        "focused_tests": "1/1",
+        "materializer_tests": "44/44",
+        "hot_cache_tests": "145/145",
+        "workflow_tests": "94/94",
+        "checker_tests": "3/3",
+        "python_compile": "2/2",
+        "workflow_validate": "passed",
+        "diff_check": "passed",
+        "changed_paths": [
+          "scripts/materialize_mipstarre.py",
+          "tests/test_mipstarre_materialization.py"
+        ],
+        "repository_clean": true,
+        "coordinator_commit_required_by_worker_git_metadata_mount": true,
+        "subagents": 0,
+        "proof_debt_delta": 0,
+        "cache_operations": 0
+      },
+      "notes": "A04 implemented and validated the nine-line fail-closed monitor repair. Its sandbox correctly prevented Git metadata writes, so the coordinator committed the exact authenticated tree 6dafbfd as ebe1cf8; fresh immutable changed-head review remains required."
     }
   ]
 }
