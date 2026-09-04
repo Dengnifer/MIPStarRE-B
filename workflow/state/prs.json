@@ -9983,6 +9983,46 @@
           "manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
           "patch_sha256": "7eea7c34f682257c701bd42e0a95ceb5ebaf4dfccddb2130888eb04c6e19b503",
           "integration_gate": "blocked until the same-UID adversary claim is made true by an enforceable isolation boundary or accurately narrowed, with deterministic regression and fresh review"
+        },
+        {
+          "id": "review-qpbt-068-pr040-a35-transaction-security",
+          "reviewer_session_id": "i068-reviewer-a35-transaction-security",
+          "verdict": "approve",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "d1b7ac9682f1c626d9386f62f033442f3194c044",
+          "started_at": "2026-09-04T05:21:23Z",
+          "completed_at": "2026-09-04T05:28:23Z",
+          "result_path": "/tmp/i068-reviewer-a35-transaction-security.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "69ca5aaa7d147849c43d629958e3d31ecdb23e4d94565395a033ee4c16600d5b",
+          "manifest_sha256": "9bd1d84f6f1804fd54de781b7f316db3aeed46362de289c53e12a6e7ae3db08d",
+          "patch_sha256": "e84b292018259c1372978902bb0a65ea66e69c5936e998fedfe3505667428517",
+          "resolved_finding_ids": [
+            "F068-A29-001",
+            "F068-A29-002"
+          ],
+          "integration_gate": "approved exact repaired head; current-main changelog overlap still requires bounded integration repair and fresh exact-head review"
+        },
+        {
+          "id": "review-qpbt-068-pr040-a36-regression",
+          "reviewer_session_id": "i068-reviewer-a36-regression-protocol",
+          "verdict": "approve",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "d1b7ac9682f1c626d9386f62f033442f3194c044",
+          "started_at": "2026-09-04T05:22:45Z",
+          "completed_at": "2026-09-04T05:31:14Z",
+          "result_path": "/tmp/i068-reviewer-a36-regression-protocol.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "dc1dace12eccfcc9bdf9d2b4217bee5580fa159f9c2a879f150000b5e6e710f8",
+          "manifest_sha256": "9bd1d84f6f1804fd54de781b7f316db3aeed46362de289c53e12a6e7ae3db08d",
+          "patch_sha256": "e84b292018259c1372978902bb0a65ea66e69c5936e998fedfe3505667428517",
+          "resolved_finding_ids": [
+            "F068-A30-001",
+            "F068-A30-002"
+          ],
+          "integration_gate": "approved exact repaired head; current-main changelog overlap still requires bounded integration repair and fresh exact-head review"
         }
       ],
       "findings": [
@@ -9992,10 +10032,10 @@
           "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
           "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
           "severity": "blocker",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Head d1b7ac96 withdraws the exact-snapshot claim and accurately specifies recursive inventories as non-atomic monitored traversal records under the no-concurrent-writer precondition; A36 independently approved the exact head.",
+          "resolved_by_review_id": "review-qpbt-068-pr040-a36-regression",
           "confirmation_review_ids": [],
           "summary": "Final recursive inventories close descendant monitors and descriptors before the enclosing final decision, allowing a same-size mutation or late hard link to leave returned evidence stale.",
           "path": "scripts/hot_main_cache.py",
@@ -10008,10 +10048,10 @@
           "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
           "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
           "severity": "medium",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Head d1b7ac96 reports detached_file_publication_checked false for dry admission and adds deterministic live O_TMPFILE and dual-linkat failure coverage preserving destinations and evidence; A36 independently approved the exact head.",
+          "resolved_by_review_id": "review-qpbt-068-pr040-a36-regression",
           "confirmation_review_ids": [],
           "summary": "Dry capability admission does not probe O_TMPFILE or either linkat publication route and no failure regression covers those paths.",
           "path": "scripts/hot_main_cache.py",
@@ -10024,10 +10064,10 @@
           "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
           "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
           "severity": "blocker",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Head d1b7ac96 accepts the same-identity counterexample, narrows the supported boundary to cooperating repository agents, and states that detached-file order and monitors are detection rather than access control; A35 independently approved the exact head.",
+          "resolved_by_review_id": "review-qpbt-068-pr040-a35-transaction-security",
           "confirmation_review_ids": [],
           "summary": "A same-UID actor can externally link a non-O_EXCL O_TMPFILE through the producer descriptor namespace before later writes or metadata mutations, causing external output before eventual rejection.",
           "path": "scripts/hot_main_cache.py",
@@ -10040,10 +10080,10 @@
           "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
           "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
           "severity": "blocker",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "Head d1b7ac96 accepts the same-identity counterexample, narrows the supported boundary to cooperating repository agents, and states that detached-file order and monitors are detection rather than access control; A35 independently approved the exact head.",
+          "resolved_by_review_id": "review-qpbt-068-pr040-a35-transaction-security",
           "confirmation_review_ids": [],
           "summary": "Relocating a bound output directory or ancestor after its last continuity check redirects completed cache or materializer file publication outside the intended tree before later rejection.",
           "path": "scripts/hot_main_cache.py",
@@ -10054,7 +10094,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T03:43:00Z",
-      "updated_at": "2026-09-04T05:19:16.881312Z",
+      "updated_at": "2026-09-04T05:43:07.980517Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -10070,13 +10110,13 @@
       "testing": "A32 reports 36/36 materializer, 145/145 cache, 77/77 workflow, 3/3 checker, and unrestricted 468/468 aggregate tests plus validators, compileall, exact ownership and diff gates.",
       "addresses": "QPBT-068",
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh exact-head security and regression reviewers must adjudicate all four A29/A30 findings and approve head d1b7ac96 before guarded integration and production acceptance.",
+      "unexecuted_gate": "A37 must preserve both changelog entries while merging current main 1a9612d into the reviewed head, then a fresh immutable integration review must approve the resulting exact head.",
       "head_tree": "62e22ea3943726cb7e10407ed262a6c9172d78ab",
       "candidate_implementer_session_id": "i068-orchestrator-a32-threat-boundary-repair",
       "binding_note": "A28 was canonically dispatched before LPR-040 existed and has immutable pr_id null; preserve that authority and bind any later writable integration session explicitly.",
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a35.json",
       "review_manifest_sha256": "9bd1d84f6f1804fd54de781b7f316db3aeed46362de289c53e12a6e7ae3db08d",
-      "review_status": "repaired-head-awaiting-fresh-security-and-regression-review",
+      "review_status": "exact-reviewed-head-approved-integration-sync-pending",
       "review_session_ids": [
         "i068-reviewer-a29-transaction-security",
         "i068-reviewer-a30-regression-protocol",
@@ -10207,7 +10247,7 @@
     {
       "id": "LPR-042",
       "title": "feat(QPBT/Game): strengthen classical LDT contract",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-082"
       ],
@@ -10216,7 +10256,9 @@
       "base_sha": "ef827ef4e6c965c0051a6feac64e1842f83f872c",
       "head_sha": "335ff621459dc86a4d8d60cfb39988db212ab24e",
       "head_tree": "a859c85a3647785e765597051458b6b71d73a3af",
-      "implementer_session_ids": [],
+      "implementer_session_ids": [
+        "i082-integrator-a04-pr-bind"
+      ],
       "checks": [
         {
           "id": "check-qpbt-082-a01-candidate",
@@ -10230,12 +10272,45 @@
           "result": "Exact six-path patch ec0da230; 42/42 blueprint tests, both checker modes, pinned reference verification, deterministic regeneration, workflow validation, and unrestricted 418/418 workflow tests passed."
         }
       ],
-      "reviews": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-082-pr042-a02-source-fidelity",
+          "reviewer_session_id": "i082-reviewer-a02-source-fidelity",
+          "verdict": "approve",
+          "base_sha": "ef827ef4e6c965c0051a6feac64e1842f83f872c",
+          "head_sha": "335ff621459dc86a4d8d60cfb39988db212ab24e",
+          "started_at": "2026-09-04T05:24:08Z",
+          "completed_at": "2026-09-04T05:31:46Z",
+          "result_path": "/tmp/i082-reviewer-a02-source-fidelity.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "1177ecf339b66b69321358518ba6fc8e3cc620b419e680954ca1518be5b646d6",
+          "manifest_sha256": "2018b97cef5141ac393f19ca6cd26ed5641369e9e211191889c30849d8a8c469",
+          "patch_sha256": "ec0da2306d5a0e46db86a08b69854258c0972d3a044605f0af301895d71bc574",
+          "integration_gate": "source-faithful exact candidate approved; PR-bound adoption and current-main merge check remain"
+        },
+        {
+          "id": "review-qpbt-082-pr042-a03-regression",
+          "reviewer_session_id": "i082-reviewer-a03-regression",
+          "verdict": "approve",
+          "base_sha": "ef827ef4e6c965c0051a6feac64e1842f83f872c",
+          "head_sha": "335ff621459dc86a4d8d60cfb39988db212ab24e",
+          "started_at": "2026-09-04T05:25:39Z",
+          "completed_at": "2026-09-04T05:31:48Z",
+          "result_path": "/tmp/i082-reviewer-a03-regression.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "256afbc7330e63e0b252e7699317c190dcab70c2e3c51f91f67e6d00d8216838",
+          "manifest_sha256": "2018b97cef5141ac393f19ca6cd26ed5641369e9e211191889c30849d8a8c469",
+          "patch_sha256": "ec0da2306d5a0e46db86a08b69854258c0972d3a044605f0af301895d71bc574",
+          "integration_gate": "regression exact candidate approved; PR-bound adoption and current-main merge check remain"
+        }
+      ],
       "findings": [],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T05:16:30Z",
-      "updated_at": "2026-09-04T05:19:18.039517Z",
+      "updated_at": "2026-09-04T05:44:16.756068Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.json",
@@ -10249,8 +10324,8 @@
       "testing": "42/42 blueprint tests; default and pinned checker modes; 39-file/646-label reference verification; deterministic double generation; workflow validation; unrestricted 418/418 workflow tests; exact ownership and diff gates.",
       "addresses": "QPBT-082",
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh immutable source-fidelity and regression reviewers must approve exact head 335ff621 before PR-bound adoption and guarded integration.",
-      "review_status": "fresh-source-and-regression-review-pending",
+      "unexecuted_gate": "A PR-bound no-byte-change integrator must authenticate both approvals, adopt the pre-PR producer, and prove a clean merge against current main.",
+      "review_status": "exact-head-approved-pr-binding-running",
       "candidate_producer_session_id": "i082-orchestrator-a01-f09a-contract",
       "candidate_producer_binding_note": "The writer was dispatched before LPR-042 existed, so its immutable pr_id is null; preserve that authority and bind a later writable integration-preparation session if no repair writer is needed.",
       "review_session_ids": [
@@ -10258,7 +10333,8 @@
         "i082-reviewer-a03-regression"
       ],
       "provenance_session_ids": [
-        "i082-orchestrator-a01-f09a-contract"
+        "i082-orchestrator-a01-f09a-contract",
+        "i082-integrator-a04-pr-bind"
       ],
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-082-review-manifest-a02.json",
       "review_manifest_sha256": "2018b97cef5141ac393f19ca6cd26ed5641369e9e211191889c30849d8a8c469"
