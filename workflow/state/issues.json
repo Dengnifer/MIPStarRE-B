@@ -5696,7 +5696,7 @@
       "title": "fix(cache): bound materializer inotify instance use",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "in_progress",
       "parent_id": "QPBT-068",
       "dependency_ids": [
         "QPBT-051"
@@ -5716,7 +5716,7 @@
         "Pass the complete materializer, hot-cache, workflow, and checker suites plus exact source/archive materialization in a disposable checkout; obtain a fresh immutable review.",
         "Retry exactly one singleton production warm on the repaired main snapshot, pass one private prepare canary, and preserve the failed transaction evidence until disposition is recorded."
       ],
-      "owner_session_id": "i084-orchestrator-a01-inotify-hub",
+      "owner_session_id": "i084-orchestrator-a02-inotify-hub",
       "source_refs": [
         ".workflow-runtime/cache/failures/47165fe685b84536f6f5d2c93b9cd511865ca391c6d6510dac4f20ae0ab3350c-20260904T145103-2/failure.json",
         ".workflow-runtime/cache/failures/47165fe685b84536f6f5d2c93b9cd511865ca391c6d6510dac4f20ae0ab3350c-20260904T145103-2/build.log",
@@ -5731,9 +5731,9 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-04T06:55:07.385848Z",
-      "updated_at": "2026-09-04T07:27:11.528941Z",
-      "blocked_reason": "A01 reproduced INC-090 but stopped before edits because the branch snapshot could not see its later issued row and the task packet omitted the explicit result-envelope and null cache-key authority.",
-      "unblock_condition": "Archive A01, issue A02 from a refreshed exact base with the full session record embedded, result path named, and cache_key null with a reason, then implement the bounded monitor hub."
+      "updated_at": "2026-09-04T07:31:53.758040Z",
+      "blocked_reason": null,
+      "unblock_condition": null
     },
     {
       "id": "QPBT-085",
@@ -5777,9 +5777,9 @@
         "workflow/state/stages.json"
       ],
       "created_at": "2026-09-04T07:03:45.766516Z",
-      "updated_at": "2026-09-04T07:24:51.252271Z",
-      "blocked_reason": "Initial immutable review is running, but INC-091 requires a changed-head handle-aware counting amendment and fresh rereview before closure.",
-      "unblock_condition": "Integrate handle-aware fallback accounting, validate the changed head, and obtain fresh independent approval."
+      "updated_at": "2026-09-04T07:38:46.891065Z",
+      "blocked_reason": "A01 approved the exact pre-amendment head and is archived; INC-091 required the now-applied handle-aware accounting change, so its approval is nonbinding.",
+      "unblock_condition": "Commit and validate the handle-aware changed head, then obtain a fresh immutable independent approval before closure."
     }
   ]
 }

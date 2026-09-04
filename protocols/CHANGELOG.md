@@ -23,7 +23,10 @@ The protocol explicitly excludes Track A's checkout, development cache, and
 tmux session. The stage ledger records the total ceiling of three, while
 dispatcher calls use the two-worker non-coordinator ceiling. This is a direct
 owner requirement rather than an inference from INC-087; independent review is
-still required before QPBT-085 closes.
+still required before QPBT-085 closes. INC-091 additionally showed that tool
+shells can occupy separate PID namespaces, so confirmed live launcher and
+unified-exec handles are now counted until their own terminal evidence arrives;
+a zero process result cannot release such a slot.
 
 ## 0.1.14 candidate (QPBT-081) - 2026-09-04
 

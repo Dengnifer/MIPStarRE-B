@@ -39,8 +39,10 @@ Track B may use at most three concurrent Codex sessions across the shared
 account. This coordinator consumes one slot, so at most two Track B workers may
 run at once. Count before every launch: the coordinator, actual `codex exec`
 workers whose command line names `MIPStarRE-auto` or `/tmp/qpbt-`, and every
-still-open collaboration thread all count. If the total is three, wait 60
-seconds and recount rather than launching.
+still-open collaboration thread all count. A confirmed live launcher or
+unified-exec handle also counts when the current shell's PID namespace cannot
+see its process; never use a zero process result to release such a handle's
+slot. If the total is three, wait 60 seconds and recount rather than launching.
 
 Launch Track B workers only through `codex exec`, always with
 `-c features.multi_agent=false` and

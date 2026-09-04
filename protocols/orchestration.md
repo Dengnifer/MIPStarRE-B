@@ -122,6 +122,13 @@ the total is below three. If it is three, wait 60 seconds and recount. The local
 dispatcher counts non-coordinator sessions, so pass `--capacity 2`; this is a
 second admission check, not a substitute for the live account count.
 
+Process visibility is not assumed across tool-call PID namespaces. Every
+launcher or unified-exec handle last confirmed live also consumes one worker
+slot until the same handle returns a terminal result or authoritative launcher
+state proves it terminal. Deduplicate a handle and its visible process as one
+worker. A zero scoped-process result from another namespace never releases a
+confirmed live handle, and an observation timeout never proves termination.
+
 Every external worker command includes
 `-c features.multi_agent=false` and
 `-c agents.max_concurrent_threads_per_session=1`. A worker is a leaf: it does
