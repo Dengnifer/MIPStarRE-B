@@ -1,5 +1,39 @@
 # Protocol Changelog
 
+## 0.1.16 candidate (QPBT-084) - 2026-09-04
+
+The pinned 337-file MIPStarRE archive reproduced the QPBT-068 production
+failure under the host's 128-instance inotify limit: `_populate_bound_tree`
+retained more than 128 logical monitors, and each monitor opened its own
+inotify instance before failing with `Too many open files`. The original warm
+failure envelope remains unchanged under its content-addressed failure path;
+no production warm is retried by this repair session.
+
+Foundation materialization now creates one context-bound inotify hub. Logical
+monitors have independent event queues, and every stream drain demultiplexes
+events for all watched objects rather than consuming unrelated evidence.
+Duplicate watches on one inode fan out to every live subscriber, while logical
+close is idempotent and never removes the shared kernel watch. Watches remain
+installed until the hub closes. A queue overflow or unreadable/malformed stream
+permanently poisons all subscribers; ignored, unmounted, or self-deleted watches
+poison their own subscribers. Watch identity is retained for the hub lifetime,
+so a reused descriptor cannot establish a false clean interval. Exact
+name-and-mask multiset acceptance and the existing substitution/ABA checks are
+unchanged.
+
+Real-inotify regressions retain 160 simultaneous logical monitors, reverse the
+cross-watch polling order, exercise duplicate-watch fan-out and independent
+close, trigger the host's real queue overflow, and generate a watch-local
+`IN_IGNORED`. Deterministic fault cases cover malformed and empty reads, read
+errors, conservative watch-descriptor reuse, idempotent close, and hub cleanup
+after partial monitor construction. The exact archive now materializes all 337
+files while preserving the seven authored QPBT files and retained transaction
+evidence. The materializer suite passes 44/44, hot-cache suite 145/145,
+workflow suite 94/94, and checker suite 3/3; compileall, canonical workflow
+validation, diff checks, and disposable output verification also pass. Fresh
+immutable review remains required before integration and the coordinator's
+single production warm.
+
 ## 0.1.15 candidate (QPBT-085) - 2026-09-04
 
 The owner assigned Track B three concurrent Codex sessions from a ten-session
