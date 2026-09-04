@@ -39331,6 +39331,39 @@
         "cache_operations": 0
       },
       "notes": "A04 implemented and validated the nine-line fail-closed monitor repair. Its sandbox correctly prevented Git metadata writes, so the coordinator committed the exact authenticated tree 6dafbfd as ebe1cf8; fresh immutable changed-head review remains required."
+    },
+    {
+      "id": "i084-reviewer-a05-closed-monitor",
+      "name": "i084-reviewer-a05-closed-monitor",
+      "role": "reviewer",
+      "issue_id": "QPBT-084",
+      "attempt": 5,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "backend": "codex-cli",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "6396aa3447f467678a6cf981722c839ac75d3ae2",
+      "base_revision_reason": "Immutable standalone projection of repaired QPBT-084 source head ebe1cf8, manifest-bound to source base/head/tree and the exact four-path cumulative patch.",
+      "base_tree": "72030ba8fbcc695a249362b146d3afb6687aabc1",
+      "worktree": "/tmp/qpbt-084-review-a05",
+      "owned_paths": [],
+      "validation_command": "Authenticate projection 6396aa3/72030ba, manifest 147d5485, patch 900a43cd, exactly 10 evidence files, clean status, and no remotes/alternates/hooks/symlinks; review R1-F1 resolution and the complete shared-inotify security/correctness surface; return findings-first JSON without writes.",
+      "result_envelope_path": ".workflow-runtime/runs/i084-reviewer-a05-closed-monitor/result.json",
+      "started_at": "2026-09-04T10:39:48.197482Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "timing_quality": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Pending Codex CLI terminal usage event"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "external_id": null
     }
   ]
 }
