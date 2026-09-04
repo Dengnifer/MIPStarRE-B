@@ -187,39 +187,6 @@
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "priority": 1,
       "notes": "Dry-run correctly refused issue status blocked; retained only as an unissued post-QPBT-068 preflight reservation."
-    },
-    {
-      "id": "i084-reviewer-a03-inotify-security",
-      "name": "i084-reviewer-a03-inotify-security",
-      "role": "reviewer",
-      "issue_id": "QPBT-084",
-      "attempt": 3,
-      "status": "planned",
-      "parent_session_id": "i001-coordinator-a01-bootstrap",
-      "priority": 1,
-      "backend": "codex-cli",
-      "pr_id": null,
-      "read_only": true,
-      "base_revision": "740258b58a053ed38b7a2af88d0a9d7fe2ff6332",
-      "base_revision_reason": "Standalone immutable 10-file projection of the exact QPBT-084 four-file candidate from source base 72d76a719f29f7304bd84ea1e7761a6b6f40a269 through source head cbe3a9e9aaaf2f9a7ad64fc8d8396ce43b18fb21; manifest b982ad247fbc59f07f05b6302ee2515751e75b38a2cfe04d035baf892a320213 and patch 9b76e3c607371ffc1bd31866ef3a3a6c29126a46236768c3c9500af6525be191 bind every disclosed byte.",
-      "base_tree": "1f179806d1bc44277b9ceaaa724621040be9523f",
-      "worktree": "/tmp/qpbt-084-review-a03",
-      "owned_paths": [],
-      "validation_command": "Authenticate projection commit/tree, manifest b982ad24, patch 9b76e3c6, exactly 10 evidence files, clean status, no remotes or alternates; review shared-inotify security, correctness, resource behavior, tests, and protocol claims; return findings-first JSON without writes.",
-      "result_envelope_path": ".workflow-runtime/runs/i084-reviewer-a03-inotify-security/result.json",
-      "started_at": null,
-      "ended_at": null,
-      "elapsed_seconds": null,
-      "timing_quality": null,
-      "token_usage": {
-        "input": null,
-        "output": null,
-        "total": null,
-        "availability_reason": "Pending Codex CLI terminal usage event"
-      },
-      "archive_status": "not_requested",
-      "outcome_path": null,
-      "external_id": null
     }
   ],
   "issued": [
@@ -39235,6 +39202,39 @@
         ]
       },
       "notes": "A05 authenticated the exact 13-path reconciled policy projection and approved with zero findings. R4-F1 and R4-F2 are resolved. Two coordinator invocations failed closed before model launch; the successful third invocation used the same issued identity, exact base revision, read-only sandbox, and mandatory leaf flags."
+    },
+    {
+      "id": "i084-reviewer-a03-inotify-security",
+      "name": "i084-reviewer-a03-inotify-security",
+      "role": "reviewer",
+      "issue_id": "QPBT-084",
+      "attempt": 3,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "backend": "codex-cli",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "740258b58a053ed38b7a2af88d0a9d7fe2ff6332",
+      "base_revision_reason": "Standalone immutable 10-file projection of the exact QPBT-084 four-file candidate from source base 72d76a719f29f7304bd84ea1e7761a6b6f40a269 through source head cbe3a9e9aaaf2f9a7ad64fc8d8396ce43b18fb21; manifest b982ad247fbc59f07f05b6302ee2515751e75b38a2cfe04d035baf892a320213 and patch 9b76e3c607371ffc1bd31866ef3a3a6c29126a46236768c3c9500af6525be191 bind every disclosed byte.",
+      "base_tree": "1f179806d1bc44277b9ceaaa724621040be9523f",
+      "worktree": "/tmp/qpbt-084-review-a03",
+      "owned_paths": [],
+      "validation_command": "Authenticate projection commit/tree, manifest b982ad24, patch 9b76e3c6, exactly 10 evidence files, clean status, no remotes or alternates; review shared-inotify security, correctness, resource behavior, tests, and protocol claims; return findings-first JSON without writes.",
+      "result_envelope_path": ".workflow-runtime/runs/i084-reviewer-a03-inotify-security/result.json",
+      "started_at": "2026-09-04T09:59:18.890349Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "timing_quality": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Pending Codex CLI terminal usage event"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "external_id": null
     }
   ]
 }
