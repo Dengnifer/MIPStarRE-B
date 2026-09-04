@@ -1204,7 +1204,8 @@ class BlueprintCheckTests(unittest.TestCase):
         self.assertEqual(check.CLASSICAL_LDT_GAME_CORE_SOURCE_ANCHORS,
                          [core["source"], *core["additional_sources"]])
         self.assertEqual(check.CLASSICAL_LDT_GAME_CORE_LEAN_NAMES, core["lean"]["names"])
-        self.assertEqual(64, len(core["lean"]["names"]))
+        self.assertEqual(71, len(core["lean"]["names"]))
+        self.assertEqual(46, len(check.CLASSICAL_LDT_GAME_CORE_LAW_NAMES))
         self.assertEqual(check.CLASSICAL_LDT_GAME_CORE_IMPLEMENTATION_CONTRACT,
                          core["implementation_contract"])
         self.assertEqual(["MIPStarRE.QPBT.Basic.Polynomial", "MIPStarRE.QPBT.Game.Types"],
@@ -1300,6 +1301,61 @@ class BlueprintCheckTests(unittest.TestCase):
                     for error in check.classical_ldt_signature_errors(
                         weakened, hashlib.sha256(weakened.encode("utf-8")).hexdigest()
                     )
+                ))
+
+        semantic_mutations = (
+            (
+                "constant_evaluation",
+                "f.eval t = ∑ i : Fin (degree + 1), f i * t ^ i.val",
+                "f.eval t = f ⟨0, Nat.succ_pos degree⟩",
+            ),
+            (
+                "always_none_pivot",
+                "firstNonzeroCoordinate v = some p ↔",
+                "firstNonzeroCoordinate v = none ↔",
+            ),
+            (
+                "permuted_seed_registers",
+                "u ⟨i.val, hi⟩",
+                "v ⟨i.val, hi⟩",
+            ),
+            (
+                "wrong_axis_parameterization",
+                "direction := standardDirection (chi D hm question.selector)",
+                "direction := 0",
+            ),
+            (
+                "wrong_diagonal_parameterization",
+                "truncateDirection (chi D hm question.selector) question.direction",
+                "question.direction",
+            ),
+            (
+                "non_affine_pointAt",
+                "line.pointAt t = line.base + t • line.direction",
+                "line.pointAt t = line.base - t • line.direction",
+            ),
+            (
+                "wrong_elementary_vector",
+                "standardDirection (k := k) i j = if j = i then 1 else 0",
+                "standardDirection (k := k) i j = if j = i then 0 else 1",
+            ),
+        )
+        for mutation, old, new in semantic_mutations:
+            with self.subTest(semantic_mutation=mutation):
+                self.assertIn(old, signature_block)
+                weakened = signature_block.replace(old, new, 1)
+                errors = check.classical_ldt_signature_errors(
+                    weakened, hashlib.sha256(weakened.encode("utf-8")).hexdigest()
+                )
+                self.assertNotIn(
+                    "classical LDT signature block differs from the exact reviewed API",
+                    errors,
+                )
+                self.assertTrue(any(
+                    "differs from exact signature" in error or
+                    "omits required term" in error or
+                    "declaration names/order must remain exact" in error
+                    for error in errors
                 ))
 
         finite_carriers = (

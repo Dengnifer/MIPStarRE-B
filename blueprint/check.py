@@ -820,6 +820,13 @@ CLASSICAL_LDT_GAME_CORE_LEAN_NAMES = [
     "MIPStarRE.QPBT.simultaneousIndividualLDTOne_nonincident",
     "MIPStarRE.QPBT.simultaneousIndividualLDTOne_unlisted",
     "MIPStarRE.QPBT.simultaneousIndividualLDTOne_zero_direction",
+    "MIPStarRE.QPBT.classicalLDTSeedEquiv_apply",
+    "MIPStarRE.QPBT.standardDirection_apply",
+    "MIPStarRE.QPBT.firstNonzeroCoordinate_eq_some_iff",
+    "MIPStarRE.QPBT.AffineLine.pointAt_eq",
+    "MIPStarRE.QPBT.AxisLineQuestion.line_eq",
+    "MIPStarRE.QPBT.DiagonalLineQuestion.line_eq",
+    "MIPStarRE.QPBT.BoundedUnivariatePolynomial.eval_eq_sum",
 ]
 CLASSICAL_LDT_GAME_CORE_LAW_NAMES = CLASSICAL_LDT_GAME_CORE_LEAN_NAMES[25:]
 CLASSICAL_LDT_GAME_CORE_F06_REUSED_API = [
@@ -850,6 +857,20 @@ CLASSICAL_LDT_GAME_CORE_SIGNATURE_REQUIRED_TERMS = (
     "| none => false",
     "(hq : (q.line D hm).direction = 0)",
     "if u = (q.line D hm).base then decide (f.eval 0 = a) else false",
+    "classicalLDTSeedEquiv k m (u, (s, v)) i =",
+    "if hi : i.val < m then",
+    "u ⟨i.val, hi⟩",
+    ("else if him : i.val = m then\n"
+     "        s\n"
+     "      else"),
+    "v ⟨i.val - (m + 1), by omega⟩",
+    "standardDirection (k := k) i j = if j = i then 1 else 0",
+    "firstNonzeroCoordinate v = some p ↔",
+    "v p ≠ 0 ∧ ∀ j : Fin m, v j ≠ 0 → p ≤ j",
+    "line.pointAt t = line.base + t • line.direction",
+    "direction := standardDirection (chi D hm question.selector)",
+    "truncateDirection (chi D hm question.selector) question.direction",
+    "f.eval t = ∑ i : Fin (degree + 1), f i * t ^ i.val",
 )
 CLASSICAL_LDT_GAME_CORE_SIGNATURE_FORBIDDEN_PATTERNS = (
     r"\b(?:sorry|admit|axiom|constant|opaque)\b",
@@ -922,6 +943,13 @@ CLASSICAL_LDT_GAME_CORE_DECLARATION_SHA256 = {
     "MIPStarRE.QPBT.simultaneousIndividualLDTOne_nonincident": "b60350ad3e2c6f6566d0320eea07acb5f24560732aa91e5ec0d0b797339d19aa",
     "MIPStarRE.QPBT.simultaneousIndividualLDTOne_unlisted": "c01e6d5efc9fc9f8760e00c1ccf8749bca06382c17601d216fbc8706341bb0d9",
     "MIPStarRE.QPBT.simultaneousIndividualLDTOne_zero_direction": "01a5359710666659e0da8051551d6cc322db8c7cfaf98cc603d79bd5a23c2bf6",
+    "MIPStarRE.QPBT.classicalLDTSeedEquiv_apply": "7ce7fa48c37682708dc9983e9acb846d5f6cf1606565a136a45fc6ce9eac2426",
+    "MIPStarRE.QPBT.standardDirection_apply": "23e9d3141c4c8bb0e06738f0c3873539b62f4d539c740e384f22accda3317fea",
+    "MIPStarRE.QPBT.firstNonzeroCoordinate_eq_some_iff": "ada7eb45527a64de9debba64e340e136cc07e5baf1d1d9091aa5327296f39571",
+    "MIPStarRE.QPBT.AffineLine.pointAt_eq": "ad664fcac29590314cd90c4c5f778dfbe9c75afb9f084c1e0a3fae6940c307ef",
+    "MIPStarRE.QPBT.AxisLineQuestion.line_eq": "879086b91d6dda39eb62c03e1fa7ddb56d9cbf996de275051f100acb2fe041b6",
+    "MIPStarRE.QPBT.DiagonalLineQuestion.line_eq": "0d711a12e5b3478ed51cf373973c75bf4aeee1078069eeb6c18c4991c7253b81",
+    "MIPStarRE.QPBT.BoundedUnivariatePolynomial.eval_eq_sum": "f1a890b86edbf685e55eefab7a6b34f3848a3b803e521f8408647a374d22b3b8",
 }
 
 
@@ -1042,7 +1070,7 @@ CLASSICAL_LDT_GAME_CORE_IMPLEMENTATION_CONTRACT = {
         "path": "workflow/reviews/qpbt-074-game-contract-a01.md",
         "begin_marker": "<!-- BEGIN F09A-SIGNATURES -->",
         "end_marker": "<!-- END F09A-SIGNATURES -->",
-        "sha256": "49cdac4cc305006f9bce3679c5f2c5784edf54ab1d2a5cd6685167cfee7a2840",
+        "sha256": "a65a1d1f1e56f086ec78e0796ecd5b87838b7857aac55ea8ef955f793c39bf5d",
     },
     "reused_api": [
         "MIPStarRE.QPBT.FieldData.coordinates",
@@ -1068,7 +1096,7 @@ QPBT_GAME_PREREQUISITES = [
 # integrity table, declaration, import, disposition, and ownership boundary is fixed.
 CLASSICAL_LDT_NODE_CONTRACT_SHA256 = {
     CLASSICAL_LDT_GAME_CORE_ID:
-        "840bdcf5ef6d429c3a40a18bbad7ebff24dedf4a6412ca8b343a540a29ea1afe",
+        "a48c60e118fd87919ede8af4b11cad3473551dce190c52b78a06edac5f45baf1",
     CLASSICAL_LDT_ANALYSIS_ID:
         "ea75ce0aacd9580f5e0cca8928e0751bb82e7bdf93dda5b0821dbde01be6395c",
     QPBT_GAME_ID:
@@ -1080,7 +1108,7 @@ CLASSICAL_LDT_GAP_CONTRACT_SHA256 = {
 }
 CLASSICAL_LDT_AUTHENTICATED_MARKDOWN = {
     Path("workflow/reviews/qpbt-074-game-contract-a01.md"):
-        "55c6f9732c72570e0b074a2493658d975adabc44005dab3bd1564f0d0081c23c",
+        "2348b292d5c373a8e2c1848f65d88dd80ecacdfb0ff3b2236596acbe242e0508",
     Path("docs/paper-gaps/canonical-line-zero-direction.md"):
         "59305b0d7cebd023d630fce9985d196ad2807b620d3f16f19991bcbcd9c84555",
 }

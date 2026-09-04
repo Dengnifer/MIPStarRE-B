@@ -3024,7 +3024,7 @@
         "F09-LDT-GAME",
         "G02-GAME"
       ],
-      "encoding": "Use the least nonzero coordinate for the one-row RREF projector. Totalize only v=0 by the identity projector and distinguished incident parameter zero (G22). Encode a field element by the little-endian sum of its ordered basis-coordinate bits, then define chi by integer block quotient (G23). Zero exactly coordinates j with j.val < i.val. Use coefficient vectors of lengths d+1 and m*d+1 and check incidence before evaluation; the dependent Bool decider covers three same-type cases, four line/point orientations, and accepts every unlisted pair.",
+      "encoding": "Flatten the seed registers point-selector-direction and characterize every coordinate. Use elementary standard directions and the least nonzero coordinate for the one-row RREF projector. Totalize only v=0 by the identity projector and distinguished incident parameter zero (G22). Encode a field element by the little-endian sum of its ordered basis-coordinate bits, then define chi by integer block quotient (G23). Zero exactly coordinates j with j.val < i.val. Characterize pointAt by base + t \u2022 direction and both question-line structures by their stored base and selected direction. Use coefficient vectors of lengths d+1 and m*d+1, expose their finite coefficient-sum evaluator, and check incidence before evaluation; the dependent Bool decider covers three same-type cases, four line/point orientations, and accepts every unlisted pair.",
       "fidelity": "faithful-boundary",
       "gap_ids": [
         "G22",
@@ -3052,7 +3052,7 @@
           "begin_marker": "<!-- BEGIN F09A-SIGNATURES -->",
           "end_marker": "<!-- END F09A-SIGNATURES -->",
           "path": "workflow/reviews/qpbt-074-game-contract-a01.md",
-          "sha256": "49cdac4cc305006f9bce3679c5f2c5784edf54ab1d2a5cd6685167cfee7a2840"
+          "sha256": "a65a1d1f1e56f086ec78e0796ecd5b87838b7857aac55ea8ef955f793c39bf5d"
         },
         "validation_commands": [
           "lake env lean MIPStarRE/QPBT/Game/ClassicalLDT.lean"
@@ -3060,10 +3060,10 @@
         "writer_lane": "game"
       },
       "integrity": {
-        "lean_assumptions": "The concrete F01 field and basis data, Nat divisibility, explicit finite vector coordinates, the G23 little-endian convention, and the G22 totalization at direction zero; no additional mathematical premise.",
-        "lean_conclusion": "The same finite game core with exact nonzero RREF geometry and exhaustive typed decider, plus a documented identity/parameter-zero branch for the source's undefined zero direction.",
-        "paper_assumptions": "A field F_(2^k), m dividing 2^k, canonical line maps indexed by singleton kernel bases, the three CL register maps, bounded polynomial encodings, and the simultaneous individual LDT decider specialized to repetition one.",
-        "paper_conclusion": "Canonical line representatives, uniform axis selection, exact axis/diagonal line-point distributions, level-1/2/3 CL maps, bounded line answers, and the repetition-one consistency/evaluation decider.",
+        "lean_assumptions": "The concrete F01 field and basis data, Nat divisibility, explicit finite vector coordinates, the G23 little-endian convention, and the G22 totalization at direction zero; the seven characterization laws add no hypothesis or caller-supplied obligation.",
+        "lean_conclusion": "The same finite game core with exact seed layout, elementary directions, least-pivot nonzero RREF geometry, affine and question-line formulas, general bounded-polynomial evaluation, and exhaustive typed decider, plus the documented G22/G23 boundaries.",
+        "paper_assumptions": "A field F_(2^k), m dividing 2^k, the point-selector-direction register identification, canonical line maps indexed by singleton kernel bases, the three CL register maps, bounded polynomial encodings, and the simultaneous individual LDT decider specialized to repetition one.",
+        "paper_conclusion": "Canonical affine-line representatives and parameterization, uniform axis selection, exact axis/diagonal question lines and line-point distributions, level-1/2/3 CL maps, bounded coefficient-sum evaluation, and the repetition-one consistency/evaluation decider.",
         "verdict": "documented mismatch"
       },
       "kind": "definition",
@@ -3133,7 +3133,14 @@
           "MIPStarRE.QPBT.simultaneousIndividualLDTOne_point_diagonalLine",
           "MIPStarRE.QPBT.simultaneousIndividualLDTOne_nonincident",
           "MIPStarRE.QPBT.simultaneousIndividualLDTOne_unlisted",
-          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_zero_direction"
+          "MIPStarRE.QPBT.simultaneousIndividualLDTOne_zero_direction",
+          "MIPStarRE.QPBT.classicalLDTSeedEquiv_apply",
+          "MIPStarRE.QPBT.standardDirection_apply",
+          "MIPStarRE.QPBT.firstNonzeroCoordinate_eq_some_iff",
+          "MIPStarRE.QPBT.AffineLine.pointAt_eq",
+          "MIPStarRE.QPBT.AxisLineQuestion.line_eq",
+          "MIPStarRE.QPBT.DiagonalLineQuestion.line_eq",
+          "MIPStarRE.QPBT.BoundedUnivariatePolynomial.eval_eq_sum"
         ]
       },
       "prerequisites": [
@@ -3154,7 +3161,7 @@
         ],
         "path": "references/2001.04383v3/sections/dependencies/classical-ldt.tex"
       },
-      "statement": "Define the exact canonical affine-line geometry; the explicit little-endian fieldElementIndex and zero-based chi selector; prefix direction truncation; the level-1, level-2, and level-3 classical-LDT CL maps and their exact line-point pushforwards; bounded scalar polynomial answers; and the exhaustive typed repetition-one Bool decider.",
+      "statement": "Define the exact canonical affine-line geometry; the explicit little-endian fieldElementIndex and zero-based chi selector; prefix direction truncation; the level-1, level-2, and level-3 classical-LDT CL maps and their exact line-point pushforwards; bounded scalar polynomial answers; and the exhaustive typed repetition-one Bool decider. Expose unconditional characterization laws for the seed-register layout, elementary directions, least nonzero pivot, affine evaluation, both question-to-line maps, and general bounded-polynomial evaluation.",
       "status": "paper-gap",
       "title": "Canonical lines and repetition-one low-degree game core",
       "transitive_definitions": [
@@ -4317,7 +4324,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "3df07957bac9b5d9a026a4f4547e1a4604de0a6cdc1239b0b61e77b89cd4bc27",
+  "source_sha256": "048d942c71a04045ceade40cf4e2d8b29a100890435f98da1718c95a0e4992cc",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
