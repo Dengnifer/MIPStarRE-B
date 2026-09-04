@@ -243,7 +243,9 @@
         "QPBT-080",
         "QPBT-081",
         "QPBT-082",
-        "QPBT-083"
+        "QPBT-083",
+        "QPBT-084",
+        "QPBT-085"
       ],
       "started_at": "2026-08-30T19:45:39.120486Z",
       "ended_at": null,
@@ -255,7 +257,7 @@
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
       "subagents_issued": 481,
-      "max_concurrency": 10,
+      "max_concurrency": 3,
       "outputs": [
         "research/report.md",
         "workflow/reviews/qpbt-018-021-closure-evidence-a18.md",
@@ -321,7 +323,8 @@
         "INC-086",
         "INC-087",
         "INC-088",
-        "INC-089"
+        "INC-089",
+        "INC-090"
       ]
     },
     {

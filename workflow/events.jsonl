@@ -6055,3 +6055,8 @@
 {"schema_version":1,"timestamp":"2026-09-04T06:48:47.500360Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-040","fields":["integration_sha","integration_tree","integration_parent_sha","integration_candidate_parent_sha","testing","review_status","unexecuted_gate"]}}
 {"schema_version":1,"timestamp":"2026-09-04T06:48:47.971224Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"merged","id":"LPR-040"}}
 {"schema_version":1,"timestamp":"2026-09-04T06:48:48.403917Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-068","fields":["integration_sha","integration_tree","integration_parent_sha","candidate_status","postmerge_validation","blocked_reason","unblock_condition"]}}
+{"schema_version":1,"timestamp":"2026-09-04T06:55:30.899637Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-084"}}
+{"schema_version":1,"timestamp":"2026-09-04T06:56:26.926685Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["issue_ids","incident_ids"]}}
+{"schema_version":1,"timestamp":"2026-09-04T06:56:27.352916Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-068","fields":["acceptance_failure","candidate_status","blocked_reason","unblock_condition"]}}
+{"schema_version":1,"timestamp":"2026-09-04T07:03:45.766516Z","event":"record.added","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-085"}}
+{"schema_version":1,"timestamp":"2026-09-04T07:03:46.430786Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["issue_ids","max_concurrency"]}}

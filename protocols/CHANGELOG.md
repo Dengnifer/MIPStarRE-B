@@ -1,5 +1,24 @@
 # Protocol Changelog
 
+## 0.1.15 candidate (QPBT-085) - 2026-09-04
+
+The owner assigned Track B three concurrent Codex sessions from a ten-session
+account budget shared with Track A. The root coordinator consumes one slot, so
+Track B may run at most two external workers. This direct operational authority
+supersedes the collaboration fan-out and 5-second/three-retry procedure from
+0.1.14: Track B now uses leaf `codex exec` workers only, disables their
+multi-agent feature, counts live scoped workers and surviving collaboration
+threads before each launch, waits 30 seconds between worker starts, and runs no
+more than one reviewer at a time. A full allocation waits 60 seconds before
+recounting; HTTP 429 waits 120 seconds and retries the same stable session once,
+then leaves the task queued instead of looping.
+
+The protocol explicitly excludes Track A's checkout, development cache, and
+tmux session. The stage ledger records the total ceiling of three, while
+dispatcher calls use the two-worker non-coordinator ceiling. This is a direct
+owner requirement rather than an inference from INC-087; independent review is
+still required before QPBT-085 closes.
+
 ## 0.1.14 candidate (QPBT-081) - 2026-09-04
 
 INC-087 records nine HTTP 429 failures across seven stable collaboration

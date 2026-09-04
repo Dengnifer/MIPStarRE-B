@@ -33,6 +33,29 @@ paper steps as issues and paper-gap notes; do not silently repair them.
 - Use names `i<issue>-<role>-a<attempt>-<slug>`; keep the external Codex thread
   ID separate from the stable local name.
 
+### Shared Codex concurrency budget
+
+Track B may use at most three concurrent Codex sessions across the shared
+account. This coordinator consumes one slot, so at most two Track B workers may
+run at once. Count before every launch: the coordinator, actual `codex exec`
+workers whose command line names `MIPStarRE-auto` or `/tmp/qpbt-`, and every
+still-open collaboration thread all count. If the total is three, wait 60
+seconds and recount rather than launching.
+
+Launch Track B workers only through `codex exec`, always with
+`-c features.multi_agent=false` and
+`-c agents.max_concurrent_threads_per_session=1`. Do not create collaboration
+threads or let a worker create children. After starting one worker, wait at
+least 30 seconds and recount before starting another. Run no more than one
+review worker at a time. On HTTP 429, wait 120 seconds and retry the same stable
+session once; after a second failure, leave the task queued and continue other
+ready work without a relaunch loop. Keep free slots on independent prover,
+reviewer, or preparation work when useful, but never exceed the shared limit.
+
+The owner session for Track A reserves the other account slots. Never inspect
+or mutate `/home/drx/MIPStarRE-qpbt`, `/home/drx/.cache/mipstarre-dev`, or tmux
+session `qpbt`; report relevant observations to the owner instead.
+
 ## Local issues and PRs
 
 - `workflow/state/issues.json` is the issue tree. Parent and dependency edges

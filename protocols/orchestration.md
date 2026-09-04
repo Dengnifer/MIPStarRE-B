@@ -100,132 +100,46 @@ an exact-object admission boundary. A nonexistent full-looking
 `--main-commit` must fail during identity construction, before warm/build
 execution, cache or `READY` publication, lock creation, or metric append.
 
-For `codex-collaboration` session admission, use the following spawn-first,
-confirm-at-dispatch sequence. The workflow CLI has no collaboration-tool access
-and must never pretend that it launched or independently verified an external
-thread.
+### Shared Codex concurrency admission
 
-1. Run `python3 scripts/workflow.py dispatch --dry-run --capacity N` with an
-   exact stage and `--session-id`. For collaboration work, preflight exactly one
-   session at a time. The result is a deterministic eligibility and local-slot
-   check; it writes neither session state nor events.
-2. Ask the collaboration backend to create that one thread with a bootstrap-only
-   prompt. The bootstrap may acknowledge and become idle, but it must not read
-   project files, run tools, or receive the task packet yet. If backend creation
-   is rejected, do not run the confirmation command. The planned row and exact
-   canonical state/event bytes consequently remain unchanged; retry the same
-   preflight after a live slot is released.
-3. Copy the immutable thread identity returned by that successful backend call
-   exactly into `dispatch --confirm-launched SESSION_ID=EXTERNAL_ID`, repeating
-   the same capacity, stage, ID, and materialization authority. Collaboration
-   callers of the legacy single-session wrapper use
-   `--launched-external-id EXTERNAL_ID`. A generic `external_id` override is not
-   launch confirmation. The coordinator attests
-   that the value came from the just-completed backend call; the CLI validates
-   shape, uniqueness, admission, and immutability but cannot prove backend
-   existence. Never invent an ID.
-4. The confirmation transaction rechecks dependencies, stage membership,
-   active non-coordinator sessions, writable ownership, and the sorted capacity
-   prefix under the workflow lock. It atomically moves the planned row to
-   `issued` and appends identity-bound events. If capacity or authority drifted,
-   it writes nothing; immediately interrupt and retire the still-bootstrap-only
-   external thread, then retry from step 1.
-5. Only after canonical confirmation may the coordinator deliver the full task
-   packet and move the session through the launch lease to `running`.
+The owner allocates Track B three of the account's concurrent Codex sessions.
+The root coordinator consumes one, leaving at most two worker processes. This
+account-level limit supersedes the earlier collaboration launch and retry
+procedure retained in changelog 0.1.14. Track B does not create collaboration
+threads or nested agents while this allocation is active.
 
-Every collaboration session newly issued through the dispatcher requires a
-confirmed, non-empty immutable external thread identity. Active collaboration
-rows enforce that invariant at schema validation too. Confirm one collaboration
-launch before attempting the next, so the ledger catches up with live occupancy
-between backend calls.
-Nested launches follow the same boundary: the root coordinator preflights the
-planned child, the parent creates only its bootstrap thread and returns the
-external ID, the root confirms it, and only then does the parent send the child
-task. Every active parent and child other than the root coordinator consumes
-one aggregate slot; nesting does not create free capacity.
-
-### Collaboration rate-limit admission
-
-The root coordinator owns one launch-class transport lane across its complete
-collaboration tree. A launch-class request is a backend call that creates a
-bootstrap thread or starts or resumes an agent turn; a message delivered to an
-already running turn without starting one is not launch-class. Parents must not
-issue nested launch-class requests without a root grant. The lane serializes
-transport admission, not admitted work.
-
-For a new session, hold the lane across one uninterrupted sequence: exact
-single-session dry-run, bootstrap-only backend creation, canonical confirmation,
-and task release. Do not interleave another session's bootstrap, task release,
-or resume. Each step must return and be accounted for before the next step.
-Failed bootstrap creation still leaves the planned session and canonical
-state/event bytes unchanged; a confirmation failure still follows the immediate
-bootstrap-thread retirement rule above.
-
-Start a launch-class backend request no sooner than 5 seconds after the previous
-launch-class request returned, whether it succeeded or failed. This is a
-minimum, not a prediction of a provider window. Measure waits with a monotonic
-clock when one is exposed. The initial value is deliberately small because
-INC-087 establishes a zero-stagger burst but exposes no rejected-request
-timestamps or provider rate-window contract.
-
-An HTTP 429 opens one rate-limit episode and keeps the same transport lane. The
-failed operation may receive at most three retries. For retry ordinal `r` in
-`1..3`, wait
+Immediately before every worker launch, count
 
 ```text
-10 * 2^(r - 1) seconds + jitter(r)
+1 + scoped codex-exec workers + open collaboration threads
 ```
 
-after the preceding 429 returns. Derive auditable, transport-free jitter by
-taking the first eight hexadecimal digits of
-`SHA-256(UTF-8(stable-session-name + ":" + action-kind + ":" + r))`, interpreting
-them as an unsigned base-16 integer, and reducing modulo 5000 milliseconds.
-Thus the three base delays are 10, 20, and 40 seconds, each jitter is in
-`[0, 5)` seconds, and their cumulative planned delay is less than 85 seconds.
-No retry may start 120 seconds or more after the initial 429 returned. The
-earlier of the third failed retry and that deadline terminates the episode.
-Successful completion closes it; non-429 failures follow their own incident and
-lifecycle rules rather than consuming this retry budget.
+where a scoped worker is an actual `codex exec` process whose command line
+contains `MIPStarRE-auto` or `/tmp/qpbt-`; do not count the inspection command
+itself. The fixed `1` is the root coordinator. No collaboration threads should
+normally exist, but any surviving one still consumes a slot. Launch only when
+the total is below three. If it is three, wait 60 seconds and recount. The local
+dispatcher counts non-coordinator sessions, so pass `--capacity 2`; this is a
+second admission check, not a substitute for the live account count.
 
-Retry identity is immutable. If bootstrap creation failed before an external
-ID existed, rerun the exact preflight and retry under the same planned stable
-name and attempt number. If a bootstrap thread or working session already
-exists, resume that exact external thread with the unchanged stable name,
-worktree, ownership, and task scope. Preserve its edits and reports. Never
-allocate a replacement attempt, create a duplicate thread, replay completed
-work, or reconfirm an already confirmed session merely because a turn returned
-429.
+Every external worker command includes
+`-c features.multi_agent=false` and
+`-c agents.max_concurrent_threads_per_session=1`. A worker is a leaf: it does
+not dispatch children. After launching one worker, wait 30 seconds and perform
+the live count again before launching a second. Run at most one review worker
+at a time. Prefer independent implementation, review, or packet-preparation
+work in a free slot, while retaining the hot-main singleton build gate.
 
-At terminal exhaustion, stop automatic transport requests and escalate to the
-root coordinator. A pre-bootstrap attempt remains planned with unchanged
-canonical bytes; an existing thread remains the same issued attempt and is not
-reported as an implementation failure solely because transport failed. Record,
-when exposed, the stable name, external ID or `null`, action kind, UTC request
-start and return times, retry ordinal, base delay, jitter, actual wait, request
-ID, outcome, and first-429-to-terminal elapsed time. Use `null` plus an
-availability reason for unavailable timing or token data. The root records the
-incident/session accounting and may explicitly authorize a later bounded
-episode after the quiet window, but it must reuse the same stable session; loss
-of that external thread is a separate lifecycle incident, not permission to
-replace it silently. No sibling launch-class request may use the lane before the
-original 120-second episode deadline has passed.
+If a launch or resume returns HTTP 429, retain the same stable session and
+worktree, wait 120 seconds, recount, and retry once. If that retry also fails,
+leave the task queued and continue other ready local work; do not relaunch in a
+loop or allocate a replacement attempt. Record exposed request identities,
+timings, retry outcome, and token data, using JSON `null` plus a reason when a
+field is unavailable.
 
-The lane is released after successful task release, successful resume, or
-terminal escalation followed by the remainder of that quiet window. Already
-admitted agents continue mathematical work, local validation, ordinary
-running-turn messages, and independent computation in parallel up to the
-unchanged aggregate capacity. A rate-limit episode pauses only new launch-class
-traffic; it does not lower steady-state concurrency or the hot-main cache
-singleton rules.
-
-These waits and backend outcomes are coordinator-enforced procedure. The
-repository dispatcher can enforce local eligibility, exact identity,
-confirmation order, capacity, and no-mutation failure behavior, but it cannot
-observe or delay collaboration-tool creation, task-release, or resume calls.
-Adding a sleep to confirmation would run after bootstrap creation and would not
-cover nested resumes. Until collaboration calls have one repository-owned
-launcher hook, do not represent the stagger/backoff as mechanically enforced
-or add a partial dispatcher timer that gives that false assurance.
+The remaining seven shared-account slots and all resources under
+`/home/drx/MIPStarRE-qpbt`, `/home/drx/.cache/mipstarre-dev`, and tmux session
+`qpbt` belong to Track A. Track B never inspects or mutates them.
 
 Governed `codex-cli` launch retains its distinct issue-first lease. Capacity,
 dependency, stage, and ownership checks first issue the CLI row with
@@ -239,9 +153,9 @@ The dispatcher holds the workflow lock for each confirmation transaction. The
 explicit capacity is an aggregate ceiling across all backends in the selected
 local scope. Candidate IDs are sorted; capacity exhaustion is reported as a
 queued result and dependency or ownership failures as blocked results. A
-capacity-only wave can atomically confirm the sorted available prefix and leave
-the remainder planned, but collaboration callers use the single-ID sequence
-above. Any blocked selected member leaves the requested batch untouched.
+capacity-only wave can atomically issue the sorted available prefix and leave
+the remainder planned. Any blocked selected member leaves the requested batch
+untouched.
 Cross-candidate materialization conflicts are checked for the admitted prefix,
 queued rows are revalidated on a later attempt, and ownership conflicts are
 checked across the whole selected set. The result's `request_atomic` and
@@ -252,9 +166,10 @@ bytes and is re-raised. A retry therefore observes the same deterministic plan.
 `backend_scope: all` is one local-service ceiling: active sessions are summed
 across every backend, never multiplied by backend count. An unknown capacity is
 rejected after deterministic dependency and ownership diagnostics, without a
-ledger or event write. The stage ledger's `max_concurrency` is an observed
-metric, not admission authority. Backend rejection is the authoritative live
-capacity signal; a caller-supplied ceiling cannot guarantee backend admission.
+ledger or event write. The stage ledger's `max_concurrency` records the owner
+ceiling but is not alone admission authority. The root performs the live
+account count and passes the non-coordinator ceiling to dispatch; backend
+rejection remains authoritative.
 
 Dispatch capacity does not relax the hot-main cache singleton: Lean/Lake work
 still waits for the one elected builder for a cache key.
@@ -268,7 +183,7 @@ retry provenance. The initial prompt contains the full issue record, protocol re
 base SHA, worktree, owned paths, source anchors, acceptance gates, cache key,
 prior attempts, and expected result-envelope path.
 
-The orchestrator may delegate:
+The root may dispatch these bounded leaf roles directly:
 
 - `scout`: read-only Mathlib or source search with exact search questions;
 - `blueprint`: source-to-declaration mapping without Lean implementation;
@@ -277,10 +192,11 @@ The orchestrator may delegate:
 - `simplifier`: behavior-preserving reduction after proofs pass; and
 - `auditor`: fresh end-of-session comparison of goal, diff, checks, and debt.
 
-Fan out only when tasks are independent and all boundaries are known. If the
-next task depends on a previous mathematical result, dispatch sequentially.
-Every child prompt is self-contained. Child reports are evidence, not accepted
-changes; the orchestrator checks the result and diff.
+Use at most two workers under the shared budget and never let them create
+children. Parallelize only independent tasks with disjoint writable paths. If
+the next task depends on a previous mathematical result, dispatch sequentially.
+Every worker prompt is self-contained. Reports are evidence, not accepted
+changes; the root checks each result and diff.
 
 ### Issued session launch lease
 

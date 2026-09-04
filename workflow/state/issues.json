@@ -4049,17 +4049,17 @@
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
       "owner_session_id": "i068-integrator-a37-main-sync",
-      "blocked_reason": "Exact reviewed candidate is merged and pushed at 9c3650e5; singleton production warm and one private prepare canary remain.",
-      "unblock_condition": "Production warm publishes and validates the 9c3650e5 cache, then a private issue-worktree prepare canary passes and is retired.",
+      "blocked_reason": "Production warm failed before Lean compilation because full foundation materialization exhausted the host 128-instance inotify limit; QPBT-084 owns the bounded-instance repair.",
+      "unblock_condition": "QPBT-084 passes full-archive validation and immutable review, then exactly one repaired production warm and one private prepare canary pass.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-04T06:48:48.317706Z",
+      "updated_at": "2026-09-04T06:56:27.282465Z",
       "candidate_base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
       "candidate_head_sha": "a97b58acced472db9389975a8617665efa7ada7e",
       "candidate_tree": "675b540739b92d3132a91269f14b26b24393f50e",
       "candidate_patch_sha256": "742d1b9f24dd7a3c5a4453cb911f4824ce0be2e337d76ef3d03a50cf0e98e4bb",
       "candidate_report": "/tmp/i068-integrator-a37-main-sync.md",
       "candidate_report_sha256": "56d0481f60f75cfaea2628ec0a2a42097871e828a1ba83ef147c9047f2b46927",
-      "candidate_status": "merged-awaiting-production-cache-acceptance",
+      "candidate_status": "merged-production-acceptance-failed-repair-open",
       "review_report": "/tmp/i068-reviewer-a11-transaction.md",
       "review_manifest_sha256": "b5a34228e372bc0ee620fb916560fcc27320c37613117169ff2f4315e4e726fc",
       "review_head_sha": "650097d3fc65ecb93683dcbd5fbc3071240cf1e8",
@@ -4625,6 +4625,17 @@
         "diff_check": "passed",
         "worktree_clean": true,
         "free_bytes": 217695444992
+      },
+      "acceptance_failure": {
+        "incident_id": "INC-090",
+        "warm_cache_key": "47165fe685b84536f6f5d2c93b9cd511865ca391c6d6510dac4f20ae0ab3350c",
+        "warm_main_sha": "9aaee76a42d1a3f9c0d1a146d3c79f4769f843f3",
+        "failure_envelope": ".workflow-runtime/cache/failures/47165fe685b84536f6f5d2c93b9cd511865ca391c6d6510dac4f20ae0ab3350c-20260904T145103-2",
+        "elapsed_seconds": 8.724963,
+        "builds_started": 0,
+        "cause": "per-object inotify instances exceeded fs.inotify.max_user_instances=128 during full foundation population",
+        "rlimit_nofile": 1048576,
+        "followup_issue_id": "QPBT-084"
       }
     },
     {
@@ -5679,6 +5690,91 @@
       "updated_at": "2026-09-04T06:21:46.771748Z",
       "blocked_reason": "Deferred behind the active QPBT-068 production cache gate and the first proof-complete Lean launch wave.",
       "unblock_condition": "A workflow lane is free without delaying cache acceptance or Lean elaboration."
+    },
+    {
+      "id": "QPBT-084",
+      "title": "fix(cache): bound materializer inotify instance use",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-068",
+      "dependency_ids": [
+        "QPBT-051"
+      ],
+      "labels": [
+        "workflow",
+        "hot-cache",
+        "materialization",
+        "inotify",
+        "resource-bound",
+        "production-acceptance"
+      ],
+      "acceptance_gates": [
+        "Reproduce the production foundation materialization failure on the pinned 337-file archive under fs.inotify.max_user_instances=128 and preserve the exact failed warm envelope.",
+        "Replace per-object inotify instances with a bounded shared event authority or an equivalently faithful design that retains per-watch event routing, permanent poison semantics, exact owned-event matching, and independent monitor close behavior.",
+        "Add deterministic regressions exceeding 128 simultaneously retained monitors and proving that events for one watched object cannot be consumed, accepted, or hidden by another monitor.",
+        "Pass the complete materializer, hot-cache, workflow, and checker suites plus exact source/archive materialization in a disposable checkout; obtain a fresh immutable review.",
+        "Retry exactly one singleton production warm on the repaired main snapshot, pass one private prepare canary, and preserve the failed transaction evidence until disposition is recorded."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        ".workflow-runtime/cache/failures/47165fe685b84536f6f5d2c93b9cd511865ca391c6d6510dac4f20ae0ab3350c-20260904T145103-2/failure.json",
+        ".workflow-runtime/cache/failures/47165fe685b84536f6f5d2c93b9cd511865ca391c6d6510dac4f20ae0ab3350c-20260904T145103-2/build.log",
+        "scripts/materialize_mipstarre.py:179-286",
+        "scripts/materialize_mipstarre.py:1425-1500",
+        "tests/test_mipstarre_materialization.py"
+      ],
+      "owned_paths": [
+        "scripts/materialize_mipstarre.py",
+        "tests/test_mipstarre_materialization.py",
+        "protocols/local-development.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "created_at": "2026-09-04T06:55:07.385848Z",
+      "updated_at": "2026-09-04T06:55:07.385848Z",
+      "blocked_reason": "Production warm failed before Lean compilation because the real foundation exceeded fs.inotify.max_user_instances=128; no repair session has been issued.",
+      "unblock_condition": "A bounded-instance monitor design passes full-archive materialization, focused/aggregate tests, immutable review, and a retried production warm."
+    },
+    {
+      "id": "QPBT-085",
+      "title": "docs(workflow): enforce shared three-session Codex budget",
+      "kind": "workflow",
+      "execution_category": "preflight",
+      "status": "in_progress",
+      "parent_id": "QPBT-019",
+      "dependency_ids": [
+        "QPBT-081"
+      ],
+      "labels": [
+        "workflow",
+        "orchestration",
+        "concurrency",
+        "owner-directive",
+        "track-isolation"
+      ],
+      "acceptance_gates": [
+        "Make the owner allocation explicit: Track B has three total Codex sessions including the root coordinator and at most two workers.",
+        "Require a live scoped process and open-thread count before every launch, a 30-second stagger before a second worker, and a 60-second wait-and-recount when full.",
+        "Disable multi-agent fan-out for every codex exec worker, prohibit collaboration threads, serialize reviewers, and retain independent work in free slots.",
+        "On HTTP 429 wait 120 seconds and retry the same stable session once, then queue without a relaunch loop.",
+        "Exclude Track A paths and tmux authority, update the stage budget and changelog, pass workflow validation, and obtain fresh independent review."
+      ],
+      "owner_session_id": "i001-coordinator-a01-bootstrap",
+      "source_refs": [
+        "Owner directive dated 2026-09-04 in the active coordinator thread",
+        "research/metrics/incidents.jsonl#INC-087",
+        "protocols/orchestration.md#shared-codex-concurrency-admission"
+      ],
+      "owned_paths": [
+        "AGENTS.md",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md",
+        "workflow/state/stages.json"
+      ],
+      "created_at": "2026-09-04T07:20:00Z",
+      "updated_at": "2026-09-04T07:20:00Z",
+      "blocked_reason": "Fresh independent review is required before activation is recorded complete.",
+      "unblock_condition": "A read-only leaf reviewer approves the exact committed protocol head and all validation gates pass."
     }
   ]
 }
