@@ -38775,6 +38775,44 @@
         "network": 0
       },
       "notes": "Authority-correct regression review approved exact LPR base/head with 278/278 bounded tests. One rejected read-only diff used an incorrectly expanded abbreviated predecessor SHA, then was corrected via rev-parse; no state or candidate bytes changed."
+    },
+    {
+      "id": "i084-orchestrator-a01-inotify-hub",
+      "name": "i084-orchestrator-a01-inotify-hub",
+      "role": "orchestrator",
+      "issue_id": "QPBT-084",
+      "attempt": 1,
+      "status": "issued",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "backend": "codex-cli",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "72d76a719f29f7304bd84ea1e7761a6b6f40a269",
+      "base_revision_reason": "Exact pushed main checkpoint containing QPBT-084 incident evidence and mechanically enforced three-session leaf-worker policy.",
+      "base_tree": "9cd589e595550a589e5ed1636c84a1611d05ccdf",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-084-inotify-a01",
+      "owned_paths": [
+        "scripts/materialize_mipstarre.py",
+        "tests/test_mipstarre_materialization.py",
+        "protocols/local-development.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "validation_command": "Run the complete materializer suite, deterministic greater-than-128-monitor and cross-watch isolation regressions, full pinned MIPStarRE archive materialization in a disposable checkout, hot-cache/workflow/checker suites, compileall, workflow validation, and diff hygiene; do not run production warm.",
+      "result_envelope_path": ".workflow-runtime/runs/i084-orchestrator-a01-inotify-hub/result.json",
+      "started_at": null,
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "timing_quality": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Pending Codex CLI terminal usage event"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "external_id": null
     }
   ]
 }
