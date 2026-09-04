@@ -5696,7 +5696,7 @@
       "title": "fix(cache): bound materializer inotify instance use",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "blocked",
       "parent_id": "QPBT-068",
       "dependency_ids": [
         "QPBT-051"
@@ -5731,9 +5731,9 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-04T06:55:07.385848Z",
-      "updated_at": "2026-09-04T07:13:32.252715Z",
-      "blocked_reason": null,
-      "unblock_condition": null
+      "updated_at": "2026-09-04T07:27:11.528941Z",
+      "blocked_reason": "A01 reproduced INC-090 but stopped before edits because the branch snapshot could not see its later issued row and the task packet omitted the explicit result-envelope and null cache-key authority.",
+      "unblock_condition": "Archive A01, issue A02 from a refreshed exact base with the full session record embedded, result path named, and cache_key null with a reason, then implement the bounded monitor hub."
     },
     {
       "id": "QPBT-085",
