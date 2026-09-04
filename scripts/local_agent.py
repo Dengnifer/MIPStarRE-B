@@ -2190,7 +2190,7 @@ def inspect_codex_review_capability() -> dict[str, Any]:
             timeout_seconds=CODEX_CAPABILITY_PROBE_TIMEOUT_SECONDS,
         )
         help_result = _subprocess_run(
-            ["codex", "exec", "review", "--help"],
+            ["codex", "exec", *CODEX_LEAF_CONFIG_ARGUMENTS, "review", "--help"],
             cwd=Path.cwd(),
             prompt=None,
             timeout_seconds=CODEX_CAPABILITY_PROBE_TIMEOUT_SECONDS,

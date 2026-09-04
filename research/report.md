@@ -22,10 +22,10 @@ service exposed cumulative goal-level usage of `20,222,106` tokens and
 the per-stage and per-session token fields remain `null` with their existing
 availability reasons rather than receiving estimates.
 
-At the `2026-09-04T07:54:45Z` checkpoint, the same service exposed cumulative
-goal-level usage of `105,828,020` tokens and `219,823` seconds. The session
-ledger contained 694 issued rows, while the research ledger contained 691
-terminal metric rows and 93 incident rows. These aggregates still cannot be
+At the `2026-09-04T08:47:24Z` checkpoint, the same service exposed cumulative
+goal-level usage of `106,171,856` tokens and `222,913` seconds. The session
+ledger contained 695 issued rows, while the research ledger contained 693
+terminal metric rows and 96 incident rows. These aggregates still cannot be
 allocated to collaboration sessions: only Codex CLI result envelopes expose
 per-session token counts. Track B now has an owner-imposed three-session
 account allocation: this root coordinator plus at most two leaf workers.
@@ -37,14 +37,14 @@ account allocation: this root coordinator plus at most two leaf workers.
 | 1. Workflow skeleton | completed | 2026-08-30 09:31 +08 | 2026-08-31 01:25 +08 | 35 including root | 5 completed CLI sessions exposed usage; collaboration/root totals unavailable | protocols, ledgers, local tooling, frozen-review harness |
 | 2. Source split | in progress | 2026-08-31 01:33 +08 | - | 113 issued attempts; observed peak concurrency 4 | collaboration backend exposes no per-agent token accounting; values remain `null` with reasons | pinned source is split; supplemental content-bound review isolation remains off the Lean critical path |
 | 3. Lean blueprint | in progress | 2026-08-31 03:45 +08 | - | 44 issued attempts; observed peak concurrency 2 | collaboration usage unavailable | source/API audits and declaration graph exist; remaining detyping and complete-skeleton boundaries continue to evolve with formalization |
-| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 481 issued attempts; current account ceiling 3 including root | CLI usage is exact per result; historical collaboration usage remains unavailable | seven Lean modules are tracked; QPBT-084 repairs the production cache blocker while QPBT-085 reviews the new shared-account admission policy |
+| 4A. Minimal skeleton | in progress | 2026-08-31 03:45 +08 | - | 486 issued attempts; current account ceiling 3 including root | CLI usage is exact per result; historical collaboration usage remains unavailable | seven Lean modules are tracked; QPBT-084 awaits immutable review after passing production-size materialization; QPBT-085 is closing two bounded review findings |
 | 4B. Complete skeleton | in progress | 2026-09-03 01:11 +08 | - | 11 issued attempts; observed peak concurrency 3 | collaboration usage unavailable | declaration planning and bounded source work have begun before Stage 4A closes |
 | 4C. Proofs | in progress | 2026-09-03 00:41 +08 | - | 2 issued attempts; observed peak concurrency 1 | collaboration usage unavailable | proof-debt analysis has begun; proof completion remains dependency-gated |
 | 5. Final audit | planned | - | - | 0 | - | - |
 
 ## Schedule estimates
 
-The snapshot below was updated at 2026-09-04 15:54 +08. Ranges are wall-clock
+The snapshot below was updated at 2026-09-04 16:47 +08. Ranges are wall-clock
 forecasts under the current account allocation of the root coordinator plus two
 leaf workers, not token or person-hour estimates. The two worker slots normally
 hold one critical-path writer and one independent reviewer or disjoint writer.

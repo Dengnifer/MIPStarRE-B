@@ -2428,7 +2428,12 @@ class RuntimeTests(unittest.TestCase):
     ) -> None:
         subprocess_helper.side_effect = [
             subprocess.CompletedProcess(["codex", "--version"], 0, stdout="codex-cli 0.test\n", stderr=""),
-            subprocess.CompletedProcess(["codex", "exec", "review", "--help"], 0, stdout="help\n", stderr=""),
+            subprocess.CompletedProcess(
+                ["codex", "exec", *local_agent.CODEX_LEAF_CONFIG_ARGUMENTS, "review", "--help"],
+                0,
+                stdout="help\n",
+                stderr="",
+            ),
             subprocess.CompletedProcess(
                 ["codex"],
                 2,
@@ -2442,6 +2447,10 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual("codex-cli 0.test", result["version"])
         self.assertEqual(local_agent._sha256_text("help\n"), result["review_help_sha256"])
         self.assertEqual(3, subprocess_helper.call_count)
+        self.assertEqual(
+            ["codex", "exec", *local_agent.CODEX_LEAF_CONFIG_ARGUMENTS, "review", "--help"],
+            subprocess_helper.call_args_list[1].args[0],
+        )
         for call in subprocess_helper.call_args_list:
             self.assertEqual(
                 local_agent.CODEX_CAPABILITY_PROBE_TIMEOUT_SECONDS,

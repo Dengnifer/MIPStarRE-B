@@ -5696,7 +5696,7 @@
       "title": "fix(cache): bound materializer inotify instance use",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-068",
       "dependency_ids": [
         "QPBT-051"
@@ -5731,9 +5731,16 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-04T06:55:07.385848Z",
-      "updated_at": "2026-09-04T07:31:53.758040Z",
-      "blocked_reason": null,
-      "unblock_condition": null
+      "updated_at": "2026-09-04T08:23:30.641991Z",
+      "blocked_reason": "Exact candidate passed bounded suites and full-archive materialization; fresh immutable review, reviewed integration, one production warm, and one private prepare canary remain.",
+      "unblock_condition": "Obtain one fresh immutable approval for head cbe3a9e, integrate the exact tree, then run the single authorized production warm and private prepare canary.",
+      "candidate_base_sha": "72d76a719f29f7304bd84ea1e7761a6b6f40a269",
+      "candidate_head_sha": "cbe3a9e9aaaf2f9a7ad64fc8d8396ce43b18fb21",
+      "candidate_tree": "4887c2d9102625cb29aaca4dbf441a1acd4930a6",
+      "candidate_patch_sha256": "9b76e3c607371ffc1bd31866ef3a3a6c29126a46236768c3c9500af6525be191",
+      "candidate_report": ".workflow-runtime/runs/i084-orchestrator-a02-inotify-hub/result.json",
+      "candidate_report_sha256": "dae1036c22e5f4a2d308d0fb11b3dbf166215176c884b5370bd0bbcb8f085e2e",
+      "candidate_status": "implemented-validated-awaiting-immutable-review"
     },
     {
       "id": "QPBT-085",
@@ -5777,9 +5784,45 @@
         "workflow/state/stages.json"
       ],
       "created_at": "2026-09-04T07:03:45.766516Z",
-      "updated_at": "2026-09-04T08:03:34.028748Z",
-      "blocked_reason": "A02 approved source head c543faa with no findings and is archived as substantive nonbinding evidence; later authenticated metric and report bytes still require final exact-head review.",
-      "unblock_condition": "Commit and push the A02 lifecycle checkpoint, freeze that exact head, then obtain one final immutable A03 approval before closing QPBT-085."
+      "updated_at": "2026-09-04T08:49:47.665869Z",
+      "blocked_reason": "Both A03 findings are resolved and all focused plus aggregate gates pass; one fresh immutable changed-head approval remains.",
+      "unblock_condition": "Freeze the committed repair head and obtain one independent A04 approval.",
+      "latest_review_report": ".workflow-runtime/runs/i085-reviewer-a03-final-policy/result.json",
+      "latest_review_report_sha256": "de968ede1f9cb2b9e076d8281f258eaf640889628af7e6ec63c2d872ff98c1e8",
+      "latest_review_manifest_sha256": "277b52fa4a3a2bbd602b53ed1790c2f9e03bebb748fbaa7d67ba918df0a2bcac",
+      "latest_review_head_sha": "2ac7561373a77949d9abcb8ababd54b0f1d27882",
+      "latest_review_verdict": "request_changes",
+      "latest_review_findings": [
+        {
+          "id": "R3-F1",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "workflow/state/stages.json:259",
+          "summary": "Stage 4A issuance total and research report were stale.",
+          "resolution_evidence": "Canonical Stage 4A count and report now both record 486; workflow validation and the host-access aggregate checker pass."
+        },
+        {
+          "id": "R3-F2",
+          "severity": "low",
+          "status": "resolved",
+          "path": "scripts/local_agent.py:2193",
+          "summary": "The codex exec review help probe omitted the mandated leaf configuration.",
+          "resolution_evidence": "The help argv now includes CODEX_LEAF_CONFIG_ARGUMENTS exactly once; the focused assertion, 64/64 local-agent tests, and 503/503 aggregate tests pass."
+        }
+      ],
+      "candidate_status": "A03-findings-resolved-awaiting-A04",
+      "repair_validation": {
+        "local_agent_tests": "64/64",
+        "workflow_tests": "94/94",
+        "aggregate_tests": "503/503",
+        "aggregate_elapsed_seconds": 292.544,
+        "compileall": "passed",
+        "workflow_validate": "passed",
+        "jsonl_parse": "passed",
+        "diff_check": "passed",
+        "sandbox_attempt": "501/503 with two Unix-socket EPERM fixture denials",
+        "host_access_rerun": "503/503"
+      }
     }
   ]
 }
