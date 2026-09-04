@@ -387,6 +387,9 @@ class _BoundNameMonitor:
         self.watch = hub.subscribe(self, parent_descriptor)
 
     def _drain(self) -> tuple[list[tuple[bytes, int]], bool]:
+        if self.closed:
+            self.poisoned = True
+            return [], True
         self.hub.drain()
         relevant = self._events
         self._events = []

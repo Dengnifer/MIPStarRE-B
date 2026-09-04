@@ -237,6 +237,12 @@ class MaterializationTests(unittest.TestCase):
                 second.close()
                 second.close()
                 os.mkdir("survivor", dir_fd=descriptor)
+                with self.assertRaisesRegex(source.MaterializationError, "became ambiguous"):
+                    second.assert_clean()
+                with self.assertRaisesRegex(
+                    source.MaterializationError, "lacked its exact monitor events"
+                ):
+                    second.accept_owned_change(())
                 first.accept_owned_change((("survivor", source._IN_CREATE),))
                 os.fstat(hub.descriptor)
         finally:
