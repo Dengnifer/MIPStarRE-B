@@ -5450,7 +5450,7 @@
       "title": "docs(workflow): bound collaboration rate-limit retries",
       "kind": "workflow",
       "execution_category": "preflight",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-019",
       "dependency_ids": [],
       "labels": [
@@ -5467,7 +5467,7 @@
         "Determine whether repository tooling can enforce the rule; zero code is valid if the collaboration launch boundary is external, otherwise add focused no-mutation tests.",
         "Apply only the smallest evidence-backed protocol change, update the changelog when required, and obtain independent review before integration."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i081-orchestrator-a01-rate-limit-retries",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-087",
         "workflow/state/sessions.json#i068-orchestrator-a28-boundary-repair",
@@ -5480,7 +5480,7 @@
         "workflow/reviews/qpbt-081-rate-limit-retries-a01.md"
       ],
       "created_at": "2026-09-04T00:24:09.258636Z",
-      "updated_at": "2026-09-04T00:24:09.258636Z",
+      "updated_at": "2026-09-04T03:49:37.043802Z",
       "blocked_reason": "Deferred behind the active cache and Lean critical path; the immediate retry used stable sessions and succeeded.",
       "unblock_condition": "A workflow slot is free without delaying QPBT-068, QPBT-075, or QPBT-080."
     },
