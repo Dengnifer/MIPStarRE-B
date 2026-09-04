@@ -2680,19 +2680,85 @@
       ]
     },
     {
-      "boundary_hypotheses": "The graph is nonempty, as required by the source denominator and soundness weakening. This node depends exactly on the generic finite game/strategy/value/PCC/Schmidt-rank/entanglement semantics and F07 typed interfaces. Its executable ownership is limited to source clauses in types.tex:197-579 and transitive typed interfaces from F07: canonical binary-string pair parsing, sampler and decider step counts, typed downsizing and detyping runtime bounds, and description computability. QPBT-043 must freeze this typed/detyping machine model. F06A-EXECUTABLE-CL alone owns the generic six-input CL sampler/query/downsize layer from conditionally-linear.tex:553-712; this node, K03, and K04 own none of those generic clauses. No conclusion may be replaced by a caller-supplied obligation.",
+      "additional_sources": [
+        {
+          "generated_lines": [
+            95,
+            195
+          ],
+          "label": "def:typed-sampler",
+          "original_lines": [
+            3661,
+            3761
+          ],
+          "path": "references/2001.04383v3/sections/dependencies/types.tex"
+        },
+        {
+          "generated_lines": [
+            19,
+            32
+          ],
+          "label": "",
+          "original_lines": [
+            916,
+            929
+          ],
+          "path": "references/2001.04383v3/sections/top-level/preliminaries.tex"
+        },
+        {
+          "generated_lines": [
+            77,
+            137
+          ],
+          "label": "thm:universal-tm",
+          "original_lines": [
+            974,
+            1034
+          ],
+          "path": "references/2001.04383v3/sections/top-level/preliminaries.tex"
+        },
+        {
+          "generated_lines": [
+            171,
+            200
+          ],
+          "label": "",
+          "original_lines": [
+            1068,
+            1097
+          ],
+          "path": "references/2001.04383v3/sections/top-level/preliminaries.tex"
+        },
+        {
+          "generated_lines": [
+            612,
+            678
+          ],
+          "label": "def:decider",
+          "original_lines": [
+            3489,
+            3555
+          ],
+          "path": "references/2001.04383v3/sections/top-level/nonlocal-games.tex"
+        }
+      ],
+      "boundary_hypotheses": "The graph is nonempty, as required by the source denominator, soundness weakening, and 0 < |TypeId|. The typed sampler is one operational seven-input machine with dimension, marginal, linear, and factor modes, a bounded raw type-code tape, and zero output for invalid type codes. Typed and ordinary deciders are total operational machines with intrinsic uniform per-index bounds over all raw inputs; their times are derived from actual executions, not finite game-valid queries, and any literal maximum includes an attained execution. Width domination, fixed-prefix projection, zero extension, retraction, exact graph/content/padding parsing, and measurement/PCC postprocessing laws are internal construction data. The explicit prefix transport is a documented mismatch from the source's literal full-string forwarding until operational locality equivalence is proved. The sampler runtime theorem has an outermost universal witness C_s before every type set, graph, verifier, and index binder and uses C_s * (|TypeId| * TIME_S(n)) ^ C_s when |TypeId| and TIME_S(n) are positive. The decider theorem separately has its own outermost C_d and uses C_d * (|TypeId| * TIME_D(n)) ^ C_d under the corresponding positive displayed arguments. These positivity conditions do not imply or add 0 < n: the source quantifies every n in N, and the Lean zero-index convention remains explicitly unresolved. F06A-EXECUTABLE-CL alone owns the generic six-input CL sampler/query/downsize layer from conditionally-linear.tex:553-712; this node, K03, and K04 own none of those generic clauses. No caller-supplied transport, compiler, runtime, bridge, witness, package, producer, or obligation is permitted.",
       "chapter": "02",
       "consumers": [],
-      "encoding": "TypedNormalFormVerifier and its game own types.tex:197-220. The graph names separately expose neighbor/vertex encodings, the two-level CL sampler, the rejection event, its exact ordered-edge-cardinality over 16^|Type| probability, and the conditioned type PMF equality. detypeCL and the three detype methods own all four transformations. Separate theorem names retain PCC value-one completeness, the exact 16^|Type| soundness and entanglement loss, level plus two, dimension 4|Type|+s(n), both runtime bounds, and description computability.",
-      "fidelity": "faithful-boundary",
-      "gap_ids": [],
+      "encoding": "TypedNormalFormVerifier and its game own types.tex:197-220. The graph names separately expose neighbor/vertex encodings, the two-level CL sampler, the rejection event, its exact ordered-edge-cardinality over 16^|Type| probability, and the conditioned type PMF equality. detypeCL and the three detype methods own all four transformations. Fixed-prefix graph/content/padding question parsing and self-delimiting variable-tuple/program encoding are separate codecs, each with its own roundtrip and malformed-input laws. The F07A-local finite program syntax has distinct sampler and decider tags; separate graph-plus-sampler and graph-plus-decider compilers have semantic correctness theorems identifying their interpreted output with the exact operational machines used by detype. TypedSampler.detype returns the existing F06A ExecutableCLSampler, never a local duplicate. Separate theorem names retain PCC value-one completeness, the exact 16^|Type| soundness and entanglement loss, level plus two, dimension 4|Type|+s(n), both execution-derived runtime bounds, and polynomial-time computation of the interpreted target descriptions.",
+      "fidelity": "repaired-internal",
+      "gap_ids": [
+        "G24",
+        "G25",
+        "G26"
+      ],
       "id": "F07A-DETYPING",
       "integrity": {
-        "lean_assumptions": "F07 typed interfaces with unrestricted dependent question, answer, and decider fibers; F04A generic finite quantum-game semantics; F06A only as the transitive generic sampler base; the exact graph-event layer owned here; and the types.tex:197-579 typed/detyping executable representation and cost model to be frozen by QPBT-043.",
-        "lean_conclusion": "Every mathematical and typed/detyping executable clause in this node has a distinct callable owner, exact source range, and exact dependency edge; signatures remain a faithful boundary until that machine/cost layer elaborates. The generic conditionally-linear.tex:553-712 executable layer is owned only by F06A and is outside this node.",
-        "paper_assumptions": "A finite nonempty type graph, indexed typed CL sampler and typed decider forming a typed normal-form verifier, finite-game strategies and value, PCC predicates, Schmidt rank, and a machine cost model.",
-        "paper_conclusion": "Exact graph-event probability and conditioned graph law; canonical detyped CL functions, sampler, decider, and verifier; PCC value-one completeness; value and Ent soundness with error factor 16^|Type|; level plus two; dimension 4|Type|+s(n); sampler/decider time and description bounds.",
-        "verdict": "faithful boundary"
+        "lean_assumptions": "F07 mathematical typed interfaces, F04A game semantics, and the existing F06A executable sampler; an F07A-local interpreted finite-program boundary; bounded raw type codes; intrinsically uniformly index-bounded total deciders; explicit fixed-word question/answer transport; no caller-supplied compiler, runtime, transport, bridge, or obligation.",
+        "lean_conclusion": "The same mathematical constructions and theorem conclusions over execution-derived times and interpreted compiled descriptions, with explicit prefix/zero-extension transport for source content and answers, target sampler reuse of F06A, and no public repair assumption.",
+        "paper_assumptions": "A finite nonempty type graph; one typed CL sampler machine with the four seven-input query modes and invalid-type zero behavior; one total typed decider; fixed-index typed and detyped games; machine runtimes and canonical descriptions; finite-game/PCC/value/Schmidt-rank semantics.",
+        "paper_conclusion": "Exact graph event and conditioning law; detyped sampler, decider, and verifier; PCC completeness; value and entanglement soundness with factor 16^|Type|; level ell+2; dimension 4|Type|+s(n); universal sampler/decider polynomial runtime bounds; polynomial-time computation of the actual target descriptions.",
+        "verdict": "documented mismatch"
       },
       "kind": "lemma",
       "lean": {
@@ -4251,7 +4317,7 @@
   ],
   "schema_version": 1,
   "source": "metadata/nodes.json",
-  "source_sha256": "c4521dbf6210971400f91ed91c872c1f19cf603702b3f2c13000d2d7332628b2",
+  "source_sha256": "a5573dbfaa4d074636f6d84b2e715268bd792ec054388bc36bdfe9c3d600667f",
   "targets": {
     "binary": "B01-BINARY",
     "canonical_complexity": "K04-GAME-COMPLEXITY",
