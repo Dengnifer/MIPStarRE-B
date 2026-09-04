@@ -155,12 +155,12 @@ def OrientedIncidence.endpoints :
   | .reverse i slot => (.variable (variableAt i slot), .constraint i)
 
 /-- Reversing an incidence exchanges its endpoints. -/
-def OrientedIncidence.reverse : OrientedIncidence -> OrientedIncidence
+def OrientedIncidence.flip : OrientedIncidence -> OrientedIncidence
   | .forward i slot => .reverse i slot
   | .reverse i slot => .forward i slot
 
 @[simp] theorem OrientedIncidence.endpoints_reverse (edge : OrientedIncidence) :
-    edge.reverse.endpoints = edge.endpoints.swap := by
+    edge.flip.endpoints = edge.endpoints.swap := by
   cases edge <;> rfl
 
 theorem OrientedIncidence.endpoints_injective :
@@ -284,7 +284,7 @@ theorem magicSquareGraph_distribution_ne_zero_iff
 
 /-- Find the unique slot witnessing that a variable belongs to a constraint. -/
 def MagicSquare.incidentSlot? (i : Fin 6) (j : Fin 9) : Option (Fin 3) :=
-  Finset.univ.find? fun slot => MagicSquare.variableAt i slot = j
+  Fin.find? fun slot : Fin 3 => decide (MagicSquare.variableAt i slot = j)
 
 theorem MagicSquare.incidentSlot?_eq_some_iff :
     ∀ (i : Fin 6) (j : Fin 9) (slot : Fin 3),
@@ -306,6 +306,13 @@ private def magicSquareAcceptsForward (i : Fin 6) (j : Fin 9)
   | some slot =>
       MagicSquare.incidenceAccepts i slot constraintAnswer variableAnswer
 
+private def magicSquareAcceptsAtQuestions (i : Fin 6) (j : Fin 9)
+    (constraintAnswer variableAnswer : MagicSquareAnswer) : Bool :=
+  match MagicSquare.Answer.decode (.constraint i) constraintAnswer,
+      MagicSquare.Answer.decode (.variable j) variableAnswer with
+  | some a, some b => magicSquareAcceptsForward i j a b
+  | _, _ => false
+
 /-- The total, fail-closed verifier predicate. Both answers are decoded at
 their actual question tags; unsupported pairs and tag mismatches reject. -/
 def magicSquareAccepts
@@ -313,15 +320,9 @@ def magicSquareAccepts
     (leftAnswer rightAnswer : MagicSquareAnswer) : Bool :=
   match left, right with
   | .constraint i, .variable j =>
-      match MagicSquare.Answer.decode (.constraint i) leftAnswer,
-          MagicSquare.Answer.decode (.variable j) rightAnswer with
-      | some a, some b => magicSquareAcceptsForward i j a b
-      | _, _ => false
+      magicSquareAcceptsAtQuestions i j leftAnswer rightAnswer
   | .variable j, .constraint i =>
-      match MagicSquare.Answer.decode (.constraint i) rightAnswer,
-          MagicSquare.Answer.decode (.variable j) leftAnswer with
-      | some a, some b => magicSquareAcceptsForward i j a b
-      | _, _ => false
+      magicSquareAcceptsAtQuestions i j rightAnswer leftAnswer
   | _, _ => false
 
 @[simp] theorem magicSquareAccepts_forward
@@ -338,7 +339,8 @@ def magicSquareAccepts
       some slot :=
     (MagicSquare.incidentSlot?_eq_some_iff i
       (MagicSquare.variableAt i slot) slot).2 rfl
-  simp [magicSquareAccepts, magicSquareAcceptsForward, hslot]
+  simp [magicSquareAccepts, magicSquareAcceptsAtQuestions,
+    magicSquareAcceptsForward, hslot]
 
 @[simp] theorem magicSquareAccepts_reverse
     (i : Fin 6) (slot : Fin 3)
@@ -354,7 +356,8 @@ def magicSquareAccepts
       some slot :=
     (MagicSquare.incidentSlot?_eq_some_iff i
       (MagicSquare.variableAt i slot) slot).2 rfl
-  simp [magicSquareAccepts, magicSquareAcceptsForward, hslot]
+  simp [magicSquareAccepts, magicSquareAcceptsAtQuestions,
+    magicSquareAcceptsForward, hslot]
 
 theorem magicSquareAccepts_eq_false_of_left_decode_none :
     ∀ (left right : MagicSquareQuestionType)
@@ -392,7 +395,7 @@ theorem magicSquareAccepts_symmetric
     (leftAnswer rightAnswer : MagicSquareAnswer) :
     magicSquareAccepts left right leftAnswer rightAnswer =
       magicSquareAccepts right left rightAnswer leftAnswer := by
-  cases left <;> cases right <;> rfl
+  cases left <;> cases right <;> simp only [magicSquareAccepts]
 
 /-- The Magic Square game with the uniform distribution on its 36 oriented
 constraint-variable incidences. -/
@@ -406,9 +409,14 @@ noncomputable def magicSquareGame :
 theorem magicSquareGame_symmetric : SymmetricGame magicSquareGame := by
   constructor
   · intro left right
+    change magicSquareGraph.distribution (left, right) =
+      magicSquareGraph.distribution (right, left)
     rw [magicSquareGraph_distribution_apply,
       magicSquareGraph_distribution_apply]
-    rw [magicSquareGraph.symmetric]
-  · exact magicSquareAccepts_symmetric
+    simp only [magicSquareGraph.symmetric]
+  · intro left right leftAnswer rightAnswer
+    change magicSquareAccepts left right leftAnswer rightAnswer =
+      magicSquareAccepts right left rightAnswer leftAnswer
+    exact magicSquareAccepts_symmetric left right leftAnswer rightAnswer
 
 end MIPStarRE.QPBT
