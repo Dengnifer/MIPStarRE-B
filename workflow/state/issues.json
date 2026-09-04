@@ -3984,7 +3984,7 @@
       "title": "repair(workflow): close cache seed isolation and crash-recovery gaps",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-067",
       "dependency_ids": [
         "QPBT-051"
@@ -4026,19 +4026,19 @@
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
       "owner_session_id": "i068-orchestrator-a32-threat-boundary-repair",
-      "blocked_reason": "A32 is repairing or accurately narrowing the four A29/A30 findings on the exact rejected head.",
-      "unblock_condition": "A32 commits a validated new head and two fresh immutable reviewers approve all four dispositions before production use.",
+      "blocked_reason": "Exact repaired head d1b7ac96 requires fresh independent review of the narrowed cooperative threat boundary and deterministic live/dry capability regressions.",
+      "unblock_condition": "Fresh security and regression reviewers approve the exact repaired head and explicitly adjudicate F068-A29-001, F068-A29-002, F068-A30-001, and F068-A30-002.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-04T04:24:44.374889Z",
+      "updated_at": "2026-09-04T05:19:17.408509Z",
       "candidate_base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
-      "candidate_head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
-      "candidate_tree": "c92bc515a1554b606bf976b87963a81b7e8a5b1f",
-      "candidate_patch_sha256": "7eea7c34f682257c701bd42e0a95ceb5ebaf4dfccddb2130888eb04c6e19b503",
-      "candidate_report": "/tmp/i068-orchestrator-a28-boundary-repair.md",
-      "candidate_report_sha256": "a8197beed7d79fdbe1eff37830f676603507abd8bc672920a7142fbe503469e1",
-      "candidate_status": "repair-in-progress-four-findings",
+      "candidate_head_sha": "d1b7ac9682f1c626d9386f62f033442f3194c044",
+      "candidate_tree": "62e22ea3943726cb7e10407ed262a6c9172d78ab",
+      "candidate_patch_sha256": "e84b292018259c1372978902bb0a65ea66e69c5936e998fedfe3505667428517",
+      "candidate_report": "/tmp/i068-orchestrator-a32-threat-boundary-repair.md",
+      "candidate_report_sha256": "d026710e0ca4c20852e31dc5b10f59ddefc1faf78e335aebd3cf9b81128bc2ad",
+      "candidate_status": "candidate-complete-awaiting-fresh-security-and-regression-review",
       "review_report": "/tmp/i068-reviewer-a11-transaction.md",
-      "review_manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
+      "review_manifest_sha256": "9bd1d84f6f1804fd54de781b7f316db3aeed46362de289c53e12a6e7ae3db08d",
       "review_head_sha": "650097d3fc65ecb93683dcbd5fbc3071240cf1e8",
       "review_verdict": "request_changes",
       "review_findings": [
@@ -4234,7 +4234,7 @@
       "latest_review_head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
       "repair_parent_sha": "ff08f3e4171f48c58edbbb93b3e22489f0a4d6c6",
       "repair_parent_patch_sha256": "1e72993aa820127ec9af1a3cd0b0d8d91a787574754d7b4bcdad4e57e25310f9",
-      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a29.json",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a35.json",
       "secondary_review_manifest_sha256": "dfc0ccd3674d55ecd927ab74d39bfa996286e04cd4404f41e66437453fefbc70",
       "security_review_report": "/tmp/i068-reviewer-a14-materializer-transaction.md",
       "security_review_report_sha256": "aa34a96601db9afd5b631d202c011598bc853cc81c8c17ad1060ffa41d4b549e",
@@ -4566,10 +4566,12 @@
           "summary": "Regular output hard-link count is not authenticated after copy monitors close, allowing an external same-filesystem alias to share writable output through publication."
         }
       ],
-      "repair_patch_sha256": "8ffda670d5c1dcd95af49a26d5c687cdb3bcec74a6114bed87ad7ca763d658e5",
+      "repair_patch_sha256": "70b7116e574bc03987d6b0dd34ee50392c00fc7af2f4d8a573276cb564ed64d2",
       "review_session_ids": [
         "i068-reviewer-a29-transaction-security",
-        "i068-reviewer-a30-regression-protocol"
+        "i068-reviewer-a30-regression-protocol",
+        "i068-reviewer-a35-transaction-security",
+        "i068-reviewer-a36-regression-protocol"
       ]
     },
     {
@@ -5552,7 +5554,7 @@
         "workflow/reviews/qpbt-074-game-contract-a01.md"
       ],
       "created_at": "2026-09-04T00:59:00Z",
-      "updated_at": "2026-09-04T05:06:06.588496Z",
+      "updated_at": "2026-09-04T05:19:18.490264Z",
       "blocked_reason": "Exact seven-law candidate 335ff621 requires fresh immutable source-fidelity and regression reviews before integration.",
       "unblock_condition": "Two independent reviewers approve the exact candidate and its seven-law source fidelity, fail-closed checker coverage, generated scope, and preserved G22/G23 boundaries.",
       "candidate_status": "candidate-complete-awaiting-fresh-source-and-regression-review",
@@ -5561,7 +5563,13 @@
       "candidate_tree": "a859c85a3647785e765597051458b6b71d73a3af",
       "candidate_patch_sha256": "ec0da2306d5a0e46db86a08b69854258c0972d3a044605f0af301895d71bc574",
       "candidate_report": "/tmp/i082-orchestrator-a01-f09a-contract.md",
-      "candidate_report_sha256": "9274a64274c15d1102aad320d0e0b283b5c6e111fc2ee92ba5e68fd5097bd188"
+      "candidate_report_sha256": "9274a64274c15d1102aad320d0e0b283b5c6e111fc2ee92ba5e68fd5097bd188",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-082-review-manifest-a02.json",
+      "review_manifest_sha256": "2018b97cef5141ac393f19ca6cd26ed5641369e9e211191889c30849d8a8c469",
+      "review_session_ids": [
+        "i082-reviewer-a02-source-fidelity",
+        "i082-reviewer-a03-regression"
+      ]
     }
   ]
 }

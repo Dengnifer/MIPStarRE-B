@@ -9917,8 +9917,10 @@
       "base": "main",
       "head": "issue/qpbt-068-cache-safety-a05",
       "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
-      "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
-      "implementer_session_ids": [],
+      "head_sha": "d1b7ac9682f1c626d9386f62f033442f3194c044",
+      "implementer_session_ids": [
+        "i068-orchestrator-a32-threat-boundary-repair"
+      ],
       "checks": [
         {
           "id": "check-qpbt-068-a28-candidate",
@@ -9930,6 +9932,17 @@
           "completed_at": "2026-09-04T03:42:32.007320Z",
           "result_path": "/tmp/i068-orchestrator-a28-boundary-repair.md",
           "result": "Exact eight-path cumulative patch 7eea7c34 and repair patch 8ffda670; 257/257 assigned tests plus validators and static gates pass."
+        },
+        {
+          "id": "check-qpbt-068-a32-threat-boundary-repair",
+          "name": "QPBT-068 threat-boundary repair validation",
+          "command": "Authenticate exact repair and cumulative eight-path patches; run 36 materializer, 145 cache, 77 workflow and 3 checker tests; run aggregate workflow suite, validators, compileall, ownership and diff gates",
+          "status": "passed",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "d1b7ac9682f1c626d9386f62f033442f3194c044",
+          "completed_at": "2026-09-04T05:13:00Z",
+          "result_path": "/tmp/i068-orchestrator-a32-threat-boundary-repair.md",
+          "result": "Repair full-index patch 68689ac9 and cumulative full-index patch 5f1210e1; 261/261 assigned tests and unrestricted 468/468 aggregate tests passed; exact eight-path worktree clean."
         }
       ],
       "reviews": [
@@ -10041,7 +10054,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T03:43:00Z",
-      "updated_at": "2026-09-04T04:14:31.322695Z",
+      "updated_at": "2026-09-04T05:19:16.881312Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -10054,16 +10067,22 @@
       ],
       "motivation": "Close the remaining cache and materializer write-boundary, late-mutation, dry-admission, and hard-link alias defects before any production cache is used for Lean work.",
       "description": "Adopt the cumulative QPBT-068 cache transaction repair only after exact-manifest security and regression approval, guarded integration, and a production acceptance cycle.",
-      "testing": "A28 reports 34/34 materializer, 143/143 cache, 77/77 workflow, and 3/3 checker tests plus workflow validators, compileall, exact ownership, anchor, and diff gates.",
+      "testing": "A32 reports 36/36 materializer, 145/145 cache, 77/77 workflow, 3/3 checker, and unrestricted 468/468 aggregate tests plus validators, compileall, exact ownership and diff gates.",
       "addresses": "QPBT-068",
       "requested_external_review": true,
-      "unexecuted_gate": "Repair or accurately narrow all four A29/A30 findings on a new exact head, rerun focused and aggregate gates, obtain fresh immutable approvals, then perform guarded integration and production acceptance.",
-      "head_tree": "c92bc515a1554b606bf976b87963a81b7e8a5b1f",
-      "candidate_implementer_session_id": "i068-orchestrator-a28-boundary-repair",
+      "unexecuted_gate": "Fresh exact-head security and regression reviewers must adjudicate all four A29/A30 findings and approve head d1b7ac96 before guarded integration and production acceptance.",
+      "head_tree": "62e22ea3943726cb7e10407ed262a6c9172d78ab",
+      "candidate_implementer_session_id": "i068-orchestrator-a32-threat-boundary-repair",
       "binding_note": "A28 was canonically dispatched before LPR-040 existed and has immutable pr_id null; preserve that authority and bind any later writable integration session explicitly.",
-      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a29.json",
-      "review_manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
-      "review_status": "changes-requested-by-a29-and-a30"
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a35.json",
+      "review_manifest_sha256": "9bd1d84f6f1804fd54de781b7f316db3aeed46362de289c53e12a6e7ae3db08d",
+      "review_status": "repaired-head-awaiting-fresh-security-and-regression-review",
+      "review_session_ids": [
+        "i068-reviewer-a29-transaction-security",
+        "i068-reviewer-a30-regression-protocol",
+        "i068-reviewer-a35-transaction-security",
+        "i068-reviewer-a36-regression-protocol"
+      ]
     },
     {
       "id": "LPR-041",
@@ -10184,6 +10203,65 @@
         "candidate_head_parent_of_merge": true,
         "changed_paths": "exactly 3"
       }
+    },
+    {
+      "id": "LPR-042",
+      "title": "feat(QPBT/Game): strengthen classical LDT contract",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-082"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-082-f09a-contract-a01",
+      "base_sha": "ef827ef4e6c965c0051a6feac64e1842f83f872c",
+      "head_sha": "335ff621459dc86a4d8d60cfb39988db212ab24e",
+      "head_tree": "a859c85a3647785e765597051458b6b71d73a3af",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-082-a01-candidate",
+          "name": "QPBT-082 F09A contract validation",
+          "command": "Authenticate exact six-path candidate; run 42 blueprint tests, default and pinned checks, reference verification, deterministic regeneration, unrestricted workflow suite, workflow validation, ownership and diff gates",
+          "status": "passed",
+          "base_sha": "ef827ef4e6c965c0051a6feac64e1842f83f872c",
+          "head_sha": "335ff621459dc86a4d8d60cfb39988db212ab24e",
+          "completed_at": "2026-09-04T05:03:30Z",
+          "result_path": "/tmp/i082-orchestrator-a01-f09a-contract.md",
+          "result": "Exact six-path patch ec0da230; 42/42 blueprint tests, both checker modes, pinned reference verification, deterministic regeneration, workflow validation, and unrestricted 418/418 workflow tests passed."
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-04T05:16:30Z",
+      "updated_at": "2026-09-04T05:19:18.039517Z",
+      "changed_paths": [
+        "blueprint/check.py",
+        "blueprint/generated/graph.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/tests/test_check.py",
+        "workflow/reviews/qpbt-074-game-contract-a01.md"
+      ],
+      "motivation": "Expose the seven source-faithful public characterization laws required to implement the classical LDT core without guessing opaque blueprint semantics.",
+      "description": "Add exactly seven unconditional F09A laws, update the callable contract and fail-closed mutation coverage, and regenerate only affected deterministic blueprint outputs.",
+      "testing": "42/42 blueprint tests; default and pinned checker modes; 39-file/646-label reference verification; deterministic double generation; workflow validation; unrestricted 418/418 workflow tests; exact ownership and diff gates.",
+      "addresses": "QPBT-082",
+      "requested_external_review": true,
+      "unexecuted_gate": "Fresh immutable source-fidelity and regression reviewers must approve exact head 335ff621 before PR-bound adoption and guarded integration.",
+      "review_status": "fresh-source-and-regression-review-pending",
+      "candidate_producer_session_id": "i082-orchestrator-a01-f09a-contract",
+      "candidate_producer_binding_note": "The writer was dispatched before LPR-042 existed, so its immutable pr_id is null; preserve that authority and bind a later writable integration-preparation session if no repair writer is needed.",
+      "review_session_ids": [
+        "i082-reviewer-a02-source-fidelity",
+        "i082-reviewer-a03-regression"
+      ],
+      "provenance_session_ids": [
+        "i082-orchestrator-a01-f09a-contract"
+      ],
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-082-review-manifest-a02.json",
+      "review_manifest_sha256": "2018b97cef5141ac393f19ca6cd26ed5641369e9e211191889c30849d8a8c469"
     }
   ]
 }
