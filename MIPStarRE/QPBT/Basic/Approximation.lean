@@ -85,6 +85,73 @@ theorem postprocess_effect_eq_zero_of_not_mem_range
 
 end MeasurementFamily
 
+private theorem zmodTwo_effect_sum
+    {Coord : Type uCoord} [Fintype Coord] [DecidableEq Coord]
+    (M : MIPStarRE.Quantum.Measurement (ZMod 2) Coord) :
+    M.effect 0 + M.effect 1 = 1 := by
+  have hu : (Finset.univ : Finset (ZMod 2)) = {0, 1} := rfl
+  simpa [hu] using M.sum_eq_one
+
+/-- F03 binary observables are finite-coordinate unitary involutions.
+
+Paper source: `dependencies/measurements.tex`, "Measurements and observables".
+-/
+abbrev BinaryObservable (Coord : Type uCoord)
+    [Fintype Coord] [DecidableEq Coord] :=
+  { O : MIPStarRE.Quantum.Op Coord //
+      O ∈ Matrix.unitaryGroup Coord Complex ∧ O * O = 1 }
+
+/-- F03 certifies the observable associated to a two-outcome projective measurement.
+
+Paper sources: `dependencies/measurements.tex`, "Measurements and observables",
+and `dependencies/magic-square.tex`, `thm:ms-from-ac`.
+-/
+noncomputable def observableOfMeasurement
+    {Coord : Type uCoord} [Fintype Coord] [DecidableEq Coord]
+    (M : MIPStarRE.Quantum.Measurement (ZMod 2) Coord)
+    (hM : forall b, M.effect b * M.effect b = M.effect b) :
+    BinaryObservable Coord := by
+  let P := M.effect 0
+  let Q := M.effect 1
+  have hP : P * P = P := hM 0
+  have hQ : Q * Q = Q := hM 1
+  have hsum : P + Q = 1 := zmodTwo_effect_sum M
+  have hPQ : P * Q = 0 := by
+    calc
+      P * Q = P * (P + Q) - P * P := by noncomm_ring
+      _ = P * 1 - P := by rw [hsum, hP]
+      _ = 0 := by simp
+  have hQP : Q * P = 0 := by
+    calc
+      Q * P = (P + Q) * P - P * P := by noncomm_ring
+      _ = 1 * P - P := by rw [hsum, hP]
+      _ = 0 := by simp
+  have hinvolutive : (P - Q) * (P - Q) = 1 := by
+    rw [← hsum]
+    simp only [mul_sub, sub_mul, hP, hQ, hPQ, hQP]
+    abel
+  have hPstar : star P = P := by
+    rw [Matrix.star_eq_conjTranspose]
+    exact (Matrix.nonneg_iff_posSemidef.mp (M.pos 0)).isHermitian
+  have hQstar : star Q = Q := by
+    rw [Matrix.star_eq_conjTranspose]
+    exact (Matrix.nonneg_iff_posSemidef.mp (M.pos 1)).isHermitian
+  refine ⟨P - Q, ?_, hinvolutive⟩
+  rw [Matrix.mem_unitaryGroup_iff]
+  simpa [hPstar, hQstar] using hinvolutive
+
+/-- F03 exposes the paper's outcome-zero-minus-outcome-one observable convention.
+
+Paper source: `dependencies/magic-square.tex`, `thm:ms-from-ac`.
+-/
+@[simp] theorem observableOfMeasurement_val
+    {Coord : Type uCoord} [Fintype Coord] [DecidableEq Coord]
+    (M : MIPStarRE.Quantum.Measurement (ZMod 2) Coord)
+    (hM : forall b, M.effect b * M.effect b = M.effect b) :
+    (observableOfMeasurement M hM : MIPStarRE.Quantum.Op Coord) =
+      M.effect 0 - M.effect 1 :=
+  rfl
+
 end MIPStarRE.QPBT
 
 /-!
