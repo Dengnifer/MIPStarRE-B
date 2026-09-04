@@ -19,17 +19,18 @@ paper steps as issues and paper-gap notes; do not silently repair them.
 
 ## Ownership and delegation
 
-- The root coordinator is the only writer of canonical files under
-  `workflow/state/` and `research/metrics/`.
+- The root coordinator is the only writer of retained historical files under
+  `workflow/state/` and `research/metrics/`; those files are not dispatch gates.
 - Each implementation issue has exactly one orchestrator and one owned
   worktree. No two writable sessions own overlapping files.
 - Delegate only bounded tasks with exact paths, objective, source anchors,
   acceptance gates, and validation commands.
 - Parallelize independent scouting and review. Keep dependent proof work
   sequential.
-- A planned task is not an issued session. Record actual attempts separately.
+- A planned task is not an issued session. Record actual attempts separately,
+  without delaying ready Lean work for bookkeeping.
 - Inspect every child result and diff before accepting it.
-- Finish or fail a session explicitly, import its metrics, then archive it.
+- Finish or fail a session explicitly and retain exposed metrics after the run.
 - Use names `i<issue>-<role>-a<attempt>-<slug>`; keep the external Codex thread
   ID separate from the stable local name.
 
@@ -58,31 +59,30 @@ The owner session for Track A reserves the other account slots. Never inspect
 or mutate `/home/drx/MIPStarRE-qpbt`, `/home/drx/.cache/mipstarre-dev`, or tmux
 session `qpbt`; report relevant observations to the owner instead.
 
-## Local issues and PRs
+## GitHub issues and PRs
 
-- `workflow/state/issues.json` is the issue tree. Parent and dependency edges
-  are distinct. A child is ready only when every dependency is done.
-- `workflow/state/prs.json` is the PR list. A PR records immutable base/head
-  SHAs, validation results, review rounds, and finding dispositions.
-- Use conventional titles such as `feat(QPBT/Test): state soundness theorem`.
-- A local PR cannot be approved by its implementer or orchestrator.
-- Re-review only after the head SHA changes or an explicit review request.
-- Close a tracking issue only when it has children and all children completed.
-
-Run `python3 scripts/workflow.py validate` before and after state changes.
+- GitHub Issues and pull requests in `Dengnifer/MIPStarRE-B` are canonical.
+  The JSON ledgers under `workflow/state/` are retained history, not authority.
+- Use one short-lived branch and one PR per implementation packet, with
+  conventional titles such as `feat(QPBT/Test): state soundness theorem`.
+- A PR cannot be approved by its implementer or orchestrator. Re-review only
+  after the head SHA changes or an explicit review request.
+- A worker does not need a local issue/session record, cache key, result
+  envelope, or workflow validation before reading sources and changing Lean.
+- Push coherent checkpoints promptly. Keep `main` current by merging validated
+  PRs rather than accumulating completed work on silent branches.
 
 ## Build protocol
 
-- Never let multiple agents compile the same main snapshot.
-- Use `python3 scripts/hot_main_cache.py warm` to elect one builder under a
-  filesystem lock. Other agents wait and reuse the atomically published cache.
-- The key includes the main SHA, exact pin files, and the versioned canonical
-  build recipe. Publication binds an artifact inventory; seeding verifies it.
-- Seed a private issue-worktree cache with `hot_main_cache.py seed`; never share
-  a writable `.lake/build` between worktrees.
-- Iterate with `lake env lean PATH`. Run the full `lake build` only after the
-  scoped files are stable and before review or integration.
-- Record cache hits, lock wait, build duration, command, and result.
+- Create one worktree per packet from current `main` under `.worktrees/`.
+- Share one writable warmed `.lake/packages` store by symlinking it into each
+  worktree. Never copy a package store or share writable `.lake/build` output.
+- Run `lake build` once in the packet worktree, then iterate on changed files
+  with `lake env lean PATH`. CI and review run on the pushed PR.
+- Do not add cache code, canaries, authenticated artifacts, or static reviews
+  before a proof exists unless a running prover is concretely blocked.
+- Record build duration, command, and result when available; missing metrics do
+  not block Lean work.
 
 ## Faithful formalization
 
@@ -151,21 +151,17 @@ writable build output, and missing source provenance.
   never estimate it.
 - On the third occurrence of the same failure class or work pattern, open a
   workflow issue and evaluate a protocol/tooling change.
-- Protocol changes require evidence, a smallest-sufficient change, validation,
-  an independent review, and an entry in `protocols/CHANGELOG.md`.
+- Protocol changes require evidence and the smallest sufficient correction.
+  Workflow-layer work is frozen unless a running prover is concretely blocked.
 - Zero edits or zero new issues is a valid result for scouts, simplifiers, and
   reviewers.
 
 ## Safety and scope
 
 Preserve user changes. Do not rewrite unrelated files or use destructive Git
-commands. The root coordinator may push validated coherent checkpoints to the
-attached `github` remote (`git@github.com:Dengnifer/MIPStarRE-B.git`) promptly
-after each local commit, with bounded retries for transient transport failure.
-Pushes are limited to this repository and its primary branch; never touch the
-umbrella repository, MIPStarRE-A, or unrelated remotes, and never transmit
-credentials or private runtime content. GitHub Issues, PRs, and review state
-remain represented by the local ledgers unless a separate user requirement
-changes that authority. Network access for source discovery and dependency
-retrieval remains pinned and provenance-recorded; GitHub transport is limited
-to the explicitly authorized checkpoint push.
+commands. The root coordinator and bounded packet workers may create issues,
+push packet branches, open and update PRs, merge validated PRs, and push current
+`main` in `Dengnifer/MIPStarRE-B`, with bounded retries for transient transport
+failure. Never touch the umbrella repository, MIPStarRE-A, or unrelated remotes,
+and never transmit credentials or private runtime content. Network source
+discovery and dependency retrieval remain pinned and provenance-recorded.
