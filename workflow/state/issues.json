@@ -5486,7 +5486,7 @@
         "workflow/reviews/qpbt-081-rate-limit-retries-a01.md"
       ],
       "created_at": "2026-09-04T00:24:09.258636Z",
-      "updated_at": "2026-09-04T04:23:02.443434Z",
+      "updated_at": "2026-09-04T04:41:53.625144Z",
       "blocked_reason": "Exact documentation-only candidate c5a22399 requires fresh immutable review before integration.",
       "unblock_condition": "An independent reviewer approves the exact manifest-bound head and its arithmetic, stable-session semantics, nested coverage, and enforcement-boundary claims.",
       "candidate_base_sha": "32e4d20704de440f6f25d058939880e61849681d",
@@ -5495,14 +5495,19 @@
       "candidate_patch_sha256": "b51d950a8a865f9c22e9e94341864f5814ed262f33a0a0c28dddd8f413cce9dc",
       "candidate_report": "/tmp/i081-orchestrator-a01-rate-limit-retries.md",
       "candidate_report_sha256": "5a01ab51edb0d02f1ec5010abbf1fdca020a5b803cf13ef07234cb4be5b8cdba",
-      "candidate_status": "candidate-complete-awaiting-independent-review"
+      "candidate_status": "candidate-complete-awaiting-independent-review",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-081-review-manifest-a02.json",
+      "review_manifest_sha256": "3ec085f128baddfd11bdbf9ce00ea142a1361f0a1b4bbad8915cd0319669dffb",
+      "review_session_ids": [
+        "i081-reviewer-a02-protocol"
+      ]
     },
     {
       "id": "QPBT-082",
       "title": "fix(F09A): expose callable classical-LDT semantics",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "parent_id": "QPBT-015",
       "dependency_ids": [
         "QPBT-080"
@@ -5523,7 +5528,7 @@
         "Add mutation tests showing that constant evaluation, always-none pivot selection, permuted seed registers, and incorrect line parameterizations fail the contract.",
         "Pass blueprint tests and default plus pinned-source checks, then receive fresh immutable source-fidelity and regression review before QPBT-075 is revised."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i082-orchestrator-a01-f09a-contract",
       "source_refs": [
         "/tmp/i075-scout-a02-source-fidelity.md",
         "/tmp/i075-orchestrator-a01-classical-ldt.md",
@@ -5542,9 +5547,10 @@
         "workflow/reviews/qpbt-074-game-contract-a01.md"
       ],
       "created_at": "2026-09-04T00:59:00Z",
-      "updated_at": "2026-09-04T00:59:00Z",
-      "blocked_reason": "QPBT-080 currently owns overlapping blueprint metadata, checker, test, and generated paths.",
-      "unblock_condition": "Integrate QPBT-080, then dispatch one exact-scope F09A contract writer informed by a read-only signature scout."
+      "updated_at": "2026-09-04T04:38:44.284472Z",
+      "blocked_reason": null,
+      "unblock_condition": "Commit a deterministic seven-law contract candidate and obtain fresh immutable source-fidelity and regression approvals.",
+      "candidate_status": "implementation-in-progress"
     }
   ]
 }

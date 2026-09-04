@@ -10064,6 +10064,55 @@
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a29.json",
       "review_manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
       "review_status": "changes-requested-by-a29-and-a30"
+    },
+    {
+      "id": "LPR-041",
+      "title": "docs(workflow): bound collaboration rate-limit retries",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-081"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-081-rate-limit-a01",
+      "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+      "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+      "head_tree": "c1a3e80efd3daf0e8b0592e45653a060a9170d35",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-081-a01-candidate",
+          "name": "QPBT-081 protocol candidate validation",
+          "command": "Authenticate exact base, head, tree, three-path patch, incident evidence, workflow validation, unrestricted workflow suite, exact ownership and diff gates",
+          "status": "passed",
+          "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+          "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+          "completed_at": "2026-09-04T04:06:11Z",
+          "result_path": "/tmp/i081-orchestrator-a01-rate-limit-retries.md",
+          "result": "Exact three-path patch b51d950a; workflow state valid; unrestricted workflow suite 418/418; candidate worktree clean."
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-04T04:39:20.206453Z",
+      "updated_at": "2026-09-04T04:41:53.196838Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/orchestration.md",
+        "workflow/reviews/qpbt-081-rate-limit-retries-a01.md"
+      ],
+      "motivation": "Turn the third observed collaboration HTTP 429 failure class into a bounded, stable-session launch and retry procedure without reducing admitted-work parallelism.",
+      "description": "Add one root-owned launch-class lane, five-second request staggering, bounded exponential same-session retry, deterministic jitter, terminal quiet-window accounting, and an honest procedural enforcement boundary.",
+      "testing": "Candidate exact identities and three-path ownership authenticated; workflow validation and unrestricted 418/418 workflow suite passed.",
+      "addresses": "QPBT-081",
+      "requested_external_review": true,
+      "unexecuted_gate": "Obtain one independent exact-manifest protocol review, then integrate against current main while reconciling the concurrent QPBT-068 CHANGELOG change.",
+      "review_status": "awaiting-independent-review",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-081-review-manifest-a02.json",
+      "review_manifest_sha256": "3ec085f128baddfd11bdbf9ce00ea142a1361f0a1b4bbad8915cd0319669dffb",
+      "candidate_producer_session_id": "i081-orchestrator-a01-rate-limit-retries",
+      "candidate_producer_binding_note": "The writer was dispatched before LPR-041 existed, so its immutable pr_id is null; preserve that authority and record the exact producer here rather than rewriting session history."
     }
   ]
 }
