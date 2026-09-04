@@ -242,7 +242,8 @@
         "QPBT-079",
         "QPBT-080",
         "QPBT-081",
-        "QPBT-082"
+        "QPBT-082",
+        "QPBT-083"
       ],
       "started_at": "2026-08-30T19:45:39.120486Z",
       "ended_at": null,
@@ -253,7 +254,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 479,
+      "subagents_issued": 481,
       "max_concurrency": 10,
       "outputs": [
         "research/report.md",
@@ -319,7 +320,8 @@
         "INC-085",
         "INC-086",
         "INC-087",
-        "INC-088"
+        "INC-088",
+        "INC-089"
       ]
     },
     {

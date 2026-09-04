@@ -4026,19 +4026,19 @@
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
       "owner_session_id": "i068-integrator-a37-main-sync",
-      "blocked_reason": "A37 produced a clean exact eight-path integration head; fresh immutable security/integration and regression reviews are required before merge.",
-      "unblock_condition": "Both fresh reviewers approve exact head a97b58ac, then guarded merge and the singleton production cache acceptance cycle pass.",
+      "blocked_reason": "A37 produced a clean exact eight-path integration head; authority-correct A40/A41 security and regression reviews are running from immutable LPR-040 base 97e61b34.",
+      "unblock_condition": "Both authority-correct reviewers approve exact candidate head a97b58ac, then guarded merge and the singleton production cache acceptance cycle pass.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-04T06:09:04.620003Z",
+      "updated_at": "2026-09-04T06:29:29.986931Z",
       "candidate_base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
       "candidate_head_sha": "a97b58acced472db9389975a8617665efa7ada7e",
       "candidate_tree": "675b540739b92d3132a91269f14b26b24393f50e",
       "candidate_patch_sha256": "742d1b9f24dd7a3c5a4453cb911f4824ce0be2e337d76ef3d03a50cf0e98e4bb",
       "candidate_report": "/tmp/i068-integrator-a37-main-sync.md",
       "candidate_report_sha256": "56d0481f60f75cfaea2628ec0a2a42097871e828a1ba83ef147c9047f2b46927",
-      "candidate_status": "fresh-integration-reviews-running",
+      "candidate_status": "authority-correct-reviews-running",
       "review_report": "/tmp/i068-reviewer-a11-transaction.md",
-      "review_manifest_sha256": "8753c48678d322111741120d2550b52a3c63537efb10d7c01803cb8486e9a35c",
+      "review_manifest_sha256": "b5a34228e372bc0ee620fb916560fcc27320c37613117169ff2f4315e4e726fc",
       "review_head_sha": "650097d3fc65ecb93683dcbd5fbc3071240cf1e8",
       "review_verdict": "request_changes",
       "review_findings": [
@@ -4234,7 +4234,7 @@
       "latest_review_head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
       "repair_parent_sha": "ff08f3e4171f48c58edbbb93b3e22489f0a4d6c6",
       "repair_parent_patch_sha256": "1e72993aa820127ec9af1a3cd0b0d8d91a787574754d7b4bcdad4e57e25310f9",
-      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a38.json",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a40.json",
       "secondary_review_manifest_sha256": "dfc0ccd3674d55ecd927ab74d39bfa996286e04cd4404f41e66437453fefbc70",
       "security_review_report": "/tmp/i068-reviewer-a14-materializer-transaction.md",
       "security_review_report_sha256": "aa34a96601db9afd5b631d202c011598bc853cc81c8c17ad1060ffa41d4b549e",
@@ -4573,12 +4573,18 @@
         "i068-reviewer-a35-transaction-security",
         "i068-reviewer-a36-regression-protocol",
         "i068-reviewer-a38-integration-security",
-        "i068-reviewer-a39-integration-regression"
+        "i068-reviewer-a39-integration-regression",
+        "i068-reviewer-a40-authority-security",
+        "i068-reviewer-a41-authority-regression"
       ],
       "latest_security_review_report": "/tmp/i068-reviewer-a35-transaction-security.md",
       "latest_security_review_report_sha256": "69ca5aaa7d147849c43d629958e3d31ecdb23e4d94565395a033ee4c16600d5b",
       "latest_regression_review_report": "/tmp/i068-reviewer-a36-regression-protocol.md",
-      "latest_regression_review_report_sha256": "dc1dace12eccfcc9bdf9d2b4217bee5580fa159f9c2a879f150000b5e6e710f8"
+      "latest_regression_review_report_sha256": "dc1dace12eccfcc9bdf9d2b4217bee5580fa159f9c2a879f150000b5e6e710f8",
+      "nonbinding_review_session_ids": [
+        "i068-reviewer-a38-integration-security",
+        "i068-reviewer-a39-integration-regression"
+      ]
     },
     {
       "id": "QPBT-069",
@@ -5589,6 +5595,49 @@
       "pr_binding_report": "/tmp/i082-integrator-a04-pr-bind.md",
       "pr_binding_report_sha256": "5d54d27590301ec2472780922d71a32f1612b7d87df56df92931404cf5ef8393",
       "integration_sha": "552ede3a13d43d1aafd8226f11e8419ec6a5c760"
+    },
+    {
+      "id": "QPBT-083",
+      "title": "feat(workflow): enforce formal reviewer base binding before launch",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-081"
+      ],
+      "labels": [
+        "workflow",
+        "review",
+        "dispatch",
+        "identity",
+        "third-occurrence",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Reproduce INC-048, INC-051, and INC-089 with reviewer sessions whose base_revision incorrectly names the candidate head while pr_id names a PR with a different immutable base_sha.",
+        "Make dispatch reject a formal reviewer before backend launch unless its base_revision and base_tree equal the PR immutable base while candidate head/tree and read-only worktree identity are represented separately and authenticated.",
+        "Preserve non-PR scout/reviewer dispatch, detached read-only candidate worktrees, atomic no-mutation rejection, exact launch confirmation, and the QPBT-081 stagger protocol.",
+        "Add focused and aggregate regressions, document the three-identity contract, record the protocol revision, and obtain fresh immutable review before integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-048",
+        "research/metrics/incidents.jsonl#INC-051",
+        "research/metrics/incidents.jsonl#INC-089",
+        "scripts/workflow.py",
+        "protocols/orchestration.md:288"
+      ],
+      "owned_paths": [
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "created_at": "2026-09-04T06:21:46.771748Z",
+      "updated_at": "2026-09-04T06:21:46.771748Z",
+      "blocked_reason": "Deferred behind the active QPBT-068 production cache gate and the first proof-complete Lean launch wave.",
+      "unblock_condition": "A workflow lane is free without delaying cache acceptance or Lean elaboration."
     }
   ]
 }

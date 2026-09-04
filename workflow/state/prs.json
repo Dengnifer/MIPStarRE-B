@@ -10095,7 +10095,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T03:43:00Z",
-      "updated_at": "2026-09-04T06:09:04.390458Z",
+      "updated_at": "2026-09-04T06:29:29.534032Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -10111,20 +10111,22 @@
       "testing": "A37 reports bounded 278/278 and unrestricted aggregate 503/503 tests, workflow validation, exact eight-path ownership, authenticated preserved blobs, diff checks, and a clean tracked tree.",
       "addresses": "QPBT-068",
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh independent security/integration and regression reviews must approve exact head a97b58ac; then merge against current main and run one production hot-main warm plus one prepare canary.",
+      "unexecuted_gate": "Fresh authority-correct security and regression reviews A40/A41 must approve exact LPR base 97e61b34 and candidate head a97b58ac; then merge against current main and run one production hot-main warm plus one prepare canary.",
       "head_tree": "675b540739b92d3132a91269f14b26b24393f50e",
       "candidate_implementer_session_id": "i068-integrator-a37-main-sync",
       "binding_note": "A28 was canonically dispatched before LPR-040 existed and has immutable pr_id null; preserve that authority and bind any later writable integration session explicitly.",
-      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a38.json",
-      "review_manifest_sha256": "8753c48678d322111741120d2550b52a3c63537efb10d7c01803cb8486e9a35c",
-      "review_status": "fresh-integration-reviews-running",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a40.json",
+      "review_manifest_sha256": "b5a34228e372bc0ee620fb916560fcc27320c37613117169ff2f4315e4e726fc",
+      "review_status": "authority-correct-reviews-running",
       "review_session_ids": [
         "i068-reviewer-a29-transaction-security",
         "i068-reviewer-a30-regression-protocol",
         "i068-reviewer-a35-transaction-security",
         "i068-reviewer-a36-regression-protocol",
         "i068-reviewer-a38-integration-security",
-        "i068-reviewer-a39-integration-regression"
+        "i068-reviewer-a39-integration-regression",
+        "i068-reviewer-a40-authority-security",
+        "i068-reviewer-a41-authority-regression"
       ],
       "integration_sync": {
         "session_id": "i068-integrator-a37-main-sync",
@@ -10141,7 +10143,11 @@
         "bounded_tests": "278/278",
         "aggregate_tests": "503/503",
         "ignored_bytecode_incident": "one ignored pyc created and two pre-existing ignored pycs refreshed; no tracked or candidate bytes affected"
-      }
+      },
+      "nonbinding_review_session_ids": [
+        "i068-reviewer-a38-integration-security",
+        "i068-reviewer-a39-integration-regression"
+      ]
     },
     {
       "id": "LPR-041",
