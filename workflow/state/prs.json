@@ -9917,9 +9917,10 @@
       "base": "main",
       "head": "issue/qpbt-068-cache-safety-a05",
       "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
-      "head_sha": "d1b7ac9682f1c626d9386f62f033442f3194c044",
+      "head_sha": "a97b58acced472db9389975a8617665efa7ada7e",
       "implementer_session_ids": [
-        "i068-orchestrator-a32-threat-boundary-repair"
+        "i068-orchestrator-a32-threat-boundary-repair",
+        "i068-integrator-a37-main-sync"
       ],
       "checks": [
         {
@@ -10094,7 +10095,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T03:43:00Z",
-      "updated_at": "2026-09-04T05:43:07.980517Z",
+      "updated_at": "2026-09-04T06:09:04.390458Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -10107,22 +10108,40 @@
       ],
       "motivation": "Close the remaining cache and materializer write-boundary, late-mutation, dry-admission, and hard-link alias defects before any production cache is used for Lean work.",
       "description": "Adopt the cumulative QPBT-068 cache transaction repair only after exact-manifest security and regression approval, guarded integration, and a production acceptance cycle.",
-      "testing": "A32 reports 36/36 materializer, 145/145 cache, 77/77 workflow, 3/3 checker, and unrestricted 468/468 aggregate tests plus validators, compileall, exact ownership and diff gates.",
+      "testing": "A37 reports bounded 278/278 and unrestricted aggregate 503/503 tests, workflow validation, exact eight-path ownership, authenticated preserved blobs, diff checks, and a clean tracked tree.",
       "addresses": "QPBT-068",
       "requested_external_review": true,
-      "unexecuted_gate": "A37 must preserve both changelog entries while merging current main 1a9612d into the reviewed head, then a fresh immutable integration review must approve the resulting exact head.",
-      "head_tree": "62e22ea3943726cb7e10407ed262a6c9172d78ab",
-      "candidate_implementer_session_id": "i068-orchestrator-a32-threat-boundary-repair",
+      "unexecuted_gate": "Fresh independent security/integration and regression reviews must approve exact head a97b58ac; then merge against current main and run one production hot-main warm plus one prepare canary.",
+      "head_tree": "675b540739b92d3132a91269f14b26b24393f50e",
+      "candidate_implementer_session_id": "i068-integrator-a37-main-sync",
       "binding_note": "A28 was canonically dispatched before LPR-040 existed and has immutable pr_id null; preserve that authority and bind any later writable integration session explicitly.",
-      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a35.json",
-      "review_manifest_sha256": "9bd1d84f6f1804fd54de781b7f316db3aeed46362de289c53e12a6e7ae3db08d",
-      "review_status": "exact-reviewed-head-approved-integration-sync-pending",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a38.json",
+      "review_manifest_sha256": "8753c48678d322111741120d2550b52a3c63537efb10d7c01803cb8486e9a35c",
+      "review_status": "fresh-integration-reviews-running",
       "review_session_ids": [
         "i068-reviewer-a29-transaction-security",
         "i068-reviewer-a30-regression-protocol",
         "i068-reviewer-a35-transaction-security",
-        "i068-reviewer-a36-regression-protocol"
-      ]
+        "i068-reviewer-a36-regression-protocol",
+        "i068-reviewer-a38-integration-security",
+        "i068-reviewer-a39-integration-regression"
+      ],
+      "integration_sync": {
+        "session_id": "i068-integrator-a37-main-sync",
+        "launch_main_sha": "1a9612d83686b29100bca9e189f8f22ae33641ea",
+        "merge_sha": "a97b58acced472db9389975a8617665efa7ada7e",
+        "merge_tree": "675b540739b92d3132a91269f14b26b24393f50e",
+        "parents": [
+          "d1b7ac9682f1c626d9386f62f033442f3194c044",
+          "1a9612d83686b29100bca9e189f8f22ae33641ea"
+        ],
+        "report": "/tmp/i068-integrator-a37-main-sync.md",
+        "report_sha256": "56d0481f60f75cfaea2628ec0a2a42097871e828a1ba83ef147c9047f2b46927",
+        "full_index_patch_sha256": "742d1b9f24dd7a3c5a4453cb911f4824ce0be2e337d76ef3d03a50cf0e98e4bb",
+        "bounded_tests": "278/278",
+        "aggregate_tests": "503/503",
+        "ignored_bytecode_incident": "one ignored pyc created and two pre-existing ignored pycs refreshed; no tracked or candidate bytes affected"
+      }
     },
     {
       "id": "LPR-041",
