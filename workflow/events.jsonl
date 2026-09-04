@@ -5829,3 +5829,7 @@
 {"schema_version":1,"timestamp":"2026-09-04T04:24:44.035474Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-068","fields":["owner_session_id","candidate_status","blocked_reason","unblock_condition"]}}
 {"schema_version":1,"timestamp":"2026-09-04T04:24:44.447629Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"in_progress","id":"QPBT-068"}}
 {"schema_version":1,"timestamp":"2026-09-04T04:24:44.853810Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"stage","id":"STAGE-04A","fields":["subagents_issued"]}}
+{"schema_version":1,"timestamp":"2026-09-04T04:35:30.944216Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-039","fields":["integration_sha","testing","unexecuted_gate","post_integration_validation"]}}
+{"schema_version":1,"timestamp":"2026-09-04T04:35:48.158842Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"merged","id":"LPR-039"}}
+{"schema_version":1,"timestamp":"2026-09-04T04:35:48.851118Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-080","fields":["source_scout_findings","rejected_review_finding","candidate_status","integration_sha","blocked_reason","unblock_condition"]}}
+{"schema_version":1,"timestamp":"2026-09-04T04:35:49.281309Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"done","id":"QPBT-080"}}

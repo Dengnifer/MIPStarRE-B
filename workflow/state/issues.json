@@ -5330,7 +5330,7 @@
       "title": "fix(F07A): freeze width, runtime, and description boundaries",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-038",
@@ -5372,9 +5372,9 @@
         "docs/paper-gaps/detyping-executable-boundaries.md"
       ],
       "created_at": "2026-09-04T00:24:09.258636Z",
-      "updated_at": "2026-09-04T04:23:02.041088Z",
+      "updated_at": "2026-09-04T04:35:49.200163Z",
       "blocked_reason": null,
-      "unblock_condition": "Guarded integration must preserve exact approved head 10b4fdee and pass the current-main validation gate.",
+      "unblock_condition": null,
       "source_review_report": "/tmp/i043-scout-a08-source-boundary.md",
       "source_review_report_sha256": "8e9044103fe540192edabb56fb8f6216c39f7d1882fb5843bf640c3abc5bb606",
       "source_review_verdict": "request_changes-contract-repair-required",
@@ -5383,7 +5383,7 @@
         "G25",
         "G26"
       ],
-      "candidate_status": "approved-ready-for-guarded-integration",
+      "candidate_status": "integrated",
       "candidate_base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
       "candidate_head_sha": "10b4fdee0ec15f545a789af467a9525c0d10a0d9",
       "candidate_tree": "abd0a44a2ecb8cd50b934d9efa88edbe47b7b5b5",
@@ -5398,30 +5398,34 @@
         {
           "id": "F080-A02-001",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "blueprint/metadata/nodes.json",
-          "summary": "The documented-mismatch verdict names only G24, but G26 strengthens the paper pointwise-total raw decider to intrinsic per-index uniform boundedness and attainment."
+          "summary": "The documented-mismatch verdict names only G24, but G26 strengthens the paper pointwise-total raw decider to intrinsic per-index uniform boundedness and attainment.",
+          "resolution_evidence": "A06 preserved G26 as an explicit undefined-maximum gap, limited the documented mismatch verdict to G24, and A08/A09 independently accepted G26 as faithful executable boundary data."
         },
         {
           "id": "F080-A02-002",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "blueprint/metadata/nodes.json",
-          "summary": "The integrity table itself does not freeze runtime quantifier order, positive displayed arguments, the no-0<n rule, distinct codecs, or direct F06A reuse."
+          "summary": "The integrity table itself does not freeze runtime quantifier order, positive displayed arguments, the no-0<n rule, distinct codecs, or direct F06A reuse.",
+          "resolution_evidence": "A06 froze runtime quantifier order, positive displayed arguments without 0<n, distinct codecs, raw-domain timing, and exact F06A reuse; A08/A09 approved."
         },
         {
           "id": "F080-A02-003",
           "severity": "medium",
-          "status": "open",
+          "status": "resolved",
           "path": "blueprint/metadata/gaps.json",
-          "summary": "G24 omits the ordinary normal-game width source at top-level/nonlocal-games.tex:660-678."
+          "summary": "G24 omits the ordinary normal-game width source at top-level/nonlocal-games.tex:660-678.",
+          "resolution_evidence": "A06 added the exact ordinary normal-game width source to G24 and its authenticated checker contract; A08/A09 approved."
         },
         {
           "id": "F080-A02-004",
           "severity": "low",
-          "status": "open",
+          "status": "resolved",
           "path": "blueprint/metadata/nodes.json",
-          "summary": "The paper has one seven-input sampler interface with four variable-arity call modes, not four seven-input query modes."
+          "summary": "The paper has one seven-input sampler interface with four variable-arity call modes, not four seven-input query modes.",
+          "resolution_evidence": "A06 corrected the contract to one seven-input sampler interface with four variable-arity call modes; A08/A09 approved."
         }
       ],
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-080-review-manifest-a08.json",
@@ -5442,9 +5446,10 @@
       ],
       "rejected_review_finding": {
         "id": "F080-A05-001",
-        "reason": "Paper-first A04 adjudication treats G26 as a documented undefined-maximum gap and faithful boundary, not a second behavioral mismatch; fresh post-repair review must reconfirm."
+        "reason": "Paper-first A04 adjudication treated G26 as a documented undefined-maximum gap and faithful boundary rather than a second behavioral mismatch; fresh exact-head reviewers A08 and A09 independently confirmed that classification."
       },
-      "secondary_review_verdict": "approve"
+      "secondary_review_verdict": "approve",
+      "integration_sha": "8181636d3ad3c8c85e1a9966f89abc2a6b18d940"
     },
     {
       "id": "QPBT-081",

@@ -9774,7 +9774,7 @@
     {
       "id": "LPR-039",
       "title": "fix(blueprint/F07A): freeze executable detyping boundaries",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-080"
       ],
@@ -9844,10 +9844,10 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "8181636d3ad3c8c85e1a9966f89abc2a6b18d940",
+      "merged_at": "2026-09-04T04:35:48.063894Z",
       "created_at": "2026-09-04T01:27:00Z",
-      "updated_at": "2026-09-04T04:23:01.639329Z",
+      "updated_at": "2026-09-04T04:35:48.063894Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.dot",
@@ -9861,10 +9861,10 @@
       ],
       "motivation": "Freeze the executable, width-transport, runtime, and compiler boundaries required before the F07A Lean skeleton can be source faithful.",
       "description": "Adopt the exact QPBT-080 blueprint candidate after fresh source-fidelity and regression reviews adjudicate the recorded G26 wording disagreement.",
-      "testing": "A06 and the coordinator independently authenticated repair/cumulative patch identities, 42/42 blueprint tests, default and pinned-source checks, exact ownership, and byte-idempotent generation.",
+      "testing": "Exact candidate and manifest identities authenticated; 42/42 blueprint tests, default and pinned-source checks, 39-file reference verification, workflow validation, and unrestricted 418/418 workflow tests passed after merge.",
       "addresses": "QPBT-080",
       "requested_external_review": true,
-      "unexecuted_gate": "Guarded integration against current main, followed by full blueprint/reference/workflow validation.",
+      "unexecuted_gate": null,
       "head_tree": "abd0a44a2ecb8cd50b934d9efa88edbe47b7b5b5",
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-080-review-manifest-a08.json",
       "review_manifest_sha256": "494049bbe37173c63d8706ed51d24f860c68251cf13011b41cf69c767af954ee",
@@ -9894,7 +9894,18 @@
           ]
         }
       ],
-      "review_binding_note": "The A04 and A05 sessions immutably recorded candidate head as their session base_revision, while the PR validator requires the PR base. Preserve the reports as authenticated candidate evidence, do not alter immutable session authority, and bind fresh post-repair reviewers correctly."
+      "review_binding_note": "The A04 and A05 sessions immutably recorded candidate head as their session base_revision, while the PR validator requires the PR base. Preserve the reports as authenticated candidate evidence, do not alter immutable session authority, and bind fresh post-repair reviewers correctly.",
+      "post_integration_validation": {
+        "integration_sha": "8181636d3ad3c8c85e1a9966f89abc2a6b18d940",
+        "blueprint_tests": "42/42",
+        "blueprint_check": "passed",
+        "pinned_blueprint_check": "passed",
+        "reference_inventory": "39 files, 646 labels, verified",
+        "workflow_validate": "passed",
+        "workflow_tests": "418/418 unrestricted",
+        "sandbox_workflow_tests": "416 passed, 2 Unix-socket fixtures blocked by EPERM",
+        "git_diff_check": "passed"
+      }
     },
     {
       "id": "LPR-040",
