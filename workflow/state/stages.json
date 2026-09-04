@@ -239,7 +239,10 @@
         "QPBT-076",
         "QPBT-077",
         "QPBT-078",
-        "QPBT-079"
+        "QPBT-079",
+        "QPBT-080",
+        "QPBT-081",
+        "QPBT-082"
       ],
       "started_at": "2026-08-30T19:45:39.120486Z",
       "ended_at": null,
@@ -250,7 +253,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 445,
+      "subagents_issued": 448,
       "max_concurrency": 10,
       "outputs": [
         "research/report.md",
@@ -313,7 +316,9 @@
         "INC-081",
         "INC-082",
         "INC-083",
-        "INC-085"
+        "INC-085",
+        "INC-086",
+        "INC-087"
       ]
     },
     {
@@ -334,7 +339,7 @@
         "total": null,
         "availability_reason": "Root and collaboration backends do not expose aggregate stage tokens; per-session unavailability is recorded"
       },
-      "subagents_issued": 10,
+      "subagents_issued": 11,
       "max_concurrency": 3,
       "outputs": [
         "workflow/reviews/qpbt-042-semantics-a01.md",
