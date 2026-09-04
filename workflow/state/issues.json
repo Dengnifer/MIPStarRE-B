@@ -4760,7 +4760,7 @@
       "title": "feat(QPBT/Game): implement the standalone Magic Square game",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "ready",
       "parent_id": "QPBT-015",
       "dependency_ids": [
         "QPBT-038",
@@ -4792,9 +4792,9 @@
         "MIPStarRE/QPBT/Game/MagicSquare/Defs.lean"
       ],
       "created_at": "2026-09-03T18:48:53.258232Z",
-      "updated_at": "2026-09-03T20:41:12.433289Z",
-      "blocked_reason": "QPBT-068 is under final immutable review; no issue worktree may use the repaired prepare path before integration.",
-      "unblock_condition": "Integrate QPBT-068, then authorize one authenticated private prepare, scoped elaboration, target/full build, commit, and code review.",
+      "updated_at": "2026-09-04T14:01:56.027471Z",
+      "blocked_reason": null,
+      "unblock_condition": "Launch scoped Lean against the authenticated published cache when a Track-B prover slot opens; full build, immutable review, and PR integration follow.",
       "draft_sha256": "7e3960fbbf7d85f37c198f6b36da3e444164d4170b46c972253cbe99092a5478",
       "draft_bytes": 16611,
       "draft_lines": 414,
@@ -4825,7 +4825,11 @@
           "resolution_evidence": "The repaired draft proves 15/18/36/66 cardinalities; A03 approved the frozen bytes."
         }
       ],
-      "candidate_status": "source-api-approved-awaiting-authenticated-prepare"
+      "candidate_status": "committed-awaiting-scoped-elaboration",
+      "github_issue_number": 43,
+      "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/43",
+      "github_pr_number": 44,
+      "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/44"
     },
     {
       "id": "QPBT-072",
@@ -4898,7 +4902,7 @@
         "Reuse project and Mathlib finite-sum/inner-product lemmas, introduce zero new sorry/axiom/constant/public assumptions, and keep imports minimal and acyclic.",
         "Pass scoped elaboration, affected target, exact signature/axiom/debt probes, blueprint synchronization after QPBT-074, one private full build, immutable review, and guarded integration."
       ],
-      "owner_session_id": "i073-orchestrator-a07-elaboration",
+      "owner_session_id": null,
       "source_refs": [
         "/tmp/i005-scout-a42-magic-operator-api.md:548-610",
         "MIPStarRE/QPBT/Game/Semantics.lean",
@@ -4908,10 +4912,10 @@
         "MIPStarRE/QPBT/Game/ValueOne.lean"
       ],
       "created_at": "2026-09-03T18:48:53.258232Z",
-      "updated_at": "2026-09-04T13:57:36.356330Z",
+      "updated_at": "2026-09-04T14:16:32.956354Z",
       "blocked_reason": null,
       "unblock_condition": "Scoped elaboration proceeds against the authenticated published cache; private full build, immutable review, and PR integration remain required.",
-      "candidate_status": "scoped-elaboration-in-progress",
+      "candidate_status": "committed-awaiting-scoped-elaboration",
       "draft_sha256": "7e7ad51bd6600642d8f6bd235662bf22cc4be64db5cf4587d12198d76d497147",
       "draft_bytes": 9428,
       "draft_lines": 214,
@@ -4922,7 +4926,9 @@
       "github_issue_number": 39,
       "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/39",
       "github_pr_number": 41,
-      "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/41"
+      "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/41",
+      "last_elaboration_session": "i073-orchestrator-a07-elaboration",
+      "last_elaboration_result": "infrastructure-path-corrected"
     },
     {
       "id": "QPBT-074",
@@ -5369,7 +5375,7 @@
         "Introduce no sorry, admit, axiom, constant, bridge, residual, repair, witness, package, producer, generic hypotheses, or duplicate raw observable API.",
         "Pass private scoped Lean, affected target, exact API/axiom/debt/import probes, blueprint synchronization, one private full build, fresh immutable mathematical review, and guarded integration."
       ],
-      "owner_session_id": "i079-orchestrator-a09-elaboration",
+      "owner_session_id": null,
       "source_refs": [
         "references/2001.04383v3/sections/dependencies/measurements.tex:14-19",
         "references/2001.04383v3/sections/dependencies/magic-square.tex:147-173",
@@ -5383,14 +5389,14 @@
         "MIPStarRE/QPBT/Basic/Approximation.lean"
       ],
       "created_at": "2026-09-03T21:51:22.513599Z",
-      "updated_at": "2026-09-04T13:55:59.907979Z",
+      "updated_at": "2026-09-04T14:16:32.497404Z",
       "blocked_reason": null,
       "unblock_condition": "Scoped elaboration proceeds immediately against the authenticated published cache in read-only mode; private prepare, full build, immutable post-build review, and PR integration remain required.",
       "planning_report": "/tmp/i005-scout-a53-f03-completion.md",
       "planning_report_sha256": "9c6226a7963268553aee6216f41e0ce0dad9f9f8bc317ccd042dee82cf646736",
       "frozen_signature_sha256": "8de7983b66b2cce523b45bb3b14a788ac34b0315be91644610cf455b5306b065",
       "statement_integrity_verdict": "faithful finite-coordinate boundary; observable definition, conversion, sign, laws, and quantifier order exact",
-      "candidate_status": "scoped-elaboration-in-progress",
+      "candidate_status": "scoped-elaboration-passed-awaiting-affected-build-review",
       "candidate_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
       "candidate_file_sha256": "341811f5baf2aa3fe8fe7cd580954cb0a5987e73abe00b86a6d8d48fcafcf1e0",
       "candidate_report": "/tmp/i079-orchestrator-a01-binary-observable.md",
@@ -5405,7 +5411,11 @@
       "github_issue_number": 40,
       "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/40",
       "github_pr_number": 42,
-      "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/42"
+      "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/42",
+      "scoped_elaboration_result": "pass",
+      "scoped_elaboration_session": "i079-orchestrator-a09-elaboration",
+      "scoped_elaboration_olean_sha256": "181e058f0af751669c4785c95e2a21bc2c4e690ad7845e363bcebb6408dc0d04",
+      "scoped_elaboration_seconds": 16.310327
     },
     {
       "id": "QPBT-080",

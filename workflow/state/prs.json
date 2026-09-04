@@ -10491,6 +10491,35 @@
       "candidate_producer_session_id": "i079-orchestrator-a01-binary-observable",
       "candidate_producer_binding_note": "The writer predated this GitHub PR, so immutable session authority retains pr_id null; the exact producer is recorded here without rewriting history.",
       "testing": "Scoped Lean elaboration in progress; affected/full build and immutable review pending."
+    },
+    {
+      "id": "LPR-045",
+      "title": "feat(QPBT/Game): define the Magic Square game",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-071"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-071-magic-defs-a01",
+      "base_sha": "ff654165eb65886205eef761766a595c36e70511",
+      "head_sha": "77fbd227a68227062550ed84e9d0845efaf64101",
+      "implementer_session_ids": [],
+      "checks": [],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-04T14:01:34Z",
+      "updated_at": "2026-09-04T14:01:34Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Game/MagicSquare/Defs.lean"
+      ],
+      "github_number": 44,
+      "github_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/44",
+      "canonical_location": "github",
+      "candidate_producer_session_id": "i071-orchestrator-a01-magic-defs",
+      "candidate_producer_binding_note": "The writer predated this GitHub PR, so immutable session authority retains pr_id null; the exact producer is recorded here without rewriting history.",
+      "testing": "Source/API review passed; scoped Lean, affected/full build, and immutable code review pending."
     }
   ]
 }
