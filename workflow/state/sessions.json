@@ -39393,6 +39393,148 @@
         "archive_status": "archived"
       },
       "notes": "A05 authenticated the exact repaired projection, approved the implementation, and resolved R1-F1. Its one low-severity test-ordering improvement is tracked separately as QPBT-086 and does not block QPBT-084 integration."
+    },
+    {
+      "id": "i079-orchestrator-a05-elaboration",
+      "name": "i079-orchestrator-a05-elaboration",
+      "role": "orchestrator",
+      "issue_id": "QPBT-079",
+      "attempt": 5,
+      "status": "archived",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "notes": "Launch authority became stale when the authenticated candidate was committed; local preflight rejected it before codex exec, so no model request or Lean edit occurred.",
+      "backend": "codex-cli",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "9d0947a8c97ca0f5c339c930b8f8801d85ee7f11",
+      "base_revision_reason": "Exact registered QPBT-079 worktree base carrying the authenticated frozen one-file draft; scoped elaboration reads the separately authenticated current-main cache without mutating it.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-079-binary-observable-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean"
+      ],
+      "validation_command": "Authenticate frozen file 341811f5 and patch eaad1916 plus A01/A03 reports; inspect relevant base-to-cache import changes; use cache key 36449f52 read-only to run lake env lean with output only /tmp/i079-orchestrator-a05-elaboration.olean; repair only concrete errors in Approximation.lean without statement drift or proof debt; pass diff/debt/ownership gates and commit only the owned path if permitted; no full build, cache mutation, GitHub, canonical state/metrics, Track A, or children.",
+      "result_envelope_path": ".workflow-runtime/runs/i079-orchestrator-a05-elaboration/result.json",
+      "external_id": null,
+      "started_at": "2026-09-04T13:25:35.354270Z",
+      "ended_at": "2026-09-04T13:25:35.354270Z",
+      "elapsed_seconds": 0.0,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "launch authority was rejected before codex exec"
+      },
+      "archive_status": "archived",
+      "outcome_path": ".workflow-runtime/runs/i079-orchestrator-a05-elaboration/result.json",
+      "base_tree": "f78b47d57fcf04152b1684b3e1c5063eba0ecab1",
+      "timing_quality": "runtime-measured"
+    },
+    {
+      "id": "i079-orchestrator-a06-elaboration",
+      "name": "i079-orchestrator-a06-elaboration",
+      "role": "orchestrator",
+      "issue_id": "QPBT-079",
+      "attempt": 6,
+      "status": "archived",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "notes": "Codex process failed before model initialization because the inherited persistence root was read-only; no model request or Lean edit occurred.",
+      "backend": "codex-cli",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "d5b59253cee5e40bd09573fff280ee4e768a069d",
+      "base_revision_reason": "Exact clean QPBT-079 candidate commit; scoped elaboration reads the separately authenticated current-main cache without mutating it.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-079-binary-observable-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean"
+      ],
+      "validation_command": "Authenticate committed file 341811f5 and A01/A03 reports; inspect relevant base-to-cache import changes; use cache key 36449f52 read-only to run lake env lean with output only /tmp/i079-orchestrator-a06-elaboration.olean; repair only concrete errors in Approximation.lean without statement drift or proof debt; pass diff/debt/ownership gates; no full build, cache mutation, GitHub, canonical state/metrics, Track A, or children.",
+      "result_envelope_path": ".workflow-runtime/runs/i079-orchestrator-a06-elaboration/result.json",
+      "external_id": null,
+      "started_at": "2026-09-04T13:27:08.727287Z",
+      "ended_at": "2026-09-04T13:28:22.766427Z",
+      "elapsed_seconds": 74.039,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Codex failed before model initialization; token usage unavailable"
+      },
+      "archive_status": "archived",
+      "outcome_path": ".workflow-runtime/runs/i079-orchestrator-a06-elaboration/result.json",
+      "base_tree": "034ada8b0c0387061d1cd001175a534adf06c7f5",
+      "timing_quality": "agent-reported-approximate"
+    },
+    {
+      "id": "i079-orchestrator-a07-elaboration",
+      "name": "i079-orchestrator-a07-elaboration",
+      "role": "orchestrator",
+      "issue_id": "QPBT-079",
+      "attempt": 7,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "notes": "Scoped Lean elaboration using a private writable Codex persistence root and the authenticated published Lean cache as read-only tooling.",
+      "backend": "codex-cli",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "d5b59253cee5e40bd09573fff280ee4e768a069d",
+      "base_revision_reason": "Exact clean QPBT-079 candidate commit; scoped elaboration reads the separately authenticated current-main cache without mutating it.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-079-binary-observable-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean"
+      ],
+      "validation_command": "Authenticate committed file 341811f5 and A01/A03 reports; use cache key 36449f52 read-only for scoped lake env lean output to /tmp/i079-orchestrator-a07-elaboration.olean; repair only concrete errors in Approximation.lean without statement drift or proof debt; no full build, cache mutation, GitHub, canonical state/metrics, Track A, or children.",
+      "result_envelope_path": ".workflow-runtime/runs/i079-orchestrator-a07-elaboration/result.json",
+      "external_id": null,
+      "started_at": "2026-09-04T13:30:28.771376Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "session has not returned"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "base_tree": "034ada8b0c0387061d1cd001175a534adf06c7f5"
+    },
+    {
+      "id": "i073-orchestrator-a04-elaboration",
+      "name": "i073-orchestrator-a04-elaboration",
+      "role": "orchestrator",
+      "issue_id": "QPBT-073",
+      "attempt": 4,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "notes": "Scoped Lean elaboration of the committed QPBT-073 proof candidate using the authenticated published cache as read-only tooling.",
+      "backend": "codex-cli",
+      "pr_id": null,
+      "read_only": false,
+      "base_revision": "6796e89f726c7a2db6d42e86761041748111079b",
+      "base_revision_reason": "Exact clean QPBT-073 candidate commit; scoped elaboration reads the authenticated current-main cache without mutating it.",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-073-value-one-a01",
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/ValueOne.lean"
+      ],
+      "validation_command": "Authenticate frozen file 7e7ad51b plus A01/A02 reports; use cache key 36449f52 read-only for scoped lake env lean output to /tmp/i073-orchestrator-a04-elaboration.olean; repair only concrete errors in ValueOne.lean without statement drift or proof debt; no full build, cache mutation, GitHub, canonical state/metrics, Track A, or children.",
+      "result_envelope_path": ".workflow-runtime/runs/i073-orchestrator-a04-elaboration/result.json",
+      "external_id": null,
+      "started_at": "2026-09-04T13:34:50.733101Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "session has not returned"
+      },
+      "archive_status": "active",
+      "outcome_path": null,
+      "base_tree": "2fa8f88e7bc3d307950b314e3366e9a53dd4747d"
     }
   ]
 }

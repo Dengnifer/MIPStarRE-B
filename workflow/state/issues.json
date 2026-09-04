@@ -4879,7 +4879,7 @@
       "title": "feat(QPBT/Game): prove normalized strategy outcome weights",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "in_progress",
       "parent_id": "QPBT-015",
       "dependency_ids": [
         "QPBT-042"
@@ -4898,7 +4898,7 @@
         "Reuse project and Mathlib finite-sum/inner-product lemmas, introduce zero new sorry/axiom/constant/public assumptions, and keep imports minimal and acyclic.",
         "Pass scoped elaboration, affected target, exact signature/axiom/debt probes, blueprint synchronization after QPBT-074, one private full build, immutable review, and guarded integration."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i073-orchestrator-a04-elaboration",
       "source_refs": [
         "/tmp/i005-scout-a42-magic-operator-api.md:548-610",
         "MIPStarRE/QPBT/Game/Semantics.lean",
@@ -4908,10 +4908,10 @@
         "MIPStarRE/QPBT/Game/ValueOne.lean"
       ],
       "created_at": "2026-09-03T18:48:53.258232Z",
-      "updated_at": "2026-09-03T20:41:12.858123Z",
-      "blocked_reason": "Frozen ValueOne draft passed source/API review; authenticated private-cache prepare and Lean elaboration await QPBT-068.",
-      "unblock_condition": "Integrate QPBT-068, then let the existing owner authenticate the approved frozen bytes, prepare its private cache, elaborate, build, and commit; complete blueprint synchronization after QPBT-074.",
-      "candidate_status": "source-api-approved-awaiting-authenticated-prepare",
+      "updated_at": "2026-09-04T13:34:24.713627Z",
+      "blocked_reason": null,
+      "unblock_condition": "Scoped elaboration proceeds against the authenticated published cache; private full build, immutable review, and PR integration remain required.",
+      "candidate_status": "scoped-elaboration-in-progress",
       "draft_sha256": "7e7ad51bd6600642d8f6bd235662bf22cc4be64db5cf4587d12198d76d497147",
       "draft_bytes": 9428,
       "draft_lines": 214,
@@ -5345,7 +5345,7 @@
       "title": "feat(QPBT/Basic): complete certified binary-observable boundary",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "in_progress",
       "parent_id": "QPBT-013",
       "dependency_ids": [
         "QPBT-046"
@@ -5365,7 +5365,7 @@
         "Introduce no sorry, admit, axiom, constant, bridge, residual, repair, witness, package, producer, generic hypotheses, or duplicate raw observable API.",
         "Pass private scoped Lean, affected target, exact API/axiom/debt/import probes, blueprint synchronization, one private full build, fresh immutable mathematical review, and guarded integration."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i079-orchestrator-a07-elaboration",
       "source_refs": [
         "references/2001.04383v3/sections/dependencies/measurements.tex:14-19",
         "references/2001.04383v3/sections/dependencies/magic-square.tex:147-173",
@@ -5379,14 +5379,14 @@
         "MIPStarRE/QPBT/Basic/Approximation.lean"
       ],
       "created_at": "2026-09-03T21:51:22.513599Z",
-      "updated_at": "2026-09-03T22:48:04.200835Z",
-      "blocked_reason": "Two independent immutable reviews approve the exact frozen F03 candidate with zero findings. QPBT-068 must integrate before the required private cache seed, Lean elaboration, target/full builds, and post-build review.",
-      "unblock_condition": "Integrate QPBT-068, re-authenticate candidate SHA 341811f5, seed its private cache, pass scoped Lean/affected/full builds and blueprint synchronization, then obtain immutable post-build approval and integrate.",
+      "updated_at": "2026-09-04T13:30:03.855712Z",
+      "blocked_reason": null,
+      "unblock_condition": "Scoped elaboration proceeds immediately against the authenticated published cache in read-only mode; private prepare, full build, immutable post-build review, and PR integration remain required.",
       "planning_report": "/tmp/i005-scout-a53-f03-completion.md",
       "planning_report_sha256": "9c6226a7963268553aee6216f41e0ce0dad9f9f8bc317ccd042dee82cf646736",
       "frozen_signature_sha256": "8de7983b66b2cce523b45bb3b14a788ac34b0315be91644610cf455b5306b065",
       "statement_integrity_verdict": "faithful finite-coordinate boundary; observable definition, conversion, sign, laws, and quantifier order exact",
-      "candidate_status": "static-reviews-approved-awaiting-cache-and-build",
+      "candidate_status": "scoped-elaboration-in-progress",
       "candidate_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
       "candidate_file_sha256": "341811f5baf2aa3fe8fe7cd580954cb0a5987e73abe00b86a6d8d48fcafcf1e0",
       "candidate_report": "/tmp/i079-orchestrator-a01-binary-observable.md",
