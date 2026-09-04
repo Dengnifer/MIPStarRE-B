@@ -320,7 +320,7 @@
         "blueprint/src/chapter/"
       ],
       "created_at": "2026-08-30T09:31:33+08:00",
-      "updated_at": "2026-09-03T19:18:21.522371Z",
+      "updated_at": "2026-09-04T06:37:38.967483Z",
       "latest_dag_review_report": "/tmp/i005-reviewer-a46-issue-dag.md",
       "latest_dag_review_report_sha256": "81c549622be1459c7fd41a743021a6ea8459e72988146ff8ce2dc888e42f15c0",
       "latest_dag_review_verdict": "request_changes",
@@ -358,7 +358,30 @@
           "resolution_evidence": "QPBT-015 now owns only Verifier.lean and retains MagicSquare.lean solely as a read-only integration prerequisite."
         }
       ],
-      "latest_dag_review_disposition": "All four issue-contract findings were applied by the root coordinator before dependent dispatch; fresh confirmation remains required."
+      "latest_dag_review_disposition": "All four issue-contract findings were applied by the root coordinator before dependent dispatch; fresh confirmation remains required.",
+      "disk_capacity_audit": {
+        "session_id": "i005-scout-a58-disk-lane-capacity",
+        "report": "/tmp/i005-scout-a58-disk-lane-capacity.md",
+        "report_sha256": "0b3db9b0da85cd07a30078192ea31dccefe649ace380ff181ed96aedd452cbbb",
+        "audit_available_bytes": 166320074752,
+        "cleanup_completed_at": "2026-09-04T06:37:21.080118Z",
+        "removed_worktrees": [
+          ".workflow-runtime/worktrees/qpbt-037-pauli-a02",
+          ".workflow-runtime/worktrees/qpbt-042-semantics-a01",
+          ".workflow-runtime/worktrees/qpbt-017-approximation-a01",
+          ".workflow-runtime/worktrees/qpbt-058-typed-a01",
+          ".workflow-runtime/worktrees/qpbt-057-resource-repair-a03"
+        ],
+        "removed_allocated_bytes_from_audit": 52628406272,
+        "post_cleanup_available_bytes": 218266992640,
+        "post_cleanup_df": "204G available; 96 percent used",
+        "branch_refs_preserved": true,
+        "registry_pruned": true,
+        "host_open_file_check": "passed",
+        "host_lock_check": "passed",
+        "reachability_check": "all five heads reachable from github/main with zero unique commits",
+        "track_a_touched": false
+      }
     },
     {
       "id": "QPBT-006",

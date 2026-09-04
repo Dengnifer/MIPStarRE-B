@@ -6040,3 +6040,4 @@
 {"schema_version":1,"timestamp":"2026-09-04T06:30:23.478045Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"finished","session_id":"i005-scout-a58-disk-lane-capacity"}}
 {"schema_version":1,"timestamp":"2026-09-04T06:30:41.712643Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issued-session","id":"i005-scout-a58-disk-lane-capacity","fields":["timing_quality","agent_measured_elapsed_seconds","source_report_sha256","canonical_report_sha256","outcome_path","outcome","checks","notes"]}}
 {"schema_version":1,"timestamp":"2026-09-04T06:30:42.252997Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issued-session","status":"archived","session_id":"i005-scout-a58-disk-lane-capacity"}}
+{"schema_version":1,"timestamp":"2026-09-04T06:37:39.043302Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-005","fields":["disk_capacity_audit"]}}
