@@ -9910,7 +9910,7 @@
     {
       "id": "LPR-040",
       "title": "fix(cache): close final transaction boundaries",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-068"
       ],
@@ -9944,6 +9944,17 @@
           "completed_at": "2026-09-04T05:13:00Z",
           "result_path": "/tmp/i068-orchestrator-a32-threat-boundary-repair.md",
           "result": "Repair full-index patch 68689ac9 and cumulative full-index patch 5f1210e1; 261/261 assigned tests and unrestricted 468/468 aggregate tests passed; exact eight-path worktree clean."
+        },
+        {
+          "id": "check-qpbt-068-a37-integration-candidate",
+          "name": "QPBT-068 exact integration-candidate validation",
+          "command": "Authenticate exact LPR base, A37 candidate head/tree/parents/eight paths and preserved blobs; run 278 bounded and 503 aggregate tests, workflow validation, ownership, merge, marker, index, diff, and cleanliness gates",
+          "status": "passed",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "a97b58acced472db9389975a8617665efa7ada7e",
+          "completed_at": "2026-09-04T06:02:18.681891Z",
+          "result_path": "/tmp/i068-integrator-a37-main-sync.md",
+          "result": "A37 produced exact candidate a97b58ac/tree 675b5407; 278/278 bounded and 503/503 aggregate tests passed with a clean exact eight-path worktree."
         }
       ],
       "reviews": [
@@ -10024,6 +10035,38 @@
             "F068-A30-002"
           ],
           "integration_gate": "approved exact repaired head; current-main changelog overlap still requires bounded integration repair and fresh exact-head review"
+        },
+        {
+          "id": "review-qpbt-068-pr040-a40-authority-security",
+          "reviewer_session_id": "i068-reviewer-a40-authority-security",
+          "verdict": "approve",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "a97b58acced472db9389975a8617665efa7ada7e",
+          "started_at": "2026-09-04T06:25:04.382623Z",
+          "completed_at": "2026-09-04T06:42:02.193663Z",
+          "result_path": "/tmp/i068-reviewer-a40-authority-security.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "5c0b61f71d7e6e0c179bbdac391f9dde6cc60f8dc40cbe5c7d3197359ac8bf09",
+          "manifest_sha256": "b5a34228e372bc0ee620fb916560fcc27320c37613117169ff2f4315e4e726fc",
+          "patch_sha256": "fa554f742db96ecf392e8669750500cdf69c46c49f8ce05d222b5f63bcd1a045",
+          "integration_gate": "Authority and cooperative-boundary security approved exact formal base and candidate head; production warm and canary remain post-merge gates."
+        },
+        {
+          "id": "review-qpbt-068-pr040-a41-authority-regression",
+          "reviewer_session_id": "i068-reviewer-a41-authority-regression",
+          "verdict": "approve",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "a97b58acced472db9389975a8617665efa7ada7e",
+          "started_at": "2026-09-04T06:27:59.770239Z",
+          "completed_at": "2026-09-04T06:40:12.944032Z",
+          "result_path": "/tmp/i068-reviewer-a41-authority-regression.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "c5dc82331054bf348b780db2f3de7c59da92f7feba9f7b94786efad81b63618f",
+          "manifest_sha256": "b5a34228e372bc0ee620fb916560fcc27320c37613117169ff2f4315e4e726fc",
+          "patch_sha256": "fa554f742db96ecf392e8669750500cdf69c46c49f8ce05d222b5f63bcd1a045",
+          "integration_gate": "Authority-correct regression approved exact formal base and candidate head with 278/278 bounded tests; production warm and canary remain post-merge gates."
         }
       ],
       "findings": [
@@ -10037,7 +10080,9 @@
           "disposition": "fixed",
           "disposition_evidence": "Head d1b7ac96 withdraws the exact-snapshot claim and accurately specifies recursive inventories as non-atomic monitored traversal records under the no-concurrent-writer precondition; A36 independently approved the exact head.",
           "resolved_by_review_id": "review-qpbt-068-pr040-a36-regression",
-          "confirmation_review_ids": [],
+          "confirmation_review_ids": [
+            "review-qpbt-068-pr040-a40-authority-security"
+          ],
           "summary": "Final recursive inventories close descendant monitors and descriptors before the enclosing final decision, allowing a same-size mutation or late hard link to leave returned evidence stale.",
           "path": "scripts/hot_main_cache.py",
           "line": 1191,
@@ -10053,7 +10098,9 @@
           "disposition": "fixed",
           "disposition_evidence": "Head d1b7ac96 reports detached_file_publication_checked false for dry admission and adds deterministic live O_TMPFILE and dual-linkat failure coverage preserving destinations and evidence; A36 independently approved the exact head.",
           "resolved_by_review_id": "review-qpbt-068-pr040-a36-regression",
-          "confirmation_review_ids": [],
+          "confirmation_review_ids": [
+            "review-qpbt-068-pr040-a40-authority-security"
+          ],
           "summary": "Dry capability admission does not probe O_TMPFILE or either linkat publication route and no failure regression covers those paths.",
           "path": "scripts/hot_main_cache.py",
           "line": 4491,
@@ -10069,7 +10116,9 @@
           "disposition": "fixed",
           "disposition_evidence": "Head d1b7ac96 accepts the same-identity counterexample, narrows the supported boundary to cooperating repository agents, and states that detached-file order and monitors are detection rather than access control; A35 independently approved the exact head.",
           "resolved_by_review_id": "review-qpbt-068-pr040-a35-transaction-security",
-          "confirmation_review_ids": [],
+          "confirmation_review_ids": [
+            "review-qpbt-068-pr040-a40-authority-security"
+          ],
           "summary": "A same-UID actor can externally link a non-O_EXCL O_TMPFILE through the producer descriptor namespace before later writes or metadata mutations, causing external output before eventual rejection.",
           "path": "scripts/hot_main_cache.py",
           "line": 2830,
@@ -10085,7 +10134,9 @@
           "disposition": "fixed",
           "disposition_evidence": "Head d1b7ac96 accepts the same-identity counterexample, narrows the supported boundary to cooperating repository agents, and states that detached-file order and monitors are detection rather than access control; A35 independently approved the exact head.",
           "resolved_by_review_id": "review-qpbt-068-pr040-a35-transaction-security",
-          "confirmation_review_ids": [],
+          "confirmation_review_ids": [
+            "review-qpbt-068-pr040-a40-authority-security"
+          ],
           "summary": "Relocating a bound output directory or ancestor after its last continuity check redirects completed cache or materializer file publication outside the intended tree before later rejection.",
           "path": "scripts/hot_main_cache.py",
           "line": 3105,
@@ -10095,7 +10146,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T03:43:00Z",
-      "updated_at": "2026-09-04T06:29:29.534032Z",
+      "updated_at": "2026-09-04T06:44:07.113613Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/local-development.md",
@@ -10111,13 +10162,13 @@
       "testing": "A37 reports bounded 278/278 and unrestricted aggregate 503/503 tests, workflow validation, exact eight-path ownership, authenticated preserved blobs, diff checks, and a clean tracked tree.",
       "addresses": "QPBT-068",
       "requested_external_review": true,
-      "unexecuted_gate": "Fresh authority-correct security and regression reviews A40/A41 must approve exact LPR base 97e61b34 and candidate head a97b58ac; then merge against current main and run one production hot-main warm plus one prepare canary.",
+      "unexecuted_gate": "Guarded merge onto current clean main, then one production hot-main warm and one private prepare canary.",
       "head_tree": "675b540739b92d3132a91269f14b26b24393f50e",
       "candidate_implementer_session_id": "i068-integrator-a37-main-sync",
       "binding_note": "A28 was canonically dispatched before LPR-040 existed and has immutable pr_id null; preserve that authority and bind any later writable integration session explicitly.",
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a40.json",
       "review_manifest_sha256": "b5a34228e372bc0ee620fb916560fcc27320c37613117169ff2f4315e4e726fc",
-      "review_status": "authority-correct-reviews-running",
+      "review_status": "authority-correct-reviews-approved",
       "review_session_ids": [
         "i068-reviewer-a29-transaction-security",
         "i068-reviewer-a30-regression-protocol",
