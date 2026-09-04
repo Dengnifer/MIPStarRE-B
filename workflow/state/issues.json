@@ -5456,7 +5456,7 @@
       "title": "docs(workflow): bound collaboration rate-limit retries",
       "kind": "workflow",
       "execution_category": "preflight",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-019",
       "dependency_ids": [],
       "labels": [
@@ -5486,7 +5486,7 @@
         "workflow/reviews/qpbt-081-rate-limit-retries-a01.md"
       ],
       "created_at": "2026-09-04T00:24:09.258636Z",
-      "updated_at": "2026-09-04T05:09:54.117294Z",
+      "updated_at": "2026-09-04T05:12:24.188278Z",
       "blocked_reason": null,
       "unblock_condition": null,
       "candidate_base_sha": "32e4d20704de440f6f25d058939880e61849681d",
@@ -5495,13 +5495,17 @@
       "candidate_patch_sha256": "b51d950a8a865f9c22e9e94341864f5814ed262f33a0a0c28dddd8f413cce9dc",
       "candidate_report": "/tmp/i081-orchestrator-a01-rate-limit-retries.md",
       "candidate_report_sha256": "5a01ab51edb0d02f1ec5010abbf1fdca020a5b803cf13ef07234cb4be5b8cdba",
-      "candidate_status": "approved-integration-ready",
+      "candidate_status": "integrated",
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-081-review-manifest-a03.json",
       "review_manifest_sha256": "410eec968e3db0eb7859dd45ae8d7a31d2d0c9ff28f8599766af85f6beb38dd3",
       "review_session_ids": [
         "i081-reviewer-a02-protocol",
         "i081-reviewer-a03-evidence"
-      ]
+      ],
+      "integration_sha": "ade6b5e86f234b1c9b9be3217e183923776f6594",
+      "latest_review_verdict": "approve",
+      "latest_review_report": "/tmp/i081-reviewer-a03-evidence.md",
+      "latest_review_report_sha256": "f47ce3f0bc7c906cfb83409db27bad28da4da189dd7984409b3cb266f75c21f3"
     },
     {
       "id": "QPBT-082",

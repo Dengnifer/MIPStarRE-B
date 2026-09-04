@@ -5885,3 +5885,7 @@
 {"schema_version":1,"timestamp":"2026-09-04T05:09:54.200949Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-081","fields":["blocked_reason","unblock_condition","candidate_status"]}}
 {"schema_version":1,"timestamp":"2026-09-04T05:09:54.624220Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"ready","id":"LPR-041"}}
 {"schema_version":1,"timestamp":"2026-09-04T05:09:55.042395Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"approved","id":"LPR-041"}}
+{"schema_version":1,"timestamp":"2026-09-04T05:12:23.032802Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"pr","id":"LPR-041","fields":["integration_sha","unexecuted_gate","review_status","post_integration_validation"]}}
+{"schema_version":1,"timestamp":"2026-09-04T05:12:23.488912Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"pr","status":"merged","id":"LPR-041"}}
+{"schema_version":1,"timestamp":"2026-09-04T05:12:23.863714Z","event":"record.updated","actor":"local","pid":2,"payload":{"kind":"issue","id":"QPBT-081","fields":["candidate_status","integration_sha","latest_review_verdict","latest_review_report","latest_review_report_sha256"]}}
+{"schema_version":1,"timestamp":"2026-09-04T05:12:24.271764Z","event":"record.transitioned","actor":"local","pid":2,"payload":{"kind":"issue","status":"done","id":"QPBT-081"}}

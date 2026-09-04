@@ -10068,7 +10068,7 @@
     {
       "id": "LPR-041",
       "title": "docs(workflow): bound collaboration rate-limit retries",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-081"
       ],
@@ -10148,10 +10148,10 @@
           "required_change": "Bind the exact A28 handoff identity and bytes into a fresh immutable packet, or remove the nonessential comparison, then explicitly re-review the unchanged head."
         }
       ],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "ade6b5e86f234b1c9b9be3217e183923776f6594",
+      "merged_at": "2026-09-04T05:12:23.388603Z",
       "created_at": "2026-09-04T04:39:20.206453Z",
-      "updated_at": "2026-09-04T05:09:54.952158Z",
+      "updated_at": "2026-09-04T05:12:23.388603Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -10162,8 +10162,8 @@
       "testing": "Candidate identity, exact three-path ownership, workflow validation, unrestricted 418/418 suite, fresh evidence re-review, clean worktree, and conflict-free merge-tree all passed.",
       "addresses": "QPBT-081",
       "requested_external_review": true,
-      "unexecuted_gate": "Guard-merge exact head c5a223999a76baf15c4bb53002f354091930e5f2 into current main, validate, and record integration identity.",
-      "review_status": "approved-no-open-findings-integration-ready",
+      "unexecuted_gate": null,
+      "review_status": "approved-explicit-rereview-no-open-findings",
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-081-review-manifest-a03.json",
       "review_manifest_sha256": "410eec968e3db0eb7859dd45ae8d7a31d2d0c9ff28f8599766af85f6beb38dd3",
       "candidate_producer_session_id": "i081-orchestrator-a01-rate-limit-retries",
@@ -10175,7 +10175,15 @@
       "provenance_session_ids": [
         "i081-orchestrator-a01-rate-limit-retries",
         "i081-integrator-a04-pr-bind"
-      ]
+      ],
+      "post_integration_validation": {
+        "integration_sha": "ade6b5e86f234b1c9b9be3217e183923776f6594",
+        "workflow_validate": "passed",
+        "git_diff_check": "passed",
+        "merge_tree": "conflict-free",
+        "candidate_head_parent_of_merge": true,
+        "changed_paths": "exactly 3"
+      }
     }
   ]
 }
