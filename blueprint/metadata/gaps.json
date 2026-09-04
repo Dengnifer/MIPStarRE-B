@@ -224,7 +224,7 @@
     {
       "id": "G24",
       "class": "missing-width-transport",
-      "source": "dependencies/types.tex:205-218,409-426,444-460,498-570 [3771-3784,3975-3992,4010-4026,4064-4136]",
+      "source": "dependencies/types.tex:205-218,409-426,444-460,498-570 [3771-3784,3975-3992,4010-4026,4064-4136]; top-level/nonlocal-games.tex:660-678 [3537-3555]",
       "affected_nodes": ["F07A-DETYPING"],
       "paper_problem": "The source and detyped games derive question and answer widths from different machine runtimes, yet the detyped predicate forwards the received source-content and answer strings unchanged and the completeness/soundness proof reuses the same outcome labels. No width equality, embedding, projection, padding convention, retraction, or measurement coarsening is supplied.",
       "disposition": "Prove source-to-target width domination, fixed-prefix projections, zero-extension sections and retractions for question content and answers; define exact graph/content/padding parsing; and prove the induced measurement postprocessing preserves every PCC property used by completeness and soundness. Keep the literal paper theorem statements and add no public transport premise. Classify prefix-based execution as a documented mismatch until operational locality proves equivalence to full-string forwarding.",

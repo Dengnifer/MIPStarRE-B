@@ -524,6 +524,33 @@ class BlueprintCheckTests(unittest.TestCase):
             check.DETYPING_NODE_CONTRACT_SHA256,
             check.node_contract_sha256(detyping),
         )
+        integrity = detyping["integrity"]
+        self.assertIn(
+            "one seven-input typed CL sampler machine interface with four "
+            "variable-arity call modes",
+            integrity["paper_assumptions"],
+        )
+        for phrase in (
+            "existing transitive F06A ExecutableCLSampler, returned exactly by "
+            "TypedSampler.detype rather than duplicated in F07A",
+            "derived from actual executions over all raw inputs rather than finite "
+            "game-valid queries",
+            "fixed-prefix graph/content/padding codecs distinct from self-delimiting "
+            "variable-tuple/program codecs",
+        ):
+            self.assertIn(phrase, integrity["lean_assumptions"])
+        for phrase in (
+            "outermost universal witness C_s > 0, before every type set, graph, "
+            "verifier, and index binder",
+            "C_s * (|TypeId| * TIME_S(n)) ^ C_s",
+            "independently, there exists an outermost universal witness C_d > 0, "
+            "before every type set, graph, verifier, and index binder",
+            "C_d * (|TypeId| * TIME_D(n)) ^ C_d",
+            "for all positive displayed arguments |TypeId| and TIME_D(n)",
+            "neither runtime clause assumes or derives 0 < n, and the Lean zero-index "
+            "convention remains explicitly unresolved",
+        ):
+            self.assertIn(phrase, integrity["paper_conclusion"])
 
         for mutation in ("primary_range", "missing_anchor", "wrong_label", "anchor_order"):
             with self.subTest(mutation=mutation):
@@ -547,6 +574,16 @@ class BlueprintCheckTests(unittest.TestCase):
 
     def test_detyping_gaps_and_note_are_fail_closed(self) -> None:
         by_gap = {gap["id"]: gap for gap in self.gaps["gaps"]}
+        self.assertEqual(
+            "dependencies/types.tex:205-218,409-426,444-460,498-570 "
+            "[3771-3784,3975-3992,4010-4026,4064-4136]; "
+            "top-level/nonlocal-games.tex:660-678 [3537-3555]",
+            by_gap["G24"]["source"],
+        )
+        self.assertIn(
+            "well-formedness needed to make the paper's TIME_D(n) meaningful",
+            by_gap["G26"]["public_effect"],
+        )
         for gap_id in check.DETYPING_GAP_IDS:
             self.assertEqual("QPBT-080", by_gap[gap_id]["issue"])
             self.assertEqual([check.DETYPING_OWNER_ID],
@@ -567,6 +604,18 @@ class BlueprintCheckTests(unittest.TestCase):
                         f"{gap_id}: source range and disposition must remain exact" in error
                         for error in self.errors(gaps=bad)
                     ))
+
+            if gap_id == "G24":
+                missing_target_width_source = copy.deepcopy(self.gaps)
+                gap = next(item for item in missing_target_width_source["gaps"]
+                           if item["id"] == gap_id)
+                gap["source"] = gap["source"].replace(
+                    "; top-level/nonlocal-games.tex:660-678 [3537-3555]", ""
+                )
+                self.assertTrue(any(
+                    "G24: source range and disposition must remain exact" in error
+                    for error in self.errors(gaps=missing_target_width_source)
+                ))
 
             missing_link = copy.deepcopy(self.nodes)
             node = next(item for item in missing_link["nodes"]
@@ -647,6 +696,53 @@ class BlueprintCheckTests(unittest.TestCase):
                     "source-reviewed semantic contract must remain exact" in error
                     for error in self.errors(nodes=bad)
                 ))
+
+        integrity_cases = (
+            ("paper_assumptions", "one seven-input typed CL sampler machine interface with "
+             "four variable-arity call modes",
+             "four seven-input query modes"),
+            ("lean_assumptions", "existing transitive F06A ExecutableCLSampler, returned "
+             "exactly by TypedSampler.detype rather than duplicated in F07A",
+             "new F07A-local ExecutableCLSampler"),
+            ("lean_assumptions", "derived from actual executions over all raw inputs rather "
+             "than finite game-valid queries",
+             "derived over finite game-valid queries"),
+            ("lean_assumptions", "fixed-prefix graph/content/padding codecs distinct from "
+             "self-delimiting variable-tuple/program codecs",
+             "one shared game/program codec"),
+            ("paper_conclusion", "outermost universal witness C_s > 0, before every type "
+             "set, graph, verifier, and index binder",
+             "C_s chosen after a fixed type set, graph, verifier, and index"),
+            ("paper_conclusion", "C_s * (|TypeId| * TIME_S(n)) ^ C_s",
+             "C_s * (|TypeId| + TIME_S(n)) ^ C_s"),
+            ("paper_conclusion", "for all positive displayed arguments |TypeId| and "
+             "TIME_S(n)",
+             "when n is positive"),
+            ("paper_conclusion", "independently, there exists an outermost universal witness "
+             "C_d > 0, before every type set, graph, verifier, and index binder",
+             "C_d chosen after a fixed type set, graph, verifier, and index"),
+            ("paper_conclusion", "C_d * (|TypeId| * TIME_D(n)) ^ C_d",
+             "C_d * (|TypeId| + TIME_D(n)) ^ C_d"),
+            ("paper_conclusion", "for all positive displayed arguments |TypeId| and "
+             "TIME_D(n)",
+             "when n is positive"),
+            ("paper_conclusion", "neither runtime clause assumes or derives 0 < n, and the "
+             "Lean zero-index convention remains explicitly unresolved",
+             "both runtime clauses require 0 < n"),
+        )
+        for field, old, new in integrity_cases:
+            with self.subTest(integrity_field=field, old=old):
+                bad = copy.deepcopy(self.nodes)
+                node = next(item for item in bad["nodes"]
+                            if item["id"] == check.DETYPING_OWNER_ID)
+                self.assertIn(old, node["integrity"][field])
+                node["integrity"][field] = node["integrity"][field].replace(old, new, 1)
+                errors = self.errors(nodes=bad)
+                for phrase in (
+                    "statement-integrity table must remain exact",
+                    "source-reviewed semantic contract must remain exact",
+                ):
+                    self.assertTrue(any(phrase in error for error in errors))
 
         wrong_verdict = copy.deepcopy(self.nodes)
         node = next(item for item in wrong_verdict["nodes"]
