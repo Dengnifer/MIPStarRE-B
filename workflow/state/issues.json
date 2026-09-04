@@ -5190,16 +5190,17 @@
       "source_refs": [
         "/tmp/i005-scout-a42-magic-operator-api.md:687-987",
         "blueprint/metadata/nodes.json#F08-MAGIC-GAME",
-        "MIPStarRE/QPBT/Game/MagicSquare/Defs.lean"
+        "MIPStarRE/QPBT/Game/MagicSquare/Defs.lean",
+        "/tmp/i005-scout-a57-magic-strategy-plan.md"
       ],
       "owned_paths": [
         "MIPStarRE/QPBT/Game/MagicSquare/Strategy.lean",
         "MIPStarRE/QPBT/Game/MagicSquare.lean"
       ],
       "created_at": "2026-09-03T18:48:53.258232Z",
-      "updated_at": "2026-09-03T18:48:53.258232Z",
-      "blocked_reason": "The finite game, finite-state, value-one, blueprint, and projective-measurement prerequisites are incomplete.",
-      "unblock_condition": "QPBT-071, QPBT-072, QPBT-073, QPBT-074, and QPBT-076 are done."
+      "updated_at": "2026-09-04T05:58:57.995845Z",
+      "blocked_reason": "The finite-game, finite-state, value-one, and projective-measurement prerequisites are not all integrated; QPBT-074 is done and QPBT-079 remains transitive through QPBT-076.",
+      "unblock_condition": "QPBT-071, QPBT-072, QPBT-073, QPBT-074, and QPBT-076 are done on an accepted ancestry, then dispatch the exact two-file A57 plan."
     },
     {
       "id": "QPBT-078",
