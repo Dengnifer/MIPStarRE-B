@@ -39172,6 +39172,39 @@
         "archive_status": "archived"
       },
       "notes": "A04 authenticated the exact repaired policy head and confirmed R3-F1/R3-F2 resolved. It found two checkpoint-consistency defects: the historical report understated terminal metrics by one, and Stage 4A incident_ids lacked a corresponding reconciliation event. Both receive a bounded root repair before A05."
+    },
+    {
+      "id": "i085-reviewer-a05-reconciliation",
+      "name": "i085-reviewer-a05-reconciliation",
+      "role": "reviewer",
+      "issue_id": "QPBT-085",
+      "attempt": 5,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "backend": "codex-cli",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "84a3e74d2e8157df184e28f516d13d24a1595efc",
+      "base_revision_reason": "Standalone immutable 28-file projection of the complete QPBT-085 delta from source base 9aaee76a42d1a3f9c0d1a146d3c79f4769f843f3 through reconciled source head b933049076367b8fe021fe90a62c6d0ae0083bce; manifest 3625fd45a26d2d671c9080a64593cb9f088658de1b87953ea22d23a726e91297 and patch 530050e1ceb826a1bc5b679818f0fc6dd321f4a0c4a134b308df0d883ab0e88a bind every disclosed byte.",
+      "base_tree": "9c075f7b91917c34ab0f8195f01472221589d091",
+      "worktree": "/tmp/qpbt-085-review-a05",
+      "owned_paths": [],
+      "validation_command": "Authenticate projection commit/tree, manifest 3625fd45, patch 530050e1, exactly 28 evidence files, clean status, no remotes or alternates; review the complete QPBT-085 policy and R4-F1/R4-F2 dispositions against every owner concurrency gate; return findings-first JSON without writes.",
+      "result_envelope_path": ".workflow-runtime/runs/i085-reviewer-a05-reconciliation/result.json",
+      "started_at": "2026-09-04T09:32:20.663199Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "timing_quality": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Pending Codex CLI terminal usage event"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "external_id": null
     }
   ]
 }
