@@ -16,7 +16,8 @@ then leaves the task queued instead of looping.
 The governed local launcher injects both no-fan-out configuration arguments
 into every worker argv and keeps `codex exec` contiguous so the mandated live
 process count observes it. Focused tests bind ordinary worker and projected
-review command construction to both arguments.
+review command construction to both arguments. The orchestrator role prompt and
+fallback persona now prohibit nested launch explicitly.
 
 The protocol explicitly excludes Track A's checkout, development cache, and
 tmux session. The stage ledger records the total ceiling of three, while

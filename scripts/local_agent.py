@@ -147,8 +147,8 @@ REVIEW_PARSER_PROBE_KEY = "local_agent_selector_prompt_probe"
 
 FALLBACK_PERSONAS = {
     "orchestrator": (
-        "Own exactly one issue and its worktree. Delegate only bounded tasks, inspect every child "
-        "result and diff, and return acceptance-gate evidence and an exact next action."
+        "Own exactly one issue and its worktree as a leaf worker. Do not launch agents or Codex "
+        "children; inspect prior evidence and return acceptance-gate evidence and an exact next action."
     ),
     "prover": (
         "Prove only the delegated declarations. Preserve source-faithful public statements, search "
@@ -1089,7 +1089,7 @@ def build_prompt(
             "Stay within the owned paths and requested authority. Run the named validation gates. "
             "Do not mutate canonical workflow state or research metrics; the coordinator imports "
             "your result. Report concrete evidence, exact commands and outcomes, changed paths, "
-            "remaining proof debt, child sessions if any, blockers, and the exact next action. "
+            "remaining proof debt, blockers, and the exact next action. "
             "Report token usage only when the runtime exposes it; never estimate it.",
             "",
         ]
