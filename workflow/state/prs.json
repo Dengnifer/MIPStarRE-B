@@ -10247,7 +10247,7 @@
     {
       "id": "LPR-042",
       "title": "feat(QPBT/Game): strengthen classical LDT contract",
-      "status": "approved",
+      "status": "merged",
       "issue_ids": [
         "QPBT-082"
       ],
@@ -10307,10 +10307,10 @@
         }
       ],
       "findings": [],
-      "integration_sha": null,
-      "merged_at": null,
+      "integration_sha": "552ede3a13d43d1aafd8226f11e8419ec6a5c760",
+      "merged_at": "2026-09-04T05:54:58.035905Z",
       "created_at": "2026-09-04T05:16:30Z",
-      "updated_at": "2026-09-04T05:52:33.520874Z",
+      "updated_at": "2026-09-04T05:54:58.035905Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.json",
@@ -10324,8 +10324,8 @@
       "testing": "42/42 blueprint tests; default/pinned checks; 39-file/646-label reference verification; deterministic regeneration; unrestricted 418/418 workflow tests; A04 no-byte-change PR binding, exact ownership, and conflict-free merge against current main.",
       "addresses": "QPBT-082",
       "requested_external_review": true,
-      "unexecuted_gate": "Guard-merge unchanged head 335ff621 into then-current main, run post-integration blueprint/reference/workflow gates, and share the next singleton full Lean build with the QPBT-068 production acceptance wave.",
-      "review_status": "approved-exact-head-integration-ready",
+      "unexecuted_gate": "The next singleton full Lean build is intentionally shared with QPBT-068 production cache acceptance after that safety repair integrates; QPBT-082 itself changes no Lean source.",
+      "review_status": "merged-reviewed-exact-head",
       "candidate_producer_session_id": "i082-orchestrator-a01-f09a-contract",
       "candidate_producer_binding_note": "The writer was dispatched before LPR-042 existed, so its immutable pr_id is null; preserve that authority and bind a later writable integration-preparation session if no repair writer is needed.",
       "review_session_ids": [
@@ -10339,7 +10339,21 @@
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-082-review-manifest-a02.json",
       "review_manifest_sha256": "2018b97cef5141ac393f19ca6cd26ed5641369e9e211191889c30849d8a8c469",
       "integration_preparation_report": "/tmp/i082-integrator-a04-pr-bind.md",
-      "integration_preparation_report_sha256": "5d54d27590301ec2472780922d71a32f1612b7d87df56df92931404cf5ef8393"
+      "integration_preparation_report_sha256": "5d54d27590301ec2472780922d71a32f1612b7d87df56df92931404cf5ef8393",
+      "post_integration_validation": {
+        "merge_commit": "552ede3a13d43d1aafd8226f11e8419ec6a5c760",
+        "parents": [
+          "60faf6f2740299e6e3a7ceb5dae16750c9a64931",
+          "335ff621459dc86a4d8d60cfb39988db212ab24e"
+        ],
+        "tree": "3dac46dcce2d14e81c0377c5c5c93cddf4ae6e45",
+        "blueprint_tests": "42/42",
+        "blueprint_check": "passed",
+        "reference_verify": "39 files/646 labels",
+        "workflow_validate": "passed",
+        "diff_check": "passed",
+        "full_lean_build": "deferred-to-singleton-QPBT-068-production-wave"
+      }
     }
   ]
 }

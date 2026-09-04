@@ -5522,7 +5522,7 @@
       "title": "fix(F09A): expose callable classical-LDT semantics",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-015",
       "dependency_ids": [
         "QPBT-080"
@@ -5562,10 +5562,10 @@
         "workflow/reviews/qpbt-074-game-contract-a01.md"
       ],
       "created_at": "2026-09-04T00:59:00Z",
-      "updated_at": "2026-09-04T05:52:32.595346Z",
+      "updated_at": "2026-09-04T05:54:58.918899Z",
       "blocked_reason": null,
       "unblock_condition": null,
-      "candidate_status": "approved-exact-head-integration-ready",
+      "candidate_status": "integrated",
       "candidate_base_sha": "ef827ef4e6c965c0051a6feac64e1842f83f872c",
       "candidate_head_sha": "335ff621459dc86a4d8d60cfb39988db212ab24e",
       "candidate_tree": "a859c85a3647785e765597051458b6b71d73a3af",
@@ -5584,7 +5584,8 @@
       "latest_regression_review_report": "/tmp/i082-reviewer-a03-regression.md",
       "latest_regression_review_report_sha256": "256afbc7330e63e0b252e7699317c190dcab70c2e3c51f91f67e6d00d8216838",
       "pr_binding_report": "/tmp/i082-integrator-a04-pr-bind.md",
-      "pr_binding_report_sha256": "5d54d27590301ec2472780922d71a32f1612b7d87df56df92931404cf5ef8393"
+      "pr_binding_report_sha256": "5d54d27590301ec2472780922d71a32f1612b7d87df56df92931404cf5ef8393",
+      "integration_sha": "552ede3a13d43d1aafd8226f11e8419ec6a5c760"
     }
   ]
 }
