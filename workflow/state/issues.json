@@ -4049,17 +4049,17 @@
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
       "owner_session_id": "i068-integrator-a37-main-sync",
-      "blocked_reason": "Production warm failed before Lean compilation because full foundation materialization exhausted the host 128-instance inotify limit; QPBT-084 owns the bounded-instance repair.",
-      "unblock_condition": "QPBT-084 passes full-archive validation and immutable review, then exactly one repaired production warm and one private prepare canary pass.",
+      "blocked_reason": "The bounded shared-inotify repair is independently approved and merged; production acceptance has not yet been retried.",
+      "unblock_condition": "Exactly one singleton production warm and one private prepare canary pass on the clean recorded post-integration main snapshot.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-04T06:56:27.282465Z",
+      "updated_at": "2026-09-04T10:57:45.766901Z",
       "candidate_base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
       "candidate_head_sha": "a97b58acced472db9389975a8617665efa7ada7e",
       "candidate_tree": "675b540739b92d3132a91269f14b26b24393f50e",
       "candidate_patch_sha256": "742d1b9f24dd7a3c5a4453cb911f4824ce0be2e337d76ef3d03a50cf0e98e4bb",
       "candidate_report": "/tmp/i068-integrator-a37-main-sync.md",
       "candidate_report_sha256": "56d0481f60f75cfaea2628ec0a2a42097871e828a1ba83ef147c9047f2b46927",
-      "candidate_status": "merged-production-acceptance-failed-repair-open",
+      "candidate_status": "merged-inotify-repaired-warm-pending",
       "review_report": "/tmp/i068-reviewer-a11-transaction.md",
       "review_manifest_sha256": "b5a34228e372bc0ee620fb916560fcc27320c37613117169ff2f4315e4e726fc",
       "review_head_sha": "650097d3fc65ecb93683dcbd5fbc3071240cf1e8",
@@ -4636,7 +4636,10 @@
         "cause": "per-object inotify instances exceeded fs.inotify.max_user_instances=128 during full foundation population",
         "rlimit_nofile": 1048576,
         "followup_issue_id": "QPBT-084"
-      }
+      },
+      "inotify_repair_issue_id": "QPBT-084",
+      "inotify_repair_integration_sha": "ec5678d7c5433fa9a56295ab80fee23cf1dd4605",
+      "inotify_repair_review_session_id": "i084-reviewer-a05-closed-monitor"
     },
     {
       "id": "QPBT-069",
@@ -5731,23 +5734,23 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-04T06:55:07.385848Z",
-      "updated_at": "2026-09-04T10:52:08.138440Z",
-      "blocked_reason": "A05 approved the exact repaired head and resolved R1-F1; canonical GitHub PR #35 is ready for exact-head integration.",
-      "unblock_condition": "Merge PR #35 at head ebe1cf8, synchronize local main, then run exactly one singleton production warm and one private prepare canary.",
+      "updated_at": "2026-09-04T10:57:45.355471Z",
+      "blocked_reason": "Canonical PR #35 merged the exact A05-approved head as ec5678d and local main is synchronized.",
+      "unblock_condition": "Run exactly one singleton production warm on the next clean recorded main snapshot, then one private prepare canary; close only after both pass.",
       "candidate_base_sha": "72d76a719f29f7304bd84ea1e7761a6b6f40a269",
       "candidate_head_sha": "ebe1cf8ccc4436f8a515e315746275a4a293ae1b",
       "candidate_tree": "6dafbfd5c518d8860184350e6c69f407725821d0",
       "candidate_patch_sha256": "900a43cd507e4bcc1a3c188fa6f1a00f113b04d41fbec7398ccef8a338c54395",
       "candidate_report": ".workflow-runtime/runs/i084-orchestrator-a04-closed-monitor/result.json",
       "candidate_report_sha256": "640b2aec5c66dd635ee96d208f0d06973579edbe82275b4fd746352c65a8c336",
-      "candidate_status": "approved-pending-integration",
+      "candidate_status": "integrated-awaiting-production-warm",
       "github_repository": "Dengnifer/MIPStarRE-B",
       "github_issue_number": 34,
       "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/34",
       "github_pr_number": 35,
       "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/35",
       "github_branch": "issue/qpbt-084-inotify-a01",
-      "github_pr_status": "draft",
+      "github_pr_status": "merged",
       "active_review_session_id": null,
       "active_review_projection": null,
       "latest_review_report": ".workflow-runtime/runs/i084-reviewer-a05-closed-monitor/result.json",
@@ -5785,7 +5788,14 @@
         "source_tree": "6dafbfd5c518d8860184350e6c69f407725821d0",
         "manifest_entries": 8,
         "evidence_file_count": 10
-      }
+      },
+      "integration_sha": "ec5678d7c5433fa9a56295ab80fee23cf1dd4605",
+      "integration_tree": "e60a997d49db59f33d9d457c72a250961a4e4703",
+      "integration_parent_shas": [
+        "5a8b3bbd0fe7bda48c61d43bd9aa82211524f20f",
+        "ebe1cf8ccc4436f8a515e315746275a4a293ae1b"
+      ],
+      "integrated_at": "2026-09-04T10:56:11Z"
     },
     {
       "id": "QPBT-085",
