@@ -4049,17 +4049,17 @@
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
       "owner_session_id": "i068-integrator-a37-main-sync",
-      "blocked_reason": "Authority-correct A40/A41 reviews approved exact LPR-040 base and candidate with no findings; guarded merge and production cache acceptance remain.",
-      "unblock_condition": "Merge exact candidate a97b58ac onto clean current main, then pass one singleton production warm and one private prepare canary.",
+      "blocked_reason": "Exact reviewed candidate is merged and pushed at 9c3650e5; singleton production warm and one private prepare canary remain.",
+      "unblock_condition": "Production warm publishes and validates the 9c3650e5 cache, then a private issue-worktree prepare canary passes and is retired.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-04T06:43:27.247580Z",
+      "updated_at": "2026-09-04T06:48:48.317706Z",
       "candidate_base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
       "candidate_head_sha": "a97b58acced472db9389975a8617665efa7ada7e",
       "candidate_tree": "675b540739b92d3132a91269f14b26b24393f50e",
       "candidate_patch_sha256": "742d1b9f24dd7a3c5a4453cb911f4824ce0be2e337d76ef3d03a50cf0e98e4bb",
       "candidate_report": "/tmp/i068-integrator-a37-main-sync.md",
       "candidate_report_sha256": "56d0481f60f75cfaea2628ec0a2a42097871e828a1ba83ef147c9047f2b46927",
-      "candidate_status": "authority-correct-reviews-approved-awaiting-merge",
+      "candidate_status": "merged-awaiting-production-cache-acceptance",
       "review_report": "/tmp/i068-reviewer-a11-transaction.md",
       "review_manifest_sha256": "b5a34228e372bc0ee620fb916560fcc27320c37613117169ff2f4315e4e726fc",
       "review_head_sha": "650097d3fc65ecb93683dcbd5fbc3071240cf1e8",
@@ -4609,7 +4609,23 @@
         "i068-reviewer-a39-integration-regression"
       ],
       "latest_security_review_verdict": "approve",
-      "latest_regression_review_verdict": "approve"
+      "latest_regression_review_verdict": "approve",
+      "integration_sha": "9c3650e5e0dcd2a2a71747fa5943ebaec1915260",
+      "integration_tree": "8fd4ba71e94290395ad9430b3af3681d6e56d462",
+      "integration_parent_sha": "001ebf723d1536fd5603119b508ea18437d5b993",
+      "postmerge_validation": {
+        "materializer": "36/36",
+        "hot_cache": "145/145",
+        "workflow": "94/94",
+        "checker": "3/3",
+        "bounded_total": "278/278",
+        "workflow_validate": "passed",
+        "skip_test_checker": "passed",
+        "exact_candidate_blobs": "8/8",
+        "diff_check": "passed",
+        "worktree_clean": true,
+        "free_bytes": 217695444992
+      }
     },
     {
       "id": "QPBT-069",
