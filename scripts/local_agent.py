@@ -35,6 +35,12 @@ SCHEMA_VERSION = 1
 DEFAULT_CODEX_TIMEOUT_SECONDS = 1800
 CODEX_CAPABILITY_PROBE_TIMEOUT_SECONDS = 30
 PROCESS_TERMINATION_GRACE_SECONDS = 3.0
+CODEX_LEAF_CONFIG_ARGUMENTS = (
+    "-c",
+    "features.multi_agent=false",
+    "-c",
+    "agents.max_concurrent_threads_per_session=1",
+)
 SESSION_NAME_RE = re.compile(
     r"^i[0-9]+-[a-z0-9]+(?:-[a-z0-9]+)*-a[0-9]{2}-[a-z0-9]+(?:-[a-z0-9]+)*$"
 )
@@ -2204,6 +2210,7 @@ def inspect_codex_review_capability() -> dict[str, Any]:
             "review",
             "--uncommitted",
             "--strict-config",
+            *CODEX_LEAF_CONFIG_ARGUMENTS,
             "-c",
             f"{REVIEW_PARSER_PROBE_KEY}=true",
             "local-agent-parser-probe",
@@ -2854,9 +2861,10 @@ def _run_exec_unbound(
     timeout = _validated_timeout_seconds(timeout_seconds)
     command = [
         "codex",
-        "--ask-for-approval",
-        approval_policy,
         "exec",
+        *CODEX_LEAF_CONFIG_ARGUMENTS,
+        "-c",
+        f"approval_policy={approval_policy}",
         "--json",
         "--color",
         "never",
@@ -3286,6 +3294,7 @@ def _run_offline_review(
 
         command = [
             OFFLINE_REVIEW_TEST_EXECUTABLE,
+            *CODEX_LEAF_CONFIG_ARGUMENTS,
             "--sandbox",
             "read-only",
             "--cd",

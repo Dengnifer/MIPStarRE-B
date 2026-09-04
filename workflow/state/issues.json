@@ -5769,10 +5769,12 @@
         "AGENTS.md",
         "protocols/orchestration.md",
         "protocols/CHANGELOG.md",
+        "scripts/local_agent.py",
+        "tests/test_local_agent.py",
         "workflow/state/stages.json"
       ],
-      "created_at": "2026-09-04T07:20:00Z",
-      "updated_at": "2026-09-04T07:20:00Z",
+      "created_at": "2026-09-04T07:03:45.766516Z",
+      "updated_at": "2026-09-04T07:07:47.807483Z",
       "blocked_reason": "Fresh independent review is required before activation is recorded complete.",
       "unblock_condition": "A read-only leaf reviewer approves the exact committed protocol head and all validation gates pass."
     }

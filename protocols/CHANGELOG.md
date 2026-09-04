@@ -13,6 +13,11 @@ more than one reviewer at a time. A full allocation waits 60 seconds before
 recounting; HTTP 429 waits 120 seconds and retries the same stable session once,
 then leaves the task queued instead of looping.
 
+The governed local launcher injects both no-fan-out configuration arguments
+into every worker argv and keeps `codex exec` contiguous so the mandated live
+process count observes it. Focused tests bind ordinary worker and projected
+review command construction to both arguments.
+
 The protocol explicitly excludes Track A's checkout, development cache, and
 tmux session. The stage ledger records the total ceiling of three, while
 dispatcher calls use the two-worker non-coordinator ceiling. This is a direct

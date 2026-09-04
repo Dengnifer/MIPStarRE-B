@@ -878,9 +878,17 @@ class RuntimeTests(unittest.TestCase):
         )
         command, cwd, prompt = runner.calls[0]
         self.assertEqual(
-            ["codex", "--ask-for-approval", "never", "exec", "--json"],
-            command[:5],
+            [
+                "codex",
+                "exec",
+                "-c",
+                "features.multi_agent=false",
+                "-c",
+                "agents.max_concurrent_threads_per_session=1",
+            ],
+            command[:6],
         )
+        self.assertIn("approval_policy=never", command)
         self.assertEqual("-", command[-1])
         self.assertIn("$(touch", prompt)
         self.assertEqual(THREAD_ID, envelope["external_id"])
@@ -1001,6 +1009,8 @@ class RuntimeTests(unittest.TestCase):
         persistence_probe.assert_not_called()
         command = runner.calls[0][0]
         self.assertEqual(local_agent.OFFLINE_REVIEW_TEST_EXECUTABLE, command[0])
+        self.assertIn("features.multi_agent=false", command)
+        self.assertIn("agents.max_concurrent_threads_per_session=1", command)
         self.assertIn("read-only", command)
         self.assertIn("--ask-for-approval", command)
         self.assertNotIn("review", command)
