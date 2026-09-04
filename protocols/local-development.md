@@ -137,19 +137,28 @@ events, including derived `.lake.failed-*` and `.lake.retained-*` names. Journal
 and commit-marker descriptors are readable; exact type, size, and content are
 rechecked before and after journal retention, with modification and directory
 move events drained before success. Cache seeding creates and opens every
-descendant descriptor-relatively with no-follow handoffs. Each new child also
-receives its own move monitor before the parent handoff completes; parent and
-child continuity are rechecked before the first and every subsequent output
-write. Both reflink and byte-copy paths write only through the held destination
-file descriptor.
+descendant descriptor-relatively with no-follow handoffs. Directories receive a
+move monitor before the parent handoff completes. Regular files are populated,
+metadata-finalized, and fsynced through a zero-link `O_TMPFILE` descriptor. One
+descriptor-relative `linkat` then exposes the complete inode; no cache payload
+or metadata write follows that link. Lack of `O_TMPFILE` or `linkat` support
+fails closed. Every regular output must have link count exactly one in
+descriptor-relative inventories before publication, after publication, and
+after the success-metric commit while the output-root descriptor remains live.
+A late external hard link therefore prevents a successful result and receives
+no later cache mutation.
 Successful journal and empty-staging finalization uses atomic
 no-replace moves to uniquely named retained evidence; seed and prepare never
 unlink or `rmdir` transaction objects. After a successful commit, the displaced
 old tree must still match its continuously open descriptor and recorded
 descriptor-relative recursive identity/content inventory immediately before
-retention and again after the no-replace move to `.lake.retained-*`; it is never
-recursively deleted. Any collision, identity mismatch, byte or inventory drift,
-monitor poison, or ABA preserves all objects and reports manual disposition.
+retention and at a final checkpoint after the no-replace move, target refresh,
+and directory fsync; it is never recursively deleted. The retained empty staging
+root is likewise checked after its last target refresh/fsync. These inventories
+are exact snapshots at their final gates, not continuing access control after
+the gate or Python return. Any collision, identity mismatch, byte or inventory
+drift observed at a gate, monitor poison, or ABA preserves all objects and
+reports manual disposition.
 
 Metric append failures truncate and fsync on the original descriptor while the
 original metrics lock remains continuously held. Successful append plus fsync
@@ -177,14 +186,16 @@ one descriptor-bound `RENAME_EXCHANGE`, so `MIPStarRE/` is never absent; first
 publication uses `RENAME_NOREPLACE`. Stage, destination, transaction, marker,
 and backup names remain bound by no-follow descriptors and permanent event
 monitors through verification, retention, and rollback. Archive and
-authored-tree output is created descriptor-relatively with exact
-create/open/drain handoffs and child move monitors that remain live until
-population completes. Parent and child continuity are checked before every
-write, and authored-source directory monitors remain live through copying, so
-an injected intermediate symlink or relocated genuine child cannot receive
-foundation bytes. Success
-revalidates the exact retained transaction and stage inventories immediately
-before return. Success and unambiguous failure move the transaction no-replace
+authored-tree directories use exact descriptor-relative create/open/drain
+handoffs and move monitors through population. Regular archive and authored
+output uses the same zero-link `O_TMPFILE` construction as cache copying and
+receives no payload or metadata write after its one `linkat` exposure.
+Descriptor-relative prepublication, postpublication, and final-result
+inventories require every regular output to have link count exactly one. Parent
+and child directory continuity remains checked through copying, so an injected
+intermediate symlink cannot redirect writes. Success revalidates the exact
+retained transaction and stage inventories after result construction and
+immediately before return. Success and unambiguous failure move the transaction no-replace
 to unique evidence; a tracked current transaction name keeps a post-retention
 rollback unambiguous. Ambiguous, collided, or substituted objects are preserved
 in place; the materializer never recursively deletes transaction objects.
@@ -207,13 +218,25 @@ unambiguous failure. After commit, a matching displaced tree is moved no-replace
 to retained state and its path is reported without changing a successful
 result; automatic transaction deletion is forbidden.
 
-Dry-run `seed` and `prepare` perform the same read-only interrupted-seed
+Dry-run `seed` and `prepare` hold the same per-target exclusive lock as their
+live forms and perform the same read-only interrupted-seed
 admission as their live forms, refusing journals and target-local staging state
 before capability, cache, archive, or materializer admission. Dry-run `prepare`
 then performs the same non-mutating materializer-state, archive,
 captured-module, pin, project-validator, and fail-closed-interface admissions as
 live `prepare`, in the same order, before delegating to dry-run `seed`. It does
 not materialize a foundation or publish a cache tree.
+
+The transaction monitors and advisory locks coordinate repository workflow
+processes and detect admitted interference; they are not Linux access-control
+primitives. A non-cooperating process with the same operating-system identity
+can mutate a named tree after any finite final syscall. Accordingly, recursive
+and wildcard evidence is claimed exact only at the documented final checkpoint,
+and returned evidence does not claim immutability after that checkpoint or after
+the command returns. The stronger confinement property is limited to this
+program's own regular-file writes: bytes and metadata are complete before name
+exposure, and no later program write can reach a relocated or externally linked
+regular output.
 
 The cache record includes key, source SHA, elected owner, hit/miss, lock wait,
 dependency-cache duration, build duration, total duration, exit status, and log

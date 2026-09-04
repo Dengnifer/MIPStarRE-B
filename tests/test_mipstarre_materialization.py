@@ -928,19 +928,23 @@ class MaterializationTests(unittest.TestCase):
         external = Path(self.temporary.name) / "external-archive-file"
         external.mkdir()
         external_descriptor = os.open(external, source._directory_flags())
-        real_create = source._create_continuous_file
+        real_link = source._linux_link_unnamed_file
+        real_write = source.os.write
         injected = False
+        payload_was_unnamed = False
 
-        def relocate_after_handoff(
-            parent_descriptor: int,
-            name: str,
-            label: str,
-            parent_monitor: object,
-        ) -> object:
+        def assert_unnamed_write(descriptor: int, payload: object) -> int:
+            nonlocal payload_was_unnamed
+            if bytes(payload) == b"def pinned := 1\n":  # type: ignore[arg-type]
+                payload_was_unnamed = True
+                self.assertEqual(0, os.fstat(descriptor).st_nlink)
+            return real_write(descriptor, payload)  # type: ignore[arg-type]
+
+        def relocate_after_link(
+            descriptor: int, parent_descriptor: int, name: str
+        ) -> None:
             nonlocal injected
-            binding = real_create(
-                parent_descriptor, name, label, parent_monitor  # type: ignore[arg-type]
-            )
+            real_link(descriptor, parent_descriptor, name)
             if name == "Measurement.lean" and not injected:
                 injected = True
                 os.rename(
@@ -949,18 +953,23 @@ class MaterializationTests(unittest.TestCase):
                     src_dir_fd=parent_descriptor,
                     dst_dir_fd=external_descriptor,
                 )
-            return binding
 
         try:
             with mock.patch.object(
-                source, "_create_continuous_file", side_effect=relocate_after_handoff
+                source, "_linux_link_unnamed_file", side_effect=relocate_after_link
+            ), mock.patch.object(
+                source.os, "write", side_effect=assert_unnamed_write
             ), mock.patch.object(source, "_require_transaction_capabilities"):
                 with self.assertRaisesRegex(source.MaterializationError, "could not prepare"):
                     source.materialize(self.root, self.pin_path, self.archive)
         finally:
             os.close(external_descriptor)
         self.assertTrue(injected)
-        self.assertEqual(b"", (external / "relocated-Measurement.lean").read_bytes())
+        self.assertTrue(payload_was_unnamed)
+        self.assertEqual(
+            b"def pinned := 1\n",
+            (external / "relocated-Measurement.lean").read_bytes(),
+        )
 
     def test_authored_file_post_handoff_relocation_receives_no_bytes(self) -> None:
         destination = self.root / "MIPStarRE"
@@ -971,19 +980,23 @@ class MaterializationTests(unittest.TestCase):
         external = Path(self.temporary.name) / "external-authored-file"
         external.mkdir()
         external_descriptor = os.open(external, source._directory_flags())
-        real_create = source._create_continuous_file
+        real_link = source._linux_link_unnamed_file
+        real_write = source.os.write
         injected = False
+        payload_was_unnamed = False
 
-        def relocate_after_handoff(
-            parent_descriptor: int,
-            name: str,
-            label: str,
-            parent_monitor: object,
-        ) -> object:
+        def assert_unnamed_write(descriptor: int, payload: object) -> int:
+            nonlocal payload_was_unnamed
+            if bytes(payload) == b"def owned := true\n":  # type: ignore[arg-type]
+                payload_was_unnamed = True
+                self.assertEqual(0, os.fstat(descriptor).st_nlink)
+            return real_write(descriptor, payload)  # type: ignore[arg-type]
+
+        def relocate_after_link(
+            descriptor: int, parent_descriptor: int, name: str
+        ) -> None:
             nonlocal injected
-            binding = real_create(
-                parent_descriptor, name, label, parent_monitor  # type: ignore[arg-type]
-            )
+            real_link(descriptor, parent_descriptor, name)
             if name == "Owned.lean" and not injected:
                 injected = True
                 os.rename(
@@ -992,11 +1005,12 @@ class MaterializationTests(unittest.TestCase):
                     src_dir_fd=parent_descriptor,
                     dst_dir_fd=external_descriptor,
                 )
-            return binding
 
         try:
             with mock.patch.object(
-                source, "_create_continuous_file", side_effect=relocate_after_handoff
+                source, "_linux_link_unnamed_file", side_effect=relocate_after_link
+            ), mock.patch.object(
+                source.os, "write", side_effect=assert_unnamed_write
             ), mock.patch.object(source, "_require_transaction_capabilities"):
                 with self.assertRaisesRegex(source.MaterializationError, "could not prepare"):
                     source.materialize(
@@ -1005,7 +1019,10 @@ class MaterializationTests(unittest.TestCase):
         finally:
             os.close(external_descriptor)
         self.assertTrue(injected)
-        self.assertEqual(b"", (external / "relocated-Owned.lean").read_bytes())
+        self.assertTrue(payload_was_unnamed)
+        self.assertEqual(
+            b"def owned := true\n", (external / "relocated-Owned.lean").read_bytes()
+        )
         self.assertEqual(b"def owned := true\n", (authored / "Owned.lean").read_bytes())
 
     def test_retained_backup_contamination_is_refused_and_preserved(self) -> None:
@@ -1038,6 +1055,105 @@ class MaterializationTests(unittest.TestCase):
         evidence = next(runtime.glob("MIPStarRE.transaction.failed-*"))
         self.assertTrue(injected)
         self.assertEqual(b"preserve", (evidence / "backup" / "unexpected").read_bytes())
+
+    def test_late_archive_and_authored_hard_links_prevent_publication(self) -> None:
+        destination = self.root / "MIPStarRE"
+        authored = destination / "QPBT"
+        authored.mkdir(parents=True)
+        (authored / "Owned.lean").write_bytes(b"def owned := true\n")
+        (destination / "untrusted").write_bytes(b"replace")
+        external = Path(self.temporary.name) / "late-output-links"
+        external.mkdir()
+        real_populate = source._populate_bound_tree
+        injected: list[str] = []
+
+        def link_after_population(
+            root_descriptor: int,
+            directories: object,
+            files: object,
+            *,
+            root_binding: object = None,
+        ) -> None:
+            real_populate(
+                root_descriptor,
+                directories,  # type: ignore[arg-type]
+                files,  # type: ignore[arg-type]
+                root_binding=root_binding,  # type: ignore[arg-type]
+            )
+            if root_binding is None:
+                quantum = os.open("Quantum", source._directory_flags(), dir_fd=root_descriptor)
+                try:
+                    os.link(
+                        "Measurement.lean",
+                        external / "archive.lean",
+                        src_dir_fd=quantum,
+                        follow_symlinks=False,
+                    )
+                finally:
+                    os.close(quantum)
+                injected.append("archive")
+            else:
+                os.link(
+                    "Owned.lean",
+                    external / "authored.lean",
+                    src_dir_fd=root_descriptor,
+                    follow_symlinks=False,
+                )
+                injected.append("authored")
+
+        with mock.patch.object(
+            source, "_populate_bound_tree", side_effect=link_after_population
+        ), mock.patch.object(source, "_require_transaction_capabilities"):
+            with self.assertRaisesRegex(source.MaterializationError, "could not prepare"):
+                source.materialize(
+                    self.root, self.pin_path, self.archive, replace_existing=True
+                )
+        self.assertEqual(["archive", "authored"], injected)
+        self.assertEqual(b"def pinned := 1\n", (external / "archive.lean").read_bytes())
+        self.assertEqual(
+            b"def owned := true\n", (external / "authored.lean").read_bytes()
+        )
+        self.assertEqual(b"def owned := true\n", (authored / "Owned.lean").read_bytes())
+
+    def test_retained_backup_post_inventory_contamination_prevents_success(self) -> None:
+        real_inventory = source._retained_transaction_inventory
+        injected = False
+
+        def contaminate_after_inventory(*args: object) -> dict[str, object]:
+            nonlocal injected
+            result = real_inventory(*args)
+            if not injected:
+                injected = True
+                backup_descriptor = int(args[4])
+                descriptor = os.open(
+                    "post-scan",
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                    0o600,
+                    dir_fd=backup_descriptor,
+                )
+                try:
+                    os.write(descriptor, b"preserve")
+                finally:
+                    os.close(descriptor)
+            return result
+
+        with mock.patch.object(
+            source,
+            "_retained_transaction_inventory",
+            side_effect=contaminate_after_inventory,
+        ), mock.patch.object(source, "_require_transaction_capabilities"):
+            with self.assertRaisesRegex(
+                source.MaterializationError,
+                "object changed|backup is not empty|changed after result construction",
+            ):
+                source.materialize(self.root, self.pin_path, self.archive)
+        evidence = next(
+            (self.root / ".workflow-runtime" / "mipstarre-materialization").glob(
+                "MIPStarRE.transaction.failed-*"
+            )
+        )
+        self.assertTrue(injected)
+        self.assertEqual(b"preserve", (evidence / "backup" / "post-scan").read_bytes())
 
     def test_retained_original_descendant_mutation_is_refused_and_preserved(self) -> None:
         destination = self.root / "MIPStarRE"

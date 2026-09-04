@@ -60,6 +60,7 @@ REFLINK_FALLBACK_ERRNOS = {
 }
 RENAME_NOREPLACE = 1
 RENAME_EXCHANGE = 2
+AT_EMPTY_PATH = 0x1000
 _RENAMEAT2_FILESYSTEM_MAGICS = {
     0xEF53,  # ext2/ext3/ext4
     0x58465342,  # XFS
@@ -130,6 +131,46 @@ def _linux_renameat2(
     ) != 0:
         error_number = ctypes.get_errno()
         raise OSError(error_number, os.strerror(error_number))
+
+
+def _linux_link_unnamed_file(
+    descriptor: int, destination_parent: int, destination_name: str
+) -> None:
+    """Expose one fully populated O_TMPFILE inode without a named-write interval."""
+
+    encoded = os.fsencode(destination_name)
+    if not encoded or encoded in {b".", b".."} or b"/" in encoded or b"\0" in encoded:
+        raise CacheError("unnamed-file publication requires one safe child name")
+    linkat = getattr(_linux_libc(), "linkat", None)
+    if linkat is None:
+        raise CacheError("safe cache copying requires Linux linkat")
+    linkat.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+    ]
+    linkat.restype = ctypes.c_int
+    ctypes.set_errno(0)
+    if linkat(descriptor, b"", destination_parent, encoded, AT_EMPTY_PATH) == 0:
+        return
+    direct_error = ctypes.get_errno()
+    ctypes.set_errno(0)
+    if linkat(
+        -100,
+        os.fsencode(f"/proc/self/fd/{descriptor}"),
+        destination_parent,
+        encoded,
+        getattr(os, "AT_SYMLINK_FOLLOW", 0x400),
+    ) == 0:
+        return
+    fallback_error = ctypes.get_errno()
+    raise OSError(
+        fallback_error,
+        "could not publish unnamed cache output: "
+        f"{os.strerror(fallback_error)} (direct linkat: {os.strerror(direct_error)})",
+    )
 
 
 def _linux_filesystem_magic(descriptor: int) -> int:
@@ -552,6 +593,7 @@ class _SeedReplacement:
     new_published: bool = False
     metric_committed: bool = False
     original_identity: dict[str, Any] | None = None
+    published_inventory: dict[str, Any] | None = None
     original_descriptor: int | None = None
     staging_descriptor: int | None = None
     staging_lake_descriptor: int | None = None
@@ -968,7 +1010,10 @@ def artifact_inventory(root: Path) -> dict[str, Any]:
                 add("symlink", relative, os.readlink(path))
                 symlinks += 1
             elif path.is_file():
-                size = path.stat(follow_symlinks=False).st_size
+                metadata = path.stat(follow_symlinks=False)
+                if metadata.st_nlink != 1:
+                    raise CacheError(f"artifact regular file is not private: {path}")
+                size = metadata.st_size
                 add("file", relative, f"{size}:{sha256_file(path)}")
                 files += 1
                 total_bytes += size
@@ -984,7 +1029,9 @@ def artifact_inventory(root: Path) -> dict[str, Any]:
     }
 
 
-def _descriptor_tree_inventory(root_descriptor: int, label: str) -> dict[str, Any]:
+def _descriptor_tree_inventory(
+    root_descriptor: int, label: str, *, require_single_link: bool = False
+) -> dict[str, Any]:
     """Bind recursive names, inode identities, and bytes below a held directory."""
 
     content_digest = hashlib.sha256()
@@ -1058,6 +1105,8 @@ def _descriptor_tree_inventory(root_descriptor: int, label: str) -> dict[str, An
                     finally:
                         os.close(child)
                 elif stat.S_ISREG(before.st_mode):
+                    if require_single_link and before.st_nlink != 1:
+                        raise CacheError(f"{label} file is not a private single-link output")
                     child = os.open(
                         name,
                         os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0),
@@ -1096,7 +1145,9 @@ def _descriptor_tree_inventory(root_descriptor: int, label: str) -> dict[str, An
                             stat.S_IMODE(before.st_mode),
                             before.st_nlink,
                             before.st_size,
-                        ) or read_bytes != before.st_size:
+                        ) or read_bytes != before.st_size or (
+                            require_single_link and after.st_nlink != 1
+                        ):
                             raise CacheError(f"{label} file changed while inventoried")
                         add_content(
                             "file", child_relative, f"{read_bytes}:{file_digest.hexdigest()}"
@@ -2714,36 +2765,105 @@ class _CopyOutputBinding:
         self.self_monitor.close()
 
 
+@dataclass
+class _DetachedCopyFile:
+    parent_descriptor: int
+    name: str
+    descriptor: int
+    parent_monitor: _BoundNameMonitor
+    label: str
+    self_monitor: _BoundNameMonitor | None = None
+
+    def accept_payload_change(self, operation: int) -> None:
+        inode_name = f"#{os.fstat(self.descriptor).st_ino}"
+        self.parent_monitor.accept_exact_change(((inode_name, operation),))
+
+    def assert_detached(self) -> None:
+        self.parent_monitor.assert_clean()
+        metadata = os.fstat(self.descriptor)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 0:
+            raise CacheError(f"{self.label} lost its unnamed private inode")
+        try:
+            os.stat(self.name, dir_fd=self.parent_descriptor, follow_symlinks=False)
+        except FileNotFoundError:
+            return
+        except OSError as error:
+            raise CacheError(f"could not prove absent {self.label}") from error
+        raise CacheError(f"{self.label} appeared before publication")
+
+    def publish(self) -> None:
+        self.assert_detached()
+        _linux_link_unnamed_file(self.descriptor, self.parent_descriptor, self.name)
+        self.parent_monitor.accept_exact_change(((self.name, _IN_CREATE),))
+        self.self_monitor = _BoundNameMonitor(self.descriptor, None)
+        self.assert_current()
+
+    def assert_current(self) -> None:
+        if self.self_monitor is None:
+            raise CacheError(f"{self.label} has not been published")
+        self.self_monitor.assert_clean()
+        self.parent_monitor.assert_clean()
+        HotMainCache._assert_bound_name(
+            self.parent_descriptor, self.name, self.descriptor, self.label
+        )
+        if os.fstat(self.descriptor).st_nlink != 1:
+            raise CacheError(f"{self.label} is not a private single-link file")
+
+    def close(self) -> None:
+        if self.self_monitor is not None:
+            self.self_monitor.close()
+
+
+def _create_detached_copy_file(
+    parent_descriptor: int,
+    name: str,
+    parent_monitor: _BoundNameMonitor,
+    label: str,
+) -> _DetachedCopyFile:
+    """Create an unnamed output inode; payload writes precede namespace exposure."""
+
+    encoded = os.fsencode(name)
+    if not encoded or encoded in {b".", b".."} or b"/" in encoded or b"\0" in encoded:
+        raise CacheError("unsafe cache-copy child name")
+    parent_monitor.assert_clean()
+    try:
+        descriptor = os.open(
+            ".",
+            os.O_TMPFILE | os.O_RDWR | getattr(os, "O_CLOEXEC", 0),
+            0o600,
+            dir_fd=parent_descriptor,
+        )
+    except (AttributeError, OSError) as error:
+        raise CacheError("safe cache copying requires O_TMPFILE") from error
+    detached = _DetachedCopyFile(
+        parent_descriptor, name, descriptor, parent_monitor, label
+    )
+    try:
+        detached.assert_detached()
+    except BaseException:
+        os.close(descriptor)
+        raise
+    return detached
+
+
 def _create_copy_output(
     parent_descriptor: int,
     name: str,
     parent_monitor: _BoundNameMonitor,
     label: str,
-    *,
-    directory: bool,
 ) -> _CopyOutputBinding:
-    """Create and bind an output before releasing its parent handoff."""
+    """Create and bind a directory before releasing its parent handoff."""
 
     parent_monitor.assert_clean()
-    if directory:
-        os.mkdir(name, 0o700, dir_fd=parent_descriptor)
-        parent_monitor.accept_exact_change(((name, _IN_CREATE),))
-        try:
-            descriptor = os.open(
-                name, _authored_directory_flags(), dir_fd=parent_descriptor
-            )
-        except OSError as error:
-            raise CacheError(f"{label} could not be bound after creation") from error
-    else:
-        descriptor = os.open(
-            name,
-            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
-            0o600,
-            dir_fd=parent_descriptor,
-        )
+    os.mkdir(name, 0o700, dir_fd=parent_descriptor)
+    parent_monitor.accept_exact_change(((name, _IN_CREATE),))
     try:
-        if not directory:
-            parent_monitor.accept_exact_change(((name, _IN_CREATE),))
+        descriptor = os.open(
+            name, _authored_directory_flags(), dir_fd=parent_descriptor
+        )
+    except OSError as error:
+        raise CacheError(f"{label} could not be bound after creation") from error
+    try:
         self_monitor = _BoundNameMonitor(descriptor, ())
         try:
             HotMainCache._assert_bound_name(parent_descriptor, name, descriptor, label)
@@ -2806,7 +2926,7 @@ def _copy_regular_file(
     owner_writable: bool,
 ) -> None:
     source_descriptor: int | None = None
-    output_binding: _CopyOutputBinding | None = None
+    output_binding: _DetachedCopyFile | None = None
     try:
         source_monitor.assert_clean()
         source_descriptor = os.open(
@@ -2822,21 +2942,20 @@ def _copy_regular_file(
         if not stat.S_ISREG(source_before.st_mode):
             raise CacheError(f"cache source entry changed type: {name}")
 
-        output_binding = _create_copy_output(
+        output_binding = _create_detached_copy_file(
             destination_parent,
             name,
             destination_monitor,
             f"copied cache file {name}",
-            directory=False,
         )
         destination_descriptor = output_binding.descriptor
-        output_binding.assert_current()
+        output_binding.assert_detached()
         if source_before.st_size:
             try:
-                output_binding.assert_current()
+                output_binding.assert_detached()
                 fcntl.ioctl(destination_descriptor, FICLONE, source_descriptor)
-                destination_monitor.accept_exact_change(((name, _IN_MODIFY),))
-                output_binding.assert_current()
+                output_binding.accept_payload_change(_IN_MODIFY)
+                output_binding.assert_detached()
                 stats.reflinked += 1
             except OSError as error:
                 if error.errno not in REFLINK_FALLBACK_ERRNOS:
@@ -2848,13 +2967,13 @@ def _copy_regular_file(
                         break
                     view = memoryview(block)
                     while view:
-                        output_binding.assert_current()
+                        output_binding.assert_detached()
                         written = os.write(destination_descriptor, view)
                         if written <= 0:
                             raise OSError("short cache file write")
                         view = view[written:]
-                        destination_monitor.accept_exact_change(((name, _IN_MODIFY),))
-                        output_binding.assert_current()
+                        output_binding.accept_payload_change(_IN_MODIFY)
+                        output_binding.assert_detached()
                 stats.copied += 1
         else:
             stats.copied += 1
@@ -2875,14 +2994,19 @@ def _copy_regular_file(
         HotMainCache._assert_bound_name(
             source_parent, name, source_descriptor, f"cache source file {name}"
         )
-        _copy_descriptor_metadata(
-            source_after,
+        mode = stat.S_IMODE(source_after.st_mode)
+        if owner_writable:
+            mode |= stat.S_IWUSR
+        os.fchmod(destination_descriptor, mode)
+        output_binding.accept_payload_change(_IN_ATTRIB)
+        os.utime(
             destination_descriptor,
-            destination_monitor,
-            name,
-            owner_writable=owner_writable,
-            output_binding=output_binding,
+            ns=(source_after.st_atime_ns, source_after.st_mtime_ns),
         )
+        output_binding.accept_payload_change(_IN_ATTRIB)
+        os.fsync(destination_descriptor)
+        output_binding.assert_detached()
+        output_binding.publish()
         output_binding.assert_current()
         stats.files += 1
         stats.bytes += source_before.st_size
@@ -2976,7 +3100,6 @@ def reflink_copytree(
                             name,
                             destination_monitor,
                             f"copied cache directory {relative / name}",
-                            directory=True,
                         )
                         destination_child = output_binding.descriptor
                         output_binding.assert_current()
@@ -5007,10 +5130,21 @@ class HotMainCache:
             descriptor,
             "retained seed staging root",
         )
-        replacement.staging_entry_monitor.assert_clean()
-        replacement.staging_parent_monitor.assert_clean()
         target.refresh_after_project_mutation()
         os.fsync(target.project_descriptor)
+        HotMainCache._assert_bound_name(
+            target.project_descriptor,
+            retained_name,
+            descriptor,
+            "retained seed staging root",
+        )
+        replacement.staging_entry_monitor.assert_clean()
+        if os.listdir(descriptor):
+            raise CacheError(
+                "retained seed staging root changed after finalization; manual recovery required"
+            )
+        replacement.staging_entry_monitor.assert_clean()
+        replacement.staging_parent_monitor.assert_clean()
 
     @staticmethod
     def _close_seed_replacement(replacement: _SeedReplacement) -> None:
@@ -5465,6 +5599,20 @@ class HotMainCache:
                 raise CacheError("foundation materializer evidence identity changed")
             if HotMainCache._materializer_evidence_inventory(descriptor) != expected_inventory:
                 raise CacheError("foundation materializer evidence inventory changed")
+            result["transaction_evidence"] = str(stable_path)
+            target.assert_current()
+            for parent, component, child, monitor in bindings:
+                monitor.assert_clean()
+                HotMainCache._assert_bound_name(
+                    parent,
+                    component,
+                    child,
+                    "foundation materializer evidence",
+                )
+            if HotMainCache._materializer_evidence_inventory(descriptor) != expected_inventory:
+                raise CacheError(
+                    "foundation materializer evidence changed after normalization"
+                )
             target.assert_current()
             for parent, component, child, monitor in bindings:
                 monitor.assert_clean()
@@ -5481,7 +5629,6 @@ class HotMainCache:
                 monitor.close()
             for opened in reversed(opened_descriptors):
                 os.close(opened)
-        result["transaction_evidence"] = str(stable_path)
         return result
 
     def _publish_seed_locked(
@@ -5574,10 +5721,22 @@ class HotMainCache:
             "staged Lake tree",
         )
         replacement.staging_entry_monitor.assert_clean()
+        staged_inventory = _descriptor_tree_inventory(
+            replacement.staging_lake_descriptor,
+            "staged Lake output",
+            require_single_link=True,
+        )
+        replacement.published_inventory = staged_inventory
         replacement.destination_monitor = _BoundNameMonitor(
             target.project_descriptor, (replacement.destination.name,)
         )
         self._validate_seeded_destination(staging_lake)
+        if _descriptor_tree_inventory(
+            replacement.staging_lake_descriptor,
+            "staged Lake output",
+            require_single_link=True,
+        ) != staged_inventory:
+            raise CacheError("staged Lake output changed after population")
         self._assert_seed_target_registered(target)
         if destination.exists():
             replacement.original_descriptor = os.open(
@@ -5681,6 +5840,12 @@ class HotMainCache:
         target.refresh_after_project_mutation()
         os.fsync(target.project_descriptor)
         self._validate_seeded_destination(destination)
+        if _descriptor_tree_inventory(
+            replacement.staging_lake_descriptor,
+            "published Lake output",
+            require_single_link=True,
+        ) != staged_inventory:
+            raise CacheError("published Lake output changed before seed admission")
         self._assert_seed_target_registered(target)
         return {
             **self.status(),
@@ -5700,6 +5865,19 @@ class HotMainCache:
             "elapsed_seconds": round(time.monotonic() - started, 6),
             "copy": asdict(copy_stats),
         }
+
+    @staticmethod
+    def _assert_seed_output_current(replacement: _SeedReplacement) -> None:
+        descriptor = replacement.staging_lake_descriptor
+        expected = replacement.published_inventory
+        if descriptor is None or expected is None:
+            raise CacheError("seed output lost its final descriptor authority")
+        if _descriptor_tree_inventory(
+            descriptor,
+            "published Lake output",
+            require_single_link=True,
+        ) != expected:
+            raise CacheError("published Lake output changed across the commit boundary")
 
     def _retain_seed_backup(
         self, target: _BoundSeedTarget, replacement: _SeedReplacement
@@ -5745,6 +5923,8 @@ class HotMainCache:
             "retained original Lake tree",
         )
         replacement.destination_monitor.assert_clean()
+        target.refresh_after_project_mutation()
+        os.fsync(target.project_descriptor)
         if self._lake_tree_identity_from_descriptor(descriptor) != expected:
             raise CacheError(
                 "retained seed backup identity or recursive inventory changed; manual recovery required"
@@ -5756,8 +5936,6 @@ class HotMainCache:
             "retained original Lake tree",
         )
         replacement.destination_monitor.assert_clean()
-        target.refresh_after_project_mutation()
-        os.fsync(target.project_descriptor)
         return str(target.target_project / retained_name)
 
     def _rollback_seed_transaction(
@@ -5781,27 +5959,42 @@ class HotMainCache:
                 f"{action} failed ({error}); rollback incomplete: {details}"
             ) from error
 
+    def _dry_seed_locked(
+        self,
+        lexical_target: Path,
+        *,
+        replace: bool,
+        target_lock: ExclusiveLock,
+    ) -> dict[str, Any]:
+        target = self._eligible_seed_target(lexical_target, check_inputs=False)
+        try:
+            self._recover_interrupted_seed(target)
+            self._require_seed_capabilities(target)
+            checked_target = self._eligible_seed_target(lexical_target)
+            old_target, target = target, checked_target
+            old_target.close()
+            self._require_seed_capabilities(target)
+            return {
+                **self.status(),
+                "action": "seed",
+                "dry_run": True,
+                "target": str(target.target_project / ".lake"),
+                "worktree_root": str(target.worktree_root),
+                "replace": replace,
+                "lock_waited": int(target_lock.waited),
+                "lock_wait_seconds": round(target_lock.wait_seconds, 6),
+                "admission_serialization": "exclusive-target-lock",
+            }
+        finally:
+            target.close()
+
     def seed(self, target_project: Path, *, replace: bool = False, dry_run: bool = False) -> dict[str, Any]:
         lexical_target, target_lock_path = self._target_lock_path(target_project)
         if dry_run:
-            target = self._eligible_seed_target(lexical_target, check_inputs=False)
-            try:
-                self._recover_interrupted_seed(target)
-                self._require_seed_capabilities(target)
-                checked_target = self._eligible_seed_target(lexical_target)
-                old_target, target = target, checked_target
-                old_target.close()
-                self._require_seed_capabilities(target)
-                return {
-                    **self.status(),
-                    "action": "seed",
-                    "dry_run": True,
-                    "target": str(target.target_project / ".lake"),
-                    "worktree_root": str(target.worktree_root),
-                    "replace": replace,
-                }
-            finally:
-                target.close()
+            with ExclusiveLock(target_lock_path) as target_lock:
+                return self._dry_seed_locked(
+                    lexical_target, replace=replace, target_lock=target_lock
+                )
         started = time.monotonic()
         with ExclusiveLock(target_lock_path) as target_lock:
             target = self._eligible_seed_target(lexical_target, check_inputs=False)
@@ -5842,6 +6035,7 @@ class HotMainCache:
                     )
                     replacement.metric_committed = True
                     self._mark_seed_committed(replacement)
+                    self._assert_seed_output_current(replacement)
                     self._assert_seed_target_registered(target)
                 except BaseException as error:
                     if replacement.metric_committed:
@@ -5861,6 +6055,7 @@ class HotMainCache:
                 if replacement.journal_descriptor is not None:
                     os.fsync(target.project_descriptor)
                     self._clear_seed_journal(replacement)
+                self._assert_seed_output_current(replacement)
                 self._discard_seed_rollback_root(target, replacement)
                 self._assert_seed_target_registered(target)
                 return result
@@ -5874,22 +6069,27 @@ class HotMainCache:
 
         lexical_target, target_lock_path = self._target_lock_path(target_project)
         if dry_run:
-            admission = self._admit_prepare_target(
-                lexical_target,
-                replace_seed=replace_seed,
-                check_seed_recovery=True,
-            )
-            try:
-                result = self.seed(lexical_target, replace=replace_seed, dry_run=True)
-                admission.target.assert_current()
-                return {
-                    **result,
-                    "action": "prepare",
-                    "foundation_replace_existing": True,
-                    "foundation_verify": True,
-                }
-            finally:
-                admission.target.close()
+            with ExclusiveLock(target_lock_path) as target_lock:
+                admission = self._admit_prepare_target(
+                    lexical_target,
+                    replace_seed=replace_seed,
+                    check_seed_recovery=True,
+                )
+                try:
+                    result = self._dry_seed_locked(
+                        lexical_target,
+                        replace=replace_seed,
+                        target_lock=target_lock,
+                    )
+                    admission.target.assert_current()
+                    return {
+                        **result,
+                        "action": "prepare",
+                        "foundation_replace_existing": True,
+                        "foundation_verify": True,
+                    }
+                finally:
+                    admission.target.close()
         started = time.monotonic()
         with ExclusiveLock(target_lock_path) as target_lock:
             admission = self._admit_prepare_target(
@@ -5975,11 +6175,13 @@ class HotMainCache:
                 )
                 replacement.metric_committed = True
                 self._mark_seed_committed(replacement)
+                self._assert_seed_output_current(replacement)
                 self._assert_seed_target_registered(target)
                 seeded["backup_retained"] = self._retain_seed_backup(target, replacement)
                 if replacement.journal_descriptor is not None:
                     os.fsync(target.project_descriptor)
                     self._clear_seed_journal(replacement)
+                self._assert_seed_output_current(replacement)
                 self._discard_seed_rollback_root(target, replacement)
                 self._assert_seed_target_registered(target)
                 return prepared

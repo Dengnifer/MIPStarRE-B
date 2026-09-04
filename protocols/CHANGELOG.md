@@ -1,5 +1,32 @@
 # Protocol Changelog
 
+## 0.1.13 candidate (QPBT-068 A28) - 2026-09-04
+
+Fresh immutable reviews A26 and A27 reproduced four final-boundary defects in
+the A22 cache transaction: regular payload writes still followed a fallible
+name-continuity check, recursive and wildcard evidence could change after its
+last scan, dry admission did not share the live target lock, and late hard-link
+aliases were absent from final output validation.
+
+A28 constructs cache, archive, and authored regular files as zero-link
+`O_TMPFILE` inodes, completes payload, metadata, and fsync before a single
+descriptor-relative `linkat`, and performs no program write after exposure.
+Descriptor-relative inventories now require `st_nlink == 1` for every regular
+output before publication, after publication, and at the last result/commit
+gate. Retained backup, staging, and materializer evidence checks run after the
+last project refresh or result construction, and dry seed/prepare share the
+live per-target lock. Deterministic regressions exercise byte-copy and reflink
+while unnamed, post-copy cache and post-population archive/authored hard links,
+post-drain staging mutation, post-refresh retained-backup mutation,
+post-inventory evidence mutation, and dry/live lock exclusion.
+
+The evidence claim is narrowed to what Linux can enforce. Inotify and advisory
+locks detect and serialize cooperating workflow processes but cannot prevent an
+arbitrary same-UID process from mutating a tree after the final syscall. A
+recursive inventory is therefore an exact final-gate snapshot, not perpetual
+authority after return; the stronger guarantee is that this implementation
+performs no regular-file payload or metadata mutation after namespace exposure.
+
 ## 0.1.12 (2026-09-03)
 
 The user-authorized repository mirror is now explicit. The root coordinator may

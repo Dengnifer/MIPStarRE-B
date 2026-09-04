@@ -32,6 +32,7 @@ BLOCK = 512
 TRANSACTION_SAFETY_VERSION = 2
 RENAME_NOREPLACE = 1
 RENAME_EXCHANGE = 2
+AT_EMPTY_PATH = 0x1000
 _RENAMEAT2_FILESYSTEM_MAGICS = {
     0xEF53,  # ext2/ext3/ext4
     0x58465342,  # XFS
@@ -105,6 +106,46 @@ def _linux_renameat2(
     ) != 0:
         error_number = ctypes.get_errno()
         raise OSError(error_number, os.strerror(error_number))
+
+
+def _linux_link_unnamed_file(
+    descriptor: int, destination_parent: int, destination_name: str
+) -> None:
+    """Expose one fully populated O_TMPFILE inode without a named-write interval."""
+
+    encoded = os.fsencode(destination_name)
+    if not encoded or encoded in {b".", b".."} or b"/" in encoded or b"\0" in encoded:
+        raise MaterializationError("unnamed-file publication requires one safe child name")
+    linkat = getattr(_linux_libc(), "linkat", None)
+    if linkat is None:
+        raise MaterializationError("safe materialization requires Linux linkat")
+    linkat.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+    ]
+    linkat.restype = ctypes.c_int
+    ctypes.set_errno(0)
+    if linkat(descriptor, b"", destination_parent, encoded, AT_EMPTY_PATH) == 0:
+        return
+    direct_error = ctypes.get_errno()
+    ctypes.set_errno(0)
+    if linkat(
+        -100,
+        os.fsencode(f"/proc/self/fd/{descriptor}"),
+        destination_parent,
+        encoded,
+        getattr(os, "AT_SYMLINK_FOLLOW", 0x400),
+    ) == 0:
+        return
+    fallback_error = ctypes.get_errno()
+    raise OSError(
+        fallback_error,
+        "could not publish unnamed materialized output: "
+        f"{os.strerror(fallback_error)} (direct linkat: {os.strerror(direct_error)})",
+    )
 
 
 def _linux_filesystem_magic(descriptor: int) -> int:
@@ -881,7 +922,11 @@ def _read_output_file(path: Path, max_bytes: int) -> bytes:
         raise MaterializationError(f"could not safely open materialized file: {path}") from error
     try:
         before = os.fstat(descriptor)
-        if not stat.S_ISREG(before.st_mode) or before.st_size > max_bytes:
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_nlink != 1
+            or before.st_size > max_bytes
+        ):
             raise MaterializationError(f"unsafe or oversized materialized file: {path}")
         chunks: list[bytes] = []
         total = 0
@@ -892,8 +937,8 @@ def _read_output_file(path: Path, max_bytes: int) -> bytes:
             chunks.append(block)
             total += len(block)
         after = os.fstat(descriptor)
-        if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (
-            after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns
+        if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_nlink) != (
+            after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_nlink
         ):
             raise MaterializationError(f"materialized file changed while read: {path}")
         if total != before.st_size:
@@ -1039,6 +1084,86 @@ class _OutputBinding:
 
     def close(self) -> None:
         self.self_monitor.close()
+
+
+class _DetachedOutputFile:
+    def __init__(
+        self,
+        parent_descriptor: int,
+        name: str,
+        descriptor: int,
+        parent_monitor: _BoundNameMonitor,
+        label: str,
+    ) -> None:
+        self.parent_descriptor = parent_descriptor
+        self.name = name
+        self.descriptor = descriptor
+        self.parent_monitor = parent_monitor
+        self.label = label
+        self.self_monitor: _BoundNameMonitor | None = None
+
+    def accept_payload_change(self, operation: int) -> None:
+        inode_name = f"#{os.fstat(self.descriptor).st_ino}"
+        self.parent_monitor.accept_owned_change(((inode_name, operation),))
+
+    def assert_detached(self) -> None:
+        self.parent_monitor.assert_clean()
+        metadata = os.fstat(self.descriptor)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 0:
+            raise MaterializationError(f"{self.label} lost its unnamed private inode")
+        _assert_name_absent(self.parent_descriptor, self.name, self.label)
+
+    def publish(self) -> None:
+        self.assert_detached()
+        _linux_link_unnamed_file(self.descriptor, self.parent_descriptor, self.name)
+        self.parent_monitor.accept_owned_change(((self.name, _IN_CREATE),))
+        self.self_monitor = _BoundNameMonitor(self.descriptor, None)
+        self.assert_current()
+
+    def assert_current(self) -> None:
+        if self.self_monitor is None:
+            raise MaterializationError(f"{self.label} has not been published")
+        self.self_monitor.assert_clean()
+        self.parent_monitor.assert_clean()
+        _assert_bound_name(
+            self.parent_descriptor, self.name, self.descriptor, self.label
+        )
+        if os.fstat(self.descriptor).st_nlink != 1:
+            raise MaterializationError(f"{self.label} is not a private single-link file")
+
+    def close(self) -> None:
+        if self.self_monitor is not None:
+            self.self_monitor.close()
+
+
+def _create_detached_output_file(
+    parent_descriptor: int,
+    name: str,
+    label: str,
+    parent_monitor: _BoundNameMonitor,
+) -> _DetachedOutputFile:
+    """Create an unnamed inode so no named output can receive later payload writes."""
+
+    name = _child_name(name, label)
+    parent_monitor.assert_clean()
+    try:
+        descriptor = os.open(
+            ".",
+            os.O_TMPFILE | os.O_RDWR | getattr(os, "O_CLOEXEC", 0),
+            0o644,
+            dir_fd=parent_descriptor,
+        )
+    except (AttributeError, OSError) as error:
+        raise MaterializationError("safe materialization requires O_TMPFILE") from error
+    detached = _DetachedOutputFile(
+        parent_descriptor, name, descriptor, parent_monitor, label
+    )
+    try:
+        detached.assert_detached()
+    except BaseException:
+        os.close(descriptor)
+        raise
+    return detached
 
 
 def _create_continuous_directory(
@@ -1343,29 +1468,29 @@ def _populate_bound_tree(
             if parent == ".":
                 parent = ""
             assert_continuity()
-            binding = _create_continuous_file(
+            binding = _create_detached_output_file(
                 descriptors[parent],
                 path.name,
                 f"materialized file {relative}",
                 content_monitors[parent],
             )
             try:
-                binding.assert_current()
+                binding.assert_detached()
                 assert_continuity()
                 view = memoryview(payload)
                 while view:
-                    binding.assert_current()
+                    binding.assert_detached()
                     assert_continuity()
                     written = os.write(binding.descriptor, view)
                     if written <= 0:
                         raise OSError("short materialized file write")
                     view = view[written:]
-                    content_monitors[parent].accept_owned_change(
-                        ((path.name, _IN_MODIFY),)
-                    )
-                    binding.assert_current()
+                    binding.accept_payload_change(_IN_MODIFY)
+                    binding.assert_detached()
                     assert_continuity()
                 os.fsync(binding.descriptor)
+                binding.assert_detached()
+                binding.publish()
                 binding.assert_current()
                 assert_continuity()
             finally:
@@ -1514,7 +1639,9 @@ def _descriptor_evidence_identity(descriptor: int) -> dict[str, int]:
     }
 
 
-def _descriptor_tree_inventory(root_descriptor: int, label: str) -> dict[str, Any]:
+def _descriptor_tree_inventory(
+    root_descriptor: int, label: str, *, require_single_link: bool = False
+) -> dict[str, Any]:
     """Bind recursive names, inode identities, and bytes below a held directory."""
 
     content_digest = hashlib.sha256()
@@ -1588,6 +1715,10 @@ def _descriptor_tree_inventory(root_descriptor: int, label: str) -> dict[str, An
                     finally:
                         os.close(child)
                 elif stat.S_ISREG(before.st_mode):
+                    if require_single_link and before.st_nlink != 1:
+                        raise MaterializationError(
+                            f"{label} file is not a private single-link output"
+                        )
                     child = os.open(
                         name,
                         os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0),
@@ -1626,7 +1757,9 @@ def _descriptor_tree_inventory(root_descriptor: int, label: str) -> dict[str, An
                             stat.S_IMODE(before.st_mode),
                             before.st_nlink,
                             before.st_size,
-                        ) or read_bytes != before.st_size:
+                        ) or read_bytes != before.st_size or (
+                            require_single_link and after.st_nlink != 1
+                        ):
                             raise MaterializationError(f"{label} file changed while inventoried")
                         add_content(
                             "file", child_relative, f"{read_bytes}:{file_digest.hexdigest()}"
@@ -1825,6 +1958,7 @@ def materialize(
     candidate_descriptor: int | None = None
     original_descriptor: int | None = None
     original_identity: dict[str, Any] | None = None
+    candidate_inventory: dict[str, Any] | None = None
     published = False
     original_present = False
     transaction_current_name: str | None = None
@@ -2103,6 +2237,11 @@ def materialize(
                 os.fsync(stage_descriptor)
                 os.fsync(transaction_descriptor)
                 os.fsync(runtime_descriptor)
+                candidate_inventory = _descriptor_tree_inventory(
+                    candidate_descriptor,
+                    "staged MIPStarRE output",
+                    require_single_link=True,
+                )
                 assert_transaction_current(transaction_name)
             except BaseException as error:
                 try:
@@ -2121,6 +2260,15 @@ def materialize(
                 transaction_monitor.assert_clean()
                 stage_monitor.assert_clean()
                 root_monitor.assert_clean()
+                assert candidate_inventory is not None
+                if _descriptor_tree_inventory(
+                    candidate_descriptor,
+                    "staged MIPStarRE output",
+                    require_single_link=True,
+                ) != candidate_inventory:
+                    raise MaterializationError(
+                        "staged MIPStarRE output changed before publication"
+                    )
                 if original_present:
                     assert original_descriptor is not None
                     assert original_identity is not None
@@ -2177,6 +2325,14 @@ def materialize(
                     )
                 os.fsync(root_descriptor)
                 verified = verify_materialized(Path("/proc/self/fd") / str(root_descriptor), pin)
+                if _descriptor_tree_inventory(
+                    candidate_descriptor,
+                    "published MIPStarRE output",
+                    require_single_link=True,
+                ) != candidate_inventory:
+                    raise MaterializationError(
+                        "published MIPStarRE output changed during verification"
+                    )
                 root_monitor.assert_clean()
                 retire_transaction(transaction_name, retained_name)
                 root_monitor.assert_clean()
@@ -2200,6 +2356,50 @@ def materialize(
                     original_identity,
                 )
                 assert_retained_transaction_contents()
+                verified.update(
+                    {
+                        "status": "published",
+                        "archive_sha256": facts["archive"]["sha256"],
+                        "source_commit": pin["source"]["commit"],
+                        "transaction_evidence": str(
+                            repo_root
+                            / ".workflow-runtime"
+                            / "mipstarre-materialization"
+                            / retained_name
+                        ),
+                        "transaction_evidence_identity": transaction_evidence_identity,
+                        "transaction_evidence_inventory": transaction_evidence_inventory,
+                        "elapsed_seconds": round(time.monotonic() - started, 6),
+                    }
+                )
+                if _retained_transaction_inventory(
+                    transaction_descriptor,
+                    transaction_document_descriptor,
+                    transaction_document,
+                    stage_descriptor,
+                    backup_descriptor,
+                    original_descriptor if original_present else None,
+                    original_identity,
+                ) != transaction_evidence_inventory:
+                    raise MaterializationError(
+                        "retained materialization evidence changed after result construction"
+                    )
+                if _descriptor_tree_inventory(
+                    candidate_descriptor,
+                    "published MIPStarRE output",
+                    require_single_link=True,
+                ) != candidate_inventory:
+                    raise MaterializationError(
+                        "published MIPStarRE output changed at the final result gate"
+                    )
+                assert_retained_transaction_contents()
+                root_monitor.assert_clean()
+                _assert_bound_name(
+                    root_descriptor,
+                    destination.name,
+                    candidate_descriptor,
+                    "published MIPStarRE output",
+                )
             except BaseException as error:
                 rollback_errors: list[str] = []
                 if published:
@@ -2266,22 +2466,6 @@ def materialize(
                     ) from error
                 raise
 
-            verified.update(
-                {
-                    "status": "published",
-                    "archive_sha256": facts["archive"]["sha256"],
-                    "source_commit": pin["source"]["commit"],
-                    "transaction_evidence": str(
-                        repo_root
-                        / ".workflow-runtime"
-                        / "mipstarre-materialization"
-                        / retained_name
-                    ),
-                    "transaction_evidence_identity": transaction_evidence_identity,
-                    "transaction_evidence_inventory": transaction_evidence_inventory,
-                    "elapsed_seconds": round(time.monotonic() - started, 6),
-                }
-            )
             return verified
     finally:
         for monitor in (

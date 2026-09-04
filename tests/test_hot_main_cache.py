@@ -2252,6 +2252,50 @@ class HotMainCacheTests(unittest.TestCase):
             bound.close()
         self.assertEqual(b"modified", original.read_bytes())
 
+    def test_prepare_evidence_rejects_post_inventory_descendant_mutation(self) -> None:
+        manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
+        target = self.issue_worktree("prepare-evidence-post-inventory")
+        bound = manager._eligible_seed_target(target, check_inputs=False)
+        retained_name = "MIPStarRE.transaction.retained-test"
+        real_inventory = manager._materializer_evidence_inventory
+        injected = False
+        try:
+            materialized = fake_materializer_evidence(
+                bound.access_path, retained_name, staged_original=b"original"
+            )
+            bound.refresh_after_project_mutation()
+            evidence = (
+                target
+                / ".workflow-runtime"
+                / "mipstarre-materialization"
+                / retained_name
+            )
+            original = evidence / "stage" / "MIPStarRE" / "original"
+
+            def mutate_after_inventory(descriptor: int) -> dict[str, object]:
+                nonlocal injected
+                result = real_inventory(descriptor)
+                if not injected:
+                    injected = True
+                    original.write_bytes(b"modified")
+                return result
+
+            with mock.patch.object(
+                cache_module.HotMainCache,
+                "_materializer_evidence_inventory",
+                side_effect=mutate_after_inventory,
+            ):
+                with self.assertRaisesRegex(
+                    cache_module.CacheError, "inventory changed|changed after normalization"
+                ):
+                    manager._stabilize_materializer_evidence(
+                        materialized, bound, bound.access_path
+                    )
+        finally:
+            bound.close()
+        self.assertTrue(injected)
+        self.assertEqual(b"modified", original.read_bytes())
+
     def test_prepare_rejects_authored_drift_before_foundation_verification(self) -> None:
         manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)
         manager.warm(
@@ -4343,15 +4387,16 @@ class HotMainCacheTests(unittest.TestCase):
                     selected_name = "payload"
                 external_descriptor = os.open(external, cache_module._authored_directory_flags())
                 real_create = cache_module._create_copy_output
+                real_link = cache_module._linux_link_unnamed_file
+                real_write = cache_module.os.write
                 injected = False
+                payload_was_unnamed = False
 
                 def relocate_after_handoff(
                     parent_descriptor: int,
                     name: str,
                     parent_monitor: object,
                     label: str,
-                    *,
-                    directory: bool,
                 ) -> object:
                     nonlocal injected
                     binding = real_create(
@@ -4359,7 +4404,6 @@ class HotMainCacheTests(unittest.TestCase):
                         name,
                         parent_monitor,  # type: ignore[arg-type]
                         label,
-                        directory=directory,
                     )
                     if name == selected_name and not injected:
                         injected = True
@@ -4371,9 +4415,36 @@ class HotMainCacheTests(unittest.TestCase):
                         )
                     return binding
 
+                def relocate_file_after_link(
+                    descriptor: int, parent_descriptor: int, name: str
+                ) -> None:
+                    nonlocal injected
+                    real_link(descriptor, parent_descriptor, name)
+                    if object_kind == "file" and name == selected_name and not injected:
+                        injected = True
+                        os.rename(
+                            name,
+                            f"relocated-{name}",
+                            src_dir_fd=parent_descriptor,
+                            dst_dir_fd=external_descriptor,
+                        )
+
+                def assert_unnamed_write(descriptor: int, payload: object) -> int:
+                    nonlocal payload_was_unnamed
+                    if bytes(payload) == b"foundation":  # type: ignore[arg-type]
+                        payload_was_unnamed = True
+                        self.assertEqual(0, os.fstat(descriptor).st_nlink)
+                    return real_write(descriptor, payload)  # type: ignore[arg-type]
+
                 try:
                     with mock.patch.object(
                         cache_module, "_create_copy_output", side_effect=relocate_after_handoff
+                    ), mock.patch.object(
+                        cache_module,
+                        "_linux_link_unnamed_file",
+                        side_effect=relocate_file_after_link,
+                    ), mock.patch.object(
+                        cache_module.os, "write", side_effect=assert_unnamed_write
                     ):
                         with self.assertRaises(cache_module.CacheError):
                             cache_module.reflink_copytree(source_root, destination)
@@ -4385,7 +4456,175 @@ class HotMainCacheTests(unittest.TestCase):
                     self.assertTrue(relocated.is_dir())
                     self.assertEqual([], list(relocated.iterdir()))
                 else:
-                    self.assertEqual(b"", relocated.read_bytes())
+                    self.assertTrue(payload_was_unnamed)
+                    self.assertEqual(b"foundation", relocated.read_bytes())
+
+    def test_late_cache_output_hard_link_prevents_seed_publication(self) -> None:
+        manager = self.manager(runtime=self.base / "runtime-late-cache-link")
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("late-cache-link")
+        external = self.base / "late-cache-output.olean"
+        real_copy = cache_module.reflink_copytree
+        injected = False
+
+        def link_after_copy(source: Path, destination: Path, **options: object) -> object:
+            nonlocal injected
+            result = real_copy(source, destination, **options)  # type: ignore[arg-type]
+            descriptor = int(options["destination_descriptor"])
+            build = os.open(
+                "build", cache_module._authored_directory_flags(), dir_fd=descriptor
+            )
+            try:
+                os.link(
+                    "QPBT.olean",
+                    external,
+                    src_dir_fd=build,
+                    follow_symlinks=False,
+                )
+            finally:
+                os.close(build)
+            injected = True
+            return result
+
+        with mock.patch.object(
+            cache_module, "reflink_copytree", side_effect=link_after_copy
+        ):
+            with self.assertRaisesRegex(cache_module.CacheError, "single-link"):
+                manager.seed(target)
+        self.assertTrue(injected)
+        self.assertEqual(b"compiled-main\n", external.read_bytes())
+        self.assertFalse((target / ".lake").exists())
+
+    def test_cache_reflink_payload_is_unnamed_until_complete(self) -> None:
+        source_root = self.base / "reflink-unnamed-source"
+        destination = self.base / "reflink-unnamed-destination"
+        source_root.mkdir()
+        (source_root / "payload").write_bytes(b"foundation")
+        observed = False
+        real_write = cache_module.os.write
+
+        def emulate_reflink(destination_descriptor: int, operation: int, source_descriptor: int) -> int:
+            nonlocal observed
+            self.assertEqual(cache_module.FICLONE, operation)
+            observed = True
+            self.assertEqual(0, os.fstat(destination_descriptor).st_nlink)
+            self.assertFalse((destination / "payload").exists())
+            payload = os.pread(source_descriptor, 1024, 0)
+            self.assertEqual(len(payload), real_write(destination_descriptor, payload))
+            return 0
+
+        with mock.patch.object(cache_module.fcntl, "ioctl", side_effect=emulate_reflink):
+            stats = cache_module.reflink_copytree(source_root, destination)
+        self.assertTrue(observed)
+        self.assertEqual(1, stats.reflinked)
+        self.assertEqual(b"foundation", (destination / "payload").read_bytes())
+
+    def test_final_staging_mutation_after_old_last_drain_prevents_success(self) -> None:
+        manager = self.manager(runtime=self.base / "runtime-post-drain")
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("post-drain")
+        (target / ".lake").mkdir()
+        (target / ".lake" / "original").write_bytes(b"original")
+        real_refresh = cache_module._BoundSeedTarget.refresh_after_project_mutation
+        injected = False
+
+        def inject_after_retention(bound: object) -> None:
+            nonlocal injected
+            retained = list(target.glob(".lake.transaction-evidence-*"))
+            if retained and not injected:
+                injected = True
+                (retained[0] / "late").write_bytes(b"preserve")
+            real_refresh(bound)  # type: ignore[arg-type]
+
+        with mock.patch.object(
+            cache_module._BoundSeedTarget,
+            "refresh_after_project_mutation",
+            side_effect=inject_after_retention,
+            autospec=True,
+        ):
+            with self.assertRaisesRegex(
+                cache_module.CacheError, "object name changed|finalization failed"
+            ):
+                manager.seed(target, replace=True)
+        retained = next(target.glob(".lake.transaction-evidence-*"))
+        self.assertTrue(injected)
+        self.assertEqual(b"preserve", (retained / "late").read_bytes())
+
+    def test_retained_backup_mutation_after_old_inventory_prevents_success(self) -> None:
+        manager = self.manager(runtime=self.base / "runtime-post-backup-scan")
+        manager.warm(_test_command_callback=fake_success)
+        target = self.issue_worktree("post-backup-scan")
+        (target / ".lake").mkdir()
+        (target / ".lake" / "original").write_bytes(b"original")
+        real_refresh = cache_module._BoundSeedTarget.refresh_after_project_mutation
+        injected = False
+
+        def inject_before_final_inventory(bound: object) -> None:
+            nonlocal injected
+            retained = list(target.glob(".lake.retained-*"))
+            if retained and not injected:
+                injected = True
+                (retained[0] / "original").write_bytes(b"modified")
+            real_refresh(bound)  # type: ignore[arg-type]
+
+        with mock.patch.object(
+            cache_module._BoundSeedTarget,
+            "refresh_after_project_mutation",
+            side_effect=inject_before_final_inventory,
+            autospec=True,
+        ):
+            with self.assertRaisesRegex(
+                cache_module.CacheError, "recursive inventory changed|finalization failed"
+            ):
+                manager.seed(target, replace=True)
+        retained = next(target.glob(".lake.retained-*"))
+        self.assertTrue(injected)
+        self.assertEqual(b"modified", (retained / "original").read_bytes())
+
+    def test_dry_seed_holds_target_lock_through_admission(self) -> None:
+        manager = self.manager(runtime=self.base / "runtime-dry-lock")
+        target = self.issue_worktree("dry-lock")
+        _lexical, lock_path = manager._target_lock_path(target)
+        entered = threading.Event()
+        release = threading.Event()
+        competitor_acquired = threading.Event()
+        failures: list[BaseException] = []
+
+        def paused_admission(*_args: object, **_kwargs: object) -> dict[str, object]:
+            entered.set()
+            if not release.wait(5):
+                raise AssertionError("dry admission release timed out")
+            return {"action": "seed", "dry_run": True}
+
+        def run_dry() -> None:
+            try:
+                manager.seed(target, dry_run=True)
+            except BaseException as error:
+                failures.append(error)
+
+        def compete() -> None:
+            try:
+                with cache_module.ExclusiveLock(lock_path):
+                    competitor_acquired.set()
+            except BaseException as error:
+                failures.append(error)
+
+        with mock.patch.object(
+            manager, "_dry_seed_locked", side_effect=paused_admission
+        ):
+            dry_thread = threading.Thread(target=run_dry)
+            competitor = threading.Thread(target=compete)
+            dry_thread.start()
+            self.assertTrue(entered.wait(5))
+            competitor.start()
+            self.assertFalse(competitor_acquired.wait(0.1))
+            release.set()
+            dry_thread.join(5)
+            competitor.join(5)
+        self.assertFalse(dry_thread.is_alive())
+        self.assertFalse(competitor.is_alive())
+        self.assertTrue(competitor_acquired.is_set())
+        self.assertEqual([], failures)
 
     def test_seed_and_prepare_journal_bootstrap_reject_ancestor_substitution(self) -> None:
         for action in ("seed", "prepare"):
@@ -4662,7 +4901,7 @@ class HotMainCacheTests(unittest.TestCase):
             manager,
             "_validate_captured_project",
             side_effect=lambda *_args: events.append("validate"),
-        ), mock.patch.object(manager, "seed", delegated):
+        ), mock.patch.object(manager, "_dry_seed_locked", delegated):
             result = manager.prepare(target, dry_run=True)
 
         self.assertEqual(
@@ -4670,7 +4909,12 @@ class HotMainCacheTests(unittest.TestCase):
             events,
         )
         self.assertEqual("prepare", result["action"])
-        delegated.assert_called_once_with(target, replace=False, dry_run=True)
+        delegated.assert_called_once()
+        self.assertEqual(target, delegated.call_args.args[0])
+        self.assertFalse(delegated.call_args.kwargs["replace"])
+        self.assertIsInstance(
+            delegated.call_args.kwargs["target_lock"], cache_module.ExclusiveLock
+        )
 
     def test_dry_prepare_refuses_materializer_state_and_interface_before_seed(self) -> None:
         manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)

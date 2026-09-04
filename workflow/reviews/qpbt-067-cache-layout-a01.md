@@ -182,13 +182,13 @@ disposition.
    tree, displaced and ambiguous objects remain intact, and no success metric
    escapes a precommit failure. Candidate regressions begin at
    `HotMainCacheTests.test_seed_rejects_unowned_backup_decoys_without_mutation`
-   (`tests/test_hot_main_cache.py:3732`), atomic replacement is covered by
+   (`tests/test_hot_main_cache.py:3776`), atomic replacement is covered by
    `HotMainCacheTests.test_seed_atomic_exchange_never_has_absent_destination`
-   (`:4028`), and ancestor ABA is covered symmetrically by
+   (`:4072`), and ancestor ABA is covered symmetrically by
    `HotMainCacheTests.test_seed_and_prepare_reject_ancestor_swap_restore`
-   (`:5197`). Existing failed-build retention is
+   (`:5441`). Existing failed-build retention is
    covered by `HotMainCacheTests.test_failed_build_is_retained_but_never_published`
-   (`:3526`).
+   (`:3570`).
 5. **Capacity guard:** on a filesystem with <10 GB free, dry-run must refuse
    byte-copy seeding before mutation and report required/apparent/physical bytes;
    reflink mode may proceed only after an explicit CoW capability check.

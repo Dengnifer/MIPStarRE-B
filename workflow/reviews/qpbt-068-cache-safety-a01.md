@@ -1,16 +1,26 @@
 # QPBT-068 Cache Safety Transaction Repair Report
 
-Current session: `i068-orchestrator-a22-transaction-continuity`
-Repair parent/tree: `58bf04fa74e4235578a8b3994b14d6cbc655981e` /
-`eb9795667290f0d02b04b4e4e0e991bea6242895`
-Owned worktree: `.workflow-runtime/worktrees/qpbt-068-cache-safety-a04`
+Current session: `i068-orchestrator-a28-boundary-repair`
+Repair parent/tree: `ff08f3e4171f48c58edbbb93b3e22489f0a4d6c6` /
+`f5bd6c17bac3b39f67a4d96808970e4102399b01`
+Owned worktree: `.workflow-runtime/worktrees/qpbt-068-cache-safety-a05`
 
 ## Scope and authenticated inputs
 
-A16 repairs the A14 materializer/cache security findings and A15 regression and
-protocol findings while reauditing every earlier closure. The repair remains in
-the assigned seven-path ownership envelope and does not edit `protocols/CHANGELOG.md`;
-that remains a sequential binder obligation before integration.
+A28 repairs the exact A26 regression/protocol and A27 transaction-correctness
+findings while reauditing their reopened earlier findings. It remains in the
+assigned eight-path ownership envelope and includes the required evidence-bound
+`protocols/CHANGELOG.md` entry.
+
+The A26 report authenticated at SHA-256
+`3a73f74fe79a5c46a22c8ecedb94889e5ee800739c48cc433c4b9571ed9060ed`,
+the A27 report at
+`950ab66eb780baafbe7df8d23fce2b45c2ba4a894f2fd9dc5af6e419c11363fc`,
+and the A22 report at
+`5d860c2eafd30acf6b23e6b4a89971f83bcb890f285186d7afdc0ae60572e9ec`.
+All were authenticated and read in full before implementation. Two bounded
+read-only scouts independently analyzed the write boundary and deterministic
+regression seams; the orchestrator inspected both results before editing.
 
 The two required A16 review artifacts authenticated before implementation:
 
@@ -153,7 +163,7 @@ Both were read in full before this repair.
 |---|---|
 | F068-A20-001 | Fixed by wildcard `staging_entry_monitor` accounting and strict `_discard_seed_rollback_root`, which authenticates the held stage binding, drains both monitors, requires an exact empty inventory, and propagates failure. `test_seed_and_prepare_reject_unexpected_final_staging_entry` injects bytes into the held inode before final disposition and requires seed/prepare failure with stage, displaced tree, and journal evidence preserved. |
 | F068-A20-002 | Fixed by `_open_seed_journal_parent` and `_assert_seed_journal_ancestors`: each absolute component is opened no-follow or created descriptor-relatively below a preinstalled monitor, and all descriptors/bindings remain live through journal retention. `test_seed_and_prepare_journal_bootstrap_reject_ancestor_substitution` covers a preexisting intermediate symlink, substitution immediately before the no-follow ancestor open, and a genuine journal parent relocated after the complete handoff, symmetrically for seed/prepare, with no external child writes. |
-| F068-A20-003 | Fixed by `_create_copy_output`, `_create_continuous_directory`, `_create_continuous_file`, and retained parent/self monitors checked before first and subsequent writes. `test_cache_copy_post_handoff_relocation_receives_no_bytes` covers cache directories/files; `test_archive_directory_post_handoff_relocation_receives_no_bytes`, `test_archive_file_post_handoff_relocation_receives_no_bytes`, `test_authored_directory_post_handoff_relocation_receives_no_bytes`, and `test_authored_file_post_handoff_relocation_receives_no_bytes` cover both materializer sources. Every relocated external object remains byte-empty. |
+| F068-A20-003 | A22 originally used `_create_copy_output`, `_create_continuous_directory`, and `_create_continuous_file` with retained parent/self monitors. A28 supersedes the regular-file branch with `_create_detached_copy_file` and `_create_detached_output_file`: payload and metadata complete while `st_nlink == 0`, then a single link exposes the file and any detected relocation preserves the complete bytes without receiving a later program mutation. The same five cache/archive/authored relocation regressions cover directories and files; relocated directories remain empty. |
 | F068-A20-004 / F068-A21-001 | These overlap on the same missing displaced-`.lake` recursive continuity check and are fixed once by `_descriptor_tree_inventory` plus `_lake_tree_identity_from_descriptor`, compared immediately before and after no-replace retention. A20-004 additionally required the parallel materializer fix: an empty wildcard-monitored backup and a pre-exchange `MIPStarRE/` descriptor identity plus recursive byte/identity inventory compared before publication, after exchange, in retained evidence, and again across `prepare` evidence normalization. Regressions are `test_seed_and_prepare_reject_in_place_displaced_tree_mutation`, `test_retained_backup_contamination_is_refused_and_preserved`, `test_retained_original_descendant_mutation_is_refused_and_preserved`, and `test_prepare_evidence_rejects_same_inode_staged_descendant_mutation`. |
 | F068-A21-002 | Fixed by running `_recover_interrupted_seed` on dry seed and setting `check_seed_recovery=True` for dry prepare. `test_dry_and_live_seed_prepare_refuse_interrupted_state_before_admission` covers journal and target-local staging state for dry/live seed/prepare, proves capability/input admission is not reached, and byte-compares the retained state. |
 
@@ -167,7 +177,43 @@ recursive identity/content inventory across the materializer return boundary
 and recomputing it under the no-follow evidence chain. Only an independent
 review may mark these findings resolved in the workflow ledger.
 
-## A22 validation
+## A26-A27 final-boundary repair
+
+| Finding | A28 disposition and exact evidence |
+|---|---|
+| F068-A26-001 | Repaired for every program payload/metadata write. Cache, archive, and authored regular outputs are populated and fsynced as zero-link `O_TMPFILE` inodes, then exposed once with descriptor-relative `linkat`; no program mutation follows exposure. The existing relocation regressions now assert that payload writes occur at `st_nlink == 0` and that relocation after link receives complete but never subsequently mutated bytes. `test_cache_reflink_payload_is_unnamed_until_complete` covers the FICLONE interval deterministically. |
+| F068-A26-002 | Repaired to the strongest enforceable claim. Staging and retained-backup checks run after the last target refresh/fsync; direct materializer evidence is recomputed after result construction; prepare normalization repeats inventory and binding checks before releasing its descriptor chain. `test_final_staging_mutation_after_old_last_drain_prevents_success`, `test_retained_backup_mutation_after_old_inventory_prevents_success`, `test_retained_backup_post_inventory_contamination_prevents_success`, and `test_prepare_evidence_rejects_post_inventory_descendant_mutation` cover the old late schedules. The protocol now accurately limits recursive/wildcard evidence to exact final-gate snapshots because no finite userspace check can prevent a non-cooperating same-UID mutation after the last syscall. |
+| F068-A26-003 | Repaired. Dry seed and dry prepare acquire the same per-target `ExclusiveLock` as live operations; `_dry_seed_locked` avoids recursive lock acquisition during dry prepare. `test_dry_seed_holds_target_lock_through_admission` deterministically proves competing admission cannot acquire the lock until dry admission exits, and the existing admission-order matrix still passes. |
+| F068-A27-001 | Repaired. Path and descriptor inventories reject every regular output unless `st_nlink == 1`; the candidate root descriptor remains live across publication and the seed metric commit, with repeated prepublication, postpublication, postcommit, and final-result inventories. `test_late_cache_output_hard_link_prevents_seed_publication` and `test_late_archive_and_authored_hard_links_prevent_publication` inject aliases after population teardown and prove failure with byte-preserved aliases and no later output mutation. |
+
+These repairs also close the remaining output-confinement portions of
+F068-A14-002, F068-A19-001, and F068-A20-003. F068-A14-001,
+F068-A18-003, F068-A19-002, F068-A20-001, F068-A20-004, and F068-A21-001
+are supported at the accurately narrowed final-snapshot boundary. F068-A21-002
+is fully serialized. Independent immutable review, not this implementer record,
+decides canonical closure.
+
+## A28 validation
+
+| Command | Result (suite-reported time) | Process wall time |
+|---|---|---:|
+| `python3 -m unittest discover -s tests -p test_mipstarre_materialization.py` | 34/34 passed (6.719 s) | 6.86 s |
+| `python3 -m unittest discover -s tests -p test_hot_main_cache.py` | 143/143 passed (98.165 s) | 98.40 s |
+| `python3 -m unittest discover -s tests -p test_workflow.py` | 77/77 passed (1.184 s) | 1.32 s |
+| `python3 -m unittest discover -s tests -p test_check_workflow.py` | 3/3 passed (0.003 s) | 0.11 s |
+| `python3 scripts/workflow.py validate` | valid: 69 issues, 34 PRs, 541 issued sessions, 7 stages | 0.21 s |
+| `python3 scripts/check_workflow.py --skip-tests` | workflow state valid | 0.21 s |
+| `PYTHONPYCACHEPREFIX=/tmp/... python3 -m compileall -q` on the four changed Python files | passed with no worktree bytecode | 0.31 s |
+| Parent/cumulative `git diff --check`, exact eight-path scope, and five QPBT-067 anchors | passed | below timer resolution |
+
+The first cache-suite run after narrowing `_create_copy_output` to its only
+production use reported 142 passes and one test-harness error because the
+relocation monkeypatch retained the deleted `directory` keyword. Updating that
+owned regression to the directory-only signature produced the clean complete
+rerun above. No production cache, Lean, Lake, build, network, canonical-state,
+or research-metric operation ran.
+
+## A22 validation (historical)
 
 | Command | Result (suite-reported time) | Process wall time |
 |---|---|---:|
@@ -212,13 +258,14 @@ A coordinator read-only check on 2026-09-04 observed 97% filesystem utilization
 with 164 GB free. Archived QPBT-040 and active QPBT-069 each hold a separate
 approximately 9.8 GB `.lake` after reflink was unsupported. A13 created no
 cache copy; A16 and A22 likewise create no real cache copy and delete neither tree.
-QPBT-069 remains an active lease. After
-independent review, a separately authorized reclamation pass may dry-run the
+QPBT-069 remains an active lease. After independent review, a separately
+authorized reclamation pass may dry-run the
 archived QPBT-040 tree, but only after proving terminal session state, no Git
 registration, no live lock/reference/lease, and an authenticated source cache;
 quarantine plus the configured grace interval and a repeated final check must
 precede deletion.
 
-This A22 candidate still requires a fresh immutable security/regression review
-and the sequential `protocols/CHANGELOG.md` binder. It is not integration-ready
-until those gates are recorded against the frozen A22 commit.
+This A28 candidate includes the evidence-required sequential
+`protocols/CHANGELOG.md` entry and still requires a fresh immutable
+security/regression review. It is not integration-ready until that gate is
+recorded against the frozen A28 commit.
