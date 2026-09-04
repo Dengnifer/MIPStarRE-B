@@ -38939,7 +38939,7 @@
       "role": "reviewer",
       "issue_id": "QPBT-085",
       "attempt": 2,
-      "status": "running",
+      "status": "archived",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "priority": 1,
       "backend": "codex-cli",
@@ -38953,18 +38953,44 @@
       "validation_command": "Authenticate projection commit/tree, manifest d0ae6520, patch 4598ba6a, exactly 26 evidence files, clean status, no remotes or alternates; review all QPBT-085 requirements including PID-namespace handle accounting, leaf argv construction, tests, stage budget, 30/60/120 timing, serialized review, and Track A exclusions; return findings-first JSON without writes.",
       "result_envelope_path": ".workflow-runtime/runs/i085-reviewer-a02-handle-accounting/result.json",
       "started_at": "2026-09-04T07:49:12.805754Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
-      "timing_quality": null,
+      "ended_at": "2026-09-04T08:01:52.862166Z",
+      "elapsed_seconds": 759.840549,
+      "timing_quality": "runtime-measured",
       "token_usage": {
-        "input": null,
-        "output": null,
-        "total": null,
-        "availability_reason": "Pending Codex CLI terminal usage event"
+        "input": 3001788,
+        "output": 32232,
+        "total": 3034020,
+        "availability_reason": null,
+        "cached_input": 2847360,
+        "reasoning_output": 22372
       },
-      "archive_status": "not_requested",
-      "outcome_path": null,
-      "external_id": null
+      "archive_status": "archived",
+      "outcome_path": ".workflow-runtime/runs/i085-reviewer-a02-handle-accounting/result.json",
+      "external_id": "01a06b64-a611-7653-9438-97995c2789c8",
+      "result_digest": "16fe60a78df44f3dbf3f2575c0a1b76d6123ee3bf541d41a27721387b192e572",
+      "outcome": "approve-no-findings-pre-correction-head-nonbinding",
+      "checks": {
+        "projection_commit": "f446d88d12ce7d20729656bfe768a81b3cf40c96",
+        "projection_tree": "f5c483653b52db626a102c38562f2e09945a46ea",
+        "source_base_sha": "9aaee76a42d1a3f9c0d1a146d3c79f4769f843f3",
+        "source_head_sha": "c543faa652810e933d4be7e252a53ccd509e7cd7",
+        "source_head_tree": "7f50f98e95bb2da5ae4da764987c8b9bf4bca2a1",
+        "manifest_sha256": "d0ae6520927d9a2b13b974b54fa42970eff56de44b26d49a096682c208a8465f",
+        "patch_sha256": "4598ba6a72022749c97fde6029a444be47eeb4d87f58abfcd370d8fbeabf52c5",
+        "result_sha256": "ffb531b499d6c53c3c0a8b0310103ca2f0a11c1ea71231222241dbbec3f08fcf",
+        "events_sha256": "46ae870ec3c494d2c4a39c773068b74368669987e2a439a118b172baf13a0a3f",
+        "archive_result_sha256": "075bda7bd3220df23efaf225104db3db8e7579f8d7966a2f20409a01382fdee1",
+        "archive_stdout_sha256": "35675cbce73439e6f5b909534e20ce7dbfff359dc06822f938bac6c41b12fbc0",
+        "manifest_entries": 24,
+        "evidence_file_count": 26,
+        "verdict": "approve",
+        "findings": 0,
+        "binding": false,
+        "reported_tests": "inspected-not-rerun",
+        "repository_writes": 0,
+        "subagents": 0
+      },
+      "notes": "A02 authenticated all 24 manifest entries and approved source head c543faa with no findings. Its static review validates the complete concurrency policy, but the corrected A01 digest metadata and later report checkpoint changed canonical bytes, so A02 is retained as substantive nonbinding evidence and A03 must review the final head."
     }
   ]
 }
