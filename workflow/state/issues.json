@@ -5754,7 +5754,7 @@
       "title": "docs(workflow): enforce shared three-session Codex budget",
       "kind": "workflow",
       "execution_category": "preflight",
-      "status": "in_progress",
+      "status": "done",
       "parent_id": "QPBT-019",
       "dependency_ids": [
         "QPBT-081"
@@ -5791,33 +5791,16 @@
         "workflow/state/stages.json"
       ],
       "created_at": "2026-09-04T07:03:45.766516Z",
-      "updated_at": "2026-09-04T09:27:39.980367Z",
-      "blocked_reason": "Both A04 findings are resolved and validated; immutable A05 review is planned against source head b933049.",
-      "unblock_condition": "Obtain A05 approval on the exact immutable projection.",
-      "latest_review_report": ".workflow-runtime/runs/i085-reviewer-a04-repair/result.json",
-      "latest_review_report_sha256": "be2426f48d04a63ac2233e0c4c8232899c34d783b2bb6ba35c138f7480675aae",
-      "latest_review_manifest_sha256": "b23b78c4339e20875598a21825dd5ed24950300e125ce063abefbf89e17423d5",
-      "latest_review_head_sha": "86401f8dbd696c43f5f12f9a9882825a1c5f734d",
-      "latest_review_verdict": "request_changes",
-      "latest_review_findings": [
-        {
-          "id": "R4-F1",
-          "severity": "medium",
-          "status": "resolved",
-          "path": "research/report.md:27",
-          "summary": "The 08:47:24Z checkpoint understated terminal metric rows by one.",
-          "resolution_evidence": "The historical checkpoint now records 694 terminal metric rows, matching the 694 archived sessions that existed at 08:47:24Z."
-        },
-        {
-          "id": "R4-F2",
-          "severity": "medium",
-          "status": "resolved",
-          "path": "workflow/events.jsonl",
-          "summary": "The final Stage 4A incident_ids state lacked a corresponding canonical event.",
-          "resolution_evidence": "A non-backdated workflow.py stage update records the unchanged incident_ids list through INC-096."
-        }
-      ],
-      "candidate_status": "A04-findings-resolved-awaiting-A05",
+      "updated_at": "2026-09-04T09:56:42.701536Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
+      "latest_review_report": ".workflow-runtime/runs/i085-reviewer-a05-reconciliation/result.json",
+      "latest_review_report_sha256": "a8b9b93cb307b2555ba39078ca31726584bbce5634816d05fb5f5e65597c6e57",
+      "latest_review_manifest_sha256": "3625fd45a26d2d671c9080a64593cb9f088658de1b87953ea22d23a726e91297",
+      "latest_review_head_sha": "b933049076367b8fe021fe90a62c6d0ae0083bce",
+      "latest_review_verdict": "approve",
+      "latest_review_findings": [],
+      "candidate_status": "approved",
       "repair_validation": {
         "local_agent_tests": "64/64",
         "workflow_tests": "94/94",
@@ -5837,7 +5820,7 @@
         "historical_checkpoint_metric_rows": 694,
         "a04_metadata_diff_check": "passed"
       },
-      "active_review_session_id": "i085-reviewer-a05-reconciliation",
+      "active_review_session_id": null,
       "active_review_projection": {
         "commit": "84a3e74d2e8157df184e28f516d13d24a1595efc",
         "tree": "9c075f7b91917c34ab0f8195f01472221589d091",
@@ -5848,7 +5831,19 @@
       "github_repository": "Dengnifer/MIPStarRE-B",
       "github_issue_number": 36,
       "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/36",
-      "github_issue_status": "open"
+      "github_issue_status": "closed",
+      "completion_evidence": {
+        "review_session": "i085-reviewer-a05-reconciliation",
+        "review_verdict": "approve",
+        "findings": 0,
+        "workflow_tests": "94/94",
+        "checker_tests": "3/3",
+        "aggregate_tests": "503/503",
+        "workflow_validate": "passed",
+        "jsonl_parse": "passed",
+        "source_head": "b933049076367b8fe021fe90a62c6d0ae0083bce",
+        "manifest_sha256": "3625fd45a26d2d671c9080a64593cb9f088658de1b87953ea22d23a726e91297"
+      }
     }
   ]
 }
