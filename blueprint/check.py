@@ -567,33 +567,49 @@ F07_FINITENESS_CONTRACT = {
         "and costs remain explicit F07A-DETYPING/QPBT-043 obligations."
     ),
 }
-F07A_LEAN_ASSUMPTIONS = (
-    "F07 typed interfaces with unrestricted dependent question, answer, and decider "
-    "fibers; F04A generic finite quantum-game semantics; F06A only as the transitive "
-    "generic sampler base; the exact graph-event layer owned here; and the "
-    "types.tex:197-579 typed/detyping executable representation and cost model to be "
-    "frozen by QPBT-043."
-)
-F07A_EXECUTABLE_OWNER_TERMS = (
-    "types.tex:197-579",
-    "binary-string pair parsing",
-    "sampler and decider step counts",
-    "typed downsizing and detyping runtime bounds",
-    "description computability",
-    "qpbt-043",
-    "f06a-executable-cl alone owns",
-    "conditionally-linear.tex:553-712",
-    "this node, k03, and k04 own none",
-)
 DETYPING_OWNER_ID = "F07A-DETYPING"
-DETYPING_SOURCE_ANCHOR = {
-    "path": "references/2001.04383v3/sections/dependencies/types.tex",
-    "label": "lem:detyping-verifiers",
-    "generated_lines": [197, 579],
-    "original_lines": [3763, 4145],
-}
+DETYPING_SOURCE_ANCHORS = [
+    {
+        "path": "references/2001.04383v3/sections/dependencies/types.tex",
+        "label": "lem:detyping-verifiers",
+        "generated_lines": [197, 579],
+        "original_lines": [3763, 4145],
+    },
+    {
+        "path": "references/2001.04383v3/sections/dependencies/types.tex",
+        "label": "def:typed-sampler",
+        "generated_lines": [95, 195],
+        "original_lines": [3661, 3761],
+    },
+    {
+        "path": "references/2001.04383v3/sections/top-level/preliminaries.tex",
+        "label": "",
+        "generated_lines": [19, 32],
+        "original_lines": [916, 929],
+    },
+    {
+        "path": "references/2001.04383v3/sections/top-level/preliminaries.tex",
+        "label": "thm:universal-tm",
+        "generated_lines": [77, 137],
+        "original_lines": [974, 1034],
+    },
+    {
+        "path": "references/2001.04383v3/sections/top-level/preliminaries.tex",
+        "label": "",
+        "generated_lines": [171, 200],
+        "original_lines": [1068, 1097],
+    },
+    {
+        "path": "references/2001.04383v3/sections/top-level/nonlocal-games.tex",
+        "label": "def:decider",
+        "generated_lines": [612, 678],
+        "original_lines": [3489, 3555],
+    },
+]
+DETYPING_SOURCE_ANCHOR = DETYPING_SOURCE_ANCHORS[0]
 DETYPING_SOURCE_RANGE = DETYPING_SOURCE_ANCHOR["generated_lines"]
 DETYPING_PREREQUISITES = [GAME_SEMANTICS_OWNER_ID, "F07-TYPED"]
+DETYPING_GAP_IDS = ["G24", "G25", "G26"]
 DETYPING_LEAN_NAMES = [
     "MIPStarRE.QPBT.TypedNormalFormVerifier",
     "MIPStarRE.QPBT.TypedNormalFormVerifier.game",
@@ -616,6 +632,21 @@ DETYPING_LEAN_NAMES = [
     "MIPStarRE.QPBT.detyping_decider_time",
     "MIPStarRE.QPBT.detyping_descriptions_time",
 ]
+DETYPING_INTEGRITY_SHA256 = (
+    "e92060525909f5c895bbbf24c21fb1ff0edc41fe2333eec8176cb902ae50543e"
+)
+DETYPING_NODE_CONTRACT_SHA256 = (
+    "b27b4ca90be6460984ea51c60332115fa3031b99999573efbb5410319b2e4706"
+)
+DETYPING_GAP_CONTRACT_SHA256 = {
+    "G24": "21b5f8f9b5e64c2b982f622c67dd3bf202508ce4b251c36c9d1812323eea5ca1",
+    "G25": "3072138996662d5cd4d737e3753af902461d529c38dd372d70f3c0a8520e5517",
+    "G26": "07cdf7c1e5c45414374d16f30b04c4870ee5a659ea2f4600f7fa0a2a673dca1d",
+}
+DETYPING_AUTHENTICATED_MARKDOWN = {
+    Path("docs/paper-gaps/detyping-executable-boundaries.md"):
+        "c825816b8b696833fd55935105468ce4e590abae51269b36f6c6854a878905df",
+}
 MAGIC_GAME_OWNER_ID = "F08-MAGIC-GAME"
 MAGIC_GAME_PREREQUISITES = [
     "F03-MEASUREMENT", GAME_SEMANTICS_OWNER_ID, "F07-TYPED",
@@ -1166,6 +1197,23 @@ def authenticated_markdown_errors(repository_root: Path) -> list[str]:
     return errors
 
 
+def detyping_authenticated_markdown_errors(repository_root: Path) -> list[str]:
+    """Authenticate the source-reviewed F07A executable-boundary record."""
+    errors: list[str] = []
+    for relative_path, expected_hash in DETYPING_AUTHENTICATED_MARKDOWN.items():
+        path = repository_root / relative_path
+        if not path.is_file():
+            errors.append(
+                f"{DETYPING_OWNER_ID}: authenticated paper-gap note missing: {relative_path}"
+            )
+        elif hashlib.sha256(path.read_bytes()).hexdigest() != expected_hash:
+            errors.append(
+                f"{DETYPING_OWNER_ID}: authenticated paper-gap note hash mismatch: "
+                f"{relative_path}"
+            )
+    return errors
+
+
 def classical_ldt_combined_import_probe_errors(repository_root: Path) -> list[str]:
     """Authenticate both collision-sensitive future Verifier import orders."""
     path = repository_root / "workflow/reviews/qpbt-074-game-contract-a01.md"
@@ -1389,7 +1437,8 @@ def _implementation_contract_errors(node: dict[str, Any],
 def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
                   externals_doc: dict[str, Any]) -> list[str]:
     errors = (executable_cl_historical_report_errors(ROOT.parent) +
-              authenticated_markdown_errors(ROOT.parent))
+              authenticated_markdown_errors(ROOT.parent) +
+              detyping_authenticated_markdown_errors(ROOT.parent))
     if nodes_doc.get("schema_version") != 1:
         errors.append("nodes schema_version must be 1")
     nodes = nodes_doc.get("nodes")
@@ -1562,12 +1611,32 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
     if detyping is None:
         errors.append(f"missing exact detyping owner {DETYPING_OWNER_ID}")
     else:
-        if detyping.get("source") != DETYPING_SOURCE_ANCHOR:
-            errors.append(f"{DETYPING_OWNER_ID}: detyping source range must remain exact")
+        observed_anchors = [detyping.get("source"),
+                            *detyping.get("additional_sources", [])]
+        if observed_anchors != DETYPING_SOURCE_ANCHORS:
+            errors.append(f"{DETYPING_OWNER_ID}: detyping source anchors must remain exact")
         if detyping["prerequisites"] != DETYPING_PREREQUISITES:
             errors.append(f"{DETYPING_OWNER_ID}: detyping prerequisites must remain exact")
         if detyping["lean"].get("names") != DETYPING_LEAN_NAMES:
             errors.append(f"{DETYPING_OWNER_ID}: detyping callable names must remain exact")
+        if detyping.get("gap_ids") != DETYPING_GAP_IDS:
+            errors.append(f"{DETYPING_OWNER_ID}: paper-gap linkage must remain exact")
+        if (detyping.get("fidelity") != "repaired-internal" or
+                detyping.get("integrity", {}).get("verdict") != "documented mismatch"):
+            errors.append(
+                f"{DETYPING_OWNER_ID}: documented-mismatch fidelity must remain exact"
+            )
+        integrity_hash = hashlib.sha256(
+            canonical_json(detyping.get("integrity")).encode("utf-8")
+        ).hexdigest()
+        if integrity_hash != DETYPING_INTEGRITY_SHA256:
+            errors.append(
+                f"{DETYPING_OWNER_ID}: statement-integrity table must remain exact"
+            )
+        if node_contract_sha256(detyping) != DETYPING_NODE_CONTRACT_SHA256:
+            errors.append(
+                f"{DETYPING_OWNER_ID}: source-reviewed semantic contract must remain exact"
+            )
     f06 = nodes_by_id.get("F06-CL", {})
     if "MIPStarRE.QPBT.CLSampler.sample_directSum" not in f06.get("lean", {}).get("names", []):
         errors.append("F06-CL: direct-sum product-distribution theorem must remain callable")
@@ -1719,16 +1788,12 @@ def validate_data(nodes_doc: dict[str, Any], gaps_doc: dict[str, Any],
             errors.append(f"missing exact classical-LDT paper gap {gap_id}")
         elif hashlib.sha256(canonical_json(gap).encode("utf-8")).hexdigest() != expected_hash:
             errors.append(f"{gap_id}: source range and disposition must remain exact")
-    if str((detyping or {}).get("integrity", {}).get("lean_assumptions", "")) != (
-        F07A_LEAN_ASSUMPTIONS
-    ):
-        errors.append(f"{DETYPING_OWNER_ID}: dependent-fiber assumptions must remain exact")
-    detyping_boundary = str((detyping or {}).get("boundary_hypotheses", "")).lower()
-    if not all(term in detyping_boundary for term in F07A_EXECUTABLE_OWNER_TERMS):
-        errors.append(
-            f"{DETYPING_OWNER_ID}: executable representation and cost ownership must "
-            "remain concrete and exclude K03/K04"
-        )
+    for gap_id, expected_hash in DETYPING_GAP_CONTRACT_SHA256.items():
+        gap = gaps_by_id.get(gap_id)
+        if gap is None:
+            errors.append(f"missing exact detyping paper gap {gap_id}")
+        elif hashlib.sha256(canonical_json(gap).encode("utf-8")).hexdigest() != expected_hash:
+            errors.append(f"{gap_id}: source range and disposition must remain exact")
     for node_id, expected_contract in NON_DETYPING_COMPLEXITY_CONTRACTS.items():
         node = nodes_by_id.get(node_id, {})
         if node.get("source", {}).get("generated_lines") != expected_contract["generated_lines"]:

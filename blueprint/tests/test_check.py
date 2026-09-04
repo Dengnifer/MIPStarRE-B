@@ -418,15 +418,17 @@ class BlueprintCheckTests(unittest.TestCase):
                          game_semantics["lean"]["names"])
 
         detyping = by_id[check.DETYPING_OWNER_ID]
-        self.assertEqual(check.DETYPING_SOURCE_ANCHOR, detyping["source"])
+        self.assertEqual(
+            check.DETYPING_SOURCE_ANCHORS,
+            [detyping["source"], *detyping["additional_sources"]],
+        )
         self.assertEqual(check.DETYPING_PREREQUISITES, detyping["prerequisites"])
         self.assertEqual(check.DETYPING_LEAN_NAMES, detyping["lean"]["names"])
         self.assertFalse(any(dependency.startswith(("K03", "K04"))
                              for dependency in detyping["prerequisites"]))
-        for term in check.F07A_EXECUTABLE_OWNER_TERMS:
-            self.assertIn(term, detyping["boundary_hypotheses"].lower())
-        self.assertEqual(check.F07A_LEAN_ASSUMPTIONS,
-                         detyping["integrity"]["lean_assumptions"])
+        self.assertEqual(check.DETYPING_GAP_IDS, detyping["gap_ids"])
+        self.assertEqual("repaired-internal", detyping["fidelity"])
+        self.assertEqual("documented mismatch", detyping["integrity"]["verdict"])
 
         for node_id, contract in check.NON_DETYPING_COMPLEXITY_CONTRACTS.items():
             node = by_id[node_id]
@@ -448,7 +450,7 @@ class BlueprintCheckTests(unittest.TestCase):
             ("wrong_typed_source", "typed source range must remain exact"),
             ("wrong_typed_names", "typed callable names must remain exact"),
             ("missing_owner", "missing exact detyping owner"),
-            ("wrong_source", "detyping source range must remain exact"),
+            ("wrong_source", "detyping source anchors must remain exact"),
             ("wrong_dependencies", "detyping prerequisites must remain exact"),
             ("wrong_names", "detyping callable names must remain exact"),
             ("finite_fibers", "generic dependent-fiber finiteness contract must remain exact"),
@@ -499,6 +501,260 @@ class BlueprintCheckTests(unittest.TestCase):
                 else:
                     bad_by_id["F07-TYPED"]["boundary_hypotheses"] += " Finite dependent fibers."
                 self.assertTrue(any(phrase in error for error in self.errors(nodes=bad)))
+
+    def test_detyping_source_and_contract_are_fail_closed(self) -> None:
+        detyping = next(node for node in self.nodes["nodes"]
+                        if node["id"] == check.DETYPING_OWNER_ID)
+        self.assertEqual(
+            check.DETYPING_SOURCE_ANCHORS,
+            [detyping["source"], *detyping["additional_sources"]],
+        )
+        self.assertEqual(check.DETYPING_PREREQUISITES, detyping["prerequisites"])
+        self.assertEqual(check.DETYPING_LEAN_NAMES, detyping["lean"]["names"])
+        self.assertEqual(check.DETYPING_GAP_IDS, detyping["gap_ids"])
+        self.assertEqual("repaired-internal", detyping["fidelity"])
+        self.assertEqual("documented mismatch", detyping["integrity"]["verdict"])
+        self.assertEqual(
+            check.DETYPING_INTEGRITY_SHA256,
+            hashlib.sha256(
+                check.canonical_json(detyping["integrity"]).encode("utf-8")
+            ).hexdigest(),
+        )
+        self.assertEqual(
+            check.DETYPING_NODE_CONTRACT_SHA256,
+            check.node_contract_sha256(detyping),
+        )
+        integrity = detyping["integrity"]
+        self.assertIn(
+            "one seven-input typed CL sampler machine interface with four "
+            "variable-arity call modes",
+            integrity["paper_assumptions"],
+        )
+        for phrase in (
+            "existing transitive F06A ExecutableCLSampler, returned exactly by "
+            "TypedSampler.detype rather than duplicated in F07A",
+            "derived from actual executions over all raw inputs rather than finite "
+            "game-valid queries",
+            "fixed-prefix graph/content/padding codecs distinct from self-delimiting "
+            "variable-tuple/program codecs",
+        ):
+            self.assertIn(phrase, integrity["lean_assumptions"])
+        for phrase in (
+            "outermost universal witness C_s > 0, before every type set, graph, "
+            "verifier, and index binder",
+            "C_s * (|TypeId| * TIME_S(n)) ^ C_s",
+            "independently, there exists an outermost universal witness C_d > 0, "
+            "before every type set, graph, verifier, and index binder",
+            "C_d * (|TypeId| * TIME_D(n)) ^ C_d",
+            "for all positive displayed arguments |TypeId| and TIME_D(n)",
+            "neither runtime clause assumes or derives 0 < n, and the Lean zero-index "
+            "convention remains explicitly unresolved",
+        ):
+            self.assertIn(phrase, integrity["paper_conclusion"])
+
+        for mutation in ("primary_range", "missing_anchor", "wrong_label", "anchor_order"):
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(self.nodes)
+                node = next(item for item in bad["nodes"]
+                            if item["id"] == check.DETYPING_OWNER_ID)
+                if mutation == "primary_range":
+                    node["source"]["generated_lines"] = [198, 579]
+                elif mutation == "missing_anchor":
+                    node["additional_sources"].pop()
+                elif mutation == "wrong_label":
+                    node["additional_sources"][2]["label"] = "thm:wrong"
+                else:
+                    node["additional_sources"][1:3] = reversed(
+                        node["additional_sources"][1:3]
+                    )
+                self.assertTrue(any(
+                    "detyping source anchors must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+    def test_detyping_gaps_and_note_are_fail_closed(self) -> None:
+        by_gap = {gap["id"]: gap for gap in self.gaps["gaps"]}
+        self.assertEqual(
+            "dependencies/types.tex:205-218,409-426,444-460,498-570 "
+            "[3771-3784,3975-3992,4010-4026,4064-4136]; "
+            "top-level/nonlocal-games.tex:660-678 [3537-3555]",
+            by_gap["G24"]["source"],
+        )
+        self.assertIn(
+            "well-formedness needed to make the paper's TIME_D(n) meaningful",
+            by_gap["G26"]["public_effect"],
+        )
+        for gap_id in check.DETYPING_GAP_IDS:
+            self.assertEqual("QPBT-080", by_gap[gap_id]["issue"])
+            self.assertEqual([check.DETYPING_OWNER_ID],
+                             by_gap[gap_id]["affected_nodes"])
+            expected_hash = check.DETYPING_GAP_CONTRACT_SHA256[gap_id]
+            self.assertEqual(
+                expected_hash,
+                hashlib.sha256(
+                    check.canonical_json(by_gap[gap_id]).encode("utf-8")
+                ).hexdigest(),
+            )
+            for field in ("source", "paper_problem", "disposition", "public_effect"):
+                with self.subTest(gap=gap_id, field=field):
+                    bad = copy.deepcopy(self.gaps)
+                    gap = next(item for item in bad["gaps"] if item["id"] == gap_id)
+                    gap[field] += " weakened"
+                    self.assertTrue(any(
+                        f"{gap_id}: source range and disposition must remain exact" in error
+                        for error in self.errors(gaps=bad)
+                    ))
+
+            if gap_id == "G24":
+                missing_target_width_source = copy.deepcopy(self.gaps)
+                gap = next(item for item in missing_target_width_source["gaps"]
+                           if item["id"] == gap_id)
+                gap["source"] = gap["source"].replace(
+                    "; top-level/nonlocal-games.tex:660-678 [3537-3555]", ""
+                )
+                self.assertTrue(any(
+                    "G24: source range and disposition must remain exact" in error
+                    for error in self.errors(gaps=missing_target_width_source)
+                ))
+
+            missing_link = copy.deepcopy(self.nodes)
+            node = next(item for item in missing_link["nodes"]
+                        if item["id"] == check.DETYPING_OWNER_ID)
+            node["gap_ids"].remove(gap_id)
+            self.assertTrue(any(
+                f"gap {gap_id}: missing reciprocal link from {check.DETYPING_OWNER_ID}"
+                in error for error in self.errors(nodes=missing_link)
+            ))
+
+        for mutation in ("extra", "reordered"):
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(self.nodes)
+                node = next(item for item in bad["nodes"]
+                            if item["id"] == check.DETYPING_OWNER_ID)
+                if mutation == "extra":
+                    node["gap_ids"].append("G01")
+                else:
+                    node["gap_ids"] = list(reversed(node["gap_ids"]))
+                self.assertTrue(any(
+                    "paper-gap linkage must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        relative_path = next(iter(check.DETYPING_AUTHENTICATED_MARKDOWN))
+        content = (ROOT.parent / relative_path).read_bytes()
+        self.assertEqual([], check.detyping_authenticated_markdown_errors(ROOT.parent))
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository_root = Path(temporary_directory)
+            self.assertTrue(any(
+                "authenticated paper-gap note missing" in error
+                for error in check.detyping_authenticated_markdown_errors(repository_root)
+            ))
+            destination = repository_root / relative_path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(content)
+            self.assertEqual(
+                [], check.detyping_authenticated_markdown_errors(repository_root)
+            )
+            destination.write_bytes(content + b"tampered\n")
+            self.assertTrue(any(
+                "authenticated paper-gap note hash mismatch" in error
+                for error in check.detyping_authenticated_markdown_errors(repository_root)
+            ))
+
+    def test_detyping_semantic_contract_is_adversarial(self) -> None:
+        cases = (
+            ("boundary_hypotheses", "outermost universal witness C_s before every type set, "
+             "graph, verifier, and index binder",
+             "witness C_s after a fixed type set, graph, verifier, and index"),
+            ("boundary_hypotheses", "outermost C_d",
+             "C_d chosen after a fixed type set and verifier"),
+            ("boundary_hypotheses", "|TypeId| * TIME_S(n)",
+             "|TypeId| + TIME_S(n)"),
+            ("boundary_hypotheses", "|TypeId| * TIME_D(n)",
+             "|TypeId| + TIME_D(n)"),
+            ("boundary_hypotheses", "over all raw inputs; their times are derived from actual "
+             "executions, not finite game-valid queries",
+             "over finite game-valid queries"),
+            ("encoding", "are separate codecs", "use one shared codec"),
+            ("encoding", "semantic correctness theorems identifying their interpreted output "
+             "with the exact operational machines used by detype",
+             "uninterpreted description transforms"),
+            ("encoding", "returns the existing F06A ExecutableCLSampler, never a local duplicate",
+             "returns a local duplicate ExecutableSampler"),
+            ("boundary_hypotheses", "No caller-supplied transport, compiler, runtime, bridge, "
+             "witness, package, producer, or obligation is permitted.",
+             "A caller-supplied transport and runtime obligation is permitted."),
+        )
+        for field, old, new in cases:
+            with self.subTest(field=field, old=old):
+                bad = copy.deepcopy(self.nodes)
+                node = next(item for item in bad["nodes"]
+                            if item["id"] == check.DETYPING_OWNER_ID)
+                self.assertIn(old, node[field])
+                node[field] = node[field].replace(old, new, 1)
+                self.assertTrue(any(
+                    "source-reviewed semantic contract must remain exact" in error
+                    for error in self.errors(nodes=bad)
+                ))
+
+        integrity_cases = (
+            ("paper_assumptions", "one seven-input typed CL sampler machine interface with "
+             "four variable-arity call modes",
+             "four seven-input query modes"),
+            ("lean_assumptions", "existing transitive F06A ExecutableCLSampler, returned "
+             "exactly by TypedSampler.detype rather than duplicated in F07A",
+             "new F07A-local ExecutableCLSampler"),
+            ("lean_assumptions", "derived from actual executions over all raw inputs rather "
+             "than finite game-valid queries",
+             "derived over finite game-valid queries"),
+            ("lean_assumptions", "fixed-prefix graph/content/padding codecs distinct from "
+             "self-delimiting variable-tuple/program codecs",
+             "one shared game/program codec"),
+            ("paper_conclusion", "outermost universal witness C_s > 0, before every type "
+             "set, graph, verifier, and index binder",
+             "C_s chosen after a fixed type set, graph, verifier, and index"),
+            ("paper_conclusion", "C_s * (|TypeId| * TIME_S(n)) ^ C_s",
+             "C_s * (|TypeId| + TIME_S(n)) ^ C_s"),
+            ("paper_conclusion", "for all positive displayed arguments |TypeId| and "
+             "TIME_S(n)",
+             "when n is positive"),
+            ("paper_conclusion", "independently, there exists an outermost universal witness "
+             "C_d > 0, before every type set, graph, verifier, and index binder",
+             "C_d chosen after a fixed type set, graph, verifier, and index"),
+            ("paper_conclusion", "C_d * (|TypeId| * TIME_D(n)) ^ C_d",
+             "C_d * (|TypeId| + TIME_D(n)) ^ C_d"),
+            ("paper_conclusion", "for all positive displayed arguments |TypeId| and "
+             "TIME_D(n)",
+             "when n is positive"),
+            ("paper_conclusion", "neither runtime clause assumes or derives 0 < n, and the "
+             "Lean zero-index convention remains explicitly unresolved",
+             "both runtime clauses require 0 < n"),
+        )
+        for field, old, new in integrity_cases:
+            with self.subTest(integrity_field=field, old=old):
+                bad = copy.deepcopy(self.nodes)
+                node = next(item for item in bad["nodes"]
+                            if item["id"] == check.DETYPING_OWNER_ID)
+                self.assertIn(old, node["integrity"][field])
+                node["integrity"][field] = node["integrity"][field].replace(old, new, 1)
+                errors = self.errors(nodes=bad)
+                for phrase in (
+                    "statement-integrity table must remain exact",
+                    "source-reviewed semantic contract must remain exact",
+                ):
+                    self.assertTrue(any(phrase in error for error in errors))
+
+        wrong_verdict = copy.deepcopy(self.nodes)
+        node = next(item for item in wrong_verdict["nodes"]
+                    if item["id"] == check.DETYPING_OWNER_ID)
+        node["integrity"]["verdict"] = "faithful boundary"
+        errors = self.errors(nodes=wrong_verdict)
+        for phrase in (
+            "documented-mismatch fidelity must remain exact",
+            "statement-integrity table must remain exact",
+            "source-reviewed semantic contract must remain exact",
+        ):
+            self.assertTrue(any(phrase in error for error in errors))
 
     def test_executable_cl_contract_is_fail_closed_and_adversarial(self) -> None:
         cases = (
@@ -819,7 +1075,7 @@ class BlueprintCheckTests(unittest.TestCase):
             "F07 finite typed interfaces, F04A game semantics, and a machine model."
         )
         self.assertTrue(any(
-            "dependent-fiber assumptions must remain exact" in error
+            "statement-integrity table must remain exact" in error
             for error in self.errors(nodes=finite_f07a)
         ))
 
@@ -866,7 +1122,7 @@ class BlueprintCheckTests(unittest.TestCase):
             "The machine layer is deferred to later complexity work in K03 and K04."
         )
         self.assertTrue(any(
-            "executable representation and cost ownership must remain concrete" in error
+            "source-reviewed semantic contract must remain exact" in error
             for error in self.errors(nodes=vague_detyping)
         ))
 

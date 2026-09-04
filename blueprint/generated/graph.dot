@@ -33,7 +33,7 @@ digraph QPBT {
   "F06-CL" [label="F06-CL\nConditionally-linear maps and samplers", style=filled, fillcolor="#cfe2f3"];
   "F06A-EXECUTABLE-CL" [label="F06A-EXECUTABLE-CL\nExecutable conditionally-linear samplers", style=filled, fillcolor="#cfe2f3"];
   "F07-TYPED" [label="F07-TYPED\nTyped samplers, deciders, and graph distributions", style=filled, fillcolor="#cfe2f3"];
-  "F07A-DETYPING" [label="F07A-DETYPING\nGraph simulation and typed-verifier detyping", style=filled, fillcolor="#cfe2f3"];
+  "F07A-DETYPING" [label="F07A-DETYPING\nGraph simulation and typed-verifier detyping", style=filled, fillcolor="#fce5cd"];
   "F08-MAGIC-GAME" [label="F08-MAGIC-GAME\nMagic Square game and perfect construction", style=filled, fillcolor="#d9ead3"];
   "F09-LDT-GAME" [label="F09-LDT-GAME\nSimultaneous individual low-degree game", style=filled, fillcolor="#cfe2f3"];
   "F09A-LDT-GAME-CORE" [label="F09A-LDT-GAME-CORE\nCanonical lines and repetition-one low-degree game core", style=filled, fillcolor="#cfe2f3"];
