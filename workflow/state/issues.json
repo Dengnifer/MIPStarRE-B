@@ -5731,16 +5731,16 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-04T06:55:07.385848Z",
-      "updated_at": "2026-09-04T10:39:16.753616Z",
-      "blocked_reason": "Fresh read-only A05 review is issued against the exact repaired source head and immutable projection.",
-      "unblock_condition": "Obtain A05 approval with R1-F1 resolved, then integrate PR #35 before the singleton production warm.",
+      "updated_at": "2026-09-04T10:52:08.138440Z",
+      "blocked_reason": "A05 approved the exact repaired head and resolved R1-F1; canonical GitHub PR #35 is ready for exact-head integration.",
+      "unblock_condition": "Merge PR #35 at head ebe1cf8, synchronize local main, then run exactly one singleton production warm and one private prepare canary.",
       "candidate_base_sha": "72d76a719f29f7304bd84ea1e7761a6b6f40a269",
       "candidate_head_sha": "ebe1cf8ccc4436f8a515e315746275a4a293ae1b",
       "candidate_tree": "6dafbfd5c518d8860184350e6c69f407725821d0",
       "candidate_patch_sha256": "900a43cd507e4bcc1a3c188fa6f1a00f113b04d41fbec7398ccef8a338c54395",
       "candidate_report": ".workflow-runtime/runs/i084-orchestrator-a04-closed-monitor/result.json",
       "candidate_report_sha256": "640b2aec5c66dd635ee96d208f0d06973579edbe82275b4fd746352c65a8c336",
-      "candidate_status": "immutable-review-issued",
+      "candidate_status": "approved-pending-integration",
       "github_repository": "Dengnifer/MIPStarRE-B",
       "github_issue_number": 34,
       "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/34",
@@ -5748,8 +5748,35 @@
       "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/35",
       "github_branch": "issue/qpbt-084-inotify-a01",
       "github_pr_status": "draft",
-      "active_review_session_id": "i084-reviewer-a05-closed-monitor",
-      "active_review_projection": {
+      "active_review_session_id": null,
+      "active_review_projection": null,
+      "latest_review_report": ".workflow-runtime/runs/i084-reviewer-a05-closed-monitor/result.json",
+      "latest_review_report_sha256": "12360b613b020843081c3802d044012529c6abe325e75d9146721cc05b30dfaf",
+      "latest_review_manifest_sha256": "147d5485f04d3b1b6cd4054101087f62bc5c0fd655f12924d1351ec5f15c8adc",
+      "latest_review_head_sha": "ebe1cf8ccc4436f8a515e315746275a4a293ae1b",
+      "latest_review_verdict": "approve",
+      "latest_review_findings": [
+        {
+          "id": "R1-F1",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "scripts/materialize_mipstarre.py:389",
+          "summary": "A closed logical monitor can certify an unmonitored interval.",
+          "resolved_by_session_id": "i084-reviewer-a05-closed-monitor",
+          "resolution_evidence": "The closed-state guard precedes hub.drain, permanently poisons the logical monitor, and makes both assertion APIs fail while sibling routing remains live."
+        },
+        {
+          "id": "R2-F1",
+          "severity": "low",
+          "status": "deferred",
+          "path": "tests/test_mipstarre_materialization.py:241",
+          "summary": "Post-close assertion APIs are not tested on independent fresh subscribers.",
+          "deferred_issue_id": "QPBT-086",
+          "disposition": "Current implementation is correct; strengthen independent test ordering off the integration critical path."
+        }
+      ],
+      "candidate_repair_patch_sha256": "16bc64e0e5bbfce224639a4f88af9419defa969a4015136c379bbb6dde11d907",
+      "latest_review_projection": {
         "commit": "6396aa3447f467678a6cf981722c839ac75d3ae2",
         "tree": "72030ba8fbcc695a249362b146d3afb6687aabc1",
         "manifest_sha256": "147d5485f04d3b1b6cd4054101087f62bc5c0fd655f12924d1351ec5f15c8adc",
@@ -5758,25 +5785,7 @@
         "source_tree": "6dafbfd5c518d8860184350e6c69f407725821d0",
         "manifest_entries": 8,
         "evidence_file_count": 10
-      },
-      "latest_review_report": ".workflow-runtime/runs/i084-reviewer-a03-inotify-security/result.json",
-      "latest_review_report_sha256": "9fc6d6cb3ce09e4288cf13d806ce914ad73160bfe65e0ac1da784599276fe62b",
-      "latest_review_manifest_sha256": "b982ad247fbc59f07f05b6302ee2515751e75b38a2cfe04d035baf892a320213",
-      "latest_review_head_sha": "cbe3a9e9aaaf2f9a7ad64fc8d8396ce43b18fb21",
-      "latest_review_verdict": "request_changes",
-      "latest_review_findings": [
-        {
-          "id": "R1-F1",
-          "severity": "medium",
-          "status": "addressed-pending-review",
-          "path": "scripts/materialize_mipstarre.py:389",
-          "summary": "A closed logical monitor can certify an unmonitored interval.",
-          "required_change": "Make _drain permanently reject or poison closed monitors and extend the close regression to require assert_clean and accept_owned_change to fail after close.",
-          "repair_commit": "ebe1cf8ccc4436f8a515e315746275a4a293ae1b",
-          "repair_evidence": "Closed _drain returns fatal permanently; regression proves both assertion APIs reject after close while sibling routing remains live."
-        }
-      ],
-      "candidate_repair_patch_sha256": "16bc64e0e5bbfce224639a4f88af9419defa969a4015136c379bbb6dde11d907"
+      }
     },
     {
       "id": "QPBT-085",
@@ -5873,6 +5882,48 @@
         "source_head": "b933049076367b8fe021fe90a62c6d0ae0083bce",
         "manifest_sha256": "3625fd45a26d2d671c9080a64593cb9f088658de1b87953ea22d23a726e91297"
       }
+    },
+    {
+      "id": "QPBT-086",
+      "title": "test(cache): isolate closed-monitor assertion regressions",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-068",
+      "dependency_ids": [
+        "QPBT-084"
+      ],
+      "labels": [
+        "workflow",
+        "hot-cache",
+        "materialization",
+        "test-coverage",
+        "low-severity",
+        "deferred"
+      ],
+      "acceptance_gates": [
+        "Use independent freshly closed logical monitors to prove assert_clean and accept_owned_change each fail without relying on prior poison from the other API.",
+        "Instrument the focused regression to prove a post-close assertion does not drain or otherwise perturb the shared hub.",
+        "Preserve idempotent close and sibling event delivery, pass the complete materializer and hot-cache suites, and obtain fresh independent review."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        ".workflow-runtime/runs/i084-reviewer-a05-closed-monitor/result.json",
+        "tests/test_mipstarre_materialization.py:221",
+        "scripts/materialize_mipstarre.py:389"
+      ],
+      "owned_paths": [
+        "tests/test_mipstarre_materialization.py"
+      ],
+      "created_at": "2026-09-04T10:50:54Z",
+      "updated_at": "2026-09-04T10:53:30.439452Z",
+      "blocked_reason": "A05 classified this as a low-severity test-ordering improvement and approved the correct implementation; it is deferred off the QPBT-084 integration critical path.",
+      "unblock_condition": "QPBT-084 is integrated and a workflow-test lane is free without delaying the production warm or Lean proof lanes.",
+      "origin_review_session_id": "i084-reviewer-a05-closed-monitor",
+      "origin_finding_id": "R2-F1",
+      "github_repository": "Dengnifer/MIPStarRE-B",
+      "github_issue_number": 37,
+      "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/37"
     }
   ]
 }
