@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from contextlib import redirect_stderr
+import ctypes
+import errno
 import fcntl
 import gzip
 import hashlib
@@ -4370,7 +4372,9 @@ class HotMainCacheTests(unittest.TestCase):
                 journal_parent = manager._seed_transaction_dir(target).parent
                 self.assertEqual(1, len(list(journal_parent.glob("*.retained-*"))))
 
-    def test_cache_copy_post_handoff_relocation_receives_no_bytes(self) -> None:
+    def test_cache_copy_detects_creation_handoff_directory_and_post_link_file_relocation(
+        self,
+    ) -> None:
         for object_kind in ("directory", "file"):
             with self.subTest(object_kind=object_kind):
                 source_root = self.base / f"copy-source-{object_kind}"
@@ -4459,7 +4463,7 @@ class HotMainCacheTests(unittest.TestCase):
                     self.assertTrue(payload_was_unnamed)
                     self.assertEqual(b"foundation", relocated.read_bytes())
 
-    def test_late_cache_output_hard_link_prevents_seed_publication(self) -> None:
+    def test_post_copy_cache_hard_link_is_rejected_before_seed_publication(self) -> None:
         manager = self.manager(runtime=self.base / "runtime-late-cache-link")
         manager.warm(_test_command_callback=fake_success)
         target = self.issue_worktree("late-cache-link")
@@ -4495,7 +4499,7 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertEqual(b"compiled-main\n", external.read_bytes())
         self.assertFalse((target / ".lake").exists())
 
-    def test_cache_reflink_payload_is_unnamed_until_complete(self) -> None:
+    def test_cache_reflink_has_zero_links_before_program_publication(self) -> None:
         source_root = self.base / "reflink-unnamed-source"
         destination = self.base / "reflink-unnamed-destination"
         source_root.mkdir()
@@ -4518,6 +4522,114 @@ class HotMainCacheTests(unittest.TestCase):
         self.assertTrue(observed)
         self.assertEqual(1, stats.reflinked)
         self.assertEqual(b"foundation", (destination / "payload").read_bytes())
+
+    def test_live_seed_detached_file_failures_preserve_destination_and_staging(self) -> None:
+        for failure_kind in ("tmpfile", "linkat"):
+            with self.subTest(failure_kind=failure_kind):
+                manager = self.manager(runtime=self.base / f"runtime-detached-{failure_kind}")
+                manager.warm(_test_command_callback=fake_success)
+                target = self.issue_worktree(f"detached-{failure_kind}")
+                original = target / ".lake"
+                original.mkdir()
+                (original / "original-marker").write_bytes(b"preserve")
+                original_before = byte_snapshot(original)
+                metrics_before = self.metric_records(manager)
+                route_calls: list[tuple[int, bytes, int, bytes, int]] = []
+
+                if failure_kind == "tmpfile":
+                    real_open = cache_module.os.open
+
+                    def fail_tmpfile(
+                        path: object,
+                        flags: int,
+                        mode: int = 0o777,
+                        *,
+                        dir_fd: int | None = None,
+                    ) -> int:
+                        if (flags & cache_module.os.O_TMPFILE) == cache_module.os.O_TMPFILE:
+                            raise OSError(errno.EOPNOTSUPP, "injected O_TMPFILE refusal")
+                        return real_open(path, flags, mode, dir_fd=dir_fd)
+
+                    open_patch = mock.patch.object(
+                        cache_module.os, "open", side_effect=fail_tmpfile
+                    )
+                    with open_patch as patched_open:
+                        supported = set(cache_module.os.supports_dir_fd)
+                        supported.add(patched_open)
+                        with mock.patch.object(
+                            cache_module.os, "supports_dir_fd", supported
+                        ):
+                            with self.assertRaisesRegex(
+                                cache_module.CacheError, "requires O_TMPFILE"
+                            ) as raised:
+                                manager.seed(target, replace=True)
+                    self.assertIn("O_TMPFILE", str(raised.exception))
+                else:
+                    real_link = cache_module._linux_link_unnamed_file
+
+                    def fail_both_linkat_routes(
+                        descriptor: int, parent_descriptor: int, name: str
+                    ) -> None:
+                        real_libc = cache_module._linux_libc()
+
+                        def fail_linkat(*arguments: object) -> int:
+                            old_descriptor, old_name, new_descriptor, new_name, flags = arguments
+                            route_calls.append(
+                                (
+                                    int(old_descriptor),
+                                    bytes(old_name),
+                                    int(new_descriptor),
+                                    bytes(new_name),
+                                    int(flags),
+                                )
+                            )
+                            error_number = (
+                                errno.EPERM
+                                if len(route_calls) == 1
+                                else errno.EOPNOTSUPP
+                            )
+                            ctypes.set_errno(error_number)
+                            return -1
+
+                        linkat = mock.Mock(side_effect=fail_linkat)
+
+                        class LibcProxy:
+                            def __getattr__(self, attribute: str) -> object:
+                                return getattr(real_libc, attribute)
+
+                        proxy = LibcProxy()
+                        proxy.linkat = linkat  # type: ignore[attr-defined]
+                        with mock.patch.object(cache_module, "_linux_libc", return_value=proxy):
+                            real_link(descriptor, parent_descriptor, name)
+
+                    with mock.patch.object(
+                        cache_module,
+                        "_linux_link_unnamed_file",
+                        side_effect=fail_both_linkat_routes,
+                    ):
+                        with self.assertRaisesRegex(
+                            cache_module.CacheError, "could not publish unnamed cache output"
+                        ) as raised:
+                            manager.seed(target, replace=True)
+                    self.assertIsInstance(raised.exception.__cause__, OSError)
+                    self.assertEqual(2, len(route_calls))
+                    self.assertEqual(
+                        (b"", cache_module.AT_EMPTY_PATH),
+                        (route_calls[0][1], route_calls[0][4]),
+                    )
+                    self.assertTrue(route_calls[1][1].startswith(b"/proc/self/fd/"))
+                    self.assertEqual(
+                        getattr(cache_module.os, "AT_SYMLINK_FOLLOW", 0x400),
+                        route_calls[1][4],
+                    )
+
+                self.assertEqual(original_before, byte_snapshot(original))
+                self.assertEqual(metrics_before, self.metric_records(manager))
+                failed = list(target.glob(".lake.failed-*"))
+                self.assertEqual(1, len(failed))
+                self.assertTrue((failed[0] / ".lake" / "build").is_dir())
+                self.assertFalse((failed[0] / ".lake" / "build" / "QPBT.olean").exists())
+                self.assertEqual([], list(target.glob(".lake-seed-*")))
 
     def test_final_staging_mutation_after_old_last_drain_prevents_success(self) -> None:
         manager = self.manager(runtime=self.base / "runtime-post-drain")
@@ -4862,6 +4974,70 @@ class HotMainCacheTests(unittest.TestCase):
                     readiness_admission.assert_not_called()
                     self.assertEqual(before, byte_snapshot(target))
                     self.assertFalse(manager._seed_transaction_dir(target).exists())
+
+    def test_dry_seed_and_prepare_do_not_probe_detached_file_publication(self) -> None:
+        for action in ("seed", "prepare"):
+            with self.subTest(action=action):
+                recipe = MATERIALIZING_TEST_RECIPE if action == "prepare" else TEST_RECIPE
+                manager = self.manager(
+                    runtime=self.base / f"runtime-dry-detached-{action}", recipe=recipe
+                )
+                target = self.issue_worktree(f"dry-detached-{action}")
+                before = byte_snapshot(target)
+                real_open = cache_module.os.open
+                tmpfile_attempts = 0
+                link_sentinel = mock.Mock(
+                    side_effect=AssertionError("dry admission attempted linkat publication")
+                )
+
+                def reject_tmpfile(
+                    path: object,
+                    flags: int,
+                    mode: int = 0o777,
+                    *,
+                    dir_fd: int | None = None,
+                ) -> int:
+                    nonlocal tmpfile_attempts
+                    if (flags & cache_module.os.O_TMPFILE) == cache_module.os.O_TMPFILE:
+                        tmpfile_attempts += 1
+                        raise OSError(errno.EOPNOTSUPP, "dry O_TMPFILE probe")
+                    return real_open(path, flags, mode, dir_fd=dir_fd)
+
+                def admit_after_lock_setup(*_args: object, **_kwargs: object) -> object:
+                    return types.SimpleNamespace(
+                        target=manager._eligible_seed_target(target, check_inputs=False)
+                    )
+
+                with mock.patch.object(
+                    cache_module.os, "open", side_effect=reject_tmpfile
+                ) as patched_open:
+                    supported = set(cache_module.os.supports_dir_fd)
+                    supported.add(patched_open)
+                    with mock.patch.object(
+                        cache_module.os, "supports_dir_fd", supported
+                    ), mock.patch.object(
+                        cache_module, "_linux_filesystem_magic", return_value=0xEF53
+                    ), mock.patch.object(
+                        cache_module, "_probe_renameat2_semantics"
+                    ), mock.patch.object(
+                        cache_module, "_linux_link_unnamed_file", link_sentinel
+                    ), mock.patch.object(
+                        manager,
+                        "_admit_prepare_target",
+                        side_effect=admit_after_lock_setup,
+                    ):
+                        if action == "prepare":
+                            result = manager.prepare(target, dry_run=True)
+                        else:
+                            result = manager.seed(target, dry_run=True)
+
+                self.assertTrue(result["dry_run"])
+                self.assertEqual("exclusive-target-lock", result["admission_serialization"])
+                self.assertFalse(result["detached_file_publication_checked"])
+                self.assertEqual(0, tmpfile_attempts)
+                link_sentinel.assert_not_called()
+                self.assertEqual(before, byte_snapshot(target))
+                self.assertFalse(manager._seed_transaction_dir(target).exists())
 
     def test_dry_prepare_runs_materializer_admission_before_delegated_seed(self) -> None:
         manager = self.manager(recipe=MATERIALIZING_TEST_RECIPE)

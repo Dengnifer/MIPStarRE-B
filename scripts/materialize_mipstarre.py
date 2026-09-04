@@ -111,7 +111,7 @@ def _linux_renameat2(
 def _linux_link_unnamed_file(
     descriptor: int, destination_parent: int, destination_name: str
 ) -> None:
-    """Expose one fully populated O_TMPFILE inode without a named-write interval."""
+    """Link the populated inode at the caller-selected name."""
 
     encoded = os.fsencode(destination_name)
     if not encoded or encoded in {b".", b".."} or b"/" in encoded or b"\0" in encoded:
@@ -355,6 +355,8 @@ def _atomic_exchange_bound(
 
 
 def _require_transaction_capabilities(target_descriptor: int) -> None:
+    """Check descriptor and atomic-rename capabilities used by the transaction."""
+
     required = (os.open, os.mkdir, os.stat)
     if any(operation not in os.supports_dir_fd for operation in required):
         raise MaterializationError("safe materialization requires descriptor-relative calls")
@@ -1110,12 +1112,15 @@ class _DetachedOutputFile:
         self.parent_monitor.assert_clean()
         metadata = os.fstat(self.descriptor)
         if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 0:
-            raise MaterializationError(f"{self.label} lost its unnamed private inode")
+            raise MaterializationError(f"{self.label} lost its zero-link inode")
         _assert_name_absent(self.parent_descriptor, self.name, self.label)
 
     def publish(self) -> None:
         self.assert_detached()
-        _linux_link_unnamed_file(self.descriptor, self.parent_descriptor, self.name)
+        try:
+            _linux_link_unnamed_file(self.descriptor, self.parent_descriptor, self.name)
+        except OSError as error:
+            raise MaterializationError(f"could not publish {self.label}: {error}") from error
         self.parent_monitor.accept_owned_change(((self.name, _IN_CREATE),))
         self.self_monitor = _BoundNameMonitor(self.descriptor, None)
         self.assert_current()
@@ -1129,7 +1134,7 @@ class _DetachedOutputFile:
             self.parent_descriptor, self.name, self.descriptor, self.label
         )
         if os.fstat(self.descriptor).st_nlink != 1:
-            raise MaterializationError(f"{self.label} is not a private single-link file")
+            raise MaterializationError(f"{self.label} is not single-link at validation")
 
     def close(self) -> None:
         if self.self_monitor is not None:
@@ -1142,7 +1147,7 @@ def _create_detached_output_file(
     label: str,
     parent_monitor: _BoundNameMonitor,
 ) -> _DetachedOutputFile:
-    """Create an unnamed inode so no named output can receive later payload writes."""
+    """Create a zero-link inode for population before this program publishes it."""
 
     name = _child_name(name, label)
     parent_monitor.assert_clean()
@@ -1642,7 +1647,7 @@ def _descriptor_evidence_identity(descriptor: int) -> dict[str, int]:
 def _descriptor_tree_inventory(
     root_descriptor: int, label: str, *, require_single_link: bool = False
 ) -> dict[str, Any]:
-    """Bind recursive names, inode identities, and bytes below a held directory."""
+    """Return a monitored descriptor-relative recursive traversal record."""
 
     content_digest = hashlib.sha256()
     identity_digest = hashlib.sha256()
@@ -1717,7 +1722,7 @@ def _descriptor_tree_inventory(
                 elif stat.S_ISREG(before.st_mode):
                     if require_single_link and before.st_nlink != 1:
                         raise MaterializationError(
-                            f"{label} file is not a private single-link output"
+                            f"{label} file is not single-link at traversal"
                         )
                     child = os.open(
                         name,

@@ -58,6 +58,9 @@ resolved target was mode `775` and writable at review time. Consequently,
 the QPBT-068 candidate rejects every external first hop or final target rather
 than treating mode bits as durable immutability evidence. That candidate still
 requires fresh immutable approval before this audit may rely on the policy.
+This is operational isolation for cooperating repository commands under a
+no-concurrent-writer precondition, not access control against another process
+with the same operating-system identity or descriptor namespace.
 Existing seed
 metrics (45 JSONL records in `metrics/hot-main.jsonl`) report
 `copy.files=124925`, approximately 10.10 GB per full seed, and
@@ -111,7 +114,7 @@ and should add an explicit append-only reference record before reclaiming.
 
 | Option | Soundness against singleton compilation / private writable output | Space and portability assessment |
 |---|---|---|
-| Immutable shared snapshot, copy on seed | Preserves one lock-elected build and authenticated READY; inspected build files have no hard links. Whole-`.lake` privacy requires rejecting every link that leaves the private destination. | Current baseline plus the preliminary QPBT-068 policy; byte-copy costs about 10 GB per seed on ext4. |
+| Immutable shared snapshot, copy on seed | Preserves one lock-elected build and authenticated READY; inspected build files have no hard links. Seed validates that no external link is present when each output is traversed under the no-concurrent-writer precondition. | Current baseline plus the preliminary QPBT-068 policy; byte-copy costs about 10 GB per seed on ext4. |
 | Reflink copy-on-write seed | Same semantics if destination inode/link checks and deep inventory remain; writes diverge by extent. | Preferred optimization when `FICLONE` succeeds. Must record `reflinked`/`copied` counts and retain byte-copy fallback; filesystem-dependent. |
 | Hard links to `.lake/build` | Violates protocol: Lean can mutate artifacts and cross-worktree writes become visible. | Prohibited regardless of apparent savings; test link counts and reject. |
 | Overlayfs / CoW delta over immutable package+build layers | Could share read-only package bytes and isolate writable deltas; singleton warm still required. | Requires privileged/mount support, careful lowerdir authentication, whiteout handling, and portability fallback; not justified until measured on this host. |
@@ -146,13 +149,14 @@ point. The repaired QPBT-068 A22 candidate publishes a diagnostic digest-bound
 journal before exchange, but does not treat that journal or its adjacent
 digest/commit marker as persistent ownership authority. A later process rejects
 all fixed journal/active staging state unchanged for manual disposition. The
-live transaction binds every target ancestor and the transaction objects by
-descriptors and permanent event monitors, publishes with atomic exchange or
-no-replace, and retains rather than deletes the journal, staging root, and
-authenticated old tree after commit. The journal runtime ancestors are created
-and held descriptor-relatively; output children receive move monitors before
-their handoff; and displaced trees are recursively byte/inode-inventoried before
-and after retention. These are candidate behaviors, not
+live transaction monitors target ancestors and transaction objects through
+held descriptors, publishes with atomic exchange or no-replace, and retains
+rather than deletes the journal, staging root, and authenticated old tree after
+commit. The journal runtime ancestors are created and held descriptor-relatively;
+output children receive move monitors before their handoff; and displaced trees
+are compared through non-atomic recursive byte/inode traversal records before
+and after retention. These are candidate behaviors under the cooperating-agent,
+no-concurrent-writer precondition, not
 approved live guarantees, until a fresh immutable review approves the final
 head. Its foundation materializer separately keeps `MIPStarRE/` continuously
 present during replacement with one descriptor-bound exchange and retains the
@@ -169,11 +173,12 @@ disposition.
    artifact_inventory.sha256)` and assert no unverified duplicate is treated as
    equivalent.
 2. **Isolation:** seed a fixture on filesystems with and without reflink;
-   assert destination inode differs, all build files have `st_nlink == 1`,
+   assert destination inode differs, all build files have `st_nlink == 1` when
+   visited by the validation traversal,
    writes to destination do not alter source, and fallback reports
    `reflinked=0` with exact copied file/byte counts. Existing regression
    `HotMainCacheTests.test_warm_hits_then_seed_is_private_and_writable`
-   (`tests/test_hot_main_cache.py:879`) covers private writable behavior.
+   (`tests/test_hot_main_cache.py:881`) covers private writable behavior.
 3. **Singleton/leases:** run concurrent warms for one key; assert one build,
    one READY publication, waiter hit metrics, and no staging READY. Register two
    seeds, then run dry-run cleanup; referenced key must not be a candidate.
@@ -182,13 +187,13 @@ disposition.
    tree, displaced and ambiguous objects remain intact, and no success metric
    escapes a precommit failure. Candidate regressions begin at
    `HotMainCacheTests.test_seed_rejects_unowned_backup_decoys_without_mutation`
-   (`tests/test_hot_main_cache.py:3776`), atomic replacement is covered by
+   (`tests/test_hot_main_cache.py:3778`), atomic replacement is covered by
    `HotMainCacheTests.test_seed_atomic_exchange_never_has_absent_destination`
-   (`:4072`), and ancestor ABA is covered symmetrically by
+   (`:4074`), and ancestor ABA is covered symmetrically by
    `HotMainCacheTests.test_seed_and_prepare_reject_ancestor_swap_restore`
-   (`:5441`). Existing failed-build retention is
+   (`:5617`). Existing failed-build retention is
    covered by `HotMainCacheTests.test_failed_build_is_retained_but_never_published`
-   (`:3570`).
+   (`:3572`).
 5. **Capacity guard:** on a filesystem with <10 GB free, dry-run must refuse
    byte-copy seeding before mutation and report required/apparent/physical bytes;
    reflink mode may proceed only after an explicit CoW capability check.

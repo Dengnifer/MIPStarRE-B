@@ -136,7 +136,7 @@ def _linux_renameat2(
 def _linux_link_unnamed_file(
     descriptor: int, destination_parent: int, destination_name: str
 ) -> None:
-    """Expose one fully populated O_TMPFILE inode without a named-write interval."""
+    """Link the populated inode at the caller-selected name."""
 
     encoded = os.fsencode(destination_name)
     if not encoded or encoded in {b".", b".."} or b"/" in encoded or b"\0" in encoded:
@@ -1032,7 +1032,7 @@ def artifact_inventory(root: Path) -> dict[str, Any]:
 def _descriptor_tree_inventory(
     root_descriptor: int, label: str, *, require_single_link: bool = False
 ) -> dict[str, Any]:
-    """Bind recursive names, inode identities, and bytes below a held directory."""
+    """Return a monitored descriptor-relative recursive traversal record."""
 
     content_digest = hashlib.sha256()
     identity_digest = hashlib.sha256()
@@ -1106,7 +1106,7 @@ def _descriptor_tree_inventory(
                         os.close(child)
                 elif stat.S_ISREG(before.st_mode):
                     if require_single_link and before.st_nlink != 1:
-                        raise CacheError(f"{label} file is not a private single-link output")
+                        raise CacheError(f"{label} file is not single-link at traversal")
                     child = os.open(
                         name,
                         os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0),
@@ -2782,7 +2782,7 @@ class _DetachedCopyFile:
         self.parent_monitor.assert_clean()
         metadata = os.fstat(self.descriptor)
         if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 0:
-            raise CacheError(f"{self.label} lost its unnamed private inode")
+            raise CacheError(f"{self.label} lost its zero-link inode")
         try:
             os.stat(self.name, dir_fd=self.parent_descriptor, follow_symlinks=False)
         except FileNotFoundError:
@@ -2793,7 +2793,10 @@ class _DetachedCopyFile:
 
     def publish(self) -> None:
         self.assert_detached()
-        _linux_link_unnamed_file(self.descriptor, self.parent_descriptor, self.name)
+        try:
+            _linux_link_unnamed_file(self.descriptor, self.parent_descriptor, self.name)
+        except OSError as error:
+            raise CacheError(f"could not publish {self.label}: {error}") from error
         self.parent_monitor.accept_exact_change(((self.name, _IN_CREATE),))
         self.self_monitor = _BoundNameMonitor(self.descriptor, None)
         self.assert_current()
@@ -2807,7 +2810,7 @@ class _DetachedCopyFile:
             self.parent_descriptor, self.name, self.descriptor, self.label
         )
         if os.fstat(self.descriptor).st_nlink != 1:
-            raise CacheError(f"{self.label} is not a private single-link file")
+            raise CacheError(f"{self.label} is not single-link at validation")
 
     def close(self) -> None:
         if self.self_monitor is not None:
@@ -2820,7 +2823,7 @@ def _create_detached_copy_file(
     parent_monitor: _BoundNameMonitor,
     label: str,
 ) -> _DetachedCopyFile:
-    """Create an unnamed output inode; payload writes precede namespace exposure."""
+    """Create a zero-link inode for population before this program publishes it."""
 
     encoded = os.fsencode(name)
     if not encoded or encoded in {b".", b".."} or b"/" in encoded or b"\0" in encoded:
@@ -4489,7 +4492,7 @@ class HotMainCache:
 
     @staticmethod
     def _require_seed_capabilities(target: _BoundSeedTarget) -> None:
-        """Refuse before transaction mutation unless the strong Linux primitives exist."""
+        """Check descriptor and atomic-rename capabilities before transaction admission."""
 
         target.assert_current()
         required_dir_fd = (os.open, os.mkdir, os.stat, os.unlink, os.rmdir)
@@ -5984,6 +5987,7 @@ class HotMainCache:
                 "lock_waited": int(target_lock.waited),
                 "lock_wait_seconds": round(target_lock.wait_seconds, 6),
                 "admission_serialization": "exclusive-target-lock",
+                "detached_file_publication_checked": False,
             }
         finally:
             target.close()

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ctypes
+import errno
 import gzip
 import hashlib
 import json
@@ -836,7 +838,9 @@ class MaterializationTests(unittest.TestCase):
         self.assertTrue((staged_authored / "Nested").is_symlink())
         self.assertTrue((staged_authored / "attacker-created-Nested").is_dir())
 
-    def test_archive_directory_post_handoff_relocation_receives_no_bytes(self) -> None:
+    def test_archive_directory_creation_handoff_relocation_is_detected_before_population(
+        self,
+    ) -> None:
         external = Path(self.temporary.name) / "external-archive-directory"
         external.mkdir()
         external_descriptor = os.open(external, source._directory_flags())
@@ -876,7 +880,9 @@ class MaterializationTests(unittest.TestCase):
         self.assertTrue(relocated.is_dir())
         self.assertEqual([], list(relocated.iterdir()))
 
-    def test_authored_directory_post_handoff_relocation_receives_no_bytes(self) -> None:
+    def test_authored_directory_creation_handoff_relocation_is_detected_before_population(
+        self,
+    ) -> None:
         destination = self.root / "MIPStarRE"
         authored = destination / "QPBT" / "Nested"
         authored.mkdir(parents=True)
@@ -924,7 +930,7 @@ class MaterializationTests(unittest.TestCase):
         self.assertEqual([], list(relocated.iterdir()))
         self.assertEqual(b"def owned := true\n", (authored / "Owned.lean").read_bytes())
 
-    def test_archive_file_post_handoff_relocation_receives_no_bytes(self) -> None:
+    def test_archive_file_post_link_relocation_receives_complete_stable_bytes(self) -> None:
         external = Path(self.temporary.name) / "external-archive-file"
         external.mkdir()
         external_descriptor = os.open(external, source._directory_flags())
@@ -971,7 +977,7 @@ class MaterializationTests(unittest.TestCase):
             (external / "relocated-Measurement.lean").read_bytes(),
         )
 
-    def test_authored_file_post_handoff_relocation_receives_no_bytes(self) -> None:
+    def test_authored_file_post_link_relocation_receives_complete_stable_bytes(self) -> None:
         destination = self.root / "MIPStarRE"
         authored = destination / "QPBT"
         authored.mkdir(parents=True)
@@ -1025,6 +1031,129 @@ class MaterializationTests(unittest.TestCase):
         )
         self.assertEqual(b"def owned := true\n", (authored / "Owned.lean").read_bytes())
 
+    def _assert_live_detached_failure_preserves_destination(self, failure_kind: str) -> None:
+        destination = self.root / "MIPStarRE"
+        destination.mkdir()
+        marker = destination / "original-marker"
+        marker.write_bytes(b"preserve")
+        destination_identity = (destination.stat().st_dev, destination.stat().st_ino)
+        route_calls: list[tuple[int, bytes, int, bytes, int]] = []
+
+        if failure_kind == "tmpfile":
+            real_open = source.os.open
+
+            def fail_tmpfile(
+                path: object,
+                flags: int,
+                mode: int = 0o777,
+                *,
+                dir_fd: int | None = None,
+            ) -> int:
+                if (flags & source.os.O_TMPFILE) == source.os.O_TMPFILE:
+                    raise OSError(errno.EOPNOTSUPP, "injected O_TMPFILE refusal")
+                return real_open(path, flags, mode, dir_fd=dir_fd)
+
+            with mock.patch.object(source.os, "open", side_effect=fail_tmpfile) as patched_open:
+                supported = set(source.os.supports_dir_fd)
+                supported.add(patched_open)
+                with mock.patch.object(source.os, "supports_dir_fd", supported):
+                    with self.assertRaisesRegex(
+                        source.MaterializationError,
+                        "could not prepare materialization transaction",
+                    ) as raised:
+                        source.materialize(
+                            self.root, self.pin_path, self.archive, replace_existing=True
+                        )
+            self.assertIsNotNone(raised.exception.__cause__)
+            self.assertIn("requires O_TMPFILE", str(raised.exception.__cause__))
+        elif failure_kind == "linkat":
+            real_link = source._linux_link_unnamed_file
+
+            def fail_both_linkat_routes(
+                descriptor: int, parent_descriptor: int, name: str
+            ) -> None:
+                real_libc = source._linux_libc()
+
+                def fail_linkat(*arguments: object) -> int:
+                    old_descriptor, old_name, new_descriptor, new_name, flags = arguments
+                    route_calls.append(
+                        (
+                            int(old_descriptor),
+                            bytes(old_name),
+                            int(new_descriptor),
+                            bytes(new_name),
+                            int(flags),
+                        )
+                    )
+                    error_number = (
+                        errno.EPERM if len(route_calls) == 1 else errno.EOPNOTSUPP
+                    )
+                    ctypes.set_errno(error_number)
+                    return -1
+
+                linkat = mock.Mock(side_effect=fail_linkat)
+
+                class LibcProxy:
+                    def __getattr__(self, attribute: str) -> object:
+                        return getattr(real_libc, attribute)
+
+                proxy = LibcProxy()
+                proxy.linkat = linkat  # type: ignore[attr-defined]
+                with mock.patch.object(source, "_linux_libc", return_value=proxy):
+                    real_link(descriptor, parent_descriptor, name)
+
+            with mock.patch.object(
+                source,
+                "_linux_link_unnamed_file",
+                side_effect=fail_both_linkat_routes,
+            ):
+                with self.assertRaisesRegex(
+                    source.MaterializationError,
+                    "could not prepare materialization transaction",
+                ) as raised:
+                    source.materialize(
+                        self.root, self.pin_path, self.archive, replace_existing=True
+                    )
+            self.assertIsNotNone(raised.exception.__cause__)
+            self.assertIn(
+                "could not publish unnamed materialized output",
+                str(raised.exception.__cause__),
+            )
+            self.assertEqual(2, len(route_calls))
+            self.assertEqual(
+                (b"", source.AT_EMPTY_PATH),
+                (route_calls[0][1], route_calls[0][4]),
+            )
+            self.assertTrue(route_calls[1][1].startswith(b"/proc/self/fd/"))
+            self.assertEqual(
+                getattr(source.os, "AT_SYMLINK_FOLLOW", 0x400), route_calls[1][4]
+            )
+        else:
+            raise AssertionError(f"unknown failure kind: {failure_kind}")
+
+        self.assertEqual(
+            destination_identity, (destination.stat().st_dev, destination.stat().st_ino)
+        )
+        self.assertEqual(b"preserve", marker.read_bytes())
+        self.assertEqual(
+            ["original-marker"], sorted(path.name for path in destination.iterdir())
+        )
+        runtime = self.root / ".workflow-runtime" / "mipstarre-materialization"
+        failed = list(runtime.glob("MIPStarRE.transaction.failed-*"))
+        self.assertEqual(1, len(failed))
+        self.assertTrue((failed[0] / "transaction.json").is_file())
+        self.assertTrue((failed[0] / "stage" / "MIPStarRE" / "Quantum").is_dir())
+        self.assertFalse(
+            (failed[0] / "stage" / "MIPStarRE" / "Quantum" / "Measurement.lean").exists()
+        )
+        self.assertFalse((runtime / "MIPStarRE.transaction").exists())
+
+    def test_live_tmpfile_failure_preserves_destination_and_transaction(self) -> None:
+        self._assert_live_detached_failure_preserves_destination("tmpfile")
+
+    def test_live_both_linkat_route_failures_preserve_destination_and_transaction(self) -> None:
+        self._assert_live_detached_failure_preserves_destination("linkat")
+
     def test_retained_backup_contamination_is_refused_and_preserved(self) -> None:
         real_inventory = source._retained_transaction_inventory
         injected = False
@@ -1056,7 +1185,7 @@ class MaterializationTests(unittest.TestCase):
         self.assertTrue(injected)
         self.assertEqual(b"preserve", (evidence / "backup" / "unexpected").read_bytes())
 
-    def test_late_archive_and_authored_hard_links_prevent_publication(self) -> None:
+    def test_post_population_archive_and_authored_hard_links_prevent_publication(self) -> None:
         destination = self.root / "MIPStarRE"
         authored = destination / "QPBT"
         authored.mkdir(parents=True)
