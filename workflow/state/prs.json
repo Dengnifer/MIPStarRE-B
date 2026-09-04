@@ -10247,7 +10247,7 @@
     {
       "id": "LPR-042",
       "title": "feat(QPBT/Game): strengthen classical LDT contract",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-082"
       ],
@@ -10310,7 +10310,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T05:16:30Z",
-      "updated_at": "2026-09-04T05:44:16.756068Z",
+      "updated_at": "2026-09-04T05:52:33.520874Z",
       "changed_paths": [
         "blueprint/check.py",
         "blueprint/generated/graph.json",
@@ -10321,11 +10321,11 @@
       ],
       "motivation": "Expose the seven source-faithful public characterization laws required to implement the classical LDT core without guessing opaque blueprint semantics.",
       "description": "Add exactly seven unconditional F09A laws, update the callable contract and fail-closed mutation coverage, and regenerate only affected deterministic blueprint outputs.",
-      "testing": "42/42 blueprint tests; default and pinned checker modes; 39-file/646-label reference verification; deterministic double generation; workflow validation; unrestricted 418/418 workflow tests; exact ownership and diff gates.",
+      "testing": "42/42 blueprint tests; default/pinned checks; 39-file/646-label reference verification; deterministic regeneration; unrestricted 418/418 workflow tests; A04 no-byte-change PR binding, exact ownership, and conflict-free merge against current main.",
       "addresses": "QPBT-082",
       "requested_external_review": true,
-      "unexecuted_gate": "A PR-bound no-byte-change integrator must authenticate both approvals, adopt the pre-PR producer, and prove a clean merge against current main.",
-      "review_status": "exact-head-approved-pr-binding-running",
+      "unexecuted_gate": "Guard-merge unchanged head 335ff621 into then-current main, run post-integration blueprint/reference/workflow gates, and share the next singleton full Lean build with the QPBT-068 production acceptance wave.",
+      "review_status": "approved-exact-head-integration-ready",
       "candidate_producer_session_id": "i082-orchestrator-a01-f09a-contract",
       "candidate_producer_binding_note": "The writer was dispatched before LPR-042 existed, so its immutable pr_id is null; preserve that authority and bind a later writable integration-preparation session if no repair writer is needed.",
       "review_session_ids": [
@@ -10337,7 +10337,9 @@
         "i082-integrator-a04-pr-bind"
       ],
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-082-review-manifest-a02.json",
-      "review_manifest_sha256": "2018b97cef5141ac393f19ca6cd26ed5641369e9e211191889c30849d8a8c469"
+      "review_manifest_sha256": "2018b97cef5141ac393f19ca6cd26ed5641369e9e211191889c30849d8a8c469",
+      "integration_preparation_report": "/tmp/i082-integrator-a04-pr-bind.md",
+      "integration_preparation_report_sha256": "5d54d27590301ec2472780922d71a32f1612b7d87df56df92931404cf5ef8393"
     }
   ]
 }

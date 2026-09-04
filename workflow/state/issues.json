@@ -5150,9 +5150,13 @@
         "MIPStarRE/QPBT/Quantum/ProjectiveMeasurement.lean"
       ],
       "created_at": "2026-09-03T18:48:53.258232Z",
-      "updated_at": "2026-09-03T21:52:35.635490Z",
-      "blocked_reason": "The operator-consistency state layer and the certified F03 binary-observable surface are not yet implemented.",
-      "unblock_condition": "QPBT-072 and QPBT-079 are done."
+      "updated_at": "2026-09-04T05:49:01.088602Z",
+      "blocked_reason": "QPBT-072 and QPBT-079 are frozen drafts, not integrated proof-complete dependencies.",
+      "unblock_condition": "Integrate and validate QPBT-072 and QPBT-079, then dispatch one writer for ProjectiveMeasurement.lean using the A56 contract.",
+      "source_scout_report": "/tmp/i005-scout-a56-projective-plan.md",
+      "source_scout_report_sha256": "91dce40befee5cf84030bfdf988a110623ad10c61c5f6ec7bfe55c84c2d4165f",
+      "source_scout_verdict": "ready-after-integrated-dependencies",
+      "contract_correction": "Consume QPBT-079 BinaryObservable certified subtype and observableOfMeasurement; do not add the obsolete raw BinaryObservable function or public IsBinaryObservable predicate."
     },
     {
       "id": "QPBT-077",
@@ -5558,10 +5562,10 @@
         "workflow/reviews/qpbt-074-game-contract-a01.md"
       ],
       "created_at": "2026-09-04T00:59:00Z",
-      "updated_at": "2026-09-04T05:43:09.636146Z",
-      "blocked_reason": "The exact seven-law candidate is approved; its pre-PR producer now requires an immutable PR-bound adoption session.",
-      "unblock_condition": "A PR-bound integrator authenticates the unchanged candidate and proves a clean merge against current main.",
-      "candidate_status": "reviewed-head-approved-pr-binding-pending",
+      "updated_at": "2026-09-04T05:52:32.595346Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
+      "candidate_status": "approved-exact-head-integration-ready",
       "candidate_base_sha": "ef827ef4e6c965c0051a6feac64e1842f83f872c",
       "candidate_head_sha": "335ff621459dc86a4d8d60cfb39988db212ab24e",
       "candidate_tree": "a859c85a3647785e765597051458b6b71d73a3af",
@@ -5578,7 +5582,9 @@
       "latest_source_review_report": "/tmp/i082-reviewer-a02-source-fidelity.md",
       "latest_source_review_report_sha256": "1177ecf339b66b69321358518ba6fc8e3cc620b419e680954ca1518be5b646d6",
       "latest_regression_review_report": "/tmp/i082-reviewer-a03-regression.md",
-      "latest_regression_review_report_sha256": "256afbc7330e63e0b252e7699317c190dcab70c2e3c51f91f67e6d00d8216838"
+      "latest_regression_review_report_sha256": "256afbc7330e63e0b252e7699317c190dcab70c2e3c51f91f67e6d00d8216838",
+      "pr_binding_report": "/tmp/i082-integrator-a04-pr-bind.md",
+      "pr_binding_report_sha256": "5d54d27590301ec2472780922d71a32f1612b7d87df56df92931404cf5ef8393"
     }
   ]
 }
