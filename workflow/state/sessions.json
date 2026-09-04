@@ -132,6 +132,61 @@
       "attempt": 3,
       "validation_command": "Authenticate project and pinned Mathlib APIs and proof precedents for F09A; report without writes or builds.",
       "result_envelope_path": "/tmp/i075-scout-a03-api-precedents.md"
+    },
+    {
+      "id": "i069-scout-a05-post-cache-launch",
+      "name": "i069-scout-a05-post-cache-launch",
+      "role": "scout",
+      "issue_id": "QPBT-069",
+      "attempt": 5,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "notes": "Dry-run correctly refused issue status blocked; retained only as an unissued post-QPBT-068 preflight reservation."
+    },
+    {
+      "id": "i071-scout-a04-post-cache-launch",
+      "name": "i071-scout-a04-post-cache-launch",
+      "role": "scout",
+      "issue_id": "QPBT-071",
+      "attempt": 4,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "notes": "Dry-run correctly refused issue status blocked; retained only as an unissued post-QPBT-068 preflight reservation."
+    },
+    {
+      "id": "i072-scout-a04-post-cache-launch",
+      "name": "i072-scout-a04-post-cache-launch",
+      "role": "scout",
+      "issue_id": "QPBT-072",
+      "attempt": 4,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "notes": "Dry-run correctly refused issue status blocked; retained only as an unissued post-QPBT-068 preflight reservation."
+    },
+    {
+      "id": "i073-scout-a03-post-cache-launch",
+      "name": "i073-scout-a03-post-cache-launch",
+      "role": "scout",
+      "issue_id": "QPBT-073",
+      "attempt": 3,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "notes": "Dry-run correctly refused issue status blocked; retained only as an unissued post-QPBT-068 preflight reservation."
+    },
+    {
+      "id": "i079-scout-a04-post-cache-launch",
+      "name": "i079-scout-a04-post-cache-launch",
+      "role": "scout",
+      "issue_id": "QPBT-079",
+      "attempt": 4,
+      "status": "planned",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "notes": "Dry-run correctly refused issue status blocked; retained only as an unissued post-QPBT-068 preflight reservation."
     }
   ],
   "issued": [
@@ -38455,6 +38510,38 @@
       "archive_status": "not_requested",
       "outcome_path": null,
       "external_id": "/root/i068_reviewer_a39_integration_regression"
+    },
+    {
+      "id": "i005-scout-a58-disk-lane-capacity",
+      "name": "i005-scout-a58-disk-lane-capacity",
+      "role": "scout",
+      "issue_id": "QPBT-005",
+      "attempt": 58,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "backend": "codex-collaboration",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "d75203647c6a1463df9d8206e3ea9bebed5cf939",
+      "base_revision_reason": "Current canonical main after immutable cache-review launch; read-only disk audit is independent of candidate code.",
+      "base_tree": "ea7054874c51df3b1c486906d03ff6032d910cd7",
+      "worktree": "/home/drx/MIPStarRE-auto",
+      "owned_paths": [],
+      "validation_command": "Read-only inventory of B-track registered worktrees and B-track /tmp checkouts: measure allocated size, process use, tracked/untracked state, branch/ref reachability, unpushed commits, canonical session/issue liveness, and exact candidates needed for QPBT-068/069/071/072/073/079; estimate headroom for one production hot-main cache and five private issue caches; recommend only authenticated safe removals and never touch /home/drx/MIPStarRE-qpbt or track A; report /tmp/i005-scout-a58-disk-lane-capacity.md without mutation.",
+      "result_envelope_path": "/tmp/i005-scout-a58-disk-lane-capacity.md",
+      "started_at": "2026-09-04T06:13:33.456415Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "external_id": "/root/i005_scout_a58_disk_lane_capacity"
     }
   ]
 }
