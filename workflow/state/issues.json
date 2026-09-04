@@ -4879,7 +4879,7 @@
       "title": "feat(QPBT/Game): prove normalized strategy outcome weights",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "ready",
       "parent_id": "QPBT-015",
       "dependency_ids": [
         "QPBT-042"
@@ -4898,7 +4898,7 @@
         "Reuse project and Mathlib finite-sum/inner-product lemmas, introduce zero new sorry/axiom/constant/public assumptions, and keep imports minimal and acyclic.",
         "Pass scoped elaboration, affected target, exact signature/axiom/debt probes, blueprint synchronization after QPBT-074, one private full build, immutable review, and guarded integration."
       ],
-      "owner_session_id": "i073-orchestrator-a04-elaboration",
+      "owner_session_id": "i073-orchestrator-a07-elaboration",
       "source_refs": [
         "/tmp/i005-scout-a42-magic-operator-api.md:548-610",
         "MIPStarRE/QPBT/Game/Semantics.lean",
@@ -4908,7 +4908,7 @@
         "MIPStarRE/QPBT/Game/ValueOne.lean"
       ],
       "created_at": "2026-09-03T18:48:53.258232Z",
-      "updated_at": "2026-09-04T13:34:24.713627Z",
+      "updated_at": "2026-09-04T13:57:36.356330Z",
       "blocked_reason": null,
       "unblock_condition": "Scoped elaboration proceeds against the authenticated published cache; private full build, immutable review, and PR integration remain required.",
       "candidate_status": "scoped-elaboration-in-progress",
@@ -4918,7 +4918,11 @@
       "source_api_review_report": "/tmp/i073-reviewer-a02-source-api.md",
       "source_api_review_report_sha256": "ce0143780a04335b22be9a66db68182c7a7112766e8e31429279ee65c4ec20d5",
       "source_api_review_manifest_sha256": "09965fa2b31f0f26f5dea87a9bbc8f22e3d3ad3e551220eb2eec968c82a2130e",
-      "source_api_review_verdict": "approve"
+      "source_api_review_verdict": "approve",
+      "github_issue_number": 39,
+      "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/39",
+      "github_pr_number": 41,
+      "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/41"
     },
     {
       "id": "QPBT-074",
@@ -5345,7 +5349,7 @@
       "title": "feat(QPBT/Basic): complete certified binary-observable boundary",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "ready",
       "parent_id": "QPBT-013",
       "dependency_ids": [
         "QPBT-046"
@@ -5365,7 +5369,7 @@
         "Introduce no sorry, admit, axiom, constant, bridge, residual, repair, witness, package, producer, generic hypotheses, or duplicate raw observable API.",
         "Pass private scoped Lean, affected target, exact API/axiom/debt/import probes, blueprint synchronization, one private full build, fresh immutable mathematical review, and guarded integration."
       ],
-      "owner_session_id": "i079-orchestrator-a07-elaboration",
+      "owner_session_id": "i079-orchestrator-a09-elaboration",
       "source_refs": [
         "references/2001.04383v3/sections/dependencies/measurements.tex:14-19",
         "references/2001.04383v3/sections/dependencies/magic-square.tex:147-173",
@@ -5379,7 +5383,7 @@
         "MIPStarRE/QPBT/Basic/Approximation.lean"
       ],
       "created_at": "2026-09-03T21:51:22.513599Z",
-      "updated_at": "2026-09-04T13:30:03.855712Z",
+      "updated_at": "2026-09-04T13:55:59.907979Z",
       "blocked_reason": null,
       "unblock_condition": "Scoped elaboration proceeds immediately against the authenticated published cache in read-only mode; private prepare, full build, immutable post-build review, and PR integration remain required.",
       "planning_report": "/tmp/i005-scout-a53-f03-completion.md",
@@ -5397,7 +5401,11 @@
       "lean_static_review_report": "/tmp/i079-reviewer-a03-lean-static.md",
       "lean_static_review_report_sha256": "65c41ca8c9452127964db3380bcb5631f0f56a765f2b1f702efd3d7401f0a191",
       "lean_static_review_verdict": "approve",
-      "latest_review_findings": []
+      "latest_review_findings": [],
+      "github_issue_number": 40,
+      "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/40",
+      "github_pr_number": 42,
+      "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/42"
     },
     {
       "id": "QPBT-080",
