@@ -320,7 +320,45 @@
         "blueprint/src/chapter/"
       ],
       "created_at": "2026-08-30T09:31:33+08:00",
-      "updated_at": "2026-08-30T23:54:39.078758Z"
+      "updated_at": "2026-09-03T19:18:21.522371Z",
+      "latest_dag_review_report": "/tmp/i005-reviewer-a46-issue-dag.md",
+      "latest_dag_review_report_sha256": "81c549622be1459c7fd41a743021a6ea8459e72988146ff8ce2dc888e42f15c0",
+      "latest_dag_review_verdict": "request_changes",
+      "latest_dag_review_findings": [
+        {
+          "id": "F046-A46-001",
+          "severity": "high",
+          "status": "resolved",
+          "path": "workflow/state/issues.json",
+          "summary": "QPBT-074's A41 source range omitted the exact declarations and laws it must freeze.",
+          "resolution_evidence": "The QPBT-074 source anchor now spans A41 lines 161-596, including the proposal, exact public declarations, laws, integrity tables, and acceptance gates."
+        },
+        {
+          "id": "F046-A46-002",
+          "severity": "high",
+          "status": "resolved",
+          "path": "workflow/state/issues.json",
+          "summary": "QPBT-075 assigned malformed decoding to the typed LDT layer and omitted the paper's unlisted-pair accept default.",
+          "resolution_evidence": "QPBT-075 now states the exact typed four-way semantics and assigns malformed outer tag rejection only to the later G02 codec/verifier."
+        },
+        {
+          "id": "F046-A46-003",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "workflow/state/issues.json",
+          "summary": "QPBT-078 did not resolve overlapping A41/A43 advice for line and polynomial declarations.",
+          "resolution_evidence": "QPBT-078 now explicitly reuses QPBT-075's ClassicalLDT declarations and limits Verifier ownership to QPBT tags, fibers/codecs, branch support, and gamma."
+        },
+        {
+          "id": "F046-A46-004",
+          "severity": "low",
+          "status": "resolved",
+          "path": "workflow/state/issues.json",
+          "summary": "QPBT-015 retained write ownership of the completed QPBT-077 MagicSquare surface.",
+          "resolution_evidence": "QPBT-015 now owns only Verifier.lean and retains MagicSquare.lean solely as a read-only integration prerequisite."
+        }
+      ],
+      "latest_dag_review_disposition": "All four issue-contract findings were applied by the root coordinator before dependent dispatch; fresh confirmation remains required."
     },
     {
       "id": "QPBT-006",
@@ -758,7 +796,9 @@
       "status": "planned",
       "parent_id": "QPBT-005",
       "dependency_ids": [
-        "QPBT-014"
+        "QPBT-014",
+        "QPBT-077",
+        "QPBT-078"
       ],
       "labels": [
         "lean",
@@ -768,11 +808,11 @@
         "exact-ownership"
       ],
       "acceptance_gates": [
-        "Only MIPStarRE/QPBT/Game/MagicSquare.lean and MIPStarRE/QPBT/Game/Verifier.lean are owned",
-        "MagicSquare type-checks before Verifier and both use only accepted upstream interfaces",
-        "The seven QPBT checks are typed and exhaustive according to the blueprint",
-        "No sorry, axiom, or proof-debt constant is introduced",
-        "The scoped Lean build and declaration-integrity checks pass"
+        "Only MIPStarRE/QPBT/Game/Verifier.lean is writable; MIPStarRE/QPBT/Game/MagicSquare.lean is a read-only integrated prerequisite owned by QPBT-077.",
+        "MagicSquare type-checks before Verifier and Verifier uses only accepted upstream interfaces.",
+        "The seven QPBT checks are typed and exhaustive according to the blueprint.",
+        "No sorry, axiom, or proof-debt constant is introduced.",
+        "The scoped Lean build and declaration-integrity checks pass."
       ],
       "owner_session_id": null,
       "source_refs": [
@@ -780,11 +820,22 @@
         "blueprint/metadata/nodes.json#G02-GAME"
       ],
       "owned_paths": [
-        "MIPStarRE/QPBT/Game/MagicSquare.lean",
         "MIPStarRE/QPBT/Game/Verifier.lean"
       ],
       "created_at": "2026-08-30T23:54:39.078758Z",
-      "updated_at": "2026-08-30T23:54:39.078758Z"
+      "updated_at": "2026-09-03T19:18:21.227310Z",
+      "contract_audit_report": "/tmp/i005-scout-a39-game-contract.md",
+      "contract_audit_report_sha256": "d6cfc37a310fe7df2b16a5232f1f9cb47c0c8d4fae70930be6a549cb7be9c14f",
+      "contract_audit_verdict": "block",
+      "missing_prerequisite_surfaces": [
+        "canonical-line-conditionally-linear-maps",
+        "level-one-low-degree-decider",
+        "magic-square-tensor-measurement-construction"
+      ],
+      "blocked_reason": "The final game assembly waits on the perfect Magic Square strategy and finite verifier support.",
+      "unblock_condition": "QPBT-014, QPBT-077, and QPBT-078 are done; then dispatch the existing QPBT-015 orchestrator for the remaining total verifier/game assembly.",
+      "contract_review_finding": "F046-A46-004",
+      "contract_review_resolution": "The final assembly writer is narrowed to Verifier.lean; MagicSquare.lean remains read-only validation input."
     },
     {
       "id": "QPBT-016",
@@ -819,7 +870,18 @@
         "MIPStarRE/QPBT/Soundness.lean"
       ],
       "created_at": "2026-08-30T23:54:39.078758Z",
-      "updated_at": "2026-08-30T23:54:39.078758Z"
+      "updated_at": "2026-09-03T17:42:47.705320Z",
+      "contract_audit_report": "/tmp/i005-scout-a40-soundness-contract.md",
+      "contract_audit_report_sha256": "4873ca375a79994bd8cb5800e57f86015121e12f8ed09b97e55b5173bb6baca6",
+      "contract_audit_verdict": "block",
+      "missing_blueprint_dependencies": [
+        "A03-WIN",
+        "A14-PAULI-HELPER",
+        "N01-NAIMARK",
+        "R05-ROBUSTNESS"
+      ],
+      "blocked_reason": "The exact soundness contract depends on QPBT-015 game and decoder signatures plus A03, A14, N01, and R05 declarations that are not represented by the current issue dependencies.",
+      "unblock_condition": "Freeze and integrate QPBT-015, map A03, A14, N01, and R05 to delivery issues, and declare the exact shared root import owner before dispatch."
     },
     {
       "id": "QPBT-017",
@@ -2055,7 +2117,7 @@
       "title": "feat(QPBT/Game): integrate Types interfaces through sequential proof gates",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "blocked",
+      "status": "done",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-013",
@@ -2081,7 +2143,7 @@
         "Do not close this parent until all three direct children are done and the combined 81-name Types surface passes exact import, declaration, source-fidelity, and clean private full-build checks; QPBT-061 separately discharges the two F06A holes in Stage 4C.",
         "Retain the QPBT-038 A01 rejected candidate and A03 compiler blocker only as negative evidence; never reuse degenerate definitions or expose compiler obligations publicly."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i038-orchestrator-a16-close-types",
       "source_refs": [
         "workflow/reviews/qpbt-038-types-a01.md",
         "workflow/reviews/qpbt-038-types-decomposition-a02.md",
@@ -2096,22 +2158,37 @@
       ],
       "owned_paths": [],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-03T01:30:21.567619Z",
-      "blocked_reason": "The sequential Types parent awaits the reviewed QPBT-057 minimal F06A skeleton, followed by QPBT-058.",
-      "unblock_condition": "Complete and independently review QPBT-057 and QPBT-060, then implement QPBT-058 and run the combined Types gate; discharge the exact F06A proof debt later under QPBT-061."
+      "updated_at": "2026-09-03T17:10:28.227683Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
+      "closure_report": "/tmp/i038-orchestrator-a16-close-types.md",
+      "closure_report_sha256": "239d6f0e00f5919e13385a3c00c7ce566bde56561e2128a61b05ba29b2130200",
+      "closure_verdict": "close",
+      "closure_audit_report": "/tmp/i038-auditor-a15-types-closure.md",
+      "closure_audit_report_sha256": "5f80578c9e0a47322a0058199968b5ab3c910077f30cc0ca8f7bff38971c2091",
+      "integrated_surface": {
+        "commit": "8d209d6d2b17d96d0f96c2a9b2f95495c57561eb",
+        "tree": "c234100c01d4b11398e4c098ada6dd28e7e64932",
+        "declarations": 81,
+        "imports": 4,
+        "authorized_sorries": 2,
+        "build_jobs": 8992,
+        "cache_key": "21a7b15fd273fef0829d2ef790f152e6e0af02d4ba75a905e0583a758bcac187"
+      }
     },
     {
       "id": "QPBT-040",
       "title": "Validate the combined QPBT-014 Lean snapshot",
       "kind": "audit",
       "execution_category": "preflight",
-      "status": "planned",
+      "status": "blocked",
       "parent_id": "QPBT-014",
       "dependency_ids": [
         "QPBT-036",
         "QPBT-037",
         "QPBT-038",
-        "QPBT-039"
+        "QPBT-039",
+        "QPBT-069"
       ],
       "labels": [
         "lean",
@@ -2126,22 +2203,34 @@
         "Seed one private integration worktree, run four scoped checks, four target builds, declaration/source synchronization, an exact Stage-4A debt scan permitting only the four blueprint-declared theorem-body holes, and exactly one combined lake build.",
         "Record cache key, hit or miss, lock wait, build count and duration, candidate identity, statement-integrity summary, exact allowed-debt inventory, and independent review disposition."
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i040-orchestrator-a01-combined",
       "source_refs": [
         "workflow/reviews/qpbt-033-q014-split-a01.md#QPBT-040--Validate-the-combined-QPBT-014-snapshot-no-PR"
       ],
-      "owned_paths": [],
+      "owned_paths": [
+        "workflow/reviews/qpbt-040-q014-combined-a01.md"
+      ],
       "created_at": "2026-09-01T12:59:00Z",
-      "updated_at": "2026-09-03T01:30:30.099718Z",
-      "blocked_reason": "All four QPBT-014 Lean child issues must be reviewed and integrated first.",
-      "unblock_condition": "QPBT-036, QPBT-037, QPBT-038, and QPBT-039 done."
+      "updated_at": "2026-09-04T01:10:35.172260Z",
+      "blocked_reason": "The A01 combined import gate found duplicate generated local Galois-field instance names between Pauli and Types.",
+      "unblock_condition": "Integrate the independently reviewed QPBT-069 one-file repair, then rerun the exact combined import and snapshot gates in a fresh QPBT-040 attempt.",
+      "validated_snapshot": {
+        "commit": "8d209d6d2b17d96d0f96c2a9b2f95495c57561eb",
+        "tree": "c234100c01d4b11398e4c098ada6dd28e7e64932",
+        "state_only_successor": "c6f5032cedfd1b77160487e5acfc83ad39cdac16"
+      },
+      "latest_report": "workflow/reviews/qpbt-040-q014-combined-a01.md",
+      "latest_report_sha256": "6faab1e2352ac10c6bb03724a5d6c59f2333b84c40208a6fdd8084c4fbfc9aea",
+      "latest_verdict": "block",
+      "latest_finding_count": 1,
+      "worktree_retirement": "Clean 9.9 GB worktree /tmp/qpbt-040-combined-a01 removed under owner disk-recovery authorization; branch issue/qpbt-040-combined-a01 remains at afd80a4c3642bed2b3e465d0fb97cbb207939e34 and may be recreated only when its combined gate is ready."
     },
     {
       "id": "QPBT-044",
       "title": "Prevent guessed full SHAs in local workflow admission",
       "kind": "workflow",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-026",
@@ -2164,7 +2253,7 @@
         "Add focused and aggregate regressions for valid symbolic refs, exact commits, nonexistent full-looking SHAs, tree mismatch, PR-base versus detached-head identity, and atomic no-mutation failure",
         "Make the smallest sufficient tooling/protocol change, update protocols/CHANGELOG.md with evidence and measured impact, and obtain a fresh independent immutable review before integration"
       ],
-      "owner_session_id": "i044-orchestrator-a05-git-boundary",
+      "owner_session_id": "i044-orchestrator-a17-repository-binding",
       "source_refs": [
         "research/metrics/incidents.jsonl#INC-050",
         "research/metrics/incidents.jsonl#INC-058",
@@ -2185,46 +2274,113 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-01T15:46:00Z",
-      "updated_at": "2026-09-03T13:30:15.516693Z",
+      "updated_at": "2026-09-03T19:24:37.549367Z",
       "blocked_reason": null,
-      "unblock_condition": "Repair all three unique immutable-review findings on a changed head, rerun focused and aggregate gates, then obtain a fresh independent review.",
-      "candidate_base_sha": "08b12a8cc7e9f0464f1842d0074884c96ddff832",
-      "candidate_head_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
-      "candidate_tree": "be838788587d092d1be7671467deee2e2b7d3644",
-      "candidate_patch_sha256": "3ea932d2ccf0dffd0df312e7f2fa6fe8b548c29b36351a0408841cdab43ca927",
-      "candidate_report": "/tmp/i044-orchestrator-a01-git-identity.md",
-      "candidate_report_sha256": "e29321cf266dfb580335ef223d5ac6f9be44ab866f2f18622925a5547f11309b",
-      "candidate_status": "changes-requested",
-      "review_report": "/tmp/i044-reviewer-a02-git-identity.md",
-      "review_manifest_sha256": "559f0ddaa9a40cc80f54fc73f5f521e7cdb0605d89808dacb38dad892ae7167b",
-      "review_head_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
-      "review_verdict": "request_changes",
-      "secondary_review_report": "/tmp/i044-reviewer-a03-regression.md",
-      "secondary_review_manifest_sha256": "aeb5452bf27b5187f21fff8441cc9684fcdbe21015e27f4cc02047b2f354eefd",
-      "secondary_review_verdict": "request_changes",
+      "unblock_condition": null,
+      "candidate_base_sha": "78f382ffa48216373d7e75ecfc1651091803fc17",
+      "candidate_head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+      "candidate_tree": "5135d16808d85d40ee841fc4bb88ff7edc143e31",
+      "candidate_patch_sha256": "1490a68baf0038c2a6f526346a92317a3c320f8c8eb8def6ef89ff2c9a2f4249",
+      "candidate_report": "/tmp/i044-orchestrator-a17-repository-binding.md",
+      "candidate_report_sha256": "d47e03898e8d4370008489119c2e29185dfa6727f7eaca8ec5fdcdab9fa8b1e1",
+      "candidate_status": "integrated",
+      "review_report": "/tmp/i044-reviewer-a18-repository-binding.md",
+      "review_manifest_sha256": "d4be7775be9cf56d26006e86dd4ba0e7280eb81d551d764b2a6aeaee49466ed8",
+      "review_head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+      "review_verdict": "approve",
+      "secondary_review_report": "/tmp/i044-reviewer-a19-regression.md",
+      "secondary_review_manifest_sha256": "d4be7775be9cf56d26006e86dd4ba0e7280eb81d551d764b2a6aeaee49466ed8",
+      "secondary_review_verdict": "approve",
       "review_findings": [
         {
           "id": "F044-A02-001",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/git_identity.py:128",
-          "summary": "Unqualified symbolic refs can be ambiguous across branch and tag namespaces while successful Git stderr warnings are discarded."
+          "summary": "Unqualified symbolic refs can be ambiguous across branch and tag namespaces while successful Git stderr warnings are discarded.",
+          "resolution_evidence": "The cumulative candidate rejects ambiguous names and authenticates symbolic and direct identities through descriptor-bound Git children; A18 and A19 approved the exact head."
         },
         {
           "id": "F044-A02-002",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/git_identity.py:112",
-          "summary": "The resolver authenticates a transient symlink-resolved root but the issued row retains the mutable lexical worktree path without a stable filesystem-identity recheck."
+          "summary": "The resolver authenticates a transient symlink-resolved root but the issued row retains the mutable lexical worktree path without a stable filesystem-identity recheck.",
+          "resolution_evidence": "The cumulative candidate retains and rechecks the worktree directory identity through publication; A18 and A19 approved the exact head."
         },
         {
           "id": "F044-A03-001",
           "severity": "medium",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/git_identity.py:32",
-          "summary": "Object proof in a partial clone can trigger unpinned lazy fetch and credential-helper activity because GIT_NO_LAZY_FETCH is not set."
+          "summary": "Object proof in a partial clone can trigger unpinned lazy fetch and credential-helper activity because GIT_NO_LAZY_FETCH is not set.",
+          "resolution_evidence": "The cumulative candidate supplies a minimal no-fetch and non-interactive Git environment; both final reviewers verified the missing-promisor regression."
+        },
+        {
+          "id": "F044-A06-001",
+          "severity": "high",
+          "status": "resolved",
+          "path": "scripts/git_identity.py:99",
+          "summary": "Pathname pre/post inode checks permit a swap-run-restore ABA substitution while the Git child resolves its working directory.",
+          "resolution_evidence": "The cumulative candidate runs Git through retained worktree and repository metadata descriptors and reauthenticates them through publication; A18 and A19 approved the exact head."
         }
-      ]
+      ],
+      "repair_parent_sha": "546e6dcad0e16c53c5ced59e25b7f9c78f13a467",
+      "repair_patch_sha256": "9170384aebc72d25f7c6ab502cd8f929846a8767479d4a89801fa765db756e8d",
+      "latest_review_report": "/tmp/i044-reviewer-a22-evidence.md",
+      "latest_review_report_sha256": "67383ec60b21b56b93b68ce61c9db4252a45785ee4ba51da254f4f6709ae968d",
+      "latest_review_manifest_sha256": "bb9e8a5d2818a8771a8774e0849c8ee71eb5dfabdcd6bb500094fc445f1c44d8",
+      "latest_review_head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+      "latest_review_verdict": "approve",
+      "approval_review_report_a09": "/tmp/i044-reviewer-a09-fd-immutable.md",
+      "approval_review_report_a09_sha256": "8b3d5202700029feefd291c56fac1d0e2f536aebc1c308492df8b90341891cb2",
+      "latest_review_findings": [
+        {
+          "id": "F044-A13-001",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "scripts/git_identity.py:18",
+          "summary": "SHA-256 repositories accepted a 40-hex commit prefix as a full identity.",
+          "resolution_evidence": "A14 queries descriptor-bound Git input object formats and adds resolver and workflow regressions."
+        },
+        {
+          "id": "F044-A15-001",
+          "severity": "high",
+          "status": "resolved",
+          "path": "scripts/git_identity.py:254",
+          "summary": "A separately queried object format could come from transiently substituted Git metadata.",
+          "resolution_evidence": "A17 retains and reauthenticates repository metadata descriptors across every Git child and publication boundary."
+        },
+        {
+          "id": "F044-A16-001",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "scripts/git_identity.py:363",
+          "summary": "Lexical normalization could erase a symlink followed by dot-dot before the no-follow walk.",
+          "resolution_evidence": "A17 rejects dot-dot in the supplied lexical path before normalization and adds exact resolver and workflow regressions."
+        },
+        {
+          "id": "F044-A21-001",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "workflow/state/prs.json",
+          "summary": "LPR-037 overstates separate sandbox aggregate and host follow-up evidence as an effective 418/418 aggregate run.",
+          "resolution_evidence": "A22 authenticated the structured correction and exact testing summary; the ledger defect was real but never a candidate-head defect, so LPR-037 records disposition rejected for candidate remediation."
+        }
+      ],
+      "repair_parent_patch_sha256": "b397bb72d4b4ee988220eac143c8ba3fc8ae8b7f326b7396054cda160e8a6d2b",
+      "secondary_review_report_sha256": "f7ded2d61fce4f8f26434d9c8c490dcfee3a1c11c7da7399df117cd6f7b1d9c5",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-044-review-manifest-a18.json",
+      "review_report_sha256": "ff3d3764c0af36660d13052e0c4cf55ae6ed0753a43bfdeccfc5f5825fac7391",
+      "integration_sha": "4ee8ccda11bf15dcaab7bf5a3fc15bbd34cdb109",
+      "integration_tree": "8771fe631097d1108fe04766948e433fa4e0d9e2",
+      "integration_patch_sha256": "095dbf4e5e9ff66a7c676d976e29a16a2cfd4c7dfa81f607d54cd1afcbdcc668",
+      "postintegration_validation": {
+        "identity_tests": "18/18",
+        "workflow_tests": "94/94",
+        "compileall": "passed",
+        "workflow_validate": "passed"
+      }
     },
     {
       "id": "QPBT-041",
@@ -2321,11 +2477,13 @@
       "title": "feat(QPBT/Game): formalize graph simulation and verifier detyping",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "blocked",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-038",
-        "QPBT-042"
+        "QPBT-042",
+        "QPBT-068",
+        "QPBT-080"
       ],
       "labels": [
         "lean",
@@ -2337,29 +2495,147 @@
         "exact-ownership"
       ],
       "acceptance_gates": [
-        "Implement only MIPStarRE/QPBT/Game/Detyping.lean for all 20 F07A-DETYPING callables over pinned types.tex generated lines 197-579",
-        "Reuse QPBT-038 F06/F07 typed interfaces and QPBT-042 F04A game semantics; retain the finite nonempty type graph and do not reassign any detyping obligation to K03 or K04",
-        "Publish typed normal-form verifier/game formation, graph sampler/event, exact event probability and conditioned type law, all four detyping constructions, completeness, soundness and entanglement loss with exact factor 16^|Type|, level ell+2, dimension 4|Type|+s(n), and separate sampler/decider/description runtime clauses",
-        "Freeze an explicit faithful executable representation and cost model before runtime theorems. As a Stage-04B declaration skeleton, an individually tracked sorry is permitted only in a theorem body with an exact frozen statement; inventory it for QPBT-047. No theorem clause may be replaced by a caller-supplied obligation, generic implication, arbitrary package, producer, witness assumption, axiom, or proof-debt constant",
-        "Seed a private exact-main cache, pass scoped Lean, affected target, declaration/source synchronization, owned-scope debt/import scans, and one private full build; obtain fresh immutable source-fidelity review",
-        "Record the complete F07A statement-integrity table, all 20 callables and exact formulas, source/report hashes, the complete tracked-sorry inventory, paper-gap notes for any genuinely missing proof step, and reviewer dispositions"
+        "Implement MIPStarRE/QPBT/Game/DetypingMachine.lean as proof-complete F07A support: finite program syntax/interpreter, five/seven tape packing, bounded type codec, actual executions, raw-domain uniform bounds, and distinct sampler/decider compilers.",
+        "Implement MIPStarRE/QPBT/Game/Detyping.lean with exactly four typed sampler query modes and invalid-type zero behavior; typed and ordinary deciders are total operational machines.",
+        "Make TypedSampler.detype return the existing F06A ExecutableCLSampler with an exact CLQueryDecomposition, compiled machine, actual query executions, and execution-derived time; do not duplicate ExecutableSampler or SamplerQuery.",
+        "Make question and answer projection, zero extension, retraction, width domination, exact parsing, predicate agreement, and measurement/PCC transport explicit; add no premise to a paper-labelled theorem.",
+        "State both runtime theorems with separate outermost universal constants, the source product, and exact positive displayed-argument handling without inventing 0<n; raw decider time is not a finite-valid-query maximum.",
+        "Make both description compilers produce the programs used by target objects; provide encoding roundtrips, interpreter correctness, distinct tags, malformed-code behavior, and actual polynomial-time compiler witnesses.",
+        "Retain exactly the 20 canonical F07A names plus only the reviewed support allowlist; correct decodeViews conjunction syntax and document fixed-prefix and self-delimiting codecs separately.",
+        "During Stage-04B, only exact reviewed paper theorem bodies may contain tracked sorry; machine/interpreter/compiler support contains none. Record the full A08 statement-integrity table and G24 documented mismatch.",
+        "After QPBT-068 and QPBT-080, seed a private cache and pass scoped Lean, target build, blueprint synchronization, debt/assumption/API scans, one private full build, and fresh mathematical plus operational review."
       ],
       "owner_session_id": null,
       "source_refs": [
         "blueprint/metadata/nodes.json#F07A-DETYPING",
         "workflow/state/issues.json#QPBT-047",
-        "workflow/reviews/qpbt-035-detype-source-a05.md",
-        "workflow/reviews/qpbt-035-game-semantics-api-a08.md",
-        "workflow/reviews/qpbt-035-q014-contract-a07.md",
-        "references/2001.04383v3/sections/dependencies/types.tex:197-579"
+        "workflow/state/issues.json#QPBT-080",
+        "/tmp/i043-scout-a08-source-boundary.md",
+        "/tmp/i043-scout-a06-operational-repair.md",
+        "references/2001.04383v3/sections/dependencies/types.tex:95-218,197-579",
+        "references/2001.04383v3/sections/top-level/preliminaries.tex:19-32,77-137,171-200",
+        "references/2001.04383v3/sections/top-level/nonlocal-games.tex:612-678"
       ],
       "owned_paths": [
+        "MIPStarRE/QPBT/Game/DetypingMachine.lean",
         "MIPStarRE/QPBT/Game/Detyping.lean"
       ],
       "created_at": "2026-09-01T15:49:00Z",
-      "updated_at": "2026-09-01T15:58:02.251253Z",
-      "blocked_reason": "QPBT-038 must supply F06/F07 and QPBT-042 must supply F04A before detyping can elaborate.",
-      "unblock_condition": "QPBT-038 and QPBT-042 done."
+      "updated_at": "2026-09-04T00:25:27.628027Z",
+      "blocked_reason": "Authenticated A08 confirms eight candidate defects and G24-G26. QPBT-080 must freeze the source boundary, and active QPBT-068 must make private compilation available, before the A06 machine DAG is implemented.",
+      "unblock_condition": "QPBT-068 and QPBT-080 are done; then dispatch sequential DetypingMachine and Detyping writers against the reviewed boundary.",
+      "candidate_status": "source-boundary-confirmed-awaiting-q068-q080",
+      "candidate_file": "MIPStarRE/QPBT/Game/Detyping.lean",
+      "candidate_file_sha256": "f4d63678f51bfe16c12b117c88657f302ab531a05a2b8f7bf9c8f53cba99232f",
+      "candidate_report": "/tmp/i043-orchestrator-a01-detyping-skeleton.md",
+      "candidate_report_sha256": "130f0b15164f73f5c571df16bbec7b82dc08c5961c4a5feefc6ae332762d3838",
+      "source_review_report": "/tmp/i043-reviewer-a04-source-fidelity.md",
+      "source_review_report_sha256": "06d305dd6aa014bbdd8630090e94448b16ee1e72677d72fc119c755beac5bff4",
+      "source_review_verdict": "request_changes",
+      "source_review_findings": [
+        {
+          "id": "SF-A04-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:1268",
+          "summary": "decodeViews uses division tokens where nested conjunctions are required."
+        },
+        {
+          "id": "SF-A04-002",
+          "severity": "blocker",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:173",
+          "summary": "Local Executable records contain arbitrary functions and counters but no machine executions."
+        },
+        {
+          "id": "SF-A04-003",
+          "severity": "high",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:181",
+          "summary": "Typed sampler omits the four seven-input query modes and invalid-type zero behavior."
+        },
+        {
+          "id": "SF-A04-004",
+          "severity": "high",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:1327",
+          "summary": "Detyped answers are silently truncated; the source forwards them unchanged and leaves widths ambiguous."
+        },
+        {
+          "id": "SF-A04-005",
+          "severity": "high",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:1310",
+          "summary": "Runtime clauses bound invented counters rather than Turing-machine running time."
+        },
+        {
+          "id": "SF-A04-006",
+          "severity": "high",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:153",
+          "summary": "Description compiler wraps encodings without interpreting descriptions of constructed machines."
+        },
+        {
+          "id": "SF-A04-007",
+          "severity": "low",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:11",
+          "summary": "Module claims a shared pair codec while questions use a distinct fixed-prefix parser."
+        }
+      ],
+      "structural_review_report": "/tmp/i043-reviewer-a05-structural.md",
+      "structural_review_report_sha256": "0c073578f45e3b21ad1d7f5a33ad202713056a7f95c22e6e61657e8b0aa2a734",
+      "structural_review_verdict": "request_changes",
+      "structural_review_findings": [
+        {
+          "id": "QPBT043-STR-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:1268",
+          "summary": "decodeViews division chain is a certain elaboration failure."
+        },
+        {
+          "id": "QPBT043-STR-002",
+          "severity": "blocker",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:173",
+          "summary": "Symbolic executable boundary has the wrong typed query shape and duplicates F06A generic sampler ownership."
+        },
+        {
+          "id": "QPBT043-STR-003",
+          "severity": "high",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:153",
+          "summary": "Description theorem is not tied to interpreted machine descriptions."
+        },
+        {
+          "id": "QPBT043-STR-004",
+          "severity": "medium",
+          "status": "open",
+          "path": "MIPStarRE/QPBT/Game/Detyping.lean:45",
+          "summary": "Public support surface includes unused and gratuitous declarations."
+        }
+      ],
+      "operational_repair_report": "/tmp/i043-scout-a06-operational-repair.md",
+      "operational_repair_report_sha256": "e13e00ba29437e97b5aaa3d770eda35e7b7003970087232122c8402cdaa517d4",
+      "operational_repair_verdict": "plan-ready",
+      "source_boundary_report": "/tmp/i043-scout-a08-source-boundary.md",
+      "source_boundary_report_sha256": "8e9044103fe540192edabb56fb8f6216c39f7d1882fb5843bf640c3abc5bb606",
+      "source_boundary_verdict": "request-changes-eight-findings-g24-g26",
+      "repair_scout_reports": [
+        {
+          "session_id": "i043-scout-a06-operational-repair",
+          "path": "/tmp/i043-scout-a06-operational-repair.md",
+          "sha256": "e13e00ba29437e97b5aaa3d770eda35e7b7003970087232122c8402cdaa517d4",
+          "disposition": "accepted-operational-plan"
+        },
+        {
+          "session_id": "i043-scout-a07-boundary-gaps",
+          "path": "/tmp/i043-scout-a07-boundary-gaps.md",
+          "sha256": "99d024d6ff6b7c479faf7203733d52d1a66e5ef2da399ef44f46ab2734fd28e1",
+          "disposition": "rejected-authentication-metadata-mismatch"
+        }
+      ]
     },
     {
       "id": "QPBT-045",
@@ -2484,27 +2760,27 @@
         "exact-ownership"
       ],
       "acceptance_gates": [
-        "Discharge every tracked Stage-04B sorry introduced by QPBT-043 in MIPStarRE/QPBT/Game/Detyping.lean without changing any reviewed declaration statement",
-        "Prove graph event probability and conditioned type laws, all detyping constructions, completeness, soundness and entanglement loss with factor 16^|Type|, level ell+2, dimension 4|Type|+s(n), and the separate executable runtime clauses from the exact pinned F07A contract",
-        "Use project-native and Mathlib lemmas with explicit key steps; add no axiom, constant, bridge, obligation, package, producer, witness, generic hypothesis, or arbitrary implication input",
-        "Pass scoped Lean, affected target, declaration/source synchronization, complete proof-debt and assumption scans, one private full build, and fresh immutable mathematical and cost-model review",
-        "Record statement integrity for every F07A theorem, exact proof-debt closure, paper gaps if any, cache/build metrics, and all reviewer findings and dispositions"
+        "Discharge every tracked F07A theorem sorry without changing the reviewed QPBT-043 statements or G24 transport semantics; leave DetypingMachine.lean proof-complete.",
+        "Prove completeness with zero-extended outcomes and soundness/entanglement through explicit measurement postprocessing, including projectivity, consistency, support commutation, and non-attained sSup handling.",
+        "Prove both universal execution-derived polynomial runtime clauses and the interpreted description-compiler theorem, not conditional helpers.",
+        "Add no public bridge, obligation, package, witness, producer, generic assumption, axiom, or constant; preserve exact factor 16^|Type|, level ell+2, and dimension 4|Type|+s(n).",
+        "Pass scoped Lean, affected targets, blueprint synchronization, zero-sorry/debt/assumption/API scans, one private full build, and fresh immutable mathematical plus operational reviews."
       ],
       "owner_session_id": null,
       "source_refs": [
         "workflow/state/issues.json#QPBT-043",
+        "workflow/state/issues.json#QPBT-080",
         "blueprint/metadata/nodes.json#F07A-DETYPING",
-        "workflow/reviews/qpbt-035-detype-source-a05.md",
-        "workflow/reviews/qpbt-035-q014-contract-a07.md",
+        "/tmp/i043-scout-a08-source-boundary.md",
         "references/2001.04383v3/sections/dependencies/types.tex:197-579"
       ],
       "owned_paths": [
         "MIPStarRE/QPBT/Game/Detyping.lean"
       ],
       "created_at": "2026-09-01T15:58:15Z",
-      "updated_at": "2026-09-01T15:58:15Z",
-      "blocked_reason": "QPBT-043 must first publish the exact declaration skeleton and its tracked proof-debt inventory.",
-      "unblock_condition": "QPBT-043 done."
+      "updated_at": "2026-09-04T00:25:28.007631Z",
+      "blocked_reason": "QPBT-043 must publish the exact reviewed two-file declaration skeleton and tracked theorem-debt inventory after QPBT-080 freezes G24-G26.",
+      "unblock_condition": "QPBT-043 done with DetypingMachine.lean proof-complete and only reviewed theorem debt remaining in Detyping.lean."
     },
     {
       "id": "QPBT-048",
@@ -2993,7 +3269,7 @@
       "title": "feat(QPBT/Game): implement the executable CL minimal skeleton",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "review",
+      "status": "done",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-056"
@@ -3030,9 +3306,9 @@
         "workflow/reviews/qpbt-057-f06a-a02.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-03T13:23:59.203042Z",
+      "updated_at": "2026-09-03T14:21:54.634064Z",
       "blocked_reason": null,
-      "unblock_condition": "Fresh immutable reviewers must approve the unchanged resource-bound head 0c99181746a73b6dd442c9890fb8e2a8982e70ab before integration.",
+      "unblock_condition": "Completed: approved candidate integrated byte-for-byte and current main passed the singleton full-build/cache gate.",
       "proof_completion_issue_id": "QPBT-061",
       "candidate_head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
       "candidate_tree": "6d7a6c951fef932c011bb38ea4788e760bc72cc4",
@@ -3049,7 +3325,7 @@
         "workflow validation and check_workflow passed",
         "exact two-path diff and content hashes passed"
       ],
-      "review_report": "workflow/reviews/qpbt-057-review-a07-current-main.md",
+      "review_report": "/tmp/i057-reviewer-a12-formal-pr.md",
       "review_findings": [
         {
           "id": "F057-A06-001",
@@ -3058,43 +3334,50 @@
           "path": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md:11-20",
           "summary": "Historical candidate a9abedb3 was not descended from its declared base and deleted unrelated history.",
           "disposition": "fixed",
-          "resolution_evidence": "Attempt A02 reconstructed the exact Types/report change and root replayed it onto current main 9eb476a as head a67031de with an exact two-path diff."
+          "resolution_evidence": "Attempt A02 reconstructed the exact two-path candidate, and A03 replayed and validated it from integration base fce3f96 as a three-commit descendant; immutable A12 authenticated that exact ancestry and patch."
         },
         {
           "id": "F057-A07-001",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "MIPStarRE/QPBT/Game/Types.lean:1559",
-          "summary": "The selected downsized compiler carries correctness only, so Classical.choice does not bind the resource guarantee later claimed by downsize_time."
+          "summary": "The selected downsized compiler carries correctness only, so Classical.choice does not bind the resource guarantee later claimed by downsize_time.",
+          "disposition": "fixed",
+          "resolution_evidence": "Exact repaired head 0c991817 binds machine, dependent executions, exponent program, and runtime property in one private certificate; independent A09 and formal A12 reviews approved with zero findings."
         },
         {
           "id": "F057-A07-002",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/reviews/qpbt-057-f06a-a02.md:5",
-          "summary": "Scoped, target, full-build, blueprint, and cache evidence is tied to an older base and implementation rather than the authenticated current candidate."
+          "summary": "Scoped, target, full-build, blueprint, and cache evidence is tied to an older base and implementation rather than the authenticated current candidate.",
+          "disposition": "fixed",
+          "resolution_evidence": "Exact repaired head 0c991817 has candidate-bound scoped Lean, affected target, 8,992-job full build, blueprint, workflow, API/import/debt evidence; independent A10 and formal A12 reviews approved with zero findings."
         }
       ],
       "candidate_base_sha": "fce3f96becebe568c6487d557aec550499e28840",
-      "candidate_status": "awaiting-review",
+      "candidate_status": "integrated",
       "superseded_candidate_head": "a9abedb3d08d1b020d310075fc2865ae21397eb8",
       "superseded_candidate_review": "workflow/reviews/qpbt-057-review-a06-source-fidelity.md",
-      "review_manifest_sha256": "375351b59e2b3ea49682570376acc00180b77d101bbfca2f0cc6f172820fa889",
-      "review_head_sha": "a67031de5a3804360e113dd4a881e94376fc435f",
-      "review_verdict": "request_changes",
+      "review_manifest_sha256": "ab9899e35ea31039af95dfa577b2df15de25543ce96e124cf89c755e55e94a99",
+      "review_head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+      "review_verdict": "approve",
       "paper_review_report": "workflow/reviews/qpbt-057-review-a08-paper-integrity.md",
       "paper_review_manifest_sha256": "6bb9e448bff47c835e0f3d047bfb441035612c08e732d297c91aad44c8de3474",
       "paper_review_head_sha": "a67031de5a3804360e113dd4a881e94376fc435f",
       "paper_review_verdict": "approve",
       "paper_review_findings": [],
-      "paper_review_scope": "Public statement fidelity and declared Stage-4A proof-debt boundary only; A07 resource-selection and current-head build blockers remain controlling."
+      "paper_review_scope": "Public statement fidelity and declared Stage-4A proof-debt boundary only; A07 resource-selection and current-head build blockers remain controlling.",
+      "integration_sha": "735a419a0f58fb531eaff04c62bd05e8e846f01e",
+      "integrated_tree": "1362a781beeb4e93a7aafa7c5a2381977b3b8386",
+      "integrated_pr_id": "LPR-035"
     },
     {
       "id": "QPBT-058",
       "title": "feat(QPBT/Game): implement typed samplers and deciders",
       "kind": "formalization",
       "execution_category": "implementation",
-      "status": "planned",
+      "status": "done",
       "parent_id": "QPBT-038",
       "dependency_ids": [
         "QPBT-057"
@@ -3113,7 +3396,7 @@
         "Preserve every frozen signature and F07/F07A ownership boundary; introduce no sorry, admit, axiom, constant, public obligation, executable claim owned by F06A, or detyping claim owned by F07A",
         "Use the QPBT-057 private-cache lineage; pass whole-file elaboration, affected target, exact name/loop/fiber/import/debt scans, blueprint declaration/source synchronization, one private full build after scoped stability, and fresh immutable mathematical/API review"
       ],
-      "owner_session_id": null,
+      "owner_session_id": "i058-orchestrator-a01-typed",
       "source_refs": [
         "workflow/reviews/qpbt-035-q014-contract-a07.md#F07-A07-SIGNATURES",
         "workflow/reviews/qpbt-038-types-a03.md#Mathematical-handoff",
@@ -3125,9 +3408,47 @@
         "workflow/reviews/qpbt-058-f07-a01.md"
       ],
       "created_at": "2026-09-02T21:17:11Z",
-      "updated_at": "2026-09-02T21:17:11Z",
+      "updated_at": "2026-09-03T16:56:05.672141Z",
       "blocked_reason": null,
-      "unblock_condition": null
+      "unblock_condition": null,
+      "cache_seed": {
+        "session_id": "i058-coordinator-a03-cache-seed",
+        "report": "workflow/reviews/qpbt-058-cache-seed-a03.md",
+        "sha256": "2a9deaa838f8e251bf92c75240b609ca63784696e9b0d877967db489a7e7a080",
+        "source_main": "735a419a0f58fb531eaff04c62bd05e8e846f01e",
+        "cache_key": "e6767da55a90639333fdfbeb2abf87aa45118cc20c18117b55d8de0a0c15bb47",
+        "result": "seeded",
+        "cache_hit": 1,
+        "builds": 0,
+        "elapsed_seconds": 87.083277,
+        "files": 124925,
+        "bytes": 10097592794,
+        "reflinked": 0,
+        "copied": 124925
+      },
+      "candidate_base_sha": "937ea218133cc21afb16313076ce2278fbe9260e",
+      "candidate_head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+      "candidate_tree": "f7149c6b31db64fe85998f5a0196a90c4ecfafd1",
+      "candidate_patch_sha256": "aa23852932f524484c7f443f26cdb83d1b2389c42086ccf61c337f389e3c5442",
+      "candidate_report": "/tmp/i058-orchestrator-a01-typed.md",
+      "candidate_report_sha256": "9da56cd61229847c4d5d6f50f6f9d5f60fa418c85a728ac9818c1f56b1c9b156",
+      "api_scout_report": "/tmp/i058-scout-a02-pmf-api.md",
+      "api_scout_report_sha256": "4d68e28ca4d2598500a3f0edb7f10c22bc317c7df683619cb426d209a7ae4935",
+      "candidate_status": "integrated-and-built",
+      "cache_preflight_report": "/tmp/i058-scout-a07-cache-preflight.md",
+      "cache_preflight_report_sha256": "a41346e87c07e63aa3fc3404c5de33fb7cf35e210bef39ef64ff33a9c51a74ab",
+      "cache_preflight_verdict": "ready-after-integration",
+      "formal_review_report": "/tmp/i058-reviewer-a09-formal-pr.md",
+      "formal_review_report_sha256": "ad128311a3ca2849a6af27496a7dcca7a900745f45b039652f8fa279a4443bc4",
+      "formal_review_manifest_sha256": "f0e609cefa6ff4dc89bf3350cc3a1beb8cde2fd95a70c748dce82df7ef1b1f60",
+      "formal_review_verdict": "approve",
+      "integration_sha": "8d209d6d2b17d96d0f96c2a9b2f95495c57561eb",
+      "integration_tree": "c234100c01d4b11398e4c098ada6dd28e7e64932",
+      "integration_patch_sha256": "aa23852932f524484c7f443f26cdb83d1b2389c42086ccf61c337f389e3c5442",
+      "integration_report": "workflow/reviews/qpbt-058-postintegration-cache-a10.md",
+      "integration_report_sha256": "d2db04e86b71cf85dee7428233758dbd36e0f24627c9abe766439a318a628148",
+      "cache_key": "21a7b15fd273fef0829d2ef790f152e6e0af02d4ba75a905e0583a758bcac187",
+      "cache_manifest_sha256": "4a0f4a6de6c8c3bc25a513c3ac2f4405be2c9704a38af70607a1fdda48fc469d"
     },
     {
       "id": "QPBT-059",
@@ -3276,9 +3597,25 @@
         "workflow/reviews/qpbt-061-f06a-proof-a01.md"
       ],
       "created_at": "2026-09-03T01:16:00.451829Z",
-      "updated_at": "2026-09-03T01:16:00.451829Z",
-      "blocked_reason": "Stage 4A skeleton and its exact blueprint debt contract are not yet integrated.",
-      "unblock_condition": "QPBT-057 and QPBT-060 are done."
+      "updated_at": "2026-09-03T14:37:22.221155Z",
+      "blocked_reason": "Stage 4C proof completion is intentionally deferred until the Stage 4A/4B skeleton is integrated; A17 confirms the compiler theorem needs substantial new verified TM2 infrastructure.",
+      "unblock_condition": "Enter Stage 4C, decide the A17 module-contract split, then implement the FinTM2 compiler/resource DAG before the one-line runtime projection.",
+      "compiler_debt_analysis": {
+        "report": "/tmp/i057-scout-a17-compiler-debt.md",
+        "sha256": "6d2ddc7ce2c1f8db8fe71162dd10ef9b2c4d247f78a19c5fae2823ae49da4853",
+        "verdict": "raw FinTM2 semantics appear sufficient but no proved composition API discharges the claim",
+        "paper_gap": "compiler-cost argument omits parsing, composition, exponent-input construction, cleanup and resource bounds beyond G19",
+        "downsize_time": "direct projection after compiler certificate",
+        "proposed_child_ids": [
+          "QPBT-069",
+          "QPBT-070",
+          "QPBT-071",
+          "QPBT-072",
+          "QPBT-073",
+          "QPBT-074"
+        ],
+        "split_status": "deferred until Stage 4C activation to avoid premature issue inflation"
+      }
     },
     {
       "id": "QPBT-062",
@@ -3544,10 +3881,10 @@
         "workflow/reviews/qpbt-067-cache-layout-a01.md"
       ],
       "created_at": "2026-09-03T09:12:00Z",
-      "updated_at": "2026-09-03T12:13:28.243790Z",
+      "updated_at": "2026-09-03T15:50:52.087088Z",
       "owner_session_id": "i067-orchestrator-a01-cache-layout",
       "blocked_reason": "Fresh immutable A04 review corrected the two original findings but found four new source-fidelity, metric-completeness, and provenance gaps; QPBT-067 remains unapproved.",
-      "unblock_condition": "Repair the false quarantine claim, refresh all source anchors, bind measured parallel-lane and timing metrics with the ordering exception, publish/authenticate the QPBT-062 source artifact, then obtain a fresh immutable approval.",
+      "unblock_condition": "First complete QPBT-068 safety repair; then prototype the dependency-layer schema and package write-denial scanner while retaining full private byte-copy fallback. Shared mode remains disabled until a strong non-agent-writable storage boundary exists.",
       "review_report": "workflow/reviews/qpbt-067-cache-layout-review-a02.md",
       "review_findings": [
         {
@@ -3619,7 +3956,28 @@
           "resolved_by_review": "i067-reviewer-a04-repaired-audit",
           "evidence": "A04 confirms the report distinguishes synchronous exception rollback from the uncovered SIGKILL rename window and does not claim implemented recovery."
         }
-      ]
+      ],
+      "latest_live_seed_observation": {
+        "at": "2026-09-03T14:29:33.281432Z",
+        "issue_id": "QPBT-058",
+        "report": "workflow/reviews/qpbt-058-cache-seed-a03.md",
+        "sha256": "2a9deaa838f8e251bf92c75240b609ca63784696e9b0d877967db489a7e7a080",
+        "cache_hit": 1,
+        "builds": 0,
+        "elapsed_seconds": 87.083277,
+        "files": 124925,
+        "logical_bytes": 10097592794,
+        "reflinked": 0,
+        "copied": 124925,
+        "finding": "This host used the full byte-copy fallback, so compile deduplication succeeds but workspace storage remains unresolved."
+      },
+      "storage_design_report": "/tmp/i067-scout-a06-storage-layer.md",
+      "storage_design_report_sha256": "772a685bed2652067a81bb812c33de178028121fd6528ee83a007e9866f7f55a",
+      "measured_dependency_physical_bytes": 7373479936,
+      "measured_private_root_build_bytes": 3130208256,
+      "measured_total_physical_bytes": 10505150464,
+      "recommended_design": "authenticated dependency-layer CAS plus private root Lake layer",
+      "shared_mode_status": "fail-closed-until-non-agent-writable-store-or-supervisor-read-only-projection"
     },
     {
       "id": "QPBT-068",
@@ -3659,85 +4017,1558 @@
       ],
       "owned_paths": [
         "scripts/hot_main_cache.py",
+        "scripts/materialize_mipstarre.py",
         "tests/test_hot_main_cache.py",
+        "tests/test_mipstarre_materialization.py",
         "protocols/local-development.md",
         "protocols/CHANGELOG.md",
         "workflow/reviews/qpbt-067-cache-layout-a01.md",
         "workflow/reviews/qpbt-068-cache-safety-a01.md"
       ],
-      "owner_session_id": "i068-orchestrator-a01-cache-safety",
-      "blocked_reason": null,
-      "unblock_condition": "Repair F068-A02-001 through F068-A02-008 on a changed head, rerun focused and adversarial tests, and obtain a fresh immutable hostile review.",
+      "owner_session_id": "i068-orchestrator-a32-threat-boundary-repair",
+      "blocked_reason": "Exact repaired head d1b7ac96 requires fresh independent review of the narrowed cooperative threat boundary and deterministic live/dry capability regressions.",
+      "unblock_condition": "Fresh security and regression reviewers approve the exact repaired head and explicitly adjudicate F068-A29-001, F068-A29-002, F068-A30-001, and F068-A30-002.",
       "created_at": "2026-09-03T09:42:00Z",
-      "updated_at": "2026-09-03T12:45:18.123139Z",
-      "candidate_base_sha": "b37a33c7c280e29fad2ca2cd12c221b6fc38aa07",
-      "candidate_head_sha": "7f7da8438a8ee9b456e22d441e7d0c3284779f22",
-      "candidate_tree": "f2eaf03109057bec8dfa46cbf1ecb8315c1742e3",
-      "candidate_patch_sha256": "baab726903faed1eb2e903c3116752b6a39b00f389c320f15ff6a05c0573b094",
-      "candidate_report": "workflow/reviews/qpbt-068-cache-safety-a01.md",
-      "candidate_report_sha256": "d29dd5b2b12a8941041d89a8cc8ed0d1b29cf318b563cf5ef1d9c08fa5fcebb0",
-      "candidate_status": "changes-requested",
-      "review_report": "workflow/reviews/qpbt-068-review-a02-cache-safety.md",
-      "review_manifest_sha256": "3c7e8c4b00d4e378c8dd8e477f28cfef79c42ed70d2d794a5312c65563b3dd07",
-      "review_head_sha": "7f7da8438a8ee9b456e22d441e7d0c3284779f22",
+      "updated_at": "2026-09-04T05:19:17.408509Z",
+      "candidate_base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+      "candidate_head_sha": "d1b7ac9682f1c626d9386f62f033442f3194c044",
+      "candidate_tree": "62e22ea3943726cb7e10407ed262a6c9172d78ab",
+      "candidate_patch_sha256": "e84b292018259c1372978902bb0a65ea66e69c5936e998fedfe3505667428517",
+      "candidate_report": "/tmp/i068-orchestrator-a32-threat-boundary-repair.md",
+      "candidate_report_sha256": "d026710e0ca4c20852e31dc5b10f59ddefc1faf78e335aebd3cf9b81128bc2ad",
+      "candidate_status": "candidate-complete-awaiting-fresh-security-and-regression-review",
+      "review_report": "/tmp/i068-reviewer-a11-transaction.md",
+      "review_manifest_sha256": "9bd1d84f6f1804fd54de781b7f316db3aeed46362de289c53e12a6e7ae3db08d",
+      "review_head_sha": "650097d3fc65ecb93683dcbd5fbc3071240cf1e8",
       "review_verdict": "request_changes",
       "review_findings": [
         {
           "id": "F068-A02-001",
           "severity": "blocker",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:3204",
-          "summary": "Unauthenticated backup-shaped directories can replace and delete an existing .lake even when replace is false."
+          "summary": "Unauthenticated backup-shaped directories can replace and delete an existing .lake even when replace is false.",
+          "resolution_evidence": "A04 adds a durable authenticated transaction journal, identity-bound recovery, ambiguity rejection, and replace=false preservation regressions."
         },
         {
           "id": "F068-A02-002",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:2022",
-          "summary": "Accepted external read-only symlink targets remain mutable by their owner or writable parent and are not inventory-bound."
+          "summary": "Accepted external read-only symlink targets remain mutable by their owner or writable parent and are not inventory-bound.",
+          "resolution_evidence": "A04 rejects every external symlink first hop and final target, with contained/broken/cyclic regressions."
         },
         {
           "id": "F068-A02-003",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:3402",
-          "summary": "Shared-cache validation runs before target recovery, stranding a valid sole backup when READY is invalid."
+          "summary": "Shared-cache validation runs before target recovery, stranding a valid sole backup when READY is invalid.",
+          "resolution_evidence": "A04 runs target recovery under the target lock before input, environment, cache, or READY admission and adds SIGKILL regressions."
         },
         {
           "id": "F068-A02-004",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "scripts/hot_main_cache.py:2642",
-          "summary": "Metric rollback releases and reacquires the lock, allowing it to truncate a competing writer committed append."
+          "summary": "Metric rollback releases and reacquires the lock, allowing it to truncate a competing writer committed append.",
+          "resolution_evidence": "A04 retains the original locked descriptor through truncate/fsync rollback and proves ordering with two-process tests."
         },
         {
           "id": "F068-A02-005",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:124",
-          "summary": "QPBT-067 still falsely reports READY quarantine as implemented."
+          "summary": "QPBT-067 still falsely reports READY quarantine as implemented.",
+          "resolution_evidence": "A04 corrects the report to the actual fail-not-ready behavior."
         },
         {
           "id": "F068-A02-006",
           "severity": "high",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:163",
-          "summary": "QPBT-067 still omits required parallel-lane and timing evidence plus the ordering exception."
+          "summary": "QPBT-067 still omits required parallel-lane and timing evidence plus the ordering exception.",
+          "resolution_evidence": "A04 records exact available timing and overlap evidence, nulls unavailable latency, and documents the non-retroactive ordering violation."
         },
         {
           "id": "F068-A02-007",
           "severity": "medium",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:9",
-          "summary": "QPBT-067 implementation anchors remain stale or unrelated."
+          "summary": "QPBT-067 implementation anchors remain stale or unrelated.",
+          "resolution_evidence": "A04 replaces stale anchors with symbol-qualified candidate anchors and corrected protocol locations."
         },
         {
           "id": "F068-A02-008",
           "severity": "medium",
-          "status": "open",
+          "status": "resolved",
           "path": "workflow/state/issues.json",
-          "summary": "QPBT-062 provenance remains unauthenticated in the QPBT-067 report and review packet."
+          "summary": "QPBT-062 provenance remains unauthenticated in the QPBT-067 report and review packet.",
+          "resolution_evidence": "A04 binds the exact QPBT-062 commit, tree, blob, byte size, and SHA-256; the next immutable manifest must include that byte."
         }
+      ],
+      "review_report_sha256": "a8566ce28fd663578a91baa9700dd6695c9924c90f25871381a57a8baa2605b5",
+      "latest_review_findings": [
+        {
+          "id": "F068-A08-001",
+          "severity": "blocker",
+          "status": "resolved",
+          "path": "scripts/materialize_mipstarre.py:738",
+          "summary": "Prepare invokes materializer recovery whose unauthenticated persisted transaction bytes can authorize replacement and recursive deletion.",
+          "resolution_evidence": "A10 refuses persisted materializer state before invocation; A11 authenticated this prior-finding closure."
+        },
+        {
+          "id": "F068-A08-002",
+          "severity": "blocker",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:3788",
+          "summary": "Seed replacement publication is a two-rename non-atomic sequence, replace=false lacks no-replace semantics, and unsupported capabilities are not refused before mutation.",
+          "resolution_evidence": "A10 provides capability-gated atomic no-replace/exchange seed publication; A11 authenticated this cache-transaction closure."
+        },
+        {
+          "id": "F068-A08-003",
+          "severity": "blocker",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:3594",
+          "summary": "Rollback and cleanup trust substituted pathnames and can install or recursively delete unknown directories.",
+          "resolution_evidence": "A10 descriptor-binds seed rollback and retention objects; A11 authenticated this cache-transaction closure."
+        },
+        {
+          "id": "F068-A08-004",
+          "severity": "high",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:3662",
+          "summary": "The named registration guard omits Git registration revalidation because the intended block is unreachable.",
+          "resolution_evidence": "A10 restores live Git registration and captured HEAD revalidation; A11 authenticated the closure."
+        },
+        {
+          "id": "F068-A08-005",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:15",
+          "summary": "The final-candidate source and test line anchors remain stale despite the report claiming repair.",
+          "resolution_evidence": "A10 corrects the final-candidate anchors and A11 authenticated the evidence artifact."
+        },
+        {
+          "id": "F068-A09-001",
+          "severity": "blocker",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:104",
+          "summary": "Stat generations do not detect ancestor ABA during seed or prepare.",
+          "resolution_evidence": "A10 adds root-to-leaf name monitoring and conservative poison semantics; both A11 and A12 audited this closure."
+        },
+        {
+          "id": "F068-A09-002",
+          "severity": "blocker",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:3858",
+          "summary": "Retained-name publication and live journal/staging cleanup retain check/use races that replace or delete substituted objects.",
+          "resolution_evidence": "A10 descriptor-binds and moves seed transaction objects without recursive deletion; A11 authenticated the cache-only closure."
+        },
+        {
+          "id": "F068-A09-003",
+          "severity": "blocker",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:3671",
+          "summary": "An unadaptable materializer falls back to the lexical target path and can mutate a swapped decoy before failure.",
+          "resolution_evidence": "A10 refuses incomplete materializer interfaces before seed allocation; A11 authenticated this boundary while identifying a distinct live-cleanup defect."
+        },
+        {
+          "id": "F068-A09-004",
+          "severity": "high",
+          "status": "resolved",
+          "path": "tests/test_hot_main_cache.py:140",
+          "summary": "The regression matrix omits atomic/no-replace capability, ancestor-ABA, cleanup-race, and symmetric seed/prepare schedules; byte snapshots omit metadata.",
+          "resolution_evidence": "A10 expands symmetric hostile tests and metadata snapshots; A11 and A12 authenticated the covered schedules."
+        },
+        {
+          "id": "F068-A11-001",
+          "severity": "blocker",
+          "status": "resolved",
+          "path": "scripts/materialize_mipstarre.py:667",
+          "summary": "Prepare delegates live materializer cleanup to pathname-based shutil.rmtree and foundation replacement to two ordinary renames, allowing substitution deletion and a non-atomic destination interval.",
+          "resolution_evidence": "A13 replaces the live materializer's pathname cleanup and two-rename publication with descriptor-bound transaction objects, exact monitor accounting, RENAME_EXCHANGE/NOREPLACE, rollback, and retained evidence; owned suites passed and fresh immutable review is pending."
+        },
+        {
+          "id": "F068-A12-001",
+          "severity": "low",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:4630",
+          "summary": "Dry-run authenticates cache-key inputs before the mandatory capability gate, contrary to the unqualified protocol and report ordering claim.",
+          "resolution_evidence": "A13 performs capability-first binding in dry and live seed/prepare, then rebinds with normal input checks; symmetric ordering and descriptor-handoff regressions passed."
+        },
+        {
+          "id": "F068-A15-001",
+          "severity": "blocker",
+          "status": "resolved",
+          "path": "scripts/materialize_mipstarre.py:1378",
+          "summary": "Successful evidence retention returns without rechecking transaction and stage monitors, so queued substitution or ABA events can remain undetected.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; disposition and deterministic regression are authenticated in /tmp/i068-orchestrator-a16-retention-monitor.md (SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78). Fresh independent review remains pending."
+        },
+        {
+          "id": "F068-A15-002",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:4769",
+          "summary": "Dry-run prepare delegates only to dry-run seed and bypasses materializer-state, archive, and interface admissions required by live prepare.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; disposition and deterministic regression are authenticated in /tmp/i068-orchestrator-a16-retention-monitor.md (SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78). Fresh independent review remains pending."
+        },
+        {
+          "id": "F068-A15-003",
+          "severity": "low",
+          "status": "resolved",
+          "path": "workflow/reviews/qpbt-067-cache-layout-a01.md:173",
+          "summary": "Five test line anchors remain at pre-A13 locations, making the prior anchor-repair disposition inaccurate.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; disposition and deterministic regression are authenticated in /tmp/i068-orchestrator-a16-retention-monitor.md (SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78). Fresh independent review remains pending."
+        }
+      ],
+      "repair_audit_report": "/tmp/i068-scout-a07-repair-audit.md",
+      "repair_audit_report_sha256": "c9791defd746b5432296cff7458c388652c2ec3bb27bdf532fc893de8af5f04c",
+      "latest_review_report": "/tmp/i068-reviewer-a29-transaction-security.md",
+      "latest_review_report_sha256": "ac5174bac58233fe311dad06fe7817f9928045d45e04d5f9efbf54800f0fe9ed",
+      "latest_review_manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
+      "latest_review_verdict": "request_changes",
+      "secondary_review_report": "/tmp/i068-reviewer-a30-regression-protocol.md",
+      "secondary_review_report_sha256": "9b49fbc42ca4406b1529783f32f2a480883fca37b291ed26bf8c3a1e0b6f8a48",
+      "secondary_review_verdict": "request_changes",
+      "latest_review_head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+      "repair_parent_sha": "ff08f3e4171f48c58edbbb93b3e22489f0a4d6c6",
+      "repair_parent_patch_sha256": "1e72993aa820127ec9af1a3cd0b0d8d91a787574754d7b4bcdad4e57e25310f9",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a35.json",
+      "secondary_review_manifest_sha256": "dfc0ccd3674d55ecd927ab74d39bfa996286e04cd4404f41e66437453fefbc70",
+      "security_review_report": "/tmp/i068-reviewer-a14-materializer-transaction.md",
+      "security_review_report_sha256": "aa34a96601db9afd5b631d202c011598bc853cc81c8c17ad1060ffa41d4b549e",
+      "security_review_manifest_sha256": "34480bce7109c301f92fde5f5f81d17aa2c55adf0a5f8fbcb2c44ff33295fbe4",
+      "security_review_verdict": "stale-after-head-change",
+      "security_review_findings": [
+        {
+          "id": "F068-A14-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:4482",
+          "summary": "Loose mutation-event acceptance and a missing post-open clean drain can bind staging or journal creation to an attacker substitute and publish through it.",
+          "resolution_evidence": "Reopened by fresh A20 review on exact head 58bf04fa: the narrower A16 repair passes existing tests but does not close the post-handoff, ancestor-bootstrap, finalization, or retained-descendant schedule cited by A20."
+        },
+        {
+          "id": "F068-A14-002",
+          "severity": "high",
+          "status": "open",
+          "path": "scripts/materialize_mipstarre.py:1303",
+          "summary": "Pathname-based descendant creation follows attacker-injected intermediate symlinks and can write outside the transaction or repository.",
+          "resolution_evidence": "Reopened by fresh A20 review on exact head 58bf04fa: the narrower A16 repair passes existing tests but does not close the post-handoff, ancestor-bootstrap, finalization, or retained-descendant schedule cited by A20."
+        },
+        {
+          "id": "F068-A14-003",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "scripts/materialize_mipstarre.py:1456",
+          "summary": "Prepare returns transaction evidence through a procfd spelling that is dangling after the bound descriptor closes.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; descriptor/event repair and regression mapping are authenticated in the A16 report SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78. Fresh independent security review remains pending."
+        }
+      ],
+      "repair_scout_reports": [
+        {
+          "session_id": "i068-scout-a17-cache-event-audit",
+          "path": "/tmp/i068-scout-a17-cache-event-audit.md",
+          "sha256": "94aa8cacce3bd371e0bb4ee4f8475816950601b57bfb7703f858169861be179a"
+        },
+        {
+          "session_id": "i068-scout-a18-materializer-fd-audit",
+          "path": "/tmp/i068-scout-a18-materializer-fd-audit.md",
+          "sha256": "6ce078488171daba72726a2bfd44f47748fed5eaa9dc9903f8d8e953323ccd7a"
+        }
+      ],
+      "repair_scout_findings": [
+        {
+          "id": "F068-A17-001",
+          "severity": "high",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:4053",
+          "summary": "Inner staged .lake and journal files are bound only after unmonitored creation and write handoffs.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; exact repair mapping is authenticated in the A16 report SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78. Fresh independent review remains pending."
+        },
+        {
+          "id": "F068-A17-002",
+          "severity": "high",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:4212",
+          "summary": "Failed and retained renames consume source-side events while omitting destination-side move evidence.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; exact repair mapping is authenticated in the A16 report SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78. Fresh independent review remains pending."
+        },
+        {
+          "id": "F068-A18-001",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:4564",
+          "summary": "Stable evidence normalization follows unbound descendant ancestors and can authenticate an external substituted path.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; exact repair mapping is authenticated in the A16 report SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78. Fresh independent review remains pending."
+        },
+        {
+          "id": "F068-A18-002",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "scripts/materialize_mipstarre.py:1098",
+          "summary": "Authored source snapshotting does not retain a monitor that proves a stable directory namespace through recursive copy.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; exact repair mapping is authenticated in the A16 report SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78. Fresh independent review remains pending."
+        },
+        {
+          "id": "F068-A18-003",
+          "severity": "medium",
+          "status": "open",
+          "path": "scripts/materialize_mipstarre.py:1370",
+          "summary": "Retained transaction proof does not authenticate transaction.json or reject unexpected transaction/stage contents.",
+          "resolution_evidence": "Reopened by fresh A20 review on exact head 58bf04fa: the narrower A16 repair passes existing tests but does not close the post-handoff, ancestor-bootstrap, finalization, or retained-descendant schedule cited by A20."
+        }
+      ],
+      "regression_audit_report": "/tmp/i068-scout-a19-regression-audit.md",
+      "regression_audit_report_sha256": "87e9c4756090f5dfb36e17c2404b3b300a5540f9abb2af241b706c70cb28fc9c",
+      "regression_audit_verdict": "repaired-awaiting-independent-review",
+      "regression_audit_findings": [
+        {
+          "id": "F068-A19-001",
+          "severity": "high",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:2514",
+          "summary": "Cache descendant copying remains pathname-based and can write outside the bound staging transaction through intermediate symlink substitution.",
+          "resolution_evidence": "Reopened by fresh A20 review on exact head 58bf04fa: the narrower A16 repair passes existing tests but does not close the post-handoff, ancestor-bootstrap, finalization, or retained-descendant schedule cited by A20."
+        },
+        {
+          "id": "F068-A19-002",
+          "severity": "medium",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:4633",
+          "summary": "Evidence stabilization does not bind the retained materializer object identity and exact inventory returned by the materializer.",
+          "resolution_evidence": "Reopened by fresh A20 review on exact head 58bf04fa: the narrower A16 repair passes existing tests but does not close the post-handoff, ancestor-bootstrap, finalization, or retained-descendant schedule cited by A20."
+        },
+        {
+          "id": "F068-A19-003",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "scripts/hot_main_cache.py:4121",
+          "summary": "Finalization does not authenticate retained journal and COMMITTED bytes or drain modification and post-retention move events.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; exact repair mapping and final aggregate suites are authenticated in the A16 report SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78. Fresh independent regression review remains pending."
+        },
+        {
+          "id": "F068-A19-004",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "scripts/materialize_mipstarre.py:1593",
+          "summary": "transaction.json is created and written before its permanent creation-event monitor is installed.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; exact repair mapping and final aggregate suites are authenticated in the A16 report SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78. Fresh independent regression review remains pending."
+        },
+        {
+          "id": "F068-A19-005",
+          "severity": "low",
+          "status": "resolved",
+          "path": "workflow/reviews/qpbt-068-cache-safety-a01.md:129",
+          "summary": "Validation timing evidence confuses suite duration with process wall time and marks measured durations unavailable.",
+          "resolution_evidence": "Resolved in frozen A16 head 58bf04fa74e4235578a8b3994b14d6cbc655981e; exact repair mapping and final aggregate suites are authenticated in the A16 report SHA-256 b5daa0a9490c4390f6f8481c716e9a078801ae173b782a9a281e6d0a93c99f78. Fresh independent regression review remains pending."
+        }
+      ],
+      "candidate_patch_recipe": "git diff --binary --full-index 97e61b3487c762f1447576219dbd6cd85c162efa ff08f3e4171f48c58edbbb93b3e22489f0a4d6c6",
+      "candidate_repair_parent_sha": "58bf04fa74e4235578a8b3994b14d6cbc655981e",
+      "candidate_repair_patch_sha256": "ef1b4a8af79efff0fd0de6e2f843a6a5c5bcfea862da72b00d0fecd4c99292ea",
+      "candidate_repair_patch_recipe": "git diff --binary --full-index 58bf04fa74e4235578a8b3994b14d6cbc655981e ff08f3e4171f48c58edbbb93b3e22489f0a4d6c6",
+      "candidate_changed_paths": [
+        "protocols/local-development.md",
+        "scripts/hot_main_cache.py",
+        "scripts/materialize_mipstarre.py",
+        "tests/test_hot_main_cache.py",
+        "tests/test_mipstarre_materialization.py",
+        "workflow/reviews/qpbt-067-cache-layout-a01.md",
+        "workflow/reviews/qpbt-068-cache-safety-a01.md"
+      ],
+      "candidate_file_sha256": {
+        "protocols/local-development.md": "266e5e16c5837fe63b57a0bfd7e4543155dd538be6a6515289609f24f69001ae",
+        "scripts/hot_main_cache.py": "387b2912850e6b1b0c3ba83d7238da868e014cd58dbc888ec2cc0ffbd107355c",
+        "scripts/materialize_mipstarre.py": "8f48f1c1ab538411b942330461c879a453ef431caedfc5e40b5b0a16cb319410",
+        "tests/test_hot_main_cache.py": "0f4cdca378b3f97d5baa85a7323fbe1db29ca7b31b58d200b420097c2d94f21d",
+        "tests/test_mipstarre_materialization.py": "7f8ba28c0eb8abaddb62b548036ec58290f31b47593ed2c2f13685d730825dab",
+        "workflow/reviews/qpbt-067-cache-layout-a01.md": "c19e9882df89de23b937a02bab36fecf5534e1d48a82a60446e1496f18addece",
+        "workflow/reviews/qpbt-068-cache-safety-a01.md": "f9dcf0266cd7a3f3859097640de057ebaf93ca7add1f05e36470dd1a49bd4ad6"
+      },
+      "candidate_validation": {
+        "materializer": "32/32 passed; suite 5.080s; wall 5.22s",
+        "hot_cache": "137/137 passed; suite 81.736s; wall 81.97s",
+        "workflow": "77/77 passed; suite 1.385s; wall 1.50s",
+        "checker": "3/3 passed; suite 0.012s; wall 0.08s",
+        "total": "249/249 passed; suite 88.213s; wall 88.77s",
+        "compile": "passed without bytecode output",
+        "workflow_validate": "passed",
+        "check_workflow_skip_tests": "passed",
+        "diff_check": "passed",
+        "lean_invocations": 0,
+        "lake_invocations": 0,
+        "production_cache_operations": 0
+      },
+      "fresh_review_manifests": [
+        {
+          "session_id": "i068-reviewer-a20-transaction-security",
+          "path": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a20.json",
+          "sha256": "c9796a226db6e58693ab299e95b9b29350ff6ea004241b112240eb74a5e00e70",
+          "head_sha": "58bf04fa74e4235578a8b3994b14d6cbc655981e",
+          "scope": "transaction-security"
+        },
+        {
+          "session_id": "i068-reviewer-a21-regression-protocol",
+          "path": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a21.json",
+          "sha256": "bac1610d75ee860989eed8682c49908b5426ae36925da5292df5434b4afed177",
+          "head_sha": "58bf04fa74e4235578a8b3994b14d6cbc655981e",
+          "scope": "regression-protocol"
+        }
+      ],
+      "fresh_security_review_report": "/tmp/i068-reviewer-a20-transaction-security.md",
+      "fresh_security_review_report_sha256": "58a3a885620bff8752d18d6f891aa14c15cada2ddf6e653e7d6ed4422382f17b",
+      "fresh_security_review_manifest_sha256": "c9796a226db6e58693ab299e95b9b29350ff6ea004241b112240eb74a5e00e70",
+      "fresh_security_review_verdict": "request_changes",
+      "fresh_security_review_findings": [
+        {
+          "id": "F068-A20-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:4637",
+          "summary": "A nonempty held staging root returns before binding and monitor drains, allowing seed/prepare to report success with live transaction state."
+        },
+        {
+          "id": "F068-A20-002",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:4305",
+          "summary": "Journal-parent bootstrap uses pathname-recursive mkdir and an unbound ancestor chain, permitting external creation or binding through a substituted runtime ancestor."
+        },
+        {
+          "id": "F068-A20-003",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/materialize_mipstarre.py:1016",
+          "summary": "New directory/file objects can be relocated after parent handoff and receive descendant output externally before delayed monitor rejection."
+        },
+        {
+          "id": "F068-A20-004",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:5355",
+          "summary": "Retained cache and materializer displaced-tree identities omit normative backup emptiness and recursive byte/inventory continuity."
+        }
+      ],
+      "fresh_regression_review_report": "/tmp/i068-reviewer-a21-regression-protocol.md",
+      "fresh_regression_review_report_sha256": "860ef19ed6dca7f84a84b4a50ad8f09dd7bdbc3d7f5dbee47edcbd4b0e9c60ae",
+      "fresh_regression_review_manifest_sha256": "bac1610d75ee860989eed8682c49908b5426ae36925da5292df5434b4afed177",
+      "fresh_regression_review_verdict": "request_changes",
+      "fresh_regression_review_findings": [
+        {
+          "id": "F068-A21-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:5356",
+          "summary": "The displaced original .lake inventory captured before publication is never compared before or after retention."
+        },
+        {
+          "id": "F068-A21-002",
+          "severity": "medium",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:5411",
+          "summary": "Dry seed and dry prepare skip interrupted-seed-state admission performed by live paths and can falsely report viability."
+        }
+      ],
+      "a22_finding_dispositions": {
+        "F068-A20-001": "repaired-awaiting-review",
+        "F068-A20-002": "repaired-awaiting-review",
+        "F068-A20-003": "repaired-awaiting-review",
+        "F068-A20-004": "repaired-awaiting-review",
+        "F068-A21-001": "repaired-awaiting-review-through-A20-004",
+        "F068-A21-002": "repaired-awaiting-review",
+        "F068-A14-001": "repaired-awaiting-review",
+        "F068-A14-002": "repaired-awaiting-review",
+        "F068-A18-003": "repaired-awaiting-review",
+        "F068-A19-001": "repaired-awaiting-review",
+        "F068-A19-002": "repaired-awaiting-review"
+      },
+      "a23_review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a23.json",
+      "a23_review_manifest_sha256": "6e6e26a48750106079733a8c23c93881c74e69616c301327f32e5983cfb37b53",
+      "retired_review_manifest": {
+        "path": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a23.json",
+        "sha256": "6e6e26a48750106079733a8c23c93881c74e69616c301327f32e5983cfb37b53",
+        "status": "retired-authentication-failed",
+        "reason": "protocols/orchestration.md row mixed candidate blob with current-main content identity"
+      },
+      "a25_review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a25.json",
+      "a25_review_manifest_sha256": "8e7211ed398e1db3dce2fc5a9a4776624998c67c65a8051045b35ea158713ced",
+      "retired_packet_reviews": [
+        {
+          "session_id": "i068-reviewer-a23-transaction-security",
+          "path": "/tmp/i068-reviewer-a23-transaction-security.md",
+          "sha256": "b8501b984d0fbc68e94d422a10b0407b9e62188ef189b0da1a3610bad27ac240",
+          "verdict": "authentication-blocked"
+        },
+        {
+          "session_id": "i068-reviewer-a24-regression-protocol",
+          "path": "/tmp/i068-reviewer-a24-regression-protocol.md",
+          "sha256": "3b8f911794b0c7c6352e357b5a4148ed54dc07038c3ed0e09938a38fe7ccef8f",
+          "verdict": "authentication-blocked"
+        }
+      ],
+      "fresh_review_sessions": [
+        {
+          "session_id": "i068-reviewer-a26-regression-protocol",
+          "manifest_sha256": "8e7211ed398e1db3dce2fc5a9a4776624998c67c65a8051045b35ea158713ced",
+          "status": "request-changes",
+          "report_sha256": "3a73f74fe79a5c46a22c8ecedb94889e5ee800739c48cc433c4b9571ed9060ed"
+        },
+        {
+          "session_id": "i068-reviewer-a27-transaction-correctness",
+          "manifest_sha256": "8e7211ed398e1db3dce2fc5a9a4776624998c67c65a8051045b35ea158713ced",
+          "status": "request-changes",
+          "report_sha256": "950ab66eb780baafbe7df8d23fce2b45c2ba4a894f2fd9dc5af6e419c11363fc"
+        }
+      ],
+      "classifier_failure": {
+        "session_id": "i068-reviewer-a25-transaction-security",
+        "report": "/tmp/i068-reviewer-a25-transaction-security.md",
+        "sha256": "ad2a23ea8ed4c6824e07bbec422e6ad6803517dfb0437bda4f88b631974e0ed8",
+        "candidate_reviewed": false
+      },
+      "a26_review_report": "/tmp/i068-reviewer-a26-regression-protocol.md",
+      "a26_review_report_sha256": "3a73f74fe79a5c46a22c8ecedb94889e5ee800739c48cc433c4b9571ed9060ed",
+      "a26_review_verdict": "request_changes",
+      "a26_review_findings": [
+        {
+          "id": "F068-A26-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:2851",
+          "summary": "Relocation between the final continuity check and byte-copy or reflink write can receive payload bytes outside the intended tree; materializer population has the same check-to-write gap."
+        },
+        {
+          "id": "F068-A26-002",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:5010",
+          "summary": "Staging and retained recursive evidence monitors close before the success boundary, so post-scan mutations can be returned as authenticated evidence."
+        },
+        {
+          "id": "F068-A26-003",
+          "severity": "medium",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:5786",
+          "summary": "Dry seed and prepare check interrupted state outside the per-target lock and can report viability during a cooperating live transaction."
+        }
+      ],
+      "a27_review_report": "/tmp/i068-reviewer-a27-transaction-correctness.md",
+      "a27_review_report_sha256": "950ab66eb780baafbe7df8d23fce2b45c2ba4a894f2fd9dc5af6e419c11363fc",
+      "a27_review_verdict": "request_changes",
+      "a27_review_findings": [
+        {
+          "id": "F068-A27-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "scripts/hot_main_cache.py:3026",
+          "summary": "Regular output hard-link count is not authenticated after copy monitors close, allowing an external same-filesystem alias to share writable output through publication."
+        }
+      ],
+      "repair_patch_sha256": "70b7116e574bc03987d6b0dd34ee50392c00fc7af2f4d8a573276cb564ed64d2",
+      "review_session_ids": [
+        "i068-reviewer-a29-transaction-security",
+        "i068-reviewer-a30-regression-protocol",
+        "i068-reviewer-a35-transaction-security",
+        "i068-reviewer-a36-regression-protocol"
+      ]
+    },
+    {
+      "id": "QPBT-069",
+      "title": "fix(QPBT): disambiguate local Galois-field instances",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "blocked",
+      "parent_id": "QPBT-014",
+      "dependency_ids": [
+        "QPBT-037",
+        "QPBT-038"
+      ],
+      "labels": [
+        "lean",
+        "integration",
+        "instance-naming",
+        "minimal-repair",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Give the two local Galois-field instances in MIPStarRE/QPBT/Game/Types.lean stable explicit names without changing their priority, locality, types, or implementation.",
+        "Both import orders for MIPStarRE.QPBT.Basic.Pauli and MIPStarRE.QPBT.Game.Types elaborate in fresh probe files, eliminating the exact duplicate generated declaration reported by QPBT-040 A01.",
+        "The changed Types file type-checks, its target build passes against a private worktree cache, and no new sorry, axiom, constant, or public assumption is introduced.",
+        "The candidate changes only MIPStarRE/QPBT/Game/Types.lean, records exact base/head/tree/patch identities, and receives fresh immutable independent review before guarded integration.",
+        "After guarded integration, QPBT-040 reruns the combined import and snapshot gates before QPBT-014 may close."
+      ],
+      "owner_session_id": "i069-orchestrator-a04-full-build",
+      "source_refs": [
+        "workflow/reviews/qpbt-040-q014-combined-a01.md",
+        "MIPStarRE/QPBT/Basic/Pauli.lean:22",
+        "MIPStarRE/QPBT/Game/Types.lean:17"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean"
+      ],
+      "created_at": "2026-09-03T17:38:00Z",
+      "updated_at": "2026-09-04T01:10:34.778001Z",
+      "blocked_reason": "The build-only A04 correctly failed because the manually cache-copied candidate worktree lacks the ignored authenticated MIPStarRE foundation required by the root target.",
+      "unblock_condition": "After the QPBT-068 cache safety repair is reviewed and integrated, prepare this exact candidate worktree with the authenticated local archives, then rerun the one full build and explicitly request re-review.",
+      "candidate_base_sha": "c0b166fa288b2aac0e008e375f8339bbf38c067f",
+      "candidate_head_sha": "4bb8a0897a5fbe4f7356c09329820801564e8879",
+      "candidate_tree": "7351759488dcec34213019ba7ad49ce78131efd5",
+      "candidate_patch_sha256": "8b220b5ec577355fccb760d06afd7952d01ea846b861015300436254b3e1a926",
+      "candidate_blob": "eeae36f9c54f9072c89cbde9edd19078fee9a5d0",
+      "candidate_report": "/tmp/i069-orchestrator-a01-instance-names.md",
+      "candidate_report_sha256": "da258bb174689dd815fc1f7afbe16bc70a958fb000a7d7dd320aa94cafbf0d7b",
+      "candidate_status": "blocked-preparation-incomplete",
+      "review_manifest": ".workflow-runtime/qpbt-069-review-manifest-a02.json",
+      "review_manifest_sha256": "d0bafa2b4425d2a3e9b2be079afd27bbc223b7099263eae85eba88e017346e70",
+      "review_report": "/tmp/i069-reviewer-a02-source-lean.md",
+      "review_report_sha256": "d658478716228bd01b11f2fef81a7ca2c5a5c5144a1b6c9d820718fdc450e19b",
+      "review_head_sha": "4bb8a0897a5fbe4f7356c09329820801564e8879",
+      "review_verdict": "request_changes",
+      "secondary_review_report": "/tmp/i069-reviewer-a03-regression.md",
+      "secondary_review_report_sha256": "913c5b92758ea4a7a5d937c6a35aa62af20806446688ec16c438ad813ca90f03",
+      "secondary_review_manifest_sha256": "d0bafa2b4425d2a3e9b2be079afd27bbc223b7099263eae85eba88e017346e70",
+      "secondary_review_verdict": "approve",
+      "latest_review_report": "/tmp/i069-reviewer-a02-source-lean.md",
+      "latest_review_report_sha256": "d658478716228bd01b11f2fef81a7ca2c5a5c5144a1b6c9d820718fdc450e19b",
+      "latest_review_manifest_sha256": "d0bafa2b4425d2a3e9b2be079afd27bbc223b7099263eae85eba88e017346e70",
+      "latest_review_head_sha": "4bb8a0897a5fbe4f7356c09329820801564e8879",
+      "latest_review_verdict": "request_changes",
+      "review_findings": [
+        {
+          "id": "F069-A02-001",
+          "severity": "blocker",
+          "status": "open",
+          "path": "AGENTS.md:58",
+          "summary": "The exact candidate has scoped and target evidence but lacks the mandatory repository-wide lake build before review and integration."
+        }
+      ],
+      "latest_build_report": "/tmp/i069-orchestrator-a04-full-build.md",
+      "latest_build_report_sha256": "13619d1d78670a8852f04be86ecc26986845f9c83c2b36a0c85fc06a8ba0d3e4",
+      "worktree_retirement": "Clean 9.9 GB worktree /tmp/qpbt-069-instance-names-a01 removed under owner disk-recovery authorization; branch issue/qpbt-069-instance-names-a01 remains at 4bb8a0897a5fbe4f7356c09329820801564e8879 and must be recreated/seeded after QPBT-068."
+    },
+    {
+      "id": "QPBT-070",
+      "title": "feat(workflow): accept argument-safe update payload files",
+      "kind": "workflow",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-044"
+      ],
+      "labels": [
+        "workflow",
+        "cli",
+        "structured-data",
+        "third-occurrence",
+        "deferred"
+      ],
+      "acceptance_gates": [
+        "Reproduce the three shell-inline JSON quoting failures recorded by INC-055 and INC-081 without mutating canonical state.",
+        "Add an argument-safe file input for workflow update operations while retaining repeated --set compatibility and atomic validation semantics.",
+        "Add focused regressions for apostrophes, quotes, multiline prose, malformed payloads, and no-mutation failure behavior.",
+        "Make the smallest sufficient protocol and tooling change, validate the aggregate workflow suite, and obtain independent immutable review before integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-055",
+        "research/metrics/incidents.jsonl#INC-081",
+        "scripts/workflow.py"
+      ],
+      "owned_paths": [
+        "scripts/workflow.py",
+        "tests/test_workflow.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "created_at": "2026-09-03T17:38:00Z",
+      "updated_at": "2026-09-03T17:38:00Z",
+      "blocked_reason": "Deferred behind the active QPBT-044 workflow identity repair and Stage-4A Lean critical path.",
+      "unblock_condition": "QPBT-044 is done and a workflow lane is free without delaying Lean implementation."
+    },
+    {
+      "id": "QPBT-071",
+      "title": "feat(QPBT/Game): implement the standalone Magic Square game",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "blocked",
+      "parent_id": "QPBT-015",
+      "dependency_ids": [
+        "QPBT-038",
+        "QPBT-042"
+      ],
+      "labels": [
+        "lean",
+        "game",
+        "magic-square",
+        "finite-codec",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Create only MIPStarRE/QPBT/Game/MagicSquare/Defs.lean with the F08 finite game surface frozen by scout A42: 15 question tags, dependent answer fibers, sigma encode/decode, variableAt, targetParity, graph, acceptance predicate, game, and symmetry.",
+        "Prove encode/decode inverse and injectivity; prove exactly 18 incidences and 36 oriented graph edges, graph support/distribution symmetry, and both acceptance orientations.",
+        "Malformed tags, unsupported pairs, and same-type pairs reject; variableAt implements the exact three rows and three columns and only constraint 5 has odd target parity.",
+        "Import only the accepted Game semantics/types boundary, introduce no new sorry/axiom/constant/public assumption, and do not import legacy QPBT.Test.MagicSquare modules.",
+        "Pass scoped elaboration, affected target, exact API/cardinality probes, debt/import scans, blueprint synchronization after QPBT-074, one full private build, immutable review, and guarded integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "/tmp/i005-scout-a42-magic-operator-api.md:612-687",
+        "/tmp/i005-scout-a43-game-codec.md:82-194",
+        "blueprint/metadata/nodes.json#F08-MAGIC-GAME",
+        "references/2001.04383v3/sections/inventory.json"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/MagicSquare/Defs.lean"
+      ],
+      "created_at": "2026-09-03T18:48:53.258232Z",
+      "updated_at": "2026-09-03T20:41:12.433289Z",
+      "blocked_reason": "QPBT-068 is under final immutable review; no issue worktree may use the repaired prepare path before integration.",
+      "unblock_condition": "Integrate QPBT-068, then authorize one authenticated private prepare, scoped elaboration, target/full build, commit, and code review.",
+      "draft_sha256": "7e3960fbbf7d85f37c198f6b36da3e444164d4170b46c972253cbe99092a5478",
+      "draft_bytes": 16611,
+      "draft_lines": 414,
+      "source_review_report": "/tmp/i071-reviewer-a03-source-api.md",
+      "source_review_report_sha256": "0a2c1f5cc6d665d38513f2a0c4a186f024e2e1997d9dd9da54ee42e80cb00f65",
+      "source_review_manifest_sha256": "84f2bcfb04bd0251b71a8ba2e98d07126ad8b23e8f0ede35bd1ecc50e02fa3c2",
+      "source_review_verdict": "approve",
+      "source_review_findings": [
+        {
+          "id": "F071-A02-001",
+          "severity": "high",
+          "status": "resolved",
+          "summary": "Choice-based answer instances were unsuitable for native_decide enumeration.",
+          "resolution_evidence": "Constructive dependent-fiber Fintype and DecidableEq instances replace choice-based instances; A03 approved the frozen bytes."
+        },
+        {
+          "id": "F071-A02-002",
+          "severity": "high",
+          "status": "resolved",
+          "summary": "MagicSquareAnswer encode/decode and four codec laws were absent.",
+          "resolution_evidence": "The exact compatibility codec names and four laws are present; A03 approved the frozen bytes."
+        },
+        {
+          "id": "F071-A02-003",
+          "severity": "medium",
+          "status": "resolved",
+          "summary": "Theorem-level 15, 18, and 66 cardinalities were absent.",
+          "resolution_evidence": "The repaired draft proves 15/18/36/66 cardinalities; A03 approved the frozen bytes."
+        }
+      ],
+      "candidate_status": "source-api-approved-awaiting-authenticated-prepare"
+    },
+    {
+      "id": "QPBT-072",
+      "title": "feat(QPBT/Quantum): implement finite bipartite states",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "blocked",
+      "parent_id": "QPBT-015",
+      "dependency_ids": [
+        "QPBT-041",
+        "QPBT-042"
+      ],
+      "labels": [
+        "lean",
+        "quantum",
+        "tensor-state",
+        "maximally-entangled",
+        "operator-consistency",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Create only MIPStarRE/QPBT/Quantum/FiniteState.lean with tensorState and its pointwise/norm laws, bipartite tensor shuffle/state laws, the normalized maximallyEntangledState and its apply/norm/swap/left-action laws, and OperatorConsistentOn.",
+        "Prove OperatorConsistentOn.mul_reversed and the tensor consistency closure with Bob multiplication in the mathematically required reversed order.",
+        "Use the weakest finite Euclidean abstractions already supported by Mathlib/project APIs; do not add supplied normalization, bridge, witness, residual, package, or repair assumptions.",
+        "Introduce zero new sorry/axiom/constant/public assumptions and pass exact signature/axiom probes, scoped elaboration, target build, private full build, blueprint synchronization after QPBT-074, immutable review, and guarded integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "/tmp/i005-scout-a42-magic-operator-api.md:247-360",
+        "blueprint/metadata/nodes.json#F08-MAGIC-GAME",
+        "references/2001.04383v3/sections/inventory.json"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Quantum/FiniteState.lean"
+      ],
+      "created_at": "2026-09-03T18:48:53.258232Z",
+      "updated_at": "2026-09-03T20:41:12.643663Z",
+      "blocked_reason": "Frozen FiniteState draft passed source/API review; authenticated private-cache prepare and Lean elaboration await QPBT-068.",
+      "unblock_condition": "Integrate QPBT-068, then let the existing owner authenticate the approved frozen bytes, prepare its private cache, elaborate, build, and commit.",
+      "candidate_status": "source-api-approved-awaiting-authenticated-prepare",
+      "draft_sha256": "b7a0d0b08c454fe6b6cdd43311d5332c5b97b091d83432bebb40e155d68ebd0c",
+      "source_api_review_report": "/tmp/i072-reviewer-a03-source-api.md",
+      "source_api_review_report_sha256": "a9167766af50f414a99c3a86f7a22c6750c72c6f50802029f1337830db28caa5",
+      "source_api_review_manifest_sha256": "8d6df44144b738dcf5190ca5fb80b2dc57ccd78dc4dc7df757c79e6fd928c506",
+      "source_api_review_verdict": "approve",
+      "provenance_correction": "The initial root import expanded the authenticated 8d6df441 prefix to the wrong full digest; the reviewer report and unchanged 944-byte manifest authenticate 8d6df44144b738dcf5190ca5fb80b2dc57ccd78dc4dc7df757c79e6fd928c506."
+    },
+    {
+      "id": "QPBT-073",
+      "title": "feat(QPBT/Game): prove normalized strategy outcome weights",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "blocked",
+      "parent_id": "QPBT-015",
+      "dependency_ids": [
+        "QPBT-042"
+      ],
+      "labels": [
+        "lean",
+        "game-semantics",
+        "born-weight",
+        "strategy-value",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Create only MIPStarRE/QPBT/Game/ValueOne.lean with strategyOutcomeWeight on the accepted finite strategy semantics, its nonnegativity, and the exact finite double-sum normalization theorem.",
+        "Prove the source-faithful value-one criterion from zero rejected outcome weight, without adding a value-one premise or moving the proof obligation into a public assumption.",
+        "Reuse project and Mathlib finite-sum/inner-product lemmas, introduce zero new sorry/axiom/constant/public assumptions, and keep imports minimal and acyclic.",
+        "Pass scoped elaboration, affected target, exact signature/axiom/debt probes, blueprint synchronization after QPBT-074, one private full build, immutable review, and guarded integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "/tmp/i005-scout-a42-magic-operator-api.md:548-610",
+        "MIPStarRE/QPBT/Game/Semantics.lean",
+        "blueprint/metadata/nodes.json#F08-MAGIC-GAME"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/ValueOne.lean"
+      ],
+      "created_at": "2026-09-03T18:48:53.258232Z",
+      "updated_at": "2026-09-03T20:41:12.858123Z",
+      "blocked_reason": "Frozen ValueOne draft passed source/API review; authenticated private-cache prepare and Lean elaboration await QPBT-068.",
+      "unblock_condition": "Integrate QPBT-068, then let the existing owner authenticate the approved frozen bytes, prepare its private cache, elaborate, build, and commit; complete blueprint synchronization after QPBT-074.",
+      "candidate_status": "source-api-approved-awaiting-authenticated-prepare",
+      "draft_sha256": "7e7ad51bd6600642d8f6bd235662bf22cc4be64db5cf4587d12198d76d497147",
+      "draft_bytes": 9428,
+      "draft_lines": 214,
+      "source_api_review_report": "/tmp/i073-reviewer-a02-source-api.md",
+      "source_api_review_report_sha256": "ce0143780a04335b22be9a66db68182c7a7112766e8e31429279ee65c4ec20d5",
+      "source_api_review_manifest_sha256": "09965fa2b31f0f26f5dea87a9bbc8f22e3d3ad3e551220eb2eec968c82a2130e",
+      "source_api_review_verdict": "approve"
+    },
+    {
+      "id": "QPBT-074",
+      "title": "fix(blueprint/Game): expose Magic semantics and lower the classical LDT core",
+      "kind": "blueprint",
+      "execution_category": "preflight",
+      "status": "done",
+      "parent_id": "QPBT-015",
+      "dependency_ids": [
+        "QPBT-036",
+        "QPBT-042",
+        "QPBT-048",
+        "QPBT-058"
+      ],
+      "labels": [
+        "blueprint",
+        "dependency-graph",
+        "magic-square",
+        "classical-ldt",
+        "paper-gap",
+        "source-fidelity",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Add F04A-GAME-SEMANTICS as a direct F08 prerequisite and transitive definition so every FiniteGame, strategy, SPCC, and strategyValue dependency is explicit.",
+        "Create F09A-LDT-GAME-CORE at MIPStarRE.QPBT.Game.ClassicalLDT for canonical affine-line geometry, little-endian fieldElementIndex/chi, truncation, concrete CL maps, bounded line answers, and the repetition-one Bool decider; retain F09 downstream in Analysis and make G02 depend directly on F09A.",
+        "Record numbered gaps G22 for zero-direction canonical representative/parameter and G23 for field-element bit order, with source ranges, affected nodes, issue linkage, exact dispositions, integrity tables, and a paper-gap note.",
+        "Add adversarial checker tests for missing F08/F04A and G02/F09A edges, missing gaps/source ranges/layer/dispositions; regenerate all consumers byte-idempotently.",
+        "Freeze exact Lean declaration names/imports and no-sorry contract, pass default and pinned blueprint checks plus all blueprint tests, and obtain an immutable source/API review before integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "/tmp/i005-scout-a41-canonical-line-ldt.md:161-596",
+        "/tmp/i005-scout-a42-magic-operator-api.md:113-125",
+        "blueprint/metadata/nodes.json#F08-MAGIC-GAME",
+        "blueprint/metadata/nodes.json#F09-LDT-GAME",
+        "blueprint/metadata/nodes.json#G02-GAME"
+      ],
+      "owned_paths": [
+        "blueprint/metadata/nodes.json",
+        "blueprint/metadata/gaps.json",
+        "blueprint/check.py",
+        "blueprint/tests/test_check.py",
+        "blueprint/generated/graph.json",
+        "blueprint/generated/graph.dot",
+        "blueprint/src/generated/gaps.tex",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/chapter-03-entries.tex",
+        "blueprint/src/generated/chapter-04-entries.tex",
+        "blueprint/src/generated/chapter-05-entries.tex",
+        "blueprint/src/generated/chapter-06-entries.tex",
+        "blueprint/src/generated/chapter-07-entries.tex",
+        "blueprint/src/generated/chapter-08-entries.tex",
+        "blueprint/src/generated/chapter-09-entries.tex",
+        "blueprint/src/generated/chapter-10-entries.tex",
+        "blueprint/src/generated/chapter-11-entries.tex",
+        "blueprint/src/generated/chapter-12-entries.tex",
+        "docs/paper-gaps/canonical-line-zero-direction.md",
+        "workflow/reviews/qpbt-074-game-contract-a01.md"
+      ],
+      "created_at": "2026-09-03T18:48:53.258232Z",
+      "updated_at": "2026-09-03T22:46:37.343745Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
+      "scope_handoff_report": "/tmp/i074-orchestrator-a01-game-contract.md",
+      "scope_handoff_report_sha256": "a063127bb2cca6f8693fa8f2c194f013c420b1b1f08ccf32f6e1eb6fcfb06dca",
+      "dag_review_report": "/tmp/i005-reviewer-a46-issue-dag.md",
+      "dag_review_report_sha256": "81c549622be1459c7fd41a743021a6ea8459e72988146ff8ce2dc888e42f15c0",
+      "dag_review_findings": [
+        {
+          "id": "F046-A46-001",
+          "severity": "high",
+          "status": "resolved",
+          "path": "workflow/state/issues.json",
+          "summary": "QPBT-074's A41 source range omitted the exact declarations and laws it must freeze.",
+          "resolution_evidence": "The QPBT-074 source anchor now spans A41 lines 161-596, including the proposal, exact public declarations, laws, integrity tables, and acceptance gates."
+        },
+        {
+          "id": "F046-A46-002",
+          "severity": "high",
+          "status": "resolved",
+          "path": "workflow/state/issues.json",
+          "summary": "QPBT-075 assigned malformed decoding to the typed LDT layer and omitted the paper's unlisted-pair accept default.",
+          "resolution_evidence": "QPBT-075 now states the exact typed four-way semantics and assigns malformed outer tag rejection only to the later G02 codec/verifier."
+        },
+        {
+          "id": "F046-A46-003",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "workflow/state/issues.json",
+          "summary": "QPBT-078 did not resolve overlapping A41/A43 advice for line and polynomial declarations.",
+          "resolution_evidence": "QPBT-078 now explicitly reuses QPBT-075's ClassicalLDT declarations and limits Verifier ownership to QPBT tags, fibers/codecs, branch support, and gamma."
+        },
+        {
+          "id": "F046-A46-004",
+          "severity": "low",
+          "status": "resolved",
+          "path": "workflow/state/issues.json",
+          "summary": "QPBT-015 retained write ownership of the completed QPBT-077 MagicSquare surface.",
+          "resolution_evidence": "QPBT-015 now owns only Verifier.lean and retains MagicSquare.lean solely as a read-only integration prerequisite."
+        }
+      ],
+      "candidate_base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+      "candidate_head_sha": "edcda8f19765ab9db0a870b66bd6d25f439ceb8d",
+      "candidate_tree": "292efcca827e7020cab8c3e9fe3c66b74aaa9479",
+      "candidate_patch_sha256": "aacb0514573536fc6bfef85ccced78e5aca066805f66362b97dbb7ec956dc899",
+      "candidate_report": "/tmp/i074-orchestrator-a06-contract-repair.md",
+      "candidate_report_sha256": "1d0e69821f2027e0f1f1255cc2c3ab6a83e3e6af06addef55b7498557feaf5c1",
+      "candidate_status": "integrated",
+      "latest_review_report": "/tmp/i074-reviewer-a09-source-integrity.md",
+      "latest_review_report_sha256": "fcebc916889e55d04b97fbdc8c796308fac9277e536303bd54e85777924f8988",
+      "latest_review_manifest_sha256": "03dea72296b16cf5191ac0969978cbbd04ecac174726c00362a534f7072104ae",
+      "latest_review_verdict": "approved-on-fresh-a09-a10",
+      "latest_review_findings": [
+        {
+          "id": "F074-A03-001",
+          "severity": "high",
+          "status": "resolved",
+          "path": "blueprint/metadata/nodes.json:510",
+          "summary": "F09A omits exact primary anchors for def:line-point-dist and the QPBT repetition-one specialization.",
+          "resolution_evidence": "Fixed in A06 head edcda8f and independently authenticated as resolved by fresh source review A09 (report fcebc916) and regression review A10 (report a2ec86f3)."
+        },
+        {
+          "id": "F074-A03-002",
+          "severity": "high",
+          "status": "resolved",
+          "path": "workflow/reviews/qpbt-074-game-contract-a01.md:137",
+          "summary": "Thirty-eight law entries are comment-only names, leaving theorem types, answer-fiber equations, and codec coherence unfrozen.",
+          "resolution_evidence": "Fixed in A06 head edcda8f and independently authenticated as resolved by fresh source review A09 (report fcebc916) and regression review A10 (report a2ec86f3)."
+        },
+        {
+          "id": "F074-A03-003",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "workflow/reviews/qpbt-074-game-contract-a01.md:84",
+          "summary": "Axis, diagonal, and individual LDT question carriers omit constructive Fintype instances required downstream.",
+          "resolution_evidence": "Fixed in A06 head edcda8f and independently authenticated as resolved by fresh source review A09 (report fcebc916) and regression review A10 (report a2ec86f3)."
+        }
+      ],
+      "compatibility_review_report": "/tmp/i005-reviewer-a48-draft-compatibility.md",
+      "compatibility_review_report_sha256": "77f3686902c48c9c5b385325f3fdbefa4660a35da039d7da360800f745c827af",
+      "compatibility_review_verdict": "approve-three-drafts-hold-f08-sync",
+      "compatibility_review_findings": [
+        {
+          "id": "F074-A48-001",
+          "severity": "high",
+          "status": "resolved",
+          "path": "blueprint/metadata/nodes.json:495",
+          "summary": "F08 omits F04A-GAME-SEMANTICS from direct prerequisites and transitive definitions despite using its FiniteGame and strategy semantics.",
+          "resolution_plan": "A06 must add the F04A edge, regenerate consumers, and validate it independently without changing the frozen Lean drafts.",
+          "resolution_evidence": "Fixed in A06 head edcda8f; fresh source review A09 and regression review A10 independently confirm the exact edge and derived closure."
+        }
+      ],
+      "verifier_preflight_report": "/tmp/i005-scout-a52-verifier-plan.md",
+      "verifier_preflight_report_sha256": "f2b859a16d524f2d5109bc9123b5423435602c7ddb52ab048e38e2e8e3249aad",
+      "verifier_preflight_findings": [
+        {
+          "id": "F074-A52-001",
+          "severity": "high",
+          "status": "resolved",
+          "path": "workflow/reviews/qpbt-074-game-contract-a01.md:96",
+          "summary": "Unnamed local Galois-field instances in F09A will collide with Basic.Pauli generated names in the future combined Verifier import.",
+          "resolution_plan": "Name both ClassicalLDT instances explicitly, freeze the names in the signed contract/checker, and require both-order combined-import probes.",
+          "resolution_evidence": "Fixed in A06 head edcda8f; fresh source review A09 and regression review A10 independently authenticate both explicit instance names and both collision-sensitive import orders."
+        }
+      ],
+      "candidate_patch_recipe": "git diff --binary --full-index 5bac199553c72cf1e88043b0a947760aa59380c2 edcda8f19765ab9db0a870b66bd6d25f439ceb8d",
+      "repair_parent_sha": "37cdfae062c9b56a144c123a550636239c57fb60",
+      "repair_patch_sha256": "9e0af43c8222e24022cbb6594ea98deca5be969bd50cfc35c1d3b6bb58960ebf",
+      "repair_patch_recipe": "git diff --binary --full-index 37cdfae062c9b56a144c123a550636239c57fb60 edcda8f19765ab9db0a870b66bd6d25f439ceb8d",
+      "fresh_review_manifests": [
+        {
+          "session_id": "i074-reviewer-a09-source-integrity",
+          "path": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-074-review-manifest-a09.json",
+          "sha256": "03dea72296b16cf5191ac0969978cbbd04ecac174726c00362a534f7072104ae",
+          "scope": "source-integrity"
+        },
+        {
+          "session_id": "i074-reviewer-a10-regression",
+          "path": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-074-review-manifest-a10.json",
+          "sha256": "9eb3b56ff6cb0f49125983c7553e9875f1fa00158fe53af943e28eff01b71cd8",
+          "scope": "regression"
+        }
+      ],
+      "fresh_source_review_report": "/tmp/i074-reviewer-a09-source-integrity.md",
+      "fresh_source_review_report_sha256": "fcebc916889e55d04b97fbdc8c796308fac9277e536303bd54e85777924f8988",
+      "fresh_source_review_manifest_sha256": "03dea72296b16cf5191ac0969978cbbd04ecac174726c00362a534f7072104ae",
+      "fresh_source_review_verdict": "approve",
+      "fresh_regression_review_report": "/tmp/i074-reviewer-a10-regression.md",
+      "fresh_regression_review_report_sha256": "a2ec86f3d77ebeefb5b4ec86dec8f67cd05e78441f65a9b8d7d3dd0142a46a68",
+      "fresh_regression_review_manifest_sha256": "9eb3b56ff6cb0f49125983c7553e9875f1fa00158fe53af943e28eff01b71cd8",
+      "fresh_regression_review_verdict": "approve",
+      "integration_sha": "d9ff02fb72b0f075c3d637d7c00d14644279a5da",
+      "integration_tree": "b7b17f10f59e01e4b31851c7320e6322247d6f0c",
+      "postmerge_validation": {
+        "blueprint_default": "passed",
+        "blueprint_pinned_source": "passed",
+        "blueprint_tests": "39/39",
+        "workflow_validate": "passed",
+        "workflow_check": "passed",
+        "diff_check": "passed"
+      }
+    },
+    {
+      "id": "QPBT-075",
+      "title": "feat(QPBT/Game): implement canonical lines and repetition-one LDT",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "blocked",
+      "parent_id": "QPBT-015",
+      "dependency_ids": [
+        "QPBT-074",
+        "QPBT-082"
+      ],
+      "labels": [
+        "lean",
+        "classical-ldt",
+        "canonical-line",
+        "paper-gap",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Create only MIPStarRE/QPBT/Game/ClassicalLDT.lean with the exact independently reviewed F09A public declarations and characterization laws, including the QPBT-082 contract repair.",
+        "Implement G22 literally: the zero-direction canonical projection is identity and the checked incident singleton parameter is zero; do not add a nonzero-direction caller premise, resample, or condition the game.",
+        "Implement G23 by the explicit little-endian coordinate sum rather than an arbitrary finite equivalence, and prove the required chi/truncation and level-1/2/3 CL laws.",
+        "Implement the dependent repetition-one Bool decider with exact degree bounds: reject nonincident line/point pairs, compare equality on same-type pairs, evaluate in both line/point orientations, and accept every other listed typed question pair.",
+        "Keep malformed outer question/answer tag rejection in the later G02 codec and total verifier; do not add a serializer, decoder argument, arbitrary totalizer, or malformed-input premise to ClassicalLDT.lean.",
+        "Introduce zero new proof debt and pass scoped elaboration, target/private-full builds, exact API/debt/import probes, blueprint synchronization, immutable review, and guarded integration."
+      ],
+      "owner_session_id": "i075-orchestrator-a01-classical-ldt",
+      "source_refs": [
+        "/tmp/i005-scout-a41-canonical-line-ldt.md:256-596",
+        "blueprint/metadata/nodes.json#F09-LDT-GAME",
+        "MIPStarRE/QPBT/Basic/Polynomial.lean",
+        "MIPStarRE/QPBT/Game/Types.lean"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/ClassicalLDT.lean"
+      ],
+      "created_at": "2026-09-03T18:48:53.258232Z",
+      "updated_at": "2026-09-04T01:20:03.050710Z",
+      "blocked_reason": "The exact one-file candidate is statically complete but cannot enter final review: QPBT-068 gates all Lean/build validation, and authenticated scout A02 found six missing callable source-characterization laws in the frozen F09A contract.",
+      "unblock_condition": "Repair the F09A callable contract after the active QPBT-080 blueprint lane, update this candidate to the reviewed contract, then run scoped/full builds and fresh immutable review after QPBT-068.",
+      "contract_review_finding": "F046-A46-002",
+      "contract_review_resolution": "Typed LDT semantics now match A41 and the pinned paper; malformed outer decoding remains a G02 responsibility.",
+      "candidate_status": "static-complete-awaiting-contract-and-build",
+      "candidate_base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+      "candidate_head_sha": "9bda3bed0e32c7d2ca21b317ec62a7ce3f033e81",
+      "candidate_tree": "eb47d6c8beaf9c7c863b3e2bf5ebcdfec27fc3f7",
+      "candidate_patch_sha256": "dae427a47d3490ff98effce91bce9d8d221232111403f87f98969e2b048c5795",
+      "candidate_blob": "1eb9c80b0881626c2b96bfd1a90f1c6a43b7eac1",
+      "candidate_file_sha256": "08a1c64f40e894f808ea7ba6d2b31eacdd4cfc88849fe04a82ba77ec10216907",
+      "candidate_report": "/tmp/i075-orchestrator-a01-classical-ldt.md",
+      "candidate_report_sha256": "e7a6307a179cf7639e7fd0c8648f98a3a20f3ab8af7c9ce363e049cbe132fa61",
+      "contract_gap_report": "/tmp/i075-scout-a02-source-fidelity.md",
+      "contract_gap_report_sha256": "d6451213df896ac2d81b0e1d526b6cd3fefcaa1c8e1f818702f3b0477c2903d0",
+      "retrospective_session_import_note": "The two read-only child scouts were launched by the orchestrator before root registration. Their exact identities are queued as planned provenance imports until QPBT-075 becomes dispatchable; meanwhile the parent session metric records both children and their authenticated reports."
+    },
+    {
+      "id": "QPBT-076",
+      "title": "feat(QPBT/Quantum): implement projective-measurement algebra",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-015",
+      "dependency_ids": [
+        "QPBT-072",
+        "QPBT-079"
+      ],
+      "labels": [
+        "lean",
+        "quantum",
+        "projective-measurement",
+        "binary-observable",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Create only MIPStarRE/QPBT/Quantum/ProjectiveMeasurement.lean with the exact P2 projection, orthogonality, completeness, binary-observable, tensor-lift, and consistency lemmas frozen by scout A42.",
+        "Build on QPBT-072 OperatorConsistentOn and accepted measurement APIs; preserve multiplication order and complex conjugation conventions.",
+        "Introduce zero new sorry/axiom/constant/public assumptions and avoid legacy debt-bearing Magic Square modules.",
+        "Pass scoped elaboration, affected target, exact API/axiom/debt probes, private full build, blueprint synchronization, immutable review, and guarded integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "/tmp/i005-scout-a42-magic-operator-api.md:362-546",
+        "MIPStarRE/QPBT/Quantum/FiniteState.lean",
+        "blueprint/metadata/nodes.json#F08-MAGIC-GAME"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Quantum/ProjectiveMeasurement.lean"
+      ],
+      "created_at": "2026-09-03T18:48:53.258232Z",
+      "updated_at": "2026-09-03T21:52:35.635490Z",
+      "blocked_reason": "The operator-consistency state layer and the certified F03 binary-observable surface are not yet implemented.",
+      "unblock_condition": "QPBT-072 and QPBT-079 are done."
+    },
+    {
+      "id": "QPBT-077",
+      "title": "feat(QPBT/Game): construct the perfect Magic Square strategy",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-015",
+      "dependency_ids": [
+        "QPBT-071",
+        "QPBT-072",
+        "QPBT-073",
+        "QPBT-074",
+        "QPBT-076"
+      ],
+      "labels": [
+        "lean",
+        "magic-square",
+        "quantum-strategy",
+        "completeness",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement MIPStarRE/QPBT/Game/MagicSquare/Strategy.lean and the public re-export MIPStarRE/QPBT/Game/MagicSquare.lean with the exact operator strategy frozen by scout A42.",
+        "Construct the normalized bipartite state and both projective measurement families from anticommuting observables; prove all Alice/Bob effects, SPCC symmetry, and game value exactly one.",
+        "Do not accept a supplied strategy, value-one proof, bridge, residual, witness, producer, or generic assumptions package; import no legacy debt-bearing Magic modules.",
+        "Match F08 hypotheses/conclusion and quantifier order, record a statement-integrity table, introduce zero proof debt, and pass scoped/target/private-full builds, blueprint sync, immutable review, and guarded integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "/tmp/i005-scout-a42-magic-operator-api.md:687-987",
+        "blueprint/metadata/nodes.json#F08-MAGIC-GAME",
+        "MIPStarRE/QPBT/Game/MagicSquare/Defs.lean"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/MagicSquare/Strategy.lean",
+        "MIPStarRE/QPBT/Game/MagicSquare.lean"
+      ],
+      "created_at": "2026-09-03T18:48:53.258232Z",
+      "updated_at": "2026-09-03T18:48:53.258232Z",
+      "blocked_reason": "The finite game, finite-state, value-one, blueprint, and projective-measurement prerequisites are incomplete.",
+      "unblock_condition": "QPBT-071, QPBT-072, QPBT-073, QPBT-074, and QPBT-076 are done."
+    },
+    {
+      "id": "QPBT-078",
+      "title": "feat(QPBT/Game): implement finite verifier carriers and support",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "planned",
+      "parent_id": "QPBT-015",
+      "dependency_ids": [
+        "QPBT-058",
+        "QPBT-069",
+        "QPBT-071",
+        "QPBT-074",
+        "QPBT-075"
+      ],
+      "labels": [
+        "lean",
+        "verifier",
+        "finite-codec",
+        "typed-graph",
+        "gamma",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Implement the finite-data tranche in MIPStarRE/QPBT/Game/Verifier.lean: 26 QPBT question tags, common payloads, exact dependent global answer fibers/codecs, seven-constructor VerifierBranchCode, endpoints, typed support, graph, accessors, and gamma.",
+        "Treat A41/QPBT-075 as authoritative over A43 for AxisLineQuestion, DiagonalLineQuestion, BoundedUnivariatePolynomial, and polynomial evaluation: import and reuse those exact ClassicalLDT declarations; do not duplicate or alias them in Verifier.lean.",
+        "Prove codec inverses/injectivity, exactly 86 branch codes, endpoint injectivity, subsingleton support fibers, graph/support symmetry, and the exact finite cardinalities frozen by scout A43.",
+        "Do not implement or assume the later total accepts/pauliBasisGame semantics in this issue. Codec tag mismatches decode to none; later off-support question-pair semantics accept only after successful decoding.",
+        "Introduce zero new proof debt and pass scoped elaboration, target/private-full builds, exact API/cardinality/debt probes, blueprint synchronization, immutable review, and guarded integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "/tmp/i005-scout-a43-game-codec.md:195-595",
+        "blueprint/metadata/nodes.json#G02-GAME",
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "MIPStarRE/QPBT/Game/ClassicalLDT.lean"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Game/Verifier.lean"
+      ],
+      "created_at": "2026-09-03T18:48:53.258232Z",
+      "updated_at": "2026-09-03T20:58:17.483741Z",
+      "blocked_reason": "The named field-instance, Magic finite-game, blueprint, and classical-LDT prerequisites are incomplete; A52 also requires collision-safe named instances before dispatch.",
+      "unblock_condition": "QPBT-069, QPBT-071, QPBT-074, and QPBT-075 are done, including the named-instance combined-import gate.",
+      "contract_review_finding": "F046-A46-003",
+      "contract_review_resolution": "Verifier now explicitly reuses ClassicalLDT line/polynomial declarations and distinguishes failed decoding from later off-support semantics.",
+      "implementation_preflight_report": "/tmp/i005-scout-a52-verifier-plan.md",
+      "implementation_preflight_report_sha256": "f2b859a16d524f2d5109bc9123b5423435602c7ddb52ab048e38e2e8e3249aad",
+      "implementation_preflight_verdict": "ready-after-dependencies-and-instance-repair",
+      "implementation_preflight_findings": [
+        {
+          "id": "F078-A52-001",
+          "severity": "high",
+          "status": "open",
+          "summary": "ClassicalLDT and Verifier require explicitly named local Galois-field instances plus both-order combined-import probes with Basic.Pauli."
+        },
+        {
+          "id": "F078-A52-002",
+          "severity": "high",
+          "status": "open",
+          "summary": "Verifier must import Game.MagicSquare.Defs directly rather than the QPBT-077-owned Game.MagicSquare re-export."
+        },
+        {
+          "id": "F078-A52-003",
+          "severity": "medium",
+          "status": "open",
+          "summary": "Carrier cardinality theorems must use Q = Fintype.card (GaloisField 2 k), not 2^k without a nonzero exponent premise."
+        }
+      ],
+      "supplemental_acceptance_gates": [
+        "Import MIPStarRE.QPBT.Game.MagicSquare.Defs directly and do not add an undeclared dependency on the QPBT-077 strategy re-export.",
+        "Use explicitly named local Galois-field instances and pass Basic.Pauli/Game.Types/Game.ClassicalLDT combined-import probes in both orders.",
+        "State finite-data cardinalities using Q = Fintype.card (GaloisField 2 k); do not assume k is nonzero or replace Q by 2^k in this tranche."
+      ]
+    },
+    {
+      "id": "QPBT-079",
+      "title": "feat(QPBT/Basic): complete certified binary-observable boundary",
+      "kind": "formalization",
+      "execution_category": "implementation",
+      "status": "blocked",
+      "parent_id": "QPBT-013",
+      "dependency_ids": [
+        "QPBT-046"
+      ],
+      "labels": [
+        "lean",
+        "measurement",
+        "binary-observable",
+        "f03",
+        "proof-complete",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Modify only MIPStarRE/QPBT/Basic/Approximation.lean and preserve every existing import, declaration, and proof.",
+        "Add exactly the frozen F03 BinaryObservable, observableOfMeasurement, and observableOfMeasurement_val public declarations with concise source provenance and no fourth public declaration.",
+        "Derive both ordered effect orthogonality equations, involution, self-adjointness, and unitary membership from Measurement positivity/completeness plus pointwise idempotence; add no public assumption or obligation package.",
+        "Introduce no sorry, admit, axiom, constant, bridge, residual, repair, witness, package, producer, generic hypotheses, or duplicate raw observable API.",
+        "Pass private scoped Lean, affected target, exact API/axiom/debt/import probes, blueprint synchronization, one private full build, fresh immutable mathematical review, and guarded integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "references/2001.04383v3/sections/dependencies/measurements.tex:14-19",
+        "references/2001.04383v3/sections/dependencies/magic-square.tex:147-173",
+        "references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex:383-410",
+        "blueprint/metadata/nodes.json#F03-MEASUREMENT",
+        "workflow/reviews/qpbt-023-leaf-contract-a04.md#F03-SIGNATURES",
+        "workflow/state/issues.json#QPBT-046",
+        "/tmp/i005-scout-a53-f03-completion.md"
+      ],
+      "owned_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean"
+      ],
+      "created_at": "2026-09-03T21:51:22.513599Z",
+      "updated_at": "2026-09-03T22:48:04.200835Z",
+      "blocked_reason": "Two independent immutable reviews approve the exact frozen F03 candidate with zero findings. QPBT-068 must integrate before the required private cache seed, Lean elaboration, target/full builds, and post-build review.",
+      "unblock_condition": "Integrate QPBT-068, re-authenticate candidate SHA 341811f5, seed its private cache, pass scoped Lean/affected/full builds and blueprint synchronization, then obtain immutable post-build approval and integrate.",
+      "planning_report": "/tmp/i005-scout-a53-f03-completion.md",
+      "planning_report_sha256": "9c6226a7963268553aee6216f41e0ce0dad9f9f8bc317ccd042dee82cf646736",
+      "frozen_signature_sha256": "8de7983b66b2cce523b45bb3b14a788ac34b0315be91644610cf455b5306b065",
+      "statement_integrity_verdict": "faithful finite-coordinate boundary; observable definition, conversion, sign, laws, and quantifier order exact",
+      "candidate_status": "static-reviews-approved-awaiting-cache-and-build",
+      "candidate_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
+      "candidate_file_sha256": "341811f5baf2aa3fe8fe7cd580954cb0a5987e73abe00b86a6d8d48fcafcf1e0",
+      "candidate_report": "/tmp/i079-orchestrator-a01-binary-observable.md",
+      "candidate_report_sha256": "21802d9769b8fd9c102e9c88df3c2150ddd791156b4a166e3c0d9721e0864769",
+      "source_math_review_report": "/tmp/i079-reviewer-a02-source-math.md",
+      "source_math_review_report_sha256": "29d6f811969945bf427704520c2a2c09498bb84a3abc5a1a3b6123bc31baaf7a",
+      "source_math_review_verdict": "approve",
+      "lean_static_review_report": "/tmp/i079-reviewer-a03-lean-static.md",
+      "lean_static_review_report_sha256": "65c41ca8c9452127964db3380bcb5631f0f56a765f2b1f702efd3d7401f0a191",
+      "lean_static_review_verdict": "approve",
+      "latest_review_findings": []
+    },
+    {
+      "id": "QPBT-080",
+      "title": "fix(F07A): freeze width, runtime, and description boundaries",
+      "kind": "blueprint",
+      "execution_category": "implementation",
+      "status": "done",
+      "parent_id": "QPBT-000",
+      "dependency_ids": [
+        "QPBT-038",
+        "QPBT-042"
+      ],
+      "labels": [
+        "blueprint",
+        "f07a",
+        "paper-gap",
+        "statement-integrity",
+        "source-fidelity",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Add exactly G24-G26 from authenticated A08 with one source-anchored human note, and link all three only to F07A-DETYPING.",
+        "Add the five exact source anchors, preserve the primary source, prerequisites, and 20-name callable list, and set repaired-internal/documented mismatch consistently.",
+        "Freeze the A08 statement-integrity table, including outermost runtime witnesses, positive displayed arguments without inventing 0<n, distinct codecs, raw-domain timing, F06A reuse, and no public repair premise.",
+        "Add fail-closed checker constants and tests for sources, gaps, linkage, integrity, and paper-gap note identity, including mutations for quantifier order, source product, raw timing, codecs, compiler semantics, F06A reuse, and verdict.",
+        "Regenerate only the graph, chapter-02, and gap outputs in the owned scope; pass all blueprint tests and default plus pinned-source checks.",
+        "Obtain fresh immutable source-fidelity and regression review before guarded integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "/tmp/i043-scout-a08-source-boundary.md",
+        "references/2001.04383v3/sections/dependencies/types.tex:95-218,409-478,498-578",
+        "references/2001.04383v3/sections/top-level/preliminaries.tex:19-32,77-137,171-200",
+        "references/2001.04383v3/sections/top-level/nonlocal-games.tex:612-678",
+        "blueprint/metadata/nodes.json#F07A-DETYPING"
+      ],
+      "owned_paths": [
+        "blueprint/metadata/nodes.json",
+        "blueprint/metadata/gaps.json",
+        "blueprint/check.py",
+        "blueprint/tests/test_check.py",
+        "blueprint/generated/graph.json",
+        "blueprint/generated/graph.dot",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/gaps.tex",
+        "docs/paper-gaps/detyping-executable-boundaries.md"
+      ],
+      "created_at": "2026-09-04T00:24:09.258636Z",
+      "updated_at": "2026-09-04T04:35:49.200163Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
+      "source_review_report": "/tmp/i043-scout-a08-source-boundary.md",
+      "source_review_report_sha256": "8e9044103fe540192edabb56fb8f6216c39f7d1882fb5843bf640c3abc5bb606",
+      "source_review_verdict": "request_changes-contract-repair-required",
+      "gap_ids": [
+        "G24",
+        "G25",
+        "G26"
+      ],
+      "candidate_status": "integrated",
+      "candidate_base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+      "candidate_head_sha": "10b4fdee0ec15f545a789af467a9525c0d10a0d9",
+      "candidate_tree": "abd0a44a2ecb8cd50b934d9efa88edbe47b7b5b5",
+      "candidate_patch_sha256": "921e0df4c346c05a7592df30eca2c294c56e72a10297bba1dd2adccd95713c8d",
+      "candidate_report": "/tmp/i080-orchestrator-a06-review-repair.md",
+      "candidate_report_sha256": "75faf7a07b104fbb7c5713d479349c335f1b942f35d34e2cf6dc9d8e4bb86dbc",
+      "source_scout_report": "/tmp/i080-scout-a02-source-fidelity.md",
+      "source_scout_report_sha256": "f8f11c2413cb05d1d943934553fd31fcd4fe7c5571ec42047575967c652d32fa",
+      "checker_scout_report": "/tmp/i080-scout-a03-checker-regen.md",
+      "checker_scout_report_sha256": "b3987930897001e5137c05cb1e9ddcc93853de0b2b8330a0c12ea2d92bd60e01",
+      "source_scout_findings": [
+        {
+          "id": "F080-A02-001",
+          "severity": "high",
+          "status": "resolved",
+          "path": "blueprint/metadata/nodes.json",
+          "summary": "The documented-mismatch verdict names only G24, but G26 strengthens the paper pointwise-total raw decider to intrinsic per-index uniform boundedness and attainment.",
+          "resolution_evidence": "A06 preserved G26 as an explicit undefined-maximum gap, limited the documented mismatch verdict to G24, and A08/A09 independently accepted G26 as faithful executable boundary data."
+        },
+        {
+          "id": "F080-A02-002",
+          "severity": "high",
+          "status": "resolved",
+          "path": "blueprint/metadata/nodes.json",
+          "summary": "The integrity table itself does not freeze runtime quantifier order, positive displayed arguments, the no-0<n rule, distinct codecs, or direct F06A reuse.",
+          "resolution_evidence": "A06 froze runtime quantifier order, positive displayed arguments without 0<n, distinct codecs, raw-domain timing, and exact F06A reuse; A08/A09 approved."
+        },
+        {
+          "id": "F080-A02-003",
+          "severity": "medium",
+          "status": "resolved",
+          "path": "blueprint/metadata/gaps.json",
+          "summary": "G24 omits the ordinary normal-game width source at top-level/nonlocal-games.tex:660-678.",
+          "resolution_evidence": "A06 added the exact ordinary normal-game width source to G24 and its authenticated checker contract; A08/A09 approved."
+        },
+        {
+          "id": "F080-A02-004",
+          "severity": "low",
+          "status": "resolved",
+          "path": "blueprint/metadata/nodes.json",
+          "summary": "The paper has one seven-input sampler interface with four variable-arity call modes, not four seven-input query modes.",
+          "resolution_evidence": "A06 corrected the contract to one seven-input sampler interface with four variable-arity call modes; A08/A09 approved."
+        }
+      ],
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-080-review-manifest-a08.json",
+      "review_manifest_sha256": "494049bbe37173c63d8706ed51d24f860c68251cf13011b41cf69c767af954ee",
+      "review_session_ids": [
+        "i080-reviewer-a08-source-fidelity",
+        "i080-reviewer-a09-regression"
+      ],
+      "latest_review_verdict": "approve",
+      "latest_review_report": "/tmp/i080-reviewer-a08-source-fidelity.md",
+      "latest_review_report_sha256": "d00f0136f9ee3d8efc66cb3756520e45631c82ff97a496144a114b65cb02f957",
+      "secondary_review_report": "/tmp/i080-reviewer-a09-regression.md",
+      "secondary_review_report_sha256": "774b676535461defb094178d48b514c1b66612a272399fcb94ac4727635a8f2d",
+      "confirmed_repair_finding_ids": [
+        "F080-A04-001",
+        "F080-A04-002",
+        "F080-A04-003"
+      ],
+      "rejected_review_finding": {
+        "id": "F080-A05-001",
+        "reason": "Paper-first A04 adjudication treated G26 as a documented undefined-maximum gap and faithful boundary rather than a second behavioral mismatch; fresh exact-head reviewers A08 and A09 independently confirmed that classification."
+      },
+      "secondary_review_verdict": "approve",
+      "integration_sha": "8181636d3ad3c8c85e1a9966f89abc2a6b18d940"
+    },
+    {
+      "id": "QPBT-081",
+      "title": "docs(workflow): bound collaboration rate-limit retries",
+      "kind": "workflow",
+      "execution_category": "preflight",
+      "status": "done",
+      "parent_id": "QPBT-019",
+      "dependency_ids": [],
+      "labels": [
+        "workflow",
+        "collaboration",
+        "transport",
+        "rate-limit",
+        "third-occurrence",
+        "deferred"
+      ],
+      "acceptance_gates": [
+        "Reconstruct the three simultaneous HTTP 429 launch failures from canonical session timing without sending test traffic or mutating active sessions.",
+        "Define bounded stagger, backoff, stable-session retry, and accounting rules that preserve useful parallelism while avoiding synchronized retry bursts.",
+        "Determine whether repository tooling can enforce the rule; zero code is valid if the collaboration launch boundary is external, otherwise add focused no-mutation tests.",
+        "Apply only the smallest evidence-backed protocol change, update the changelog when required, and obtain independent review before integration."
+      ],
+      "owner_session_id": null,
+      "source_refs": [
+        "research/metrics/incidents.jsonl#INC-087",
+        "workflow/state/sessions.json#i068-orchestrator-a28-boundary-repair",
+        "workflow/state/sessions.json#i075-orchestrator-a01-classical-ldt",
+        "workflow/state/sessions.json#i043-scout-a08-source-boundary"
+      ],
+      "owned_paths": [
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md",
+        "workflow/reviews/qpbt-081-rate-limit-retries-a01.md"
+      ],
+      "created_at": "2026-09-04T00:24:09.258636Z",
+      "updated_at": "2026-09-04T05:12:24.188278Z",
+      "blocked_reason": null,
+      "unblock_condition": null,
+      "candidate_base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+      "candidate_head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+      "candidate_tree": "c1a3e80efd3daf0e8b0592e45653a060a9170d35",
+      "candidate_patch_sha256": "b51d950a8a865f9c22e9e94341864f5814ed262f33a0a0c28dddd8f413cce9dc",
+      "candidate_report": "/tmp/i081-orchestrator-a01-rate-limit-retries.md",
+      "candidate_report_sha256": "5a01ab51edb0d02f1ec5010abbf1fdca020a5b803cf13ef07234cb4be5b8cdba",
+      "candidate_status": "integrated",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-081-review-manifest-a03.json",
+      "review_manifest_sha256": "410eec968e3db0eb7859dd45ae8d7a31d2d0c9ff28f8599766af85f6beb38dd3",
+      "review_session_ids": [
+        "i081-reviewer-a02-protocol",
+        "i081-reviewer-a03-evidence"
+      ],
+      "integration_sha": "ade6b5e86f234b1c9b9be3217e183923776f6594",
+      "latest_review_verdict": "approve",
+      "latest_review_report": "/tmp/i081-reviewer-a03-evidence.md",
+      "latest_review_report_sha256": "f47ce3f0bc7c906cfb83409db27bad28da4da189dd7984409b3cb266f75c21f3"
+    },
+    {
+      "id": "QPBT-082",
+      "title": "fix(F09A): expose callable classical-LDT semantics",
+      "kind": "blueprint",
+      "execution_category": "implementation",
+      "status": "review",
+      "parent_id": "QPBT-015",
+      "dependency_ids": [
+        "QPBT-080"
+      ],
+      "labels": [
+        "blueprint",
+        "f09a",
+        "source-fidelity",
+        "public-api",
+        "contract-repair",
+        "exact-ownership"
+      ],
+      "acceptance_gates": [
+        "Authenticate the QPBT-075 A02 report, pinned classical-LDT and conditionally-linear sources, the QPBT-074 F09A manifest, and the frozen QPBT-075 candidate before changing the contract.",
+        "Add the smallest public characterization laws that uniquely fix standardDirection, least nonzero-coordinate selection, the seed register equivalence, affine pointAt, both question-to-line maps, and general bounded-polynomial evaluation.",
+        "Preserve G22 zero-direction and G23 little-endian behavior, exact CL levels, typed decider truth table, degree bounds, direct imports, and every existing public declaration unless an independently reviewed source mismatch requires a documented change.",
+        "Update the F09A callable list, exact signature manifest and marker digest, statement-integrity material, fail-closed checker constants/tests, and only the deterministic generated outputs affected by F09A.",
+        "Add mutation tests showing that constant evaluation, always-none pivot selection, permuted seed registers, and incorrect line parameterizations fail the contract.",
+        "Pass blueprint tests and default plus pinned-source checks, then receive fresh immutable source-fidelity and regression review before QPBT-075 is revised."
+      ],
+      "owner_session_id": "i082-orchestrator-a01-f09a-contract",
+      "source_refs": [
+        "/tmp/i075-scout-a02-source-fidelity.md",
+        "/tmp/i075-orchestrator-a01-classical-ldt.md",
+        "workflow/reviews/qpbt-074-game-contract-a01.md",
+        "references/2001.04383v3/sections/dependencies/classical-ldt.tex:92-223,306-377",
+        "references/2001.04383v3/sections/dependencies/conditionally-linear.tex:35-68,132-138,282-363",
+        "blueprint/metadata/nodes.json#F09A-LDT-CORE"
+      ],
+      "owned_paths": [
+        "blueprint/metadata/nodes.json",
+        "blueprint/check.py",
+        "blueprint/tests/test_check.py",
+        "blueprint/generated/graph.json",
+        "blueprint/generated/graph.dot",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "workflow/reviews/qpbt-074-game-contract-a01.md"
+      ],
+      "created_at": "2026-09-04T00:59:00Z",
+      "updated_at": "2026-09-04T05:19:18.490264Z",
+      "blocked_reason": "Exact seven-law candidate 335ff621 requires fresh immutable source-fidelity and regression reviews before integration.",
+      "unblock_condition": "Two independent reviewers approve the exact candidate and its seven-law source fidelity, fail-closed checker coverage, generated scope, and preserved G22/G23 boundaries.",
+      "candidate_status": "candidate-complete-awaiting-fresh-source-and-regression-review",
+      "candidate_base_sha": "ef827ef4e6c965c0051a6feac64e1842f83f872c",
+      "candidate_head_sha": "335ff621459dc86a4d8d60cfb39988db212ab24e",
+      "candidate_tree": "a859c85a3647785e765597051458b6b71d73a3af",
+      "candidate_patch_sha256": "ec0da2306d5a0e46db86a08b69854258c0972d3a044605f0af301895d71bc574",
+      "candidate_report": "/tmp/i082-orchestrator-a01-f09a-contract.md",
+      "candidate_report_sha256": "9274a64274c15d1102aad320d0e0b283b5c6e111fc2ee92ba5e68fd5097bd188",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-082-review-manifest-a02.json",
+      "review_manifest_sha256": "2018b97cef5141ac393f19ca6cd26ed5641369e9e211191889c30849d8a8c469",
+      "review_session_ids": [
+        "i082-reviewer-a02-source-fidelity",
+        "i082-reviewer-a03-regression"
       ]
     }
   ]

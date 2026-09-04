@@ -200,6 +200,56 @@
       "disposition": "Pull a downsized prefix back through the coordinate equivalence before selecting the original linear map, then conjugate that map. Discharge level zero directly with the unique zero certificate.",
       "public_effect": "Internal typing and proof-completeness repairs only; the F06 map and sampler downsize statements are unchanged.",
       "issue": "QPBT-055"
+    },
+    {
+      "id": "G22",
+      "class": "undefined-degenerate-case",
+      "source": "classical-ldt.tex:92-102,129-160,216-223,324-330,366-370 [4254-4264,4291-4322,4378-4385,4486-4492,4528-4532]; top-level/preliminaries.tex:306-320,342-383 [1203-1217,1239-1280]",
+      "affected_nodes": ["F09A-LDT-GAME-CORE", "F09-LDT-GAME", "G02-GAME"],
+      "paper_problem": "The line definition permits direction v=0, but the canonical map is invoked with kernel basis {v} although the canonical-complement construction requires a linearly independent set. The decider also asks for the parameter t on a zero-direction line, where every t gives the same point and a reported polynomial need not be constant.",
+      "disposition": "Totalize only the degenerate case by canonicalLineProjection 0 = LinearMap.id; represent the singleton through u by (u,0); take the distinguished evaluation parameter t=0; and still check the full incidence equation so every point other than the base rejects.",
+      "public_effect": "Nonzero directions use exactly the paper's least-pivot RREF projector. The positive-probability zero event becomes a specified singleton test at coefficient/evaluation parameter zero. No nonzero-direction premise, resampling, conditioning, arbitrary line map, or arbitrary decider input is exposed.",
+      "issue": "QPBT-074"
+    },
+    {
+      "id": "G23",
+      "class": "representation-order-ambiguity",
+      "source": "classical-ldt.tex:194-207 [4356-4369]; finite-fields.tex:250-263 [1566-1579]",
+      "affected_nodes": ["F09A-LDT-GAME-CORE", "F09-LDT-GAME", "G02-GAME"],
+      "paper_problem": "The chi selector treats a field element as an integer, while the paper specifies only a natural binary representation in the selected basis and does not state which basis coordinate is most significant.",
+      "disposition": "Freeze the explicit little-endian boundary index(s) = sum_i bit(D.coordinates s i) * 2^i, with coordinate zero least significant. Prove it is an equivalence with Fin (2^k); the callable fieldElementIndex_testBit theorem states that index bit i equals decide (D.coordinates s i = 1), in the same order used by the project codec.",
+      "public_effect": "Only a transparent representation convention is fixed. fieldElementIndex_testBit makes the ordered codec boundary callable. Every chi fiber has size 2^k/m, so a uniform selector remains uniform under any fixed bijective endian convention. No opaque Fintype.equivFin choice is used.",
+      "issue": "QPBT-074"
+    },
+    {
+      "id": "G24",
+      "class": "missing-width-transport",
+      "source": "dependencies/types.tex:205-218,409-426,444-460,498-570 [3771-3784,3975-3992,4010-4026,4064-4136]; top-level/nonlocal-games.tex:660-678 [3537-3555]",
+      "affected_nodes": ["F07A-DETYPING"],
+      "paper_problem": "The source and detyped games derive question and answer widths from different machine runtimes, yet the detyped predicate forwards the received source-content and answer strings unchanged and the completeness/soundness proof reuses the same outcome labels. No width equality, embedding, projection, padding convention, retraction, or measurement coarsening is supplied.",
+      "disposition": "Prove source-to-target width domination, fixed-prefix projections, zero-extension sections and retractions for question content and answers; define exact graph/content/padding parsing; and prove the induced measurement postprocessing preserves every PCC property used by completeness and soundness. Keep the literal paper theorem statements and add no public transport premise. Classify prefix-based execution as a documented mismatch until operational locality proves equivalence to full-string forwarding.",
+      "public_effect": "The completeness, soundness, entanglement, error-factor, level, and dimension conclusions are unchanged. Only the internal question/answer transport is made explicit; F07A remains a documented mismatch until full-forwarding equivalence is discharged.",
+      "issue": "QPBT-080"
+    },
+    {
+      "id": "G25",
+      "class": "missing-formalized-construction",
+      "source": "top-level/preliminaries.tex:77-137,171-200 [974-1034,1068-1097]; dependencies/types.tex:470-478,572-578 [4036-4044,4138-4144]",
+      "affected_nodes": ["F07A-DETYPING"],
+      "paper_problem": "The paper assumes reasonable canonical Turing-machine descriptions and efficient conversion from high-level descriptions, then claims polynomial-time computation of the detyped sampler and decider descriptions, but gives no concrete program syntax, decoder, interpreter, compiler, or semantic compiler-correctness theorem.",
+      "disposition": "Instantiate an F07A-local finite program syntax with canonical typed encoding and decoding, interpretation into the operational machine model, distinct graph/sampler and graph/decider compilers, semantic interpretation theorems identifying their outputs with the machines used by detyping, and actual polynomial-time compiler-machine witnesses. Reuse F06A for the target sampler; pairing arbitrary bit lists is not a compiler.",
+      "public_effect": "No compiler or machine-correctness hypothesis is added to callers. The description callable denotes the actual interpreted detyping compilers rather than an unrelated bit-list transform.",
+      "issue": "QPBT-080"
+    },
+    {
+      "id": "G26",
+      "class": "undefined-maximum",
+      "source": "top-level/nonlocal-games.tex:612-618,660-678 [3489-3495,3537-3555]; dependencies/types.tex:185-218,468-469 [3751-3784,4034-4035]",
+      "affected_nodes": ["F07A-DETYPING"],
+      "paper_problem": "A decider is only assumed to halt pointwise on every raw string tuple, while TIME_D(n) is defined as a maximum over all tuples with first component n. The remaining strings form an unbounded infinite domain, so pointwise termination does not imply a finite uniform maximum.",
+      "disposition": "Use an intrinsically uniformly index-bounded total operational decider. Derive every step count from its actual execution; prove the per-index upper bound and, whenever the API exposes a literal maximum, an attaining execution. Do not replace the raw domain by the finite game-valid carrier and do not accept an unconstrained claimed counter.",
+      "public_effect": "The executable decider boundary gains the well-formedness needed to make the paper's TIME_D(n) meaningful. No new premise is added to the detyping theorem and its runtime conclusion is unchanged.",
+      "issue": "QPBT-080"
     }
   ]
 }

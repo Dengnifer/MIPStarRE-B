@@ -9127,6 +9127,1141 @@
       ],
       "requested_external_review": true,
       "unexecuted_gate": "none; guarded integration report and singleton validation complete"
+    },
+    {
+      "id": "LPR-035",
+      "title": "feat(QPBT/Game): implement executable CL sampler skeleton",
+      "status": "merged",
+      "issue_ids": [
+        "QPBT-057"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-057-resource-repair-a03",
+      "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+      "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+      "implementer_session_ids": [
+        "i057-integrator-a11-pr035-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-057-auth",
+          "name": "QPBT-057 immutable candidate authentication",
+          "command": "Authenticate exact base, three-commit candidate head/tree, exact two-path binary patch, file hashes, and clean worktree",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "Exact head/tree and two-path patch authenticated; patch SHA-256 076394ff."
+        },
+        {
+          "id": "check-qpbt-057-scoped",
+          "name": "QPBT-057 scoped Lean elaboration",
+          "command": "lake env lean MIPStarRE/QPBT/Game/Types.lean",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "Passed on final candidate with exactly two authorized Stage-4A sorry warnings."
+        },
+        {
+          "id": "check-qpbt-057-targets",
+          "name": "QPBT-057 affected target builds",
+          "command": "lake build MIPStarRE.QPBT.Basic.Field; lake build MIPStarRE.QPBT.Game.Types",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "Passed 2,357-job Field and 3,101-job Types targets."
+        },
+        {
+          "id": "check-qpbt-057-full",
+          "name": "QPBT-057 private full build",
+          "command": "lake build",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "Passed 8,992 jobs in the isolated candidate worktree."
+        },
+        {
+          "id": "check-qpbt-057-blueprint",
+          "name": "QPBT-057 blueprint synchronization",
+          "command": "python3 blueprint/check.py --check; pinned-source check; blueprint unit tests",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "Both 54-node synchronization checks and 36/36 blueprint tests passed."
+        },
+        {
+          "id": "check-qpbt-057-hygiene",
+          "name": "QPBT-057 API/import/debt and workflow hygiene",
+          "command": "Exact 56-name API, four imports, two-hole debt, forbidden-assumption, workflow and diff scans",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:24:08.910235Z",
+          "result_path": "workflow/reviews/qpbt-057-f06a-a02.md",
+          "result": "All source-boundary, proof-debt, workflow, and diff gates passed."
+        },
+        {
+          "id": "check-qpbt-057-pr-bind",
+          "name": "LPR-035 no-byte-change adoption",
+          "command": "Authenticate exact candidate identity, two-path manifest, six registered checks, writer evidence, and clean worktree; make zero repository changes",
+          "status": "passed",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "completed_at": "2026-09-03T13:51:41.737281Z",
+          "result_path": "/tmp/i057-integrator-a11-pr035-bind.md",
+          "result": "Exact candidate and 6/6 registered checks authenticated; zero candidate-byte changes; report SHA-256 25fcee63."
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-057-pr035-a12-formal",
+          "reviewer_session_id": "i057-reviewer-a12-formal-pr",
+          "verdict": "approve",
+          "base_sha": "fce3f96becebe568c6487d557aec550499e28840",
+          "head_sha": "0c99181746a73b6dd442c9890fb8e2a8982e70ab",
+          "started_at": "2026-09-03T13:51:41.737281Z",
+          "completed_at": "2026-09-03T13:52:49.053109Z",
+          "result_path": "/tmp/i057-reviewer-a12-formal-pr.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "09555427420724f0c6d554525d69a635d7c0c52ff588b8c6d62650eceb1f066e",
+          "manifest_sha256": "ab9899e35ea31039af95dfa577b2df15de25543ce96e124cf89c755e55e94a99",
+          "patch_sha256": "076394ff295e71fb72285fe0588c2968990c39c3cd24fbc1914779c21ae810b6",
+          "integration_gate": "approved for exact guarded integration",
+          "prereview_session_started_at": "2026-09-03T13:47:45.175465Z",
+          "formal_review_start_basis": "PR binder check completed; earlier session time was manifest authentication and pre-review"
+        }
+      ],
+      "findings": [],
+      "integration_sha": "735a419a0f58fb531eaff04c62bd05e8e846f01e",
+      "merged_at": "2026-09-03T14:21:42.215465Z",
+      "created_at": "2026-09-03T13:45:00.454064Z",
+      "updated_at": "2026-09-03T14:21:42.215465Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-057-f06a-a02.md"
+      ],
+      "motivation": "Land the executable conditionally-linear sampler boundary required by the QPBT game skeleton while keeping operational construction and runtime proof as the two explicitly tracked Stage-4A holes.",
+      "description": "Define executable machines, query encodings, exponent programs, samplers, exact downsize maps and sample laws, and bind correctness/resource evidence for one selected compiler without changing the frozen public API.",
+      "testing": "Scoped Lean, affected targets, one private full build, blueprint synchronization, exact API/import/debt scans, workflow checks, and two independent immutable pre-PR reviews passed.",
+      "addresses": "QPBT-057",
+      "provenance_session_ids": [
+        "i057-orchestrator-a03-resource-evidence",
+        "i057-prover-a05-resource-certificate",
+        "i057-reviewer-a09-resource-binding",
+        "i057-reviewer-a10-build-api"
+      ],
+      "requested_external_review": true,
+      "unexecuted_gate": null,
+      "post_integration_validation": {
+        "main_sha": "735a419a0f58fb531eaff04c62bd05e8e846f01e",
+        "main_tree": "1362a781beeb4e93a7aafa7c5a2381977b3b8386",
+        "cache_key": "e6767da55a90639333fdfbeb2abf87aa45118cc20c18117b55d8de0a0c15bb47",
+        "result": "passed",
+        "cache_result": "built",
+        "build_jobs": 8992,
+        "build_seconds": 635.032752,
+        "elapsed_seconds": 774.399684,
+        "cache_hit": 0,
+        "cache_miss": 1,
+        "lock_wait_seconds": 0.0,
+        "builders": 1,
+        "authored_qpbt_files": 7,
+        "authored_qpbt_bytes": 182257,
+        "authored_qpbt_sha256": "f132250ce47e8abf893b1b56ee869ab799624998c8d0b1de8d81750c1e52d142",
+        "status_recheck": "hit",
+        "preflight_failures": 1,
+        "preflight_failure": "First invocation omitted required source selector and failed closed before build."
+      }
+    },
+    {
+      "id": "LPR-036",
+      "title": "feat(QPBT/Game): implement typed samplers and deciders",
+      "status": "merged",
+      "issue_ids": [
+        "QPBT-058"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-058-typed-a01",
+      "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+      "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+      "implementer_session_ids": [
+        "i058-integrator-a08-pr036-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-058-auth",
+          "name": "QPBT-058 immutable candidate authentication",
+          "command": "Authenticate formal base/tree, merge base, candidate head/tree/parent, exact two-path diff/blobs/hashes/binary patch, merge-tree result, and clean worktree",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "Exact formal base cc05598b, head e9fe2bd, merge base 937ea218, two candidate blobs and patch aa238529 authenticated; merge-tree is byte-preserving."
+        },
+        {
+          "id": "check-qpbt-058-scoped",
+          "name": "QPBT-058 scoped Lean elaboration and API probe",
+          "command": "lake env lean MIPStarRE/QPBT/Game/Types.lean; exact 11-signature and theorem-axiom probe",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "Whole file passed in 9.07s with only two inherited F06A warnings; 11/11 probe passed in 3.03s with no sorryAx in F07 theorem closures."
+        },
+        {
+          "id": "check-qpbt-058-target",
+          "name": "QPBT-058 affected target build",
+          "command": "lake build MIPStarRE.QPBT.Game.Types",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "3,101 jobs passed in 12.62s with only inherited lints and the two authorized F06A holes."
+        },
+        {
+          "id": "check-qpbt-058-full",
+          "name": "QPBT-058 private full build",
+          "command": "lake build",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "8,992 jobs passed in 7.29s on the isolated candidate worktree; one actual full compilation."
+        },
+        {
+          "id": "check-qpbt-058-blueprint-source",
+          "name": "QPBT-058 blueprint and pinned-source synchronization",
+          "command": "Default and pinned blueprint checks; blueprint tests; reference verification",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "Both 54-node/12-chapter checks passed; 36/36 tests passed; 39 files and 646 labels verified."
+        },
+        {
+          "id": "check-qpbt-058-hygiene",
+          "name": "QPBT-058 declaration, import, debt, workflow, and diff gates",
+          "command": "Exact F07 name/import/graph/fiber/shared-seed/downsize/debt scans; workflow validators; diff check",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "workflow/reviews/qpbt-058-f07-a01.md",
+          "result": "Exact 11-name F07 surface and four imports; zero F07 debt and exactly two inherited whole-file holes; workflow and diff hygiene passed."
+        },
+        {
+          "id": "check-qpbt-058-pr-bind",
+          "name": "LPR-036 no-byte-change adoption",
+          "command": "Authenticate candidate, six evidence checks, writer/manifest, two preliminary approvals, integration preflight, and clean worktree; make zero repository changes",
+          "status": "passed",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "completed_at": "2026-09-03T16:08:20.391942Z",
+          "result_path": "/tmp/i058-integrator-a08-pr036-bind.md",
+          "result": "Exact candidate and 6/6 candidate checks authenticated; both pre-reviews approve with zero findings; preflight passes; zero candidate-byte changes; report SHA-256 7e91aa8."
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-058-pr036-a09-formal",
+          "reviewer_session_id": "i058-reviewer-a09-formal-pr",
+          "verdict": "approve",
+          "base_sha": "cc05598bfaf5c9b925b7073da0d81284a9f35d4d",
+          "head_sha": "e9fe2bd4747f36d63ec5b3623c5f0c5bda7149cf",
+          "started_at": "2026-09-03T16:11:29.666564Z",
+          "completed_at": "2026-09-03T16:14:45Z",
+          "result_path": "/tmp/i058-reviewer-a09-formal-pr.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "ad128311a3ca2849a6af27496a7dcca7a900745f45b039652f8fa279a4443bc4",
+          "manifest_sha256": "f0e609cefa6ff4dc89bf3350cc3a1beb8cde2fd95a70c748dce82df7ef1b1f60",
+          "patch_sha256": "aa23852932f524484c7f443f26cdb83d1b2389c42086ccf61c337f389e3c5442",
+          "integration_gate": "approved for exact guarded integration; later first parent requires staged-patch reauthentication"
+        }
+      ],
+      "findings": [],
+      "integration_sha": "8d209d6d2b17d96d0f96c2a9b2f95495c57561eb",
+      "merged_at": "2026-09-03T16:56:05.377428Z",
+      "created_at": "2026-09-03T16:00:00Z",
+      "updated_at": "2026-09-03T16:56:05.377428Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Game/Types.lean",
+        "workflow/reviews/qpbt-058-f07-a01.md"
+      ],
+      "motivation": "Land the source-faithful F07 typed graph, shared-seed sampler, exact marginal/downsize laws, and dependent decider boundary.",
+      "description": "Adopt the proof-complete exact 11-declaration candidate after immutable mathematical and Lean/API pre-review, then obtain a PR-bound formal approval before guarded integration.",
+      "testing": "Candidate scoped Lean, affected target, full build, exact API/debt scans, blueprint synchronization, and two independent immutable pre-reviews passed.",
+      "addresses": "QPBT-058",
+      "manifest_sha256": "f733a64504c2d33a53eaa882545bf3aec655a8e96c5602fab1a81283ae3d2375",
+      "requested_external_review": true,
+      "unexecuted_gate": null,
+      "integration_tree": "c234100c01d4b11398e4c098ada6dd28e7e64932",
+      "integration_first_parent": "445b04c4253e46392d27e9151e212c5ab401e20d",
+      "integration_patch_sha256": "aa23852932f524484c7f443f26cdb83d1b2389c42086ccf61c337f389e3c5442",
+      "postintegration_report": "workflow/reviews/qpbt-058-postintegration-cache-a10.md",
+      "postintegration_report_sha256": "d2db04e86b71cf85dee7428233758dbd36e0f24627c9abe766439a318a628148",
+      "postintegration_cache_key": "21a7b15fd273fef0829d2ef790f152e6e0af02d4ba75a905e0583a758bcac187",
+      "postintegration_build": "8992 jobs passed; singleton build 643.598163s; immediate cache status hit"
+    },
+    {
+      "id": "LPR-037",
+      "title": "fix(workflow): authenticate Git repository identities",
+      "status": "merged",
+      "issue_ids": [
+        "QPBT-044"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-044-git-identity-a01",
+      "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+      "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+      "implementer_session_ids": [
+        "i044-integrator-a20-pr037-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-044-pr037-auth",
+          "name": "QPBT-044 immutable candidate authentication",
+          "command": "Authenticate exact current base/tree, candidate head/tree/parent, cumulative six-path blobs and patch, immutable manifest, A18/A19 approvals, and clean candidate worktree",
+          "status": "passed",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "completed_at": "2026-09-03T18:50:06Z",
+          "result_path": "/tmp/i044-integrator-a20-pr037-bind.md",
+          "result": "Base 5bac1995/tree e2ec61c and head 0107b093/tree 5135d16 authenticated; exact six candidate paths and both zero-finding approvals matched."
+        },
+        {
+          "id": "check-qpbt-044-pr037-merge",
+          "name": "LPR-037 current-base merge proof",
+          "command": "Compute read-only three-way merge at merge base 08b12a8 and verify exact six-path result, zero conflicts, and preservation of every unrelated main byte",
+          "status": "passed",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "completed_at": "2026-09-03T18:50:06Z",
+          "result_path": "/tmp/i044-integrator-a20-pr037-bind.md",
+          "result": "Merge output SHA-256 3680a703; staged six-path patch SHA-256 095dbf4e; zero overlapping base-side paths and zero conflicts."
+        },
+        {
+          "id": "check-qpbt-044-pr037-validation",
+          "name": "QPBT-044 reviewed validation evidence",
+          "command": "Authenticate A17 aggregate and focused results plus A18/A19 bounded reruns without repeating unchanged aggregate work",
+          "status": "passed",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "completed_at": "2026-09-03T18:50:06Z",
+          "result_path": "/tmp/i044-integrator-a20-pr037-bind.md",
+          "result": "A17 recorded 18/18 resolver, 94/94 workflow, and effective 418/418 aggregate; A18 passed 8 focused tests and A19 passed 11 focused tests."
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-044-pr037-a21-formal",
+          "reviewer_session_id": "i044-reviewer-a21-formal-pr",
+          "verdict": "request_changes",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "started_at": "2026-09-03T18:53:57.363873Z",
+          "completed_at": "2026-09-03T18:58:32Z",
+          "result_path": "/tmp/i044-reviewer-a21-formal-pr.md",
+          "finding_ids": [
+            "F044-A21-001"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "de81e9b18cd9a290c2842873d4b4e6aa97948d8f6fb20c3b9d4daeb3fdace91b",
+          "manifest_sha256": "1d015aceda4beb4f8f2b0a2823228131df84f9213405cc7f57638b47006e1226",
+          "patch_sha256": "095dbf4e5e9ff66a7c676d976e29a16a2cfd4c7dfa81f607d54cd1afcbdcc668",
+          "integration_gate": "blocked only on correcting immutable PR evidence representation; candidate code and merge require no change"
+        },
+        {
+          "id": "review-qpbt-044-pr037-a22-evidence",
+          "reviewer_session_id": "i044-reviewer-a22-evidence",
+          "verdict": "approve",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "started_at": "2026-09-03T19:09:27.525795Z",
+          "completed_at": "2026-09-03T19:11:09Z",
+          "result_path": "/tmp/i044-reviewer-a22-evidence.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "67383ec60b21b56b93b68ce61c9db4252a45785ee4ba51da254f4f6709ae968d",
+          "manifest_sha256": "bb9e8a5d2818a8771a8774e0849c8ee71eb5dfabdcd6bb500094fc445f1c44d8",
+          "patch_sha256": "095dbf4e5e9ff66a7c676d976e29a16a2cfd4c7dfa81f607d54cd1afcbdcc668",
+          "integration_gate": "approved for guarded integration; no candidate-head change required"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F044-A21-001",
+          "introduced_review_id": "review-qpbt-044-pr037-a21-formal",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "0107b093ff37e2423709c05d3fe8b299da2ef344",
+          "severity": "medium",
+          "status": "resolved",
+          "disposition": "rejected",
+          "disposition_evidence": "A22 authenticated correction-qpbt-044-pr037-aggregate and the exact testing summary. A21's evidence-fidelity defect was valid and is superseded in the PR ledger, but it never described a candidate-head defect, so no candidate remediation applies.",
+          "resolved_by_review_id": "review-qpbt-044-pr037-a22-evidence",
+          "confirmation_review_ids": [],
+          "summary": "The PR ledger overstates separate aggregate and host follow-up evidence as an effective 418/418 aggregate run.",
+          "path": "workflow/state/prs.json",
+          "line": 9467,
+          "required_change": "Preserve the immutable old check as history, append an explicit evidence correction and exact testing summary, then request focused same-head re-review; no candidate change is required."
+        }
+      ],
+      "integration_sha": "4ee8ccda11bf15dcaab7bf5a3fc15bbd34cdb109",
+      "merged_at": "2026-09-03T19:24:26.628802Z",
+      "created_at": "2026-09-03T18:46:11.702507Z",
+      "updated_at": "2026-09-03T19:24:26.628802Z",
+      "changed_paths": [
+        "scripts/git_identity.py",
+        "scripts/workflow.py",
+        "tests/test_git_identity.py",
+        "tests/test_workflow.py",
+        "protocols/orchestration.md",
+        "protocols/CHANGELOG.md"
+      ],
+      "motivation": "Prevent guessed, ambiguous, abbreviated, or path-substituted Git identities from entering canonical session state.",
+      "description": "Adopt the exact cumulatively reviewed QPBT-044 candidate on the current main base, then obtain one PR-bound immutable approval before guarded integration.",
+      "testing": "Candidate evidence is 18/18 resolver tests, 94/94 workflow tests, one sandbox aggregate with 416/418 passing and two EPERM errors, and a separate bounded 2/2 host follow-up; A18 and A19 independently approved the exact head.",
+      "addresses": "QPBT-044",
+      "manifest_sha256": "d4be7775be9cf56d26006e86dd4ba0e7280eb81d551d764b2a6aeaee49466ed8",
+      "requested_external_review": true,
+      "unexecuted_gate": null,
+      "evidence_corrections": [
+        {
+          "id": "correction-qpbt-044-pr037-aggregate",
+          "supersedes_check_id": "check-qpbt-044-pr037-validation",
+          "recorded_at": "2026-09-03T19:06:30Z",
+          "incorrect_claim": "A17 recorded an effective 418/418 aggregate.",
+          "corrected_claim": "The single sandbox aggregate ran 418 tests: 416 passed and two Unix-socket cases errored with sandbox EPERM; those exact two cases then passed 2/2 in a separate bounded host follow-up.",
+          "evidence_path": "/tmp/i044-orchestrator-a17-repository-binding.md",
+          "evidence_sha256": "d47e03898e8d4370008489119c2e29185dfa6727f7eaca8ec5fdcdab9fa8b1e1",
+          "rationale": "Checks are append-only historical records, so this structured correction preserves the original byte while making the authoritative interpretation explicit."
+        }
+      ],
+      "local_immutable_review": "approved",
+      "approval_review_id": "review-qpbt-044-pr037-a22-evidence",
+      "postintegration_validation": {
+        "integration_commit": "4ee8ccda11bf15dcaab7bf5a3fc15bbd34cdb109",
+        "integration_tree": "8771fe631097d1108fe04766948e433fa4e0d9e2",
+        "parents": [
+          "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "0107b093ff37e2423709c05d3fe8b299da2ef344"
+        ],
+        "cumulative_patch_sha256": "095dbf4e5e9ff66a7c676d976e29a16a2cfd4c7dfa81f607d54cd1afcbdcc668",
+        "changed_paths": 6,
+        "identity_tests": "18/18",
+        "workflow_tests": "94/94",
+        "compileall": "passed",
+        "integration_worktree_validate": "passed",
+        "canonical_post_fast_forward_validate": "passed"
+      }
+    },
+    {
+      "id": "LPR-038",
+      "title": "fix(blueprint/Game): lower the classical LDT game core",
+      "status": "merged",
+      "issue_ids": [
+        "QPBT-074"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-074-game-contract-a01",
+      "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+      "head_sha": "edcda8f19765ab9db0a870b66bd6d25f439ceb8d",
+      "implementer_session_ids": [
+        "i074-orchestrator-a06-contract-repair"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-074-a02-candidate",
+          "name": "QPBT-074 candidate validation",
+          "command": "Authenticate exact base/head/tree, 20-path patch, default and pinned blueprint checks, 38 blueprint tests, source inventory, and byte-idempotent regeneration",
+          "status": "passed",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "37cdfae062c9b56a144c123a550636239c57fb60",
+          "completed_at": "2026-09-03T19:36:16.901943Z",
+          "result_path": "/tmp/i074-orchestrator-a02-game-contract.md",
+          "result": "Exact 20-path patch 27b51908; 55-node graph; 38/38 tests; 39 source files and 646 labels; deterministic regeneration changed zero bytes on its second run."
+        },
+        {
+          "id": "check-qpbt-074-a06-repair",
+          "name": "QPBT-074 exact contract repair validation",
+          "command": "Authenticate exact base/head/tree and cumulative/repair full-index patches; run default and pinned blueprint checks, 39 blueprint tests, reference verification, closure/debt/name/import/source/adversarial gates, byte-idempotent regeneration, and diff/Git integrity checks",
+          "status": "passed",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "edcda8f19765ab9db0a870b66bd6d25f439ceb8d",
+          "completed_at": "2026-09-03T21:11:48Z",
+          "result_path": "/tmp/i074-orchestrator-a06-contract-repair.md",
+          "result": "Exact 20-path cumulative patch aacb0514; 55-node graph; 39/39 tests; 39 source files and 646 labels; final two regeneration manifests byte-identical."
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-074-pr038-a04-regression",
+          "reviewer_session_id": "i074-reviewer-a04-regression",
+          "verdict": "approve",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "37cdfae062c9b56a144c123a550636239c57fb60",
+          "started_at": "2026-09-03T19:50:29.278192Z",
+          "completed_at": "2026-09-03T19:55:36.849418Z",
+          "result_path": "/tmp/i074-reviewer-a04-regression.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "9a2a6e1073a839dacfdb9fed2003679c9064d4df8e7340f6893051f65e821b34",
+          "manifest_sha256": "7365467f45803ea66b4b02814b0e7d200bd03b20a16ff4e80694e25adb9210db",
+          "patch_sha256": "27b51908fa5cc0f7cefb166b41f1804dfbab281dc560131def872b7d2d5389c6",
+          "integration_gate": "regression gate approved; independent source-integrity approval and guarded integration remain"
+        },
+        {
+          "id": "review-qpbt-074-pr038-a03-source-integrity",
+          "reviewer_session_id": "i074-reviewer-a03-source-integrity",
+          "verdict": "request_changes",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "37cdfae062c9b56a144c123a550636239c57fb60",
+          "started_at": "2026-09-03T19:50:28.791275Z",
+          "completed_at": "2026-09-03T20:07:03.298283Z",
+          "result_path": "/tmp/i074-reviewer-a03-source-integrity.md",
+          "finding_ids": [
+            "F074-A03-001",
+            "F074-A03-002",
+            "F074-A03-003"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "e95a87272c3162bd72852f9e7baeff157d246886308b1d66a38656f679bceada",
+          "manifest_sha256": "7365467f45803ea66b4b02814b0e7d200bd03b20a16ff4e80694e25adb9210db",
+          "patch_sha256": "27b51908fa5cc0f7cefb166b41f1804dfbab281dc560131def872b7d2d5389c6",
+          "integration_gate": "blocked until all three source-contract findings are repaired on a new immutable head"
+        },
+        {
+          "id": "review-qpbt-074-pr038-a11-formal-attestation",
+          "reviewer_session_id": "i074-reviewer-a11-formal-attestation",
+          "verdict": "approve",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "edcda8f19765ab9db0a870b66bd6d25f439ceb8d",
+          "started_at": "2026-09-03T21:48:36.246516Z",
+          "completed_at": "2026-09-03T22:08:14.989943Z",
+          "result_path": "/tmp/i074-reviewer-a11-formal-attestation.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "d8d696193cd2ca7fc134aefc53d9302abcbb1ef4a4d09089ea35439c2beea8ab",
+          "manifest_sha256": "03dea72296b16cf5191ac0969978cbbd04ecac174726c00362a534f7072104ae",
+          "patch_sha256": "aacb0514573536fc6bfef85ccced78e5aca066805f66362b97dbb7ec956dc899",
+          "repair_patch_sha256": "9e0af43c8222e24022cbb6594ea98deca5be969bd50cfc35c1d3b6bb58960ebf",
+          "resolved_finding_ids": [
+            "F074-A03-001",
+            "F074-A03-002",
+            "F074-A03-003"
+          ],
+          "integration_gate": "formal source/API attestation approved; exact-current-main guarded integration remains"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F074-A03-001",
+          "introduced_review_id": "review-qpbt-074-pr038-a03-source-integrity",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "37cdfae062c9b56a144c123a550636239c57fb60",
+          "severity": "high",
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A06 head edcda8f added exact line-point and QPBT repetition-one source anchors; fresh A11 formal attestation authenticated the repair and found no issue.",
+          "resolved_by_review_id": "review-qpbt-074-pr038-a11-formal-attestation",
+          "confirmation_review_ids": [],
+          "summary": "F09A omits primary-source anchors for the named line-point distribution and the QPBT repetition-one specialization.",
+          "path": "blueprint/metadata/nodes.json",
+          "line": 510,
+          "required_change": "Add exact pinned anchors for def:line-point-dist and the QPBT (q,m,d,1) answer/subroutine clauses, update authenticated source/checker tests, and regenerate consumers."
+        },
+        {
+          "id": "F074-A03-002",
+          "introduced_review_id": "review-qpbt-074-pr038-a03-source-integrity",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "37cdfae062c9b56a144c123a550636239c57fb60",
+          "severity": "high",
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A06 head edcda8f replaced comment-only names with the signed 64-declaration block containing 39 theorem types; fresh A11 formal attestation authenticated all segments and mutations.",
+          "resolved_by_review_id": "review-qpbt-074-pr038-a11-formal-attestation",
+          "confirmation_review_ids": [],
+          "summary": "Thirty-eight law entries are comment-only names, so theorem types, answer-fiber equations, and codec coherence are not frozen.",
+          "path": "workflow/reviews/qpbt-074-game-contract-a01.md",
+          "line": 137,
+          "required_change": "Freeze complete Lean theorem declarations for every law, answer-fiber equations, and ordered-codec coherence; reject comments and weakened signatures adversarially."
+        },
+        {
+          "id": "F074-A03-003",
+          "introduced_review_id": "review-qpbt-074-pr038-a03-source-integrity",
+          "base_sha": "5bac199553c72cf1e88043b0a947760aa59380c2",
+          "head_sha": "37cdfae062c9b56a144c123a550636239c57fb60",
+          "severity": "medium",
+          "status": "resolved",
+          "disposition": "fixed",
+          "disposition_evidence": "A06 head edcda8f added constructive Fintype instances for all three shared question carriers; fresh A11 formal attestation authenticated their exact declarations.",
+          "resolved_by_review_id": "review-qpbt-074-pr038-a11-formal-attestation",
+          "confirmation_review_ids": [],
+          "summary": "The shared axis, diagonal, and individual LDT question carriers omit constructive finite instances required by downstream G02.",
+          "path": "workflow/reviews/qpbt-074-game-contract-a01.md",
+          "line": 84,
+          "required_change": "Derive or explicitly freeze constructive Fintype instances for all three finite question carriers."
+        }
+      ],
+      "integration_sha": "d9ff02fb72b0f075c3d637d7c00d14644279a5da",
+      "merged_at": "2026-09-03T22:44:53.146911Z",
+      "created_at": "2026-09-03T19:45:34.754453Z",
+      "updated_at": "2026-09-03T22:44:53.146911Z",
+      "changed_paths": [
+        "blueprint/check.py",
+        "blueprint/generated/graph.dot",
+        "blueprint/generated/graph.json",
+        "blueprint/metadata/gaps.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/chapter-03-entries.tex",
+        "blueprint/src/generated/chapter-04-entries.tex",
+        "blueprint/src/generated/chapter-05-entries.tex",
+        "blueprint/src/generated/chapter-06-entries.tex",
+        "blueprint/src/generated/chapter-07-entries.tex",
+        "blueprint/src/generated/chapter-08-entries.tex",
+        "blueprint/src/generated/chapter-09-entries.tex",
+        "blueprint/src/generated/chapter-10-entries.tex",
+        "blueprint/src/generated/chapter-11-entries.tex",
+        "blueprint/src/generated/chapter-12-entries.tex",
+        "blueprint/src/generated/gaps.tex",
+        "blueprint/tests/test_check.py",
+        "docs/paper-gaps/canonical-line-zero-direction.md",
+        "workflow/reviews/qpbt-074-game-contract-a01.md"
+      ],
+      "motivation": "Expose the Magic game semantics dependency and freeze a source-faithful Game-layer classical-LDT core before downstream Lean implementation.",
+      "description": "Adopt the exact QPBT-074 blueprint candidate after independent paper-fidelity and regression reviews, then integrate it with a guarded current-main merge.",
+      "testing": "A06 and A11 validated the exact candidate; merge commit d9ff02f has predicted tree b7b17f10 and passes default and pinned source blueprint checks, 39/39 blueprint tests, workflow validation/check, and merge diff check.",
+      "addresses": "QPBT-074",
+      "requested_external_review": true,
+      "unexecuted_gate": "none; guarded integration produced predicted tree b7b17f10 and post-merge default/pinned blueprint checks, 39 tests, workflow validation, workflow check, and diff check all passed.",
+      "integration_preflight": {
+        "session_id": "i074-scout-a12-current-main-preflight",
+        "main_sha": "e7fde22e55f8a691ccc9cab54656ea483ab667fa",
+        "main_tree": "b0b3a6cd5406cf10b86856fae5d0c0230235a220",
+        "merge_base": "5bac199553c72cf1e88043b0a947760aa59380c2",
+        "candidate_head": "edcda8f19765ab9db0a870b66bd6d25f439ceb8d",
+        "candidate_tree": "292efcca827e7020cab8c3e9fe3c66b74aaa9479",
+        "candidate_paths": 20,
+        "main_paths": 13,
+        "overlap": 0,
+        "merge_tree_sha256": "94ab04aac84567cb5eba07937256e00e6b71689b08e94b3c9cba66e0e19d0213",
+        "result_tree": "b7b17f10f59e01e4b31851c7320e6322247d6f0c",
+        "candidate_preservation": "20/20",
+        "main_preservation": "13/13",
+        "result_path": "/tmp/i074-scout-a12-current-main-preflight.md",
+        "result_sha256": "ebcc24c9fa300a77f4c70fe575097a1eb01ecb8f4474888ec155bae19381eeb2",
+        "verdict": "ready",
+        "completed_at": "2026-09-03T22:08:52.236946Z"
+      },
+      "head_tree": "292efcca827e7020cab8c3e9fe3c66b74aaa9479"
+    },
+    {
+      "id": "LPR-039",
+      "title": "fix(blueprint/F07A): freeze executable detyping boundaries",
+      "status": "merged",
+      "issue_ids": [
+        "QPBT-080"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-080-detyping-boundary-a01",
+      "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+      "head_sha": "10b4fdee0ec15f545a789af467a9525c0d10a0d9",
+      "implementer_session_ids": [
+        "i080-orchestrator-a06-review-repair"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-080-a01-candidate",
+          "name": "QPBT-080 candidate validation",
+          "command": "Authenticate exact base, head, tree, nine-path patch, 42 blueprint tests, default and pinned checks, byte-idempotent regeneration, source inventory, and diff ownership gates",
+          "status": "passed",
+          "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+          "head_sha": "c323bd874727a9364d821f4215f6f08fdf48c511",
+          "completed_at": "2026-09-04T01:18:00Z",
+          "result_path": "/tmp/i080-orchestrator-a01-detyping-boundary.md",
+          "result": "Exact nine-path patch 504d3b19; 42/42 tests; default and pinned checks pass; second regeneration changed zero bytes."
+        },
+        {
+          "id": "check-qpbt-080-a06-repair",
+          "name": "QPBT-080 review repair validation",
+          "command": "Authenticate exact repair and cumulative patches, nine-path allowlist, 42 blueprint tests, default and pinned checks, byte-idempotent regeneration, and diff ownership gates",
+          "status": "passed",
+          "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+          "head_sha": "10b4fdee0ec15f545a789af467a9525c0d10a0d9",
+          "completed_at": "2026-09-04T04:04:15Z",
+          "result_path": "/tmp/i080-orchestrator-a06-review-repair.md",
+          "result": "Repair patch bd1ba420 and cumulative patch 921e0df4 authenticated; 42/42 tests and default plus pinned checks pass; generation is byte-idempotent."
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-080-pr039-a08-source-fidelity",
+          "reviewer_session_id": "i080-reviewer-a08-source-fidelity",
+          "verdict": "approve",
+          "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+          "head_sha": "10b4fdee0ec15f545a789af467a9525c0d10a0d9",
+          "started_at": "2026-09-04T04:05:42.866878Z",
+          "completed_at": "2026-09-04T04:19:30.452364Z",
+          "result_path": "/tmp/i080-reviewer-a08-source-fidelity.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "d00f0136f9ee3d8efc66cb3756520e45631c82ff97a496144a114b65cb02f957",
+          "manifest_sha256": "494049bbe37173c63d8706ed51d24f860c68251cf13011b41cf69c767af954ee",
+          "patch_sha256": "921e0df4c346c05a7592df30eca2c294c56e72a10297bba1dd2adccd95713c8d",
+          "integration_gate": "approved exact repaired head; retain immutable binding through guarded integration"
+        },
+        {
+          "id": "review-qpbt-080-pr039-a09-regression",
+          "reviewer_session_id": "i080-reviewer-a09-regression",
+          "verdict": "approve",
+          "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+          "head_sha": "10b4fdee0ec15f545a789af467a9525c0d10a0d9",
+          "started_at": "2026-09-04T04:06:44.354660Z",
+          "completed_at": "2026-09-04T04:19:31.464632Z",
+          "result_path": "/tmp/i080-reviewer-a09-regression.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "774b676535461defb094178d48b514c1b66612a272399fcb94ac4727635a8f2d",
+          "manifest_sha256": "494049bbe37173c63d8706ed51d24f860c68251cf13011b41cf69c767af954ee",
+          "patch_sha256": "921e0df4c346c05a7592df30eca2c294c56e72a10297bba1dd2adccd95713c8d",
+          "integration_gate": "approved exact repaired head; retain immutable binding through guarded integration"
+        }
+      ],
+      "findings": [],
+      "integration_sha": "8181636d3ad3c8c85e1a9966f89abc2a6b18d940",
+      "merged_at": "2026-09-04T04:35:48.063894Z",
+      "created_at": "2026-09-04T01:27:00Z",
+      "updated_at": "2026-09-04T04:35:48.063894Z",
+      "changed_paths": [
+        "blueprint/check.py",
+        "blueprint/generated/graph.dot",
+        "blueprint/generated/graph.json",
+        "blueprint/metadata/gaps.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/gaps.tex",
+        "blueprint/tests/test_check.py",
+        "docs/paper-gaps/detyping-executable-boundaries.md"
+      ],
+      "motivation": "Freeze the executable, width-transport, runtime, and compiler boundaries required before the F07A Lean skeleton can be source faithful.",
+      "description": "Adopt the exact QPBT-080 blueprint candidate after fresh source-fidelity and regression reviews adjudicate the recorded G26 wording disagreement.",
+      "testing": "Exact candidate and manifest identities authenticated; 42/42 blueprint tests, default and pinned-source checks, 39-file reference verification, workflow validation, and unrestricted 418/418 workflow tests passed after merge.",
+      "addresses": "QPBT-080",
+      "requested_external_review": true,
+      "unexecuted_gate": null,
+      "head_tree": "abd0a44a2ecb8cd50b934d9efa88edbe47b7b5b5",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-080-review-manifest-a08.json",
+      "review_manifest_sha256": "494049bbe37173c63d8706ed51d24f860c68251cf13011b41cf69c767af954ee",
+      "review_status": "approved-two-independent-reviews",
+      "candidate_review_reports": [
+        {
+          "session_id": "i080-reviewer-a04-source-fidelity",
+          "report": "/tmp/i080-reviewer-a04-source-fidelity.md",
+          "sha256": "85c12aa41677036793680360984e7ef9032482927cfbeea7610f6c9fefb2ccec",
+          "verdict": "request_changes",
+          "finding_ids": [
+            "F080-A04-001",
+            "F080-A04-002",
+            "F080-A04-003"
+          ]
+        },
+        {
+          "session_id": "i080-reviewer-a05-regression",
+          "report": "/tmp/i080-reviewer-a05-regression.md",
+          "sha256": "5bae2dd4273133ec71f16874567805fe42ae6f9b0ee4816f4cc14dd396dd34cb",
+          "verdict": "request_changes",
+          "finding_ids": [
+            "F080-A05-001",
+            "F080-A05-002",
+            "F080-A05-003",
+            "F080-A05-004"
+          ]
+        }
+      ],
+      "review_binding_note": "The A04 and A05 sessions immutably recorded candidate head as their session base_revision, while the PR validator requires the PR base. Preserve the reports as authenticated candidate evidence, do not alter immutable session authority, and bind fresh post-repair reviewers correctly.",
+      "post_integration_validation": {
+        "integration_sha": "8181636d3ad3c8c85e1a9966f89abc2a6b18d940",
+        "blueprint_tests": "42/42",
+        "blueprint_check": "passed",
+        "pinned_blueprint_check": "passed",
+        "reference_inventory": "39 files, 646 labels, verified",
+        "workflow_validate": "passed",
+        "workflow_tests": "418/418 unrestricted",
+        "sandbox_workflow_tests": "416 passed, 2 Unix-socket fixtures blocked by EPERM",
+        "git_diff_check": "passed"
+      }
+    },
+    {
+      "id": "LPR-040",
+      "title": "fix(cache): close final transaction boundaries",
+      "status": "changes_requested",
+      "issue_ids": [
+        "QPBT-068"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-068-cache-safety-a05",
+      "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+      "head_sha": "d1b7ac9682f1c626d9386f62f033442f3194c044",
+      "implementer_session_ids": [
+        "i068-orchestrator-a32-threat-boundary-repair"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-068-a28-candidate",
+          "name": "QPBT-068 A28 candidate validation",
+          "command": "Authenticate exact base, repair parent, head, tree, eight-path patches, 34 materializer tests, 143 cache tests, 77 workflow tests, 3 checker tests, validators, compileall, diff, ownership, and anchors",
+          "status": "passed",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "completed_at": "2026-09-04T03:42:32.007320Z",
+          "result_path": "/tmp/i068-orchestrator-a28-boundary-repair.md",
+          "result": "Exact eight-path cumulative patch 7eea7c34 and repair patch 8ffda670; 257/257 assigned tests plus validators and static gates pass."
+        },
+        {
+          "id": "check-qpbt-068-a32-threat-boundary-repair",
+          "name": "QPBT-068 threat-boundary repair validation",
+          "command": "Authenticate exact repair and cumulative eight-path patches; run 36 materializer, 145 cache, 77 workflow and 3 checker tests; run aggregate workflow suite, validators, compileall, ownership and diff gates",
+          "status": "passed",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "d1b7ac9682f1c626d9386f62f033442f3194c044",
+          "completed_at": "2026-09-04T05:13:00Z",
+          "result_path": "/tmp/i068-orchestrator-a32-threat-boundary-repair.md",
+          "result": "Repair full-index patch 68689ac9 and cumulative full-index patch 5f1210e1; 261/261 assigned tests and unrestricted 468/468 aggregate tests passed; exact eight-path worktree clean."
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-068-pr040-a30-regression",
+          "reviewer_session_id": "i068-reviewer-a30-regression-protocol",
+          "verdict": "request_changes",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "started_at": "2026-09-04T03:44:37.223986Z",
+          "completed_at": "2026-09-04T04:09:28.931954Z",
+          "result_path": "/tmp/i068-reviewer-a30-regression-protocol.md",
+          "finding_ids": [
+            "F068-A30-001",
+            "F068-A30-002"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "9b49fbc42ca4406b1529783f32f2a480883fca37b291ed26bf8c3a1e0b6f8a48",
+          "manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
+          "patch_sha256": "7eea7c34f682257c701bd42e0a95ceb5ebaf4dfccddb2130888eb04c6e19b503",
+          "integration_gate": "blocked until recursive terminal inventory retains descendant authority through the enclosing decision and detached-file capability behavior is repaired or accurately narrowed, then fresh exact-head review passes"
+        },
+        {
+          "id": "review-qpbt-068-pr040-a29-transaction-security",
+          "reviewer_session_id": "i068-reviewer-a29-transaction-security",
+          "verdict": "request_changes",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "started_at": "2026-09-04T03:44:36.735379Z",
+          "completed_at": "2026-09-04T04:12:47.318737Z",
+          "result_path": "/tmp/i068-reviewer-a29-transaction-security.md",
+          "finding_ids": [
+            "F068-A29-001",
+            "F068-A29-002"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "ac5174bac58233fe311dad06fe7817f9928045d45e04d5f9efbf54800f0fe9ed",
+          "manifest_sha256": "b219e63825d7806ea93f608bde6922c8e2b56f9c5ac976c8d0458a47b123c00f",
+          "patch_sha256": "7eea7c34f682257c701bd42e0a95ceb5ebaf4dfccddb2130888eb04c6e19b503",
+          "integration_gate": "blocked until the same-UID adversary claim is made true by an enforceable isolation boundary or accurately narrowed, with deterministic regression and fresh review"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F068-A30-001",
+          "introduced_review_id": "review-qpbt-068-pr040-a30-regression",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "Final recursive inventories close descendant monitors and descriptors before the enclosing final decision, allowing a same-size mutation or late hard link to leave returned evidence stale.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 1191,
+          "required_change": "Retain descendant directory and file authority through the whole terminal inventory and final drain/recheck, with cache, materializer, retained-evidence, and prepare regressions for post-subtree same-size mutation and external hard linking."
+        },
+        {
+          "id": "F068-A30-002",
+          "introduced_review_id": "review-qpbt-068-pr040-a30-regression",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "severity": "medium",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "Dry capability admission does not probe O_TMPFILE or either linkat publication route and no failure regression covers those paths.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 4491,
+          "required_change": "Probe or accurately narrow detached-file capability admission and add fail-closed O_TMPFILE and linkat-route regressions preserving existing destinations and ambiguous staging evidence."
+        },
+        {
+          "id": "F068-A29-001",
+          "introduced_review_id": "review-qpbt-068-pr040-a29-transaction-security",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "A same-UID actor can externally link a non-O_EXCL O_TMPFILE through the producer descriptor namespace before later writes or metadata mutations, causing external output before eventual rejection.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 2830,
+          "required_change": "Use an enforceable isolation boundary for the detached descriptor lifetime or narrow the threat model to exclude descriptor-namespace access, and regress every pre-mutation exposure schedule."
+        },
+        {
+          "id": "F068-A29-002",
+          "introduced_review_id": "review-qpbt-068-pr040-a29-transaction-security",
+          "base_sha": "97e61b3487c762f1447576219dbd6cd85c162efa",
+          "head_sha": "7945323f87d6188127cf2f8a2911a2d111baaa52",
+          "severity": "blocker",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "Relocating a bound output directory or ancestor after its last continuity check redirects completed cache or materializer file publication outside the intended tree before later rejection.",
+          "path": "scripts/hot_main_cache.py",
+          "line": 3105,
+          "required_change": "Use an enforceable namespace boundary or accurately narrow the threat model, and add post-final-check pre-recursion/linkat relocation regressions that match the resulting contract."
+        }
+      ],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-04T03:43:00Z",
+      "updated_at": "2026-09-04T05:19:16.881312Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/local-development.md",
+        "scripts/hot_main_cache.py",
+        "scripts/materialize_mipstarre.py",
+        "tests/test_hot_main_cache.py",
+        "tests/test_mipstarre_materialization.py",
+        "workflow/reviews/qpbt-067-cache-layout-a01.md",
+        "workflow/reviews/qpbt-068-cache-safety-a01.md"
+      ],
+      "motivation": "Close the remaining cache and materializer write-boundary, late-mutation, dry-admission, and hard-link alias defects before any production cache is used for Lean work.",
+      "description": "Adopt the cumulative QPBT-068 cache transaction repair only after exact-manifest security and regression approval, guarded integration, and a production acceptance cycle.",
+      "testing": "A32 reports 36/36 materializer, 145/145 cache, 77/77 workflow, 3/3 checker, and unrestricted 468/468 aggregate tests plus validators, compileall, exact ownership and diff gates.",
+      "addresses": "QPBT-068",
+      "requested_external_review": true,
+      "unexecuted_gate": "Fresh exact-head security and regression reviewers must adjudicate all four A29/A30 findings and approve head d1b7ac96 before guarded integration and production acceptance.",
+      "head_tree": "62e22ea3943726cb7e10407ed262a6c9172d78ab",
+      "candidate_implementer_session_id": "i068-orchestrator-a32-threat-boundary-repair",
+      "binding_note": "A28 was canonically dispatched before LPR-040 existed and has immutable pr_id null; preserve that authority and bind any later writable integration session explicitly.",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-068-review-manifest-a35.json",
+      "review_manifest_sha256": "9bd1d84f6f1804fd54de781b7f316db3aeed46362de289c53e12a6e7ae3db08d",
+      "review_status": "repaired-head-awaiting-fresh-security-and-regression-review",
+      "review_session_ids": [
+        "i068-reviewer-a29-transaction-security",
+        "i068-reviewer-a30-regression-protocol",
+        "i068-reviewer-a35-transaction-security",
+        "i068-reviewer-a36-regression-protocol"
+      ]
+    },
+    {
+      "id": "LPR-041",
+      "title": "docs(workflow): bound collaboration rate-limit retries",
+      "status": "merged",
+      "issue_ids": [
+        "QPBT-081"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-081-rate-limit-a01",
+      "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+      "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+      "head_tree": "c1a3e80efd3daf0e8b0592e45653a060a9170d35",
+      "implementer_session_ids": [
+        "i081-integrator-a04-pr-bind"
+      ],
+      "checks": [
+        {
+          "id": "check-qpbt-081-a01-candidate",
+          "name": "QPBT-081 protocol candidate validation",
+          "command": "Authenticate exact base, head, tree, three-path patch, incident evidence, workflow validation, unrestricted workflow suite, exact ownership and diff gates",
+          "status": "passed",
+          "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+          "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+          "completed_at": "2026-09-04T04:06:11Z",
+          "result_path": "/tmp/i081-orchestrator-a01-rate-limit-retries.md",
+          "result": "Exact three-path patch b51d950a; workflow state valid; unrestricted workflow suite 418/418; candidate worktree clean."
+        }
+      ],
+      "reviews": [
+        {
+          "id": "review-qpbt-081-pr041-a02-protocol",
+          "reviewer_session_id": "i081-reviewer-a02-protocol",
+          "verdict": "request_changes",
+          "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+          "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+          "started_at": "2026-09-04T04:43:33Z",
+          "completed_at": "2026-09-04T04:47:46Z",
+          "result_path": "/tmp/i081-reviewer-a02-protocol.md",
+          "finding_ids": [
+            "F081-A02-001"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "04ca8c0e1adfa664935a72e0bd7336900bb2fcc9a6a75e1061114732f3e92c2d",
+          "manifest_sha256": "3ec085f128baddfd11bdbf9ce00ea142a1361f0a1b4bbad8915cd0319669dffb",
+          "patch_sha256": "b51d950a8a865f9c22e9e94341864f5814ed262f33a0a0c28dddd8f413cce9dc",
+          "integration_gate": "Bind the exact cited QPBT-068 A28 handoff into a fresh immutable packet or remove the comparison, then obtain explicit exact-head re-review."
+        },
+        {
+          "id": "review-qpbt-081-pr041-a03-evidence",
+          "reviewer_session_id": "i081-reviewer-a03-evidence",
+          "verdict": "approve",
+          "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+          "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+          "started_at": "2026-09-04T04:54:32Z",
+          "completed_at": "2026-09-04T04:59:26Z",
+          "result_path": "/tmp/i081-reviewer-a03-evidence.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "f47ce3f0bc7c906cfb83409db27bad28da4da189dd7984409b3cb266f75c21f3",
+          "manifest_sha256": "410eec968e3db0eb7859dd45ae8d7a31d2d0c9ff28f8599766af85f6beb38dd3",
+          "patch_sha256": "b51d950a8a865f9c22e9e94341864f5814ed262f33a0a0c28dddd8f413cce9dc",
+          "explicit_rereview_reason": "Resolve F081-A02-001 on unchanged head by authenticating the exact A28 handoff cited by candidate line 64.",
+          "integration_gate": "approved for guarded integration; no open findings remain"
+        }
+      ],
+      "findings": [
+        {
+          "id": "F081-A02-001",
+          "introduced_review_id": "review-qpbt-081-pr041-a02-protocol",
+          "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+          "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+          "severity": "medium",
+          "status": "resolved",
+          "disposition": "rejected",
+          "disposition_evidence": "The candidate claim is true. Fresh manifest 410eec96 corrected the review-packet omission by binding A28 report SHA a8197bee; A03 authenticated transport_429_interruptions=2 and the independent canonical count 3.",
+          "resolved_by_review_id": "review-qpbt-081-pr041-a03-evidence",
+          "confirmation_review_ids": [],
+          "summary": "The evidence report compares the canonical retry count with an A28 handoff field, but that handoff was absent from the immutable review packet.",
+          "path": "workflow/reviews/qpbt-081-rate-limit-retries-a01.md",
+          "line": 64,
+          "required_change": "Bind the exact A28 handoff identity and bytes into a fresh immutable packet, or remove the nonessential comparison, then explicitly re-review the unchanged head."
+        }
+      ],
+      "integration_sha": "ade6b5e86f234b1c9b9be3217e183923776f6594",
+      "merged_at": "2026-09-04T05:12:23.388603Z",
+      "created_at": "2026-09-04T04:39:20.206453Z",
+      "updated_at": "2026-09-04T05:12:23.388603Z",
+      "changed_paths": [
+        "protocols/CHANGELOG.md",
+        "protocols/orchestration.md",
+        "workflow/reviews/qpbt-081-rate-limit-retries-a01.md"
+      ],
+      "motivation": "Turn the third observed collaboration HTTP 429 failure class into a bounded, stable-session launch and retry procedure without reducing admitted-work parallelism.",
+      "description": "Add one root-owned launch-class lane, five-second request staggering, bounded exponential same-session retry, deterministic jitter, terminal quiet-window accounting, and an honest procedural enforcement boundary.",
+      "testing": "Candidate identity, exact three-path ownership, workflow validation, unrestricted 418/418 suite, fresh evidence re-review, clean worktree, and conflict-free merge-tree all passed.",
+      "addresses": "QPBT-081",
+      "requested_external_review": true,
+      "unexecuted_gate": null,
+      "review_status": "approved-explicit-rereview-no-open-findings",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-081-review-manifest-a03.json",
+      "review_manifest_sha256": "410eec968e3db0eb7859dd45ae8d7a31d2d0c9ff28f8599766af85f6beb38dd3",
+      "candidate_producer_session_id": "i081-orchestrator-a01-rate-limit-retries",
+      "candidate_producer_binding_note": "The writer was dispatched before LPR-041 existed, so its immutable pr_id is null; preserve that authority and record the exact producer here rather than rewriting session history.",
+      "review_session_ids": [
+        "i081-reviewer-a02-protocol",
+        "i081-reviewer-a03-evidence"
+      ],
+      "provenance_session_ids": [
+        "i081-orchestrator-a01-rate-limit-retries",
+        "i081-integrator-a04-pr-bind"
+      ],
+      "post_integration_validation": {
+        "integration_sha": "ade6b5e86f234b1c9b9be3217e183923776f6594",
+        "workflow_validate": "passed",
+        "git_diff_check": "passed",
+        "merge_tree": "conflict-free",
+        "candidate_head_parent_of_merge": true,
+        "changed_paths": "exactly 3"
+      }
+    },
+    {
+      "id": "LPR-042",
+      "title": "feat(QPBT/Game): strengthen classical LDT contract",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-082"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-082-f09a-contract-a01",
+      "base_sha": "ef827ef4e6c965c0051a6feac64e1842f83f872c",
+      "head_sha": "335ff621459dc86a4d8d60cfb39988db212ab24e",
+      "head_tree": "a859c85a3647785e765597051458b6b71d73a3af",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-082-a01-candidate",
+          "name": "QPBT-082 F09A contract validation",
+          "command": "Authenticate exact six-path candidate; run 42 blueprint tests, default and pinned checks, reference verification, deterministic regeneration, unrestricted workflow suite, workflow validation, ownership and diff gates",
+          "status": "passed",
+          "base_sha": "ef827ef4e6c965c0051a6feac64e1842f83f872c",
+          "head_sha": "335ff621459dc86a4d8d60cfb39988db212ab24e",
+          "completed_at": "2026-09-04T05:03:30Z",
+          "result_path": "/tmp/i082-orchestrator-a01-f09a-contract.md",
+          "result": "Exact six-path patch ec0da230; 42/42 blueprint tests, both checker modes, pinned reference verification, deterministic regeneration, workflow validation, and unrestricted 418/418 workflow tests passed."
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-04T05:16:30Z",
+      "updated_at": "2026-09-04T05:19:18.039517Z",
+      "changed_paths": [
+        "blueprint/check.py",
+        "blueprint/generated/graph.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/tests/test_check.py",
+        "workflow/reviews/qpbt-074-game-contract-a01.md"
+      ],
+      "motivation": "Expose the seven source-faithful public characterization laws required to implement the classical LDT core without guessing opaque blueprint semantics.",
+      "description": "Add exactly seven unconditional F09A laws, update the callable contract and fail-closed mutation coverage, and regenerate only affected deterministic blueprint outputs.",
+      "testing": "42/42 blueprint tests; default and pinned checker modes; 39-file/646-label reference verification; deterministic double generation; workflow validation; unrestricted 418/418 workflow tests; exact ownership and diff gates.",
+      "addresses": "QPBT-082",
+      "requested_external_review": true,
+      "unexecuted_gate": "Fresh immutable source-fidelity and regression reviewers must approve exact head 335ff621 before PR-bound adoption and guarded integration.",
+      "review_status": "fresh-source-and-regression-review-pending",
+      "candidate_producer_session_id": "i082-orchestrator-a01-f09a-contract",
+      "candidate_producer_binding_note": "The writer was dispatched before LPR-042 existed, so its immutable pr_id is null; preserve that authority and bind a later writable integration-preparation session if no repair writer is needed.",
+      "review_session_ids": [
+        "i082-reviewer-a02-source-fidelity",
+        "i082-reviewer-a03-regression"
+      ],
+      "provenance_session_ids": [
+        "i082-orchestrator-a01-f09a-contract"
+      ],
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-082-review-manifest-a02.json",
+      "review_manifest_sha256": "2018b97cef5141ac393f19ca6cd26ed5641369e9e211191889c30849d8a8c469"
     }
   ]
 }

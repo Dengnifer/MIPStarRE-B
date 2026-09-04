@@ -44,16 +44,16 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex:2-328 [original 5048-5374], label sec:qld-game}}
 \BlueprintField{Statement}{Define the heterogeneous question distribution, answer families, conditionally-linear sampler, gamma phase, and the seven verifier checks of the QPBT game.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Verifier}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.QuestionType},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.Question},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.Answer},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliBasisGame},\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.accepts}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS}}
-\BlueprintField{Prerequisites}{\seqsplit{F02-CODE, F05-PAULI, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F04A-GAME-SEMANTICS, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, F09A-LDT-GAME-CORE, G01-PARAMETERS}}
+\BlueprintField{Prerequisites}{\seqsplit{F02-CODE, F05-PAULI, F07-TYPED, F08-MAGIC-GAME, F09A-LDT-GAME-CORE, G01-PARAMETERS}}
 \BlueprintField{Consumers}{\seqsplit{G03-COMPLETENESS, K04-GAME-COMPLEXITY, N01-NAIMARK}}
-\BlueprintField{Encoding}{Question and answer carriers are sigma types over the paper's type graph. Explicit finite codecs embed each dependent answer fiber into one uniform finite POVM alphabet and decode it back; every decider edge is a constructor, preventing omitted cases. The question distribution is a PMF, so normalization is bundled.}
-\BlueprintField{Boundary hypotheses}{Declare universe uType uQuestion uAnswer and require [Fintype] and [DecidableEq] for the type index and every sigma fiber, plus admissible parameters and finite samplers. The definition contains no success or projectivity assumption.}
-\BlueprintField{Status}{not-started; exact; gaps none}
-\BlueprintField{Paper assumptions}{An admissible parameter tuple used to instantiate the sampler and decider.}
-\BlueprintField{Lean assumptions}{Parameters and their field model; admissibility is required by consumers, not built into the raw game data.}
+\BlueprintField{Encoding}{Question and answer carriers are sigma types over the paper's type graph. Explicit finite codecs embed each dependent answer fiber into one uniform finite POVM alphabet and decode it back; malformed encodings reject. Shared line-question and bounded-polynomial declarations are imported from F09A, including its constructive Fintype instances for AxisLineQuestion, DiagonalLineQuestion, and IndividualLDTQuestion; G02 must not declare orphan replacements. F09A supersedes the earlier A43 placement advice. Every decider edge is a constructor, and the LDT edge calls the F09A repetition-one Bool decider rather than duplicating it; successfully decoded unlisted typed pairs accept. The question distribution is a PMF, so normalization is bundled.}
+\BlueprintField{Boundary hypotheses}{Declare universe uType uQuestion uAnswer and require [Fintype] and [DecidableEq] for the generic type index and every generic sigma fiber, plus admissible parameters and finite samplers. The three concrete classical-LDT question carriers reuse F09A's structural finite instances, never downstream orphan instances. F09A fixes the G22 zero-direction behavior and G23 little-endian codec boundary. The definition contains no success, projectivity, nonzero-direction, arbitrary-decider, or Analysis-layer premise.}
+\BlueprintField{Status}{not-started; faithful-boundary; gaps G22, G23}
+\BlueprintField{Paper assumptions}{An admissible parameter tuple used to instantiate the sampler and seven checks, including the repetition-one simultaneous individual LDT check.}
+\BlueprintField{Lean assumptions}{Parameters and their field model; F09A's typed finite game core, including the documented G22 zero-direction and G23 little-endian boundaries; admissibility is required by consumers, not built into the raw game data.}
 \BlueprintField{Paper conclusion}{The typed question distribution, answer formats, and seven acceptance checks define the QPBT game.}
-\BlueprintField{Lean conclusion}{A dependent finite game with the same distribution and seven exhaustive check constructors.}
+\BlueprintField{Lean conclusion}{A dependent finite game with the same distribution and seven exhaustive check constructors; malformed outer LDT encodings reject before the F09A decider is called.}
 \BlueprintField{Integrity verdict}{faithful boundary}
 \endgroup
 \end{BlueprintNode}
@@ -63,7 +63,7 @@
 \BlueprintField{Source}{\seqsplit{references/2001.04383v3/sections/qpbt/qpbt-game-and-soundness.tex:334-526 [original 5380-5572], label lem:pauli-completeness}}
 \BlueprintField{Statement}{For every admissible parameter tuple, the QPBT game has a symmetric projective commuting/consistent strategy of value one.}
 \BlueprintField{Lean plan}{\BlueprintIdentifier{MIPStarRE.QPBT.Game.Completeness}:\linebreak \BlueprintIdentifier{MIPStarRE.QPBT.pauliCompleteness}}
-\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, G01-PARAMETERS, G02-GAME}}
+\BlueprintField{Transitive definitions}{\seqsplit{F01-FIELD, F02-CODE, F03-MEASUREMENT, F04-ASYMPTOTIC, F04-CONSISTENCY, F04-DISTANCE, F04A-GAME-SEMANTICS, F05-PAULI, F06-CL, F06A-EXECUTABLE-CL, F07-TYPED, F08-MAGIC-GAME, F09A-LDT-GAME-CORE, G01-PARAMETERS, G02-GAME}}
 \BlueprintField{Prerequisites}{\seqsplit{G02-GAME}}
 \BlueprintField{Consumers}{\seqsplit{none}}
 \BlueprintField{Encoding}{Construct the finite EPR tensor state and each typed measurement explicitly; value one is equality of acceptance probability.}

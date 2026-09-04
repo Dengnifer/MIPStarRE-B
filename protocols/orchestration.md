@@ -27,6 +27,79 @@ mathematical or operational result, not merely "cleanup", "phase", or
 Run `python3 scripts/workflow.py ready` to compute dispatchable work rather than
 inferring readiness from list order.
 
+### Git identity admission
+
+Every dispatch dry-run and confirmation resolves each non-null planned
+`base_revision` through `scripts/git_identity.py` in the session's registered
+worktree. The resolver accepts a full object ID, a fully qualified ref, `HEAD`,
+or shorthand that has exactly one canonical ref interpretation. A hexadecimal
+token is a full object ID only when its length matches an input object format
+advertised by that repository and Git resolves it byte-for-byte to that same
+ID; a SHA-256 repository therefore rejects a 40-hex abbreviation and accepts
+the exact 64-hex identity. A shorthand
+collision such as same-named branch and tag is rejected; callers use the
+desired `refs/heads/...` or `refs/tags/...` name explicitly. The resolver obtains
+the full commit and root tree from Git and proves with `cat-file` that both
+objects exist with the required types. Git plumbing runs with inherited
+repository and configuration selectors removed, replacements disabled,
+hooks/fsmonitor disabled, lazy promisor fetching disabled, and no interactive
+prompt. Missing objects therefore fail locally without invoking a transport or
+credential helper. A missing worktree, nonexistent full-looking SHA, ambiguous
+ref, wrong object type, malformed Git result, or mismatch with an optional
+planned `base_tree` blocks the complete requested batch before any session or
+event mutation.
+
+The worktree path must contain no symlink or lexical parent (`..`) component
+and must name the repository root. On Linux, the resolver opens every absolute
+path component relative to an already-open parent with
+`O_DIRECTORY | O_NOFOLLOW`, retains the resulting
+directory descriptor, and checks its filesystem device/inode against the
+canonical path. Before the first Git child, it similarly authenticates and
+retains the worktree's `.git` directory or single-link regular gitfile, the
+gitfile target, and any single-link regular `commondir` file and target. This
+supports ordinary repositories and linked worktrees without following a
+metadata symlink. Every Git child starts through `/proc/self/fd/N` and receives
+the same retained worktree, Git-directory, and common-directory descriptors as
+explicit `GIT_WORK_TREE`, `GIT_DIR`, and `GIT_COMMON_DIR` authorities. It never
+rediscovers those authorities from the registered pathname. Descriptor-relative
+`rev-parse --is-inside-work-tree` rejects bare repositories, and
+`rev-parse --show-prefix` proves that the registered directory itself is the
+worktree root.
+
+Dispatch carries the live descriptor proof through the complete locked
+transaction, records only the canonical path in the issued row, rechecks the
+worktree and repository descriptors, admitted metadata-file bytes, and their
+current paths immediately before publication and after event validation, and
+rolls back if any bound authority was renamed, replaced, or modified. Every
+success, blocked return, and exceptional rollback closes all retained
+descriptors before releasing the workflow lock. Cleanup attempts every retained
+descriptor even if an individual close fails; cleanup is inside the publication
+transaction, so such a failure rolls back session and event bytes before it is
+reported to the caller. A collaboration bootstrap must
+start in that exact registered canonical directory; confirmation is the task
+release boundary and reauthenticates it before the task packet is sent.
+The generic record-add command cannot add an issued session; all issuance goes
+through `dispatch` or its single-session compatibility wrapper.
+For other read-only identity capture, run `python3 scripts/git_identity.py REF
+--worktree /absolute/worktree`; reuse its JSON `commit` and `tree` values
+without manual completion or transcription.
+
+Dry-run output reports the resolved commit/tree pair for each admitted
+candidate. Successful dispatch replaces any symbolic planned ref with the full
+commit, canonicalizes `worktree`, and records `base_tree` in both the issued row
+and issuance event.
+Historical rows remain structurally validated without reopening their object
+databases. The declared base is not required to equal worktree `HEAD`: a review
+session remains bound to the PR base while its registered worktree may be
+detached at the candidate head. Governed `codex-cli` rows still issue with a
+null external ID for later lease import, while collaboration rows still require
+the backend-returned confirmation.
+
+The resolved main commit supplied to the QPBT-045 hot-cache interface remains
+an exact-object admission boundary. A nonexistent full-looking
+`--main-commit` must fail during identity construction, before warm/build
+execution, cache or `READY` publication, lock creation, or metric append.
+
 For `codex-collaboration` session admission, use the following spawn-first,
 confirm-at-dispatch sequence. The workflow CLI has no collaboration-tool access
 and must never pretend that it launched or independently verified an external
@@ -70,6 +143,89 @@ planned child, the parent creates only its bootstrap thread and returns the
 external ID, the root confirms it, and only then does the parent send the child
 task. Every active parent and child other than the root coordinator consumes
 one aggregate slot; nesting does not create free capacity.
+
+### Collaboration rate-limit admission
+
+The root coordinator owns one launch-class transport lane across its complete
+collaboration tree. A launch-class request is a backend call that creates a
+bootstrap thread or starts or resumes an agent turn; a message delivered to an
+already running turn without starting one is not launch-class. Parents must not
+issue nested launch-class requests without a root grant. The lane serializes
+transport admission, not admitted work.
+
+For a new session, hold the lane across one uninterrupted sequence: exact
+single-session dry-run, bootstrap-only backend creation, canonical confirmation,
+and task release. Do not interleave another session's bootstrap, task release,
+or resume. Each step must return and be accounted for before the next step.
+Failed bootstrap creation still leaves the planned session and canonical
+state/event bytes unchanged; a confirmation failure still follows the immediate
+bootstrap-thread retirement rule above.
+
+Start a launch-class backend request no sooner than 5 seconds after the previous
+launch-class request returned, whether it succeeded or failed. This is a
+minimum, not a prediction of a provider window. Measure waits with a monotonic
+clock when one is exposed. The initial value is deliberately small because
+INC-087 establishes a zero-stagger burst but exposes no rejected-request
+timestamps or provider rate-window contract.
+
+An HTTP 429 opens one rate-limit episode and keeps the same transport lane. The
+failed operation may receive at most three retries. For retry ordinal `r` in
+`1..3`, wait
+
+```text
+10 * 2^(r - 1) seconds + jitter(r)
+```
+
+after the preceding 429 returns. Derive auditable, transport-free jitter by
+taking the first eight hexadecimal digits of
+`SHA-256(UTF-8(stable-session-name + ":" + action-kind + ":" + r))`, interpreting
+them as an unsigned base-16 integer, and reducing modulo 5000 milliseconds.
+Thus the three base delays are 10, 20, and 40 seconds, each jitter is in
+`[0, 5)` seconds, and their cumulative planned delay is less than 85 seconds.
+No retry may start 120 seconds or more after the initial 429 returned. The
+earlier of the third failed retry and that deadline terminates the episode.
+Successful completion closes it; non-429 failures follow their own incident and
+lifecycle rules rather than consuming this retry budget.
+
+Retry identity is immutable. If bootstrap creation failed before an external
+ID existed, rerun the exact preflight and retry under the same planned stable
+name and attempt number. If a bootstrap thread or working session already
+exists, resume that exact external thread with the unchanged stable name,
+worktree, ownership, and task scope. Preserve its edits and reports. Never
+allocate a replacement attempt, create a duplicate thread, replay completed
+work, or reconfirm an already confirmed session merely because a turn returned
+429.
+
+At terminal exhaustion, stop automatic transport requests and escalate to the
+root coordinator. A pre-bootstrap attempt remains planned with unchanged
+canonical bytes; an existing thread remains the same issued attempt and is not
+reported as an implementation failure solely because transport failed. Record,
+when exposed, the stable name, external ID or `null`, action kind, UTC request
+start and return times, retry ordinal, base delay, jitter, actual wait, request
+ID, outcome, and first-429-to-terminal elapsed time. Use `null` plus an
+availability reason for unavailable timing or token data. The root records the
+incident/session accounting and may explicitly authorize a later bounded
+episode after the quiet window, but it must reuse the same stable session; loss
+of that external thread is a separate lifecycle incident, not permission to
+replace it silently. No sibling launch-class request may use the lane before the
+original 120-second episode deadline has passed.
+
+The lane is released after successful task release, successful resume, or
+terminal escalation followed by the remainder of that quiet window. Already
+admitted agents continue mathematical work, local validation, ordinary
+running-turn messages, and independent computation in parallel up to the
+unchanged aggregate capacity. A rate-limit episode pauses only new launch-class
+traffic; it does not lower steady-state concurrency or the hot-main cache
+singleton rules.
+
+These waits and backend outcomes are coordinator-enforced procedure. The
+repository dispatcher can enforce local eligibility, exact identity,
+confirmation order, capacity, and no-mutation failure behavior, but it cannot
+observe or delay collaboration-tool creation, task-release, or resume calls.
+Adding a sleep to confirmation would run after bootstrap creation and would not
+cover nested resumes. Until collaboration calls have one repository-owned
+launcher hook, do not represent the stagger/backoff as mechanically enforced
+or add a partial dispatcher timer that gives that false assurance.
 
 Governed `codex-cli` launch retains its distinct issue-first lease. Capacity,
 dependency, stage, and ownership checks first issue the CLI row with
