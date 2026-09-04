@@ -10068,7 +10068,7 @@
     {
       "id": "LPR-041",
       "title": "docs(workflow): bound collaboration rate-limit retries",
-      "status": "changes_requested",
+      "status": "approved",
       "issue_ids": [
         "QPBT-081"
       ],
@@ -10077,7 +10077,9 @@
       "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
       "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
       "head_tree": "c1a3e80efd3daf0e8b0592e45653a060a9170d35",
-      "implementer_session_ids": [],
+      "implementer_session_ids": [
+        "i081-integrator-a04-pr-bind"
+      ],
       "checks": [
         {
           "id": "check-qpbt-081-a01-candidate",
@@ -10109,6 +10111,23 @@
           "manifest_sha256": "3ec085f128baddfd11bdbf9ce00ea142a1361f0a1b4bbad8915cd0319669dffb",
           "patch_sha256": "b51d950a8a865f9c22e9e94341864f5814ed262f33a0a0c28dddd8f413cce9dc",
           "integration_gate": "Bind the exact cited QPBT-068 A28 handoff into a fresh immutable packet or remove the comparison, then obtain explicit exact-head re-review."
+        },
+        {
+          "id": "review-qpbt-081-pr041-a03-evidence",
+          "reviewer_session_id": "i081-reviewer-a03-evidence",
+          "verdict": "approve",
+          "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+          "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+          "started_at": "2026-09-04T04:54:32Z",
+          "completed_at": "2026-09-04T04:59:26Z",
+          "result_path": "/tmp/i081-reviewer-a03-evidence.md",
+          "finding_ids": [],
+          "formal_pr_review": true,
+          "report_sha256": "f47ce3f0bc7c906cfb83409db27bad28da4da189dd7984409b3cb266f75c21f3",
+          "manifest_sha256": "410eec968e3db0eb7859dd45ae8d7a31d2d0c9ff28f8599766af85f6beb38dd3",
+          "patch_sha256": "b51d950a8a865f9c22e9e94341864f5814ed262f33a0a0c28dddd8f413cce9dc",
+          "explicit_rereview_reason": "Resolve F081-A02-001 on unchanged head by authenticating the exact A28 handoff cited by candidate line 64.",
+          "integration_gate": "approved for guarded integration; no open findings remain"
         }
       ],
       "findings": [
@@ -10118,10 +10137,10 @@
           "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
           "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
           "severity": "medium",
-          "status": "open",
-          "disposition": "pending",
-          "disposition_evidence": null,
-          "resolved_by_review_id": null,
+          "status": "resolved",
+          "disposition": "rejected",
+          "disposition_evidence": "The candidate claim is true. Fresh manifest 410eec96 corrected the review-packet omission by binding A28 report SHA a8197bee; A03 authenticated transport_429_interruptions=2 and the independent canonical count 3.",
+          "resolved_by_review_id": "review-qpbt-081-pr041-a03-evidence",
           "confirmation_review_ids": [],
           "summary": "The evidence report compares the canonical retry count with an A28 handoff field, but that handoff was absent from the immutable review packet.",
           "path": "workflow/reviews/qpbt-081-rate-limit-retries-a01.md",
@@ -10132,7 +10151,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T04:39:20.206453Z",
-      "updated_at": "2026-09-04T04:53:59.061713Z",
+      "updated_at": "2026-09-04T05:09:54.952158Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -10140,11 +10159,11 @@
       ],
       "motivation": "Turn the third observed collaboration HTTP 429 failure class into a bounded, stable-session launch and retry procedure without reducing admitted-work parallelism.",
       "description": "Add one root-owned launch-class lane, five-second request staggering, bounded exponential same-session retry, deterministic jitter, terminal quiet-window accounting, and an honest procedural enforcement boundary.",
-      "testing": "Candidate exact identities and three-path ownership authenticated; workflow validation and unrestricted 418/418 workflow suite passed.",
+      "testing": "Candidate identity, exact three-path ownership, workflow validation, unrestricted 418/418 suite, fresh evidence re-review, clean worktree, and conflict-free merge-tree all passed.",
       "addresses": "QPBT-081",
       "requested_external_review": true,
-      "unexecuted_gate": "A03 must authenticate the newly bound A28 handoff, resolve F081-A02-001, and approve exact unchanged head c5a22399 before integration.",
-      "review_status": "explicit-unchanged-head-rereview-running",
+      "unexecuted_gate": "Guard-merge exact head c5a223999a76baf15c4bb53002f354091930e5f2 into current main, validate, and record integration identity.",
+      "review_status": "approved-no-open-findings-integration-ready",
       "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-081-review-manifest-a03.json",
       "review_manifest_sha256": "410eec968e3db0eb7859dd45ae8d7a31d2d0c9ff28f8599766af85f6beb38dd3",
       "candidate_producer_session_id": "i081-orchestrator-a01-rate-limit-retries",
@@ -10152,6 +10171,10 @@
       "review_session_ids": [
         "i081-reviewer-a02-protocol",
         "i081-reviewer-a03-evidence"
+      ],
+      "provenance_session_ids": [
+        "i081-orchestrator-a01-rate-limit-retries",
+        "i081-integrator-a04-pr-bind"
       ]
     }
   ]
