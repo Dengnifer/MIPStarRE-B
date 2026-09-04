@@ -70,19 +70,22 @@ theorem strategyOutcomeWeight_nonneg
     0 ≤ strategyOutcomeWeight S x y a b := by
   let A := (S.toPureStrategy.alice x).effect a
   let B := (S.toPureStrategy.bob y).effect b
+  have hA : Matrix.PosSemidef A :=
+    Matrix.nonneg_iff_posSemidef.mp ((S.toPureStrategy.alice x).pos a)
+  have hB : Matrix.PosSemidef B :=
+    Matrix.nonneg_iff_posSemidef.mp ((S.toPureStrategy.bob y).pos b)
   have hAB : Matrix.PosSemidef (Matrix.kronecker A B) :=
-    ((S.toPureStrategy.alice x).pos a).posSemidef.kronecker
-      ((S.toPureStrategy.bob y).pos b).posSemidef
-  have hquad := hAB.dotProduct_mulVec_nonneg
-    (WithLp.ofLp S.toPureStrategy.state)
-  have hre : 0 ≤ Complex.re
-      (star (WithLp.ofLp S.toPureStrategy.state) ⬝ᵥ
-        (Matrix.kronecker A B *ᵥ WithLp.ofLp S.toPureStrategy.state)) :=
-    (Complex.nonneg_iff.mp hquad).1
-  simpa only [strategyOutcomeWeight, strategyOutcomeOperator, operatorAction,
-    aliceLocal, bobLocal, EuclideanSpace.inner_eq_star_dotProduct,
-    Matrix.ofLp_toLpLin, ← Matrix.mul_kronecker_mul, Matrix.mul_one,
-    Matrix.one_mul, dotProduct_comm, A, B] using hre
+    hA.kronecker hB
+  have hop : strategyOutcomeOperator S x y a b = Matrix.kronecker A B := by
+    simp only [strategyOutcomeOperator, aliceLocal, bobLocal, A, B, Matrix.kronecker]
+    rw [← Matrix.mul_kronecker_mul]
+    simp
+  have hpositive :
+      (Matrix.toEuclideanLin (strategyOutcomeOperator S x y a b)).IsPositive := by
+    rw [Matrix.isPositive_toEuclideanLin_iff, hop]
+    exact hAB
+  simpa only [strategyOutcomeWeight, operatorAction, RCLike.re_to_complex] using
+    hpositive.re_inner_nonneg_right S.toPureStrategy.state
 
 private theorem sum_strategyOutcomeOperator
     {QuestionA : Type uQuestionA} {QuestionB : Type uQuestionB}
@@ -147,7 +150,7 @@ theorem sum_strategyOutcomeWeight
     (∑ a, ∑ b, strategyOutcomeWeight S x y a b) =
         Complex.re (inner Complex psi
           (∑ a, ∑ b, operatorAction (strategyOutcomeOperator S x y a b) psi)) := by
-      simp only [strategyOutcomeWeight, psi, map_sum, inner_sum]
+      simp only [strategyOutcomeWeight, psi, inner_sum, Complex.re_sum]
     _ = Complex.re (inner Complex psi psi) := by rw [haction]
     _ = 1 := by
       rw [inner_self_eq_one_of_norm_eq_one S.toPureStrategy.normalized]
@@ -202,7 +205,7 @@ theorem strategyValue_eq_one_of_rejected_weight_eq_zero
       simp_rw [sum_strategyOutcomeWeight, mul_one]
     _ = ∑ xy : QuestionA × QuestionB,
         (G.questionDistribution xy).toReal := by
-      rw [← Finset.sum_product]
+      rw [Fintype.sum_prod_type]
     _ = (∑ xy : QuestionA × QuestionB,
         G.questionDistribution xy).toReal := by
       rw [ENNReal.toReal_sum]
