@@ -39081,6 +39081,39 @@
         "archive_status": "archived"
       },
       "notes": "A03 authenticated the full exact-head projection and found stale Stage 4A issuance/report counts plus one leaf-config omission in the codex exec review help probe. The derived Stage 4A counter is now 486; the probe and report require a bounded repair and changed-head review."
+    },
+    {
+      "id": "i085-reviewer-a04-repair",
+      "name": "i085-reviewer-a04-repair",
+      "role": "reviewer",
+      "issue_id": "QPBT-085",
+      "attempt": 4,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "backend": "codex-cli",
+      "pr_id": null,
+      "read_only": true,
+      "base_revision": "08a0e83a29fd58b0ab7208f4fe2d9d7eda5433e3",
+      "base_revision_reason": "Standalone immutable 28-file projection of the complete QPBT-085 delta from source base 9aaee76a42d1a3f9c0d1a146d3c79f4769f843f3 through repaired source head 86401f8dbd696c43f5f12f9a9882825a1c5f734d; manifest b23b78c4339e20875598a21825dd5ed24950300e125ce063abefbf89e17423d5 and patch 14cc6690e467fc10e4a9e3ecd08cdc2a5fb50e97a6aea73e8eb912b95708890a bind every disclosed byte.",
+      "base_tree": "b16f23298afef7f8fe48962338fb4b4e2eaf3c37",
+      "worktree": "/tmp/qpbt-085-review-a04",
+      "owned_paths": [],
+      "validation_command": "Authenticate projection commit/tree, manifest b23b78c4, patch 14cc6690, exactly 28 evidence files, clean status, no remotes or alternates; review the complete QPBT-085 policy and both A03 dispositions against every owner concurrency gate; return findings-first JSON without writes.",
+      "result_envelope_path": ".workflow-runtime/runs/i085-reviewer-a04-repair/result.json",
+      "started_at": "2026-09-04T08:56:55.969149Z",
+      "ended_at": null,
+      "elapsed_seconds": null,
+      "timing_quality": null,
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Pending Codex CLI terminal usage event"
+      },
+      "archive_status": "not_requested",
+      "outcome_path": null,
+      "external_id": null
     }
   ]
 }

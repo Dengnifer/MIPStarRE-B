@@ -5731,7 +5731,7 @@
         "protocols/CHANGELOG.md"
       ],
       "created_at": "2026-09-04T06:55:07.385848Z",
-      "updated_at": "2026-09-04T08:23:30.641991Z",
+      "updated_at": "2026-09-04T08:58:11.056369Z",
       "blocked_reason": "Exact candidate passed bounded suites and full-archive materialization; fresh immutable review, reviewed integration, one production warm, and one private prepare canary remain.",
       "unblock_condition": "Obtain one fresh immutable approval for head cbe3a9e, integrate the exact tree, then run the single authorized production warm and private prepare canary.",
       "candidate_base_sha": "72d76a719f29f7304bd84ea1e7761a6b6f40a269",
@@ -5740,7 +5740,14 @@
       "candidate_patch_sha256": "9b76e3c607371ffc1bd31866ef3a3a6c29126a46236768c3c9500af6525be191",
       "candidate_report": ".workflow-runtime/runs/i084-orchestrator-a02-inotify-hub/result.json",
       "candidate_report_sha256": "dae1036c22e5f4a2d308d0fb11b3dbf166215176c884b5370bd0bbcb8f085e2e",
-      "candidate_status": "implemented-validated-awaiting-immutable-review"
+      "candidate_status": "implemented-validated-awaiting-immutable-review",
+      "github_repository": "Dengnifer/MIPStarRE-B",
+      "github_issue_number": 34,
+      "github_issue_url": "https://github.com/Dengnifer/MIPStarRE-B/issues/34",
+      "github_pr_number": 35,
+      "github_pr_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/35",
+      "github_branch": "issue/qpbt-084-inotify-a01",
+      "github_pr_status": "draft"
     },
     {
       "id": "QPBT-085",
@@ -5784,7 +5791,7 @@
         "workflow/state/stages.json"
       ],
       "created_at": "2026-09-04T07:03:45.766516Z",
-      "updated_at": "2026-09-04T08:49:47.665869Z",
+      "updated_at": "2026-09-04T08:58:11.299137Z",
       "blocked_reason": "Both A03 findings are resolved and all focused plus aggregate gates pass; one fresh immutable changed-head approval remains.",
       "unblock_condition": "Freeze the committed repair head and obtain one independent A04 approval.",
       "latest_review_report": ".workflow-runtime/runs/i085-reviewer-a03-final-policy/result.json",
@@ -5822,6 +5829,14 @@
         "diff_check": "passed",
         "sandbox_attempt": "501/503 with two Unix-socket EPERM fixture denials",
         "host_access_rerun": "503/503"
+      },
+      "active_review_session_id": "i085-reviewer-a04-repair",
+      "active_review_projection": {
+        "commit": "08a0e83a29fd58b0ab7208f4fe2d9d7eda5433e3",
+        "tree": "b16f23298afef7f8fe48962338fb4b4e2eaf3c37",
+        "manifest_sha256": "b23b78c4339e20875598a21825dd5ed24950300e125ce063abefbf89e17423d5",
+        "patch_sha256": "14cc6690e467fc10e4a9e3ecd08cdc2a5fb50e97a6aea73e8eb912b95708890a",
+        "source_head": "86401f8dbd696c43f5f12f9a9882825a1c5f734d"
       }
     }
   ]
