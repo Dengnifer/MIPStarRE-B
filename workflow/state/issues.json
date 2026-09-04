@@ -5777,9 +5777,9 @@
         "workflow/state/stages.json"
       ],
       "created_at": "2026-09-04T07:03:45.766516Z",
-      "updated_at": "2026-09-04T07:38:46.891065Z",
-      "blocked_reason": "A01 approved the exact pre-amendment head and is archived; INC-091 required the now-applied handle-aware accounting change, so its approval is nonbinding.",
-      "unblock_condition": "Commit and validate the handle-aware changed head, then obtain a fresh immutable independent approval before closure."
+      "updated_at": "2026-09-04T07:50:46.258723Z",
+      "blocked_reason": "A02 is reviewing immutable source head c543faa, but the independently recomputed A01 digest corrections and resulting incident records changed canonical bytes after that projection, so A02 cannot be the final binding approval.",
+      "unblock_condition": "Archive A02 as substantive nonbinding evidence, freeze the corrected pushed head, and obtain one final immutable A03 approval against that exact head."
     }
   ]
 }
