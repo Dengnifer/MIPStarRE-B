@@ -5325,7 +5325,7 @@
       "title": "fix(F07A): freeze width, runtime, and description boundaries",
       "kind": "blueprint",
       "execution_category": "implementation",
-      "status": "in_progress",
+      "status": "review",
       "parent_id": "QPBT-000",
       "dependency_ids": [
         "QPBT-038",
@@ -5367,9 +5367,9 @@
         "docs/paper-gaps/detyping-executable-boundaries.md"
       ],
       "created_at": "2026-09-04T00:24:09.258636Z",
-      "updated_at": "2026-09-04T00:51:57.710710Z",
-      "blocked_reason": "Implementation is active in its dedicated branch; exact G24-G26 source-boundary repair and regeneration are in progress.",
-      "unblock_condition": "Dependencies QPBT-038 and QPBT-042 are done; writer must commit and validate the exact owned scope, then receive fresh immutable reviews.",
+      "updated_at": "2026-09-04T01:29:22.843781Z",
+      "blocked_reason": "The exact nine-file candidate passes all blueprint gates. Fresh immutable reviewers must adjudicate the four A02 source-boundary findings, especially whether G26 is a second documented mismatch.",
+      "unblock_condition": "Obtain independent source and regression reviews on the exact c323bd8 head; repair every confirmed finding on a new head before guarded integration.",
       "source_review_report": "/tmp/i043-scout-a08-source-boundary.md",
       "source_review_report_sha256": "8e9044103fe540192edabb56fb8f6216c39f7d1882fb5843bf640c3abc5bb606",
       "source_review_verdict": "request_changes-contract-repair-required",
@@ -5378,7 +5378,53 @@
         "G25",
         "G26"
       ],
-      "candidate_status": "writer-active"
+      "candidate_status": "review-pending-g26-adjudication",
+      "candidate_base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+      "candidate_head_sha": "c323bd874727a9364d821f4215f6f08fdf48c511",
+      "candidate_tree": "f591197007ebb3b3b76d38691d581f842680419e",
+      "candidate_patch_sha256": "504d3b19b0ffa4551d2f49367eca0a7701a09eb716868cd40230832cf20369fe",
+      "candidate_report": "/tmp/i080-orchestrator-a01-detyping-boundary.md",
+      "candidate_report_sha256": "1b7103255ab3ec6878be4a5edcb91a78ea6f94ce3b8afd0a4973124a39c6223d",
+      "source_scout_report": "/tmp/i080-scout-a02-source-fidelity.md",
+      "source_scout_report_sha256": "f8f11c2413cb05d1d943934553fd31fcd4fe7c5571ec42047575967c652d32fa",
+      "checker_scout_report": "/tmp/i080-scout-a03-checker-regen.md",
+      "checker_scout_report_sha256": "b3987930897001e5137c05cb1e9ddcc93853de0b2b8330a0c12ea2d92bd60e01",
+      "source_scout_findings": [
+        {
+          "id": "F080-A02-001",
+          "severity": "high",
+          "status": "open",
+          "path": "blueprint/metadata/nodes.json",
+          "summary": "The documented-mismatch verdict names only G24, but G26 strengthens the paper pointwise-total raw decider to intrinsic per-index uniform boundedness and attainment."
+        },
+        {
+          "id": "F080-A02-002",
+          "severity": "high",
+          "status": "open",
+          "path": "blueprint/metadata/nodes.json",
+          "summary": "The integrity table itself does not freeze runtime quantifier order, positive displayed arguments, the no-0<n rule, distinct codecs, or direct F06A reuse."
+        },
+        {
+          "id": "F080-A02-003",
+          "severity": "medium",
+          "status": "open",
+          "path": "blueprint/metadata/gaps.json",
+          "summary": "G24 omits the ordinary normal-game width source at top-level/nonlocal-games.tex:660-678."
+        },
+        {
+          "id": "F080-A02-004",
+          "severity": "low",
+          "status": "open",
+          "path": "blueprint/metadata/nodes.json",
+          "summary": "The paper has one seven-input sampler interface with four variable-arity call modes, not four seven-input query modes."
+        }
+      ],
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-080-review-manifest-a04.json",
+      "review_manifest_sha256": "f07e7f2cffb899d4d59f95f2f02aa0985a09456f7400eaaad14959ccacbffd3b",
+      "review_session_ids": [
+        "i080-reviewer-a04-source-fidelity",
+        "i080-reviewer-a05-regression"
+      ]
     },
     {
       "id": "QPBT-081",

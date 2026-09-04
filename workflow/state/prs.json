@@ -9770,6 +9770,59 @@
         "completed_at": "2026-09-03T22:08:52.236946Z"
       },
       "head_tree": "292efcca827e7020cab8c3e9fe3c66b74aaa9479"
+    },
+    {
+      "id": "LPR-039",
+      "title": "fix(blueprint/F07A): freeze executable detyping boundaries",
+      "status": "ready",
+      "issue_ids": [
+        "QPBT-080"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-080-detyping-boundary-a01",
+      "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+      "head_sha": "c323bd874727a9364d821f4215f6f08fdf48c511",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-080-a01-candidate",
+          "name": "QPBT-080 candidate validation",
+          "command": "Authenticate exact base, head, tree, nine-path patch, 42 blueprint tests, default and pinned checks, byte-idempotent regeneration, source inventory, and diff ownership gates",
+          "status": "passed",
+          "base_sha": "c70514f411f6549d6c151e6fecc99504230639c2",
+          "head_sha": "c323bd874727a9364d821f4215f6f08fdf48c511",
+          "completed_at": "2026-09-04T01:18:00Z",
+          "result_path": "/tmp/i080-orchestrator-a01-detyping-boundary.md",
+          "result": "Exact nine-path patch 504d3b19; 42/42 tests; default and pinned checks pass; second regeneration changed zero bytes."
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-04T01:27:00Z",
+      "updated_at": "2026-09-04T01:32:55.532834Z",
+      "changed_paths": [
+        "blueprint/check.py",
+        "blueprint/generated/graph.dot",
+        "blueprint/generated/graph.json",
+        "blueprint/metadata/gaps.json",
+        "blueprint/metadata/nodes.json",
+        "blueprint/src/generated/chapter-02-entries.tex",
+        "blueprint/src/generated/gaps.tex",
+        "blueprint/tests/test_check.py",
+        "docs/paper-gaps/detyping-executable-boundaries.md"
+      ],
+      "motivation": "Freeze the executable, width-transport, runtime, and compiler boundaries required before the F07A Lean skeleton can be source faithful.",
+      "description": "Adopt the exact QPBT-080 blueprint candidate after fresh source-fidelity and regression reviews adjudicate the recorded G26 wording disagreement.",
+      "testing": "A01 reports 42/42 blueprint tests, default and pinned-source checks, byte-idempotent regeneration, exact nine-path ownership, and clean diff.",
+      "addresses": "QPBT-080",
+      "requested_external_review": true,
+      "unexecuted_gate": "Fresh immutable source-fidelity and regression review, any required repair, guarded current-main integration, and post-merge checks remain.",
+      "head_tree": "f591197007ebb3b3b76d38691d581f842680419e",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-080-review-manifest-a04.json",
+      "review_manifest_sha256": "f07e7f2cffb899d4d59f95f2f02aa0985a09456f7400eaaad14959ccacbffd3b",
+      "review_status": "a04-a05-running"
     }
   ]
 }
