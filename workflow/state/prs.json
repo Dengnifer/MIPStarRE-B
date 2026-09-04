@@ -10466,7 +10466,7 @@
     {
       "id": "LPR-044",
       "title": "feat(QPBT/Basic): complete certified binary-observable boundary",
-      "status": "draft",
+      "status": "closed",
       "issue_ids": [
         "QPBT-079"
       ],
@@ -10481,7 +10481,7 @@
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T13:45:55Z",
-      "updated_at": "2026-09-04T13:45:55Z",
+      "updated_at": "2026-09-04T14:26:15.294041Z",
       "changed_paths": [
         "MIPStarRE/QPBT/Basic/Approximation.lean"
       ],
@@ -10520,6 +10520,48 @@
       "candidate_producer_session_id": "i071-orchestrator-a01-magic-defs",
       "candidate_producer_binding_note": "The writer predated this GitHub PR, so immutable session authority retains pr_id null; the exact producer is recorded here without rewriting history.",
       "testing": "Source/API review passed; scoped Lean, affected/full build, and immutable code review pending."
+    },
+    {
+      "id": "LPR-046",
+      "title": "feat(QPBT/Basic): complete certified binary-observable boundary",
+      "status": "draft",
+      "issue_ids": [
+        "QPBT-079"
+      ],
+      "base": "main",
+      "head": "issue/qpbt-079-binary-observable-a01",
+      "base_sha": "efcc497563ecc3a85127055a351cf3737726016d",
+      "head_sha": "094ccbfa1cd1ca62fb518360337a18bbd6351d62",
+      "implementer_session_ids": [],
+      "checks": [
+        {
+          "id": "check-qpbt-079-postrebase-scoped",
+          "name": "QPBT-079 post-rebase scoped Lean",
+          "command": "env LEAN_PATH=/tmp/qpbt-b-overlay-c5638 lean -R <worktree> -o /tmp/i079-postrebase-elaboration.olean <worktree>/MIPStarRE/QPBT/Basic/Approximation.lean",
+          "status": "passed",
+          "base_sha": "efcc497563ecc3a85127055a351cf3737726016d",
+          "head_sha": "094ccbfa1cd1ca62fb518360337a18bbd6351d62",
+          "completed_at": "2026-09-04T14:24:58Z",
+          "result_path": "/tmp/i079-postrebase-elaboration.olean",
+          "result": "Scoped elaboration passed in 16.255382s; olean SHA-256 181e058f0af751669c4785c95e2a21bc2c4e690ad7845e363bcebb6408dc0d04; no owned-file proof debt."
+        }
+      ],
+      "reviews": [],
+      "findings": [],
+      "integration_sha": null,
+      "merged_at": null,
+      "created_at": "2026-09-04T14:24:58Z",
+      "updated_at": "2026-09-04T14:24:58Z",
+      "changed_paths": [
+        "MIPStarRE/QPBT/Basic/Approximation.lean"
+      ],
+      "github_number": 42,
+      "github_url": "https://github.com/Dengnifer/MIPStarRE-B/pull/42",
+      "canonical_location": "github",
+      "supersedes_pr_id": "LPR-044",
+      "candidate_producer_session_id": "i079-orchestrator-a01-binary-observable",
+      "rebase_coordinator_session_id": "i001-coordinator-a01-bootstrap",
+      "testing": "Post-rebase scoped Lean passed with identical olean SHA-256; affected/full build and immutable review pending."
     }
   ]
 }

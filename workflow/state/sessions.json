@@ -39739,7 +39739,7 @@
       "role": "orchestrator",
       "issue_id": "QPBT-071",
       "attempt": 5,
-      "status": "running",
+      "status": "finished",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "priority": 1,
       "notes": "Next ready Lean packet: elaborate the committed Magic Square game against the published cache with explicit worktree root.",
@@ -39754,19 +39754,23 @@
       ],
       "validation_command": "Authenticate exact draft, A03 review, and four frozen overlay artifacts; run direct lean with LEAN_PATH overlay and -R worktree; repair only Defs.lean; no full build, cache or overlay mutation, GitHub, canonical state/metrics, Track A, or children.",
       "result_envelope_path": ".workflow-runtime/runs/i071-orchestrator-a05-elaboration/result.json",
-      "external_id": null,
+      "external_id": "01a06cc8-23b1-7af1-a388-dc196e8f5dc0",
       "started_at": "2026-09-04T14:17:29.965785Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-04T14:28:36.787445Z",
+      "elapsed_seconds": 666.626258,
       "token_usage": {
-        "input": null,
-        "output": null,
-        "total": null,
-        "availability_reason": "session has not returned"
+        "input": 3744059,
+        "output": 24402,
+        "total": 3768461,
+        "availability_reason": null,
+        "cached_input": 3583744,
+        "reasoning_output": 11751
       },
       "archive_status": "active",
-      "outcome_path": null,
-      "base_tree": "3067f4085455a9265fddce982d33884244a877d0"
+      "outcome_path": ".workflow-runtime/runs/i071-orchestrator-a05-elaboration/result.json",
+      "base_tree": "3067f4085455a9265fddce982d33884244a877d0",
+      "timing_quality": "runtime-measured",
+      "result_digest": "039ab4efb5a3746084e3bee7fea59a036bc89cc5cd16a5ab27ba87e93bc9b644"
     },
     {
       "id": "i073-orchestrator-a08-elaboration",
@@ -39774,7 +39778,7 @@
       "role": "orchestrator",
       "issue_id": "QPBT-073",
       "attempt": 8,
-      "status": "running",
+      "status": "finished",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "priority": 1,
       "notes": "Retry scoped Lean using the frozen union overlay with Semantics already elaborated; repair only ValueOne.lean.",
@@ -39789,19 +39793,23 @@
       ],
       "validation_command": "Authenticate exact evidence and frozen overlay artifacts; run direct lean with LEAN_PATH overlay and -R worktree; repair only ValueOne.lean; no full build, cache or overlay mutation, GitHub, canonical state/metrics, Track A, or children.",
       "result_envelope_path": ".workflow-runtime/runs/i073-orchestrator-a08-elaboration/result.json",
-      "external_id": null,
+      "external_id": "01a06cc9-37cd-7b22-b984-240e2cfc8228",
       "started_at": "2026-09-04T14:18:40.628061Z",
-      "ended_at": null,
-      "elapsed_seconds": null,
+      "ended_at": "2026-09-04T14:34:01.020559Z",
+      "elapsed_seconds": 920.17615,
       "token_usage": {
-        "input": null,
-        "output": null,
-        "total": null,
-        "availability_reason": "session has not returned"
+        "input": 4247066,
+        "output": 35717,
+        "total": 4282783,
+        "availability_reason": null,
+        "cached_input": 3973888,
+        "reasoning_output": 14893
       },
       "archive_status": "active",
-      "outcome_path": null,
-      "base_tree": "2fa8f88e7bc3d307950b314e3366e9a53dd4747d"
+      "outcome_path": ".workflow-runtime/runs/i073-orchestrator-a08-elaboration/result.json",
+      "base_tree": "2fa8f88e7bc3d307950b314e3366e9a53dd4747d",
+      "timing_quality": "runtime-measured",
+      "result_digest": "386962df7f447dbed5d82ec197b385b843baa7ce21e0284ba96958180113fe71"
     }
   ]
 }

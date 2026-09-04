@@ -5389,14 +5389,14 @@
         "MIPStarRE/QPBT/Basic/Approximation.lean"
       ],
       "created_at": "2026-09-03T21:51:22.513599Z",
-      "updated_at": "2026-09-04T14:16:32.497404Z",
+      "updated_at": "2026-09-04T14:26:47.401496Z",
       "blocked_reason": null,
       "unblock_condition": "Scoped elaboration proceeds immediately against the authenticated published cache in read-only mode; private prepare, full build, immutable post-build review, and PR integration remain required.",
       "planning_report": "/tmp/i005-scout-a53-f03-completion.md",
       "planning_report_sha256": "9c6226a7963268553aee6216f41e0ce0dad9f9f8bc317ccd042dee82cf646736",
       "frozen_signature_sha256": "8de7983b66b2cce523b45bb3b14a788ac34b0315be91644610cf455b5306b065",
       "statement_integrity_verdict": "faithful finite-coordinate boundary; observable definition, conversion, sign, laws, and quantifier order exact",
-      "candidate_status": "scoped-elaboration-passed-awaiting-affected-build-review",
+      "candidate_status": "rebased-scoped-elaboration-passed-awaiting-affected-build-review",
       "candidate_file": "MIPStarRE/QPBT/Basic/Approximation.lean",
       "candidate_file_sha256": "341811f5baf2aa3fe8fe7cd580954cb0a5987e73abe00b86a6d8d48fcafcf1e0",
       "candidate_report": "/tmp/i079-orchestrator-a01-binary-observable.md",
@@ -5415,7 +5415,11 @@
       "scoped_elaboration_result": "pass",
       "scoped_elaboration_session": "i079-orchestrator-a09-elaboration",
       "scoped_elaboration_olean_sha256": "181e058f0af751669c4785c95e2a21bc2c4e690ad7845e363bcebb6408dc0d04",
-      "scoped_elaboration_seconds": 16.310327
+      "scoped_elaboration_seconds": 16.255382,
+      "candidate_commit": "094ccbfa1cd1ca62fb518360337a18bbd6351d62",
+      "candidate_tree": "bbf15157535374f188234c08a15f57fb0a2c5946",
+      "local_pr_id": "LPR-046",
+      "superseded_local_pr_id": "LPR-044"
     },
     {
       "id": "QPBT-080",

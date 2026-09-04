@@ -1,5 +1,6 @@
 .lake/
 .workflow-runtime/
+.worktrees/
 # Author-owned arXiv source is fetched and split locally. Commit manifests,
 # checksums, and project-authored source maps, not the paper text, unless a
 # compatible redistribution permission is recorded.
