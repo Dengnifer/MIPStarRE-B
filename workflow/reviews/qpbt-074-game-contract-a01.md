@@ -444,19 +444,61 @@ theorem simultaneousIndividualLDTOne_zero_direction {k m d : Nat}
         (.point u) (.diagonalLine q) a f =
       if u = (q.line D hm).base then decide (f.eval 0 = a) else false)
 
+theorem classicalLDTSeedEquiv_apply {k m : Nat}
+    (u : FieldPoint k m) (s : GaloisField 2 k)
+    (v : FieldPoint k m) (i : Fin (2 * m + 1)) :
+    classicalLDTSeedEquiv k m (u, (s, v)) i =
+      if hi : i.val < m then
+        u ⟨i.val, hi⟩
+      else if him : i.val = m then
+        s
+      else
+        v ⟨i.val - (m + 1), by omega⟩
+
+theorem standardDirection_apply {k m : Nat} (i j : Fin m) :
+    standardDirection (k := k) i j = if j = i then 1 else 0
+
+theorem firstNonzeroCoordinate_eq_some_iff {k m : Nat}
+    (v : FieldPoint k m) (p : Fin m) :
+    firstNonzeroCoordinate v = some p ↔
+      v p ≠ 0 ∧ ∀ j : Fin m, v j ≠ 0 → p ≤ j
+
+theorem AffineLine.pointAt_eq {k m : Nat} (line : AffineLine k m)
+    (t : GaloisField 2 k) :
+    line.pointAt t = line.base + t • line.direction
+
+theorem AxisLineQuestion.line_eq {k m : Nat} (D : FieldData k)
+    (hm : m ∣ 2 ^ k) (question : AxisLineQuestion k m) :
+    question.line D hm =
+      ({ base := question.base
+         direction := standardDirection (chi D hm question.selector) } :
+        AffineLine k m)
+
+theorem DiagonalLineQuestion.line_eq {k m : Nat} (D : FieldData k)
+    (hm : m ∣ 2 ^ k) (question : DiagonalLineQuestion k m) :
+    question.line D hm =
+      ({ base := question.base
+         direction :=
+           truncateDirection (chi D hm question.selector) question.direction } :
+        AffineLine k m)
+
+theorem BoundedUnivariatePolynomial.eval_eq_sum {k degree : Nat}
+    (f : BoundedUnivariatePolynomial k degree)
+    (t : GaloisField 2 k) :
+    f.eval t = ∑ i : Fin (degree + 1), f i * t ^ i.val
+
 end MIPStarRE.QPBT
 ```
 <!-- END F09A-SIGNATURES -->
 
-The declarations above are the complete callable form of the twelve law
-families frozen by the authenticated QPBT-015 scout. In particular,
+The declarations above are the complete 71-name callable contract: 25
+data/function declarations and 46 laws. In particular,
 `fieldElementIndex_testBit` fixes the ordered-codec coherence promised by G23,
 the dependent answer definition fixes the three repetition-one answer fibers,
-and every decider branch has an exact reduction theorem. The
-`BoundedUnivariatePolynomial.eval_zero` name deliberately states evaluation at
-argument zero equals coefficient zero, which is the fact used by G22's
-distinguished parameter; evaluation of the zero coefficient vector at an
-arbitrary argument remains a private implementation lemma.
+every decider branch has an exact reduction theorem, and the seven final laws
+fix the seed layout, elementary direction, least pivot, affine and question-line
+parameterizations, and general bounded-polynomial evaluation. The existing
+zero-evaluation law remains the fact used by G22's distinguished parameter.
 
 ## Combined-import compatibility gate
 
@@ -498,6 +540,13 @@ modules are combined; it does not authorize an orphan instance in Verifier.
 | Truncation | `i=chi(s)` is one-based and `pi_(i-1)` zeros the first `i-1` coordinates. | Zero-based `i : Fin m`. | Retain coordinates `i,...,m`. | Zero `j.val < i.val`, retain all later coordinates. | Exact. |
 | CL maps | The three paper registers, canonical lines, `chi`, and truncation. | A fixed `FieldVector` equivalence, `FieldData`, and divisibility. | Exact level-1/2/3 maps and line-point distributions. | The same maps, levels, and exact PMF pushforwards, subject only to G22/G23. | Faithful boundary. |
 | Bounded answers and decider | `(q,m,d,ldc)` with `ldc=1`, valid coefficient encodings, and line/point questions. | Typed scalar/coefficient-vector answers; G02 rejects malformed outer encodings. | Same-type consistency, both orientations of line/point evaluation, accept otherwise. | The exhaustive dependent Bool case split, including checked incidence and the G22 parameter. | Faithful boundary. |
+| Seed-register equivalence | The ambient register is identified with `(u,s,v) in F_q^m x F_q x F_q^m`. | `{k m}`, then `u`, `s`, `v`, and arbitrary `i : Fin (2*m+1)`; no hypothesis. | The three named registers retain their coordinates. | Point coordinates precede the selector and direction coordinates in the exact flattened map. | Faithful boundary data. |
+| Standard direction | Axis lines use the elementary basis vector `e_i`. | `{k m}`, then `i j : Fin m`; no hypothesis. | Coordinate `j` is one exactly at `i`. | The exact Kronecker coordinate formula. | Exact. |
+| Least nonzero coordinate | The one-row RREF uses the first nonzero pivot in standard coordinate order. | `{k m}`, then `v` and candidate `p`; no hypothesis. | The pivot exists exactly at the least nonzero coordinate. | `some p` iff `v p != 0` and `p <= j` for every nonzero coordinate `j`. | Exact off zero; compatible with G22. |
+| Affine point evaluation | `line(u,v) = {u+t v}` including `v=0`. | `{k m}`, then line and parameter; no hypothesis. | Evaluate the affine parameterization. | `base + t • direction`. | Exact. |
+| Axis question line | `(u0,s)` denotes direction `e_(chi(s))`. | `{k m}`, `D`, existing `hm`, then the question; no new premise. | The stored base and selected axis direction determine the line. | Exact structure equality with `standardDirection (chi D hm selector)`. | Exact modulo G23. |
+| Diagonal question line | `(u0,s,v)` denotes direction `pi_(chi(s)-1)(v)`. | `{k m}`, `D`, existing `hm`, then the question; no new premise. | The stored base and truncated direction determine the line. | Exact structure equality with zero-based `truncateDirection`. | Exact modulo G22/G23. |
+| General polynomial evaluation | A degree-at-most `d` polynomial is represented by `d+1` coefficients. | `{k degree}`, then coefficient vector and argument; no hypothesis. | Evaluation is the coefficient/exponent sum. | `sum_i f_i * t^i` over `Fin (degree+1)`. | Faithful finite-coefficient boundary. |
 
 ## Paper gaps
 
@@ -510,7 +559,7 @@ G02; neither is presented as a repaired theorem of the paper.
 ## A46 finding dispositions
 
 - `F046-A46-001`: resolved by authenticating A41 lines `161-596` and freezing
-  the exact 64-name declaration/law list, two direct imports, Game-layer owned
+  the exact 71-name declaration/law list, two direct imports, Game-layer owned
   path, source ranges, and zero-debt requirement in machine-checked metadata.
 - `F046-A46-002`: the typed F09A decider checks same-type equality, both
   line/point orientations, incidence rejection, accept-default, and the G22
