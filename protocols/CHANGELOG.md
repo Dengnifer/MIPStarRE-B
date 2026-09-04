@@ -1,5 +1,39 @@
 # Protocol Changelog
 
+## 0.1.14 candidate (QPBT-081) - 2026-09-04
+
+INC-087 records nine HTTP 429 failures across seven stable collaboration
+sessions while the root and nested orchestrators were filling capacity or
+resuming work. Five canonical issued rows account for seven failures; the
+QPBT-075 handoff authenticates two more first-turn failures in its parallel
+read-only children. Exact ledger times identify successful issuance and running
+transitions, not the rejected requests themselves, so the evidence supports a
+concurrent unstaggered transport burst but not a claimed provider rate window
+or literally simultaneous rejected-request timestamps.
+
+QPBT-081 adds one root-owned launch-class admission lane for bootstrap creation,
+task release, and resume across the complete collaboration tree. New-session
+admission is sequential from exact dry-run through bootstrap, confirmation, and
+task release, with no interleaved launch or resume. Launch-class requests have a
+5-second minimum stagger. A 429 keeps the lane and the same stable attempt,
+permits at most three retries using 10/20/40-second exponential base delays plus
+deterministic `[0, 5)`-second SHA-256-derived jitter, and ends no later than a
+120-second episode deadline. Exhaustion stops automatic requests, preserves
+planned bytes or the existing thread and worktree, and requires root escalation
+and explicit retry accounting; no sibling launch-class request runs before the
+quiet window ends. A later authorized episode reuses the same stable identity
+rather than inventing a replacement attempt.
+
+The restriction applies only to launch-class control traffic. Successfully
+admitted agents and ordinary running-turn communication remain parallel under
+the unchanged aggregate capacity, so useful steady-state concurrency is not
+reduced. This is a procedural candidate: the repository can enforce preflight,
+identity, confirmation, capacity, and no-mutation behavior, but no current local
+launcher wraps collaboration creation and resume calls. A dispatcher sleep
+would occur after the bootstrap transport and miss nested resumes, so QPBT-081
+adds no misleading partial code or test. Independent review remains required
+before activation.
+
 ## 0.1.13 candidate (QPBT-044) - 2026-09-03
 
 INC-050, INC-058, and INC-059 are the three occurrences of
