@@ -37666,7 +37666,7 @@
       "role": "reviewer",
       "issue_id": "QPBT-081",
       "attempt": 2,
-      "status": "running",
+      "status": "archived",
       "parent_session_id": "i001-coordinator-a01-bootstrap",
       "priority": 1,
       "backend": "codex-collaboration",
@@ -37680,6 +37680,59 @@
       "validation_command": "Authenticate manifest 3ec085f1 and exact candidate/evidence tuples; independently review retry arithmetic, stable-session semantics, nested coverage, parallelism preservation, and honest enforcement boundary; report /tmp/i081-reviewer-a02-protocol.md without writes or test traffic.",
       "result_envelope_path": "/tmp/i081-reviewer-a02-protocol.md",
       "started_at": "2026-09-04T04:42:39.254128Z",
+      "ended_at": "2026-09-04T04:50:06.154146Z",
+      "elapsed_seconds": 446.9,
+      "timing_quality": "runtime-measured",
+      "token_usage": {
+        "input": null,
+        "output": null,
+        "total": null,
+        "availability_reason": "Collaboration backend does not expose per-agent token usage"
+      },
+      "archive_status": "archived",
+      "outcome_path": "/tmp/i081-reviewer-a02-protocol.md",
+      "external_id": "/root/i081_reviewer_a02_protocol",
+      "agent_measured_elapsed_seconds": 253,
+      "source_report_sha256": "04ca8c0e1adfa664935a72e0bd7336900bb2fcc9a6a75e1061114732f3e92c2d",
+      "outcome": "request-changes-one-medium-evidence-gap",
+      "subagents": 0,
+      "checks": {
+        "manifest_sha256": "3ec085f128baddfd11bdbf9ce00ea142a1361f0a1b4bbad8915cd0319669dffb",
+        "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+        "report_sha256": "04ca8c0e1adfa664935a72e0bd7336900bb2fcc9a6a75e1061114732f3e92c2d",
+        "diff_check": "passed",
+        "workflow_validate": "passed",
+        "findings": {
+          "medium": 1
+        },
+        "repository_writes": 0,
+        "lean": 0,
+        "lake": 0,
+        "cache": 0,
+        "network": 0
+      },
+      "notes": "Protocol design, arithmetic, stable identity, nested coverage, quiet-window behavior, admitted-work parallelism, and enforcement boundary passed; one cited A28 handoff was absent from the immutable packet."
+    },
+    {
+      "id": "i081-reviewer-a03-evidence",
+      "name": "i081-reviewer-a03-evidence",
+      "role": "reviewer",
+      "issue_id": "QPBT-081",
+      "attempt": 3,
+      "status": "running",
+      "parent_session_id": "i001-coordinator-a01-bootstrap",
+      "priority": 1,
+      "backend": "codex-collaboration",
+      "pr_id": "LPR-041",
+      "read_only": true,
+      "base_revision": "32e4d20704de440f6f25d058939880e61849681d",
+      "base_revision_reason": "Immutable LPR-041 base; explicit unchanged-head re-review packet 410eec96 binds the previously omitted A28 handoff and A02 finding.",
+      "base_tree": "0f7febe78b43d4c385192f1bb196452d51fc232a",
+      "worktree": "/home/drx/MIPStarRE-auto/.workflow-runtime/worktrees/qpbt-081-rate-limit-a01",
+      "owned_paths": [],
+      "validation_command": "Authenticate manifest 410eec96 and every exact tuple; explicitly adjudicate F081-A02-001 on unchanged head c5a22399, reconfirm protocol invariants, and report /tmp/i081-reviewer-a03-evidence.md without writes, tests, network, builds, cache, or nested agents.",
+      "result_envelope_path": "/tmp/i081-reviewer-a03-evidence.md",
+      "started_at": "2026-09-04T04:53:35.886285Z",
       "ended_at": null,
       "elapsed_seconds": null,
       "timing_quality": null,
@@ -37691,7 +37744,7 @@
       },
       "archive_status": "not_requested",
       "outcome_path": null,
-      "external_id": "/root/i081_reviewer_a02_protocol"
+      "external_id": "/root/i081_reviewer_a03_evidence"
     }
   ]
 }

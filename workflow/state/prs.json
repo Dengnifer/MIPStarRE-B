@@ -10068,7 +10068,7 @@
     {
       "id": "LPR-041",
       "title": "docs(workflow): bound collaboration rate-limit retries",
-      "status": "ready",
+      "status": "changes_requested",
       "issue_ids": [
         "QPBT-081"
       ],
@@ -10091,12 +10091,48 @@
           "result": "Exact three-path patch b51d950a; workflow state valid; unrestricted workflow suite 418/418; candidate worktree clean."
         }
       ],
-      "reviews": [],
-      "findings": [],
+      "reviews": [
+        {
+          "id": "review-qpbt-081-pr041-a02-protocol",
+          "reviewer_session_id": "i081-reviewer-a02-protocol",
+          "verdict": "request_changes",
+          "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+          "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+          "started_at": "2026-09-04T04:43:33Z",
+          "completed_at": "2026-09-04T04:47:46Z",
+          "result_path": "/tmp/i081-reviewer-a02-protocol.md",
+          "finding_ids": [
+            "F081-A02-001"
+          ],
+          "formal_pr_review": true,
+          "report_sha256": "04ca8c0e1adfa664935a72e0bd7336900bb2fcc9a6a75e1061114732f3e92c2d",
+          "manifest_sha256": "3ec085f128baddfd11bdbf9ce00ea142a1361f0a1b4bbad8915cd0319669dffb",
+          "patch_sha256": "b51d950a8a865f9c22e9e94341864f5814ed262f33a0a0c28dddd8f413cce9dc",
+          "integration_gate": "Bind the exact cited QPBT-068 A28 handoff into a fresh immutable packet or remove the comparison, then obtain explicit exact-head re-review."
+        }
+      ],
+      "findings": [
+        {
+          "id": "F081-A02-001",
+          "introduced_review_id": "review-qpbt-081-pr041-a02-protocol",
+          "base_sha": "32e4d20704de440f6f25d058939880e61849681d",
+          "head_sha": "c5a223999a76baf15c4bb53002f354091930e5f2",
+          "severity": "medium",
+          "status": "open",
+          "disposition": "pending",
+          "disposition_evidence": null,
+          "resolved_by_review_id": null,
+          "confirmation_review_ids": [],
+          "summary": "The evidence report compares the canonical retry count with an A28 handoff field, but that handoff was absent from the immutable review packet.",
+          "path": "workflow/reviews/qpbt-081-rate-limit-retries-a01.md",
+          "line": 64,
+          "required_change": "Bind the exact A28 handoff identity and bytes into a fresh immutable packet, or remove the nonessential comparison, then explicitly re-review the unchanged head."
+        }
+      ],
       "integration_sha": null,
       "merged_at": null,
       "created_at": "2026-09-04T04:39:20.206453Z",
-      "updated_at": "2026-09-04T04:41:53.196838Z",
+      "updated_at": "2026-09-04T04:53:59.061713Z",
       "changed_paths": [
         "protocols/CHANGELOG.md",
         "protocols/orchestration.md",
@@ -10107,12 +10143,16 @@
       "testing": "Candidate exact identities and three-path ownership authenticated; workflow validation and unrestricted 418/418 workflow suite passed.",
       "addresses": "QPBT-081",
       "requested_external_review": true,
-      "unexecuted_gate": "Obtain one independent exact-manifest protocol review, then integrate against current main while reconciling the concurrent QPBT-068 CHANGELOG change.",
-      "review_status": "awaiting-independent-review",
-      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-081-review-manifest-a02.json",
-      "review_manifest_sha256": "3ec085f128baddfd11bdbf9ce00ea142a1361f0a1b4bbad8915cd0319669dffb",
+      "unexecuted_gate": "A03 must authenticate the newly bound A28 handoff, resolve F081-A02-001, and approve exact unchanged head c5a22399 before integration.",
+      "review_status": "explicit-unchanged-head-rereview-running",
+      "review_manifest": "/home/drx/MIPStarRE-auto/.workflow-runtime/qpbt-081-review-manifest-a03.json",
+      "review_manifest_sha256": "410eec968e3db0eb7859dd45ae8d7a31d2d0c9ff28f8599766af85f6beb38dd3",
       "candidate_producer_session_id": "i081-orchestrator-a01-rate-limit-retries",
-      "candidate_producer_binding_note": "The writer was dispatched before LPR-041 existed, so its immutable pr_id is null; preserve that authority and record the exact producer here rather than rewriting session history."
+      "candidate_producer_binding_note": "The writer was dispatched before LPR-041 existed, so its immutable pr_id is null; preserve that authority and record the exact producer here rather than rewriting session history.",
+      "review_session_ids": [
+        "i081-reviewer-a02-protocol",
+        "i081-reviewer-a03-evidence"
+      ]
     }
   ]
 }
