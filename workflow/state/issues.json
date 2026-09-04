@@ -5757,13 +5757,15 @@
         "Require a live scoped process and open-thread count before every launch, a 30-second stagger before a second worker, and a 60-second wait-and-recount when full.",
         "Disable multi-agent fan-out for every codex exec worker, prohibit collaboration threads, serialize reviewers, and retain independent work in free slots.",
         "On HTTP 429 wait 120 seconds and retry the same stable session once, then queue without a relaunch loop.",
-        "Exclude Track A paths and tmux authority, update the stage budget and changelog, pass workflow validation, and obtain fresh independent review."
+        "Exclude Track A paths and tmux authority, update the stage budget and changelog, pass workflow validation, and obtain fresh independent review.",
+        "When PID namespaces hide sibling workers, count every confirmed live unified exec or launcher handle in addition to visible scoped processes; a zero pgrep result cannot release a live handle slot."
       ],
       "owner_session_id": "i001-coordinator-a01-bootstrap",
       "source_refs": [
         "Owner directive dated 2026-09-04 in the active coordinator thread",
         "research/metrics/incidents.jsonl#INC-087",
-        "protocols/orchestration.md#shared-codex-concurrency-admission"
+        "protocols/orchestration.md#shared-codex-concurrency-admission",
+        "research/metrics/incidents.jsonl#INC-091"
       ],
       "owned_paths": [
         "AGENTS.md",
@@ -5775,9 +5777,9 @@
         "workflow/state/stages.json"
       ],
       "created_at": "2026-09-04T07:03:45.766516Z",
-      "updated_at": "2026-09-04T07:10:44.129824Z",
-      "blocked_reason": "Fresh independent review is required before activation is recorded complete.",
-      "unblock_condition": "A read-only leaf reviewer approves the exact committed protocol head and all validation gates pass."
+      "updated_at": "2026-09-04T07:24:51.252271Z",
+      "blocked_reason": "Initial immutable review is running, but INC-091 requires a changed-head handle-aware counting amendment and fresh rereview before closure.",
+      "unblock_condition": "Integrate handle-aware fallback accounting, validate the changed head, and obtain fresh independent approval."
     }
   ]
 }
